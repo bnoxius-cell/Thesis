@@ -12,13 +12,26 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
+        required: optional
     },
-    verifyOtp: {
+    authProvider: {
+        type: String,
+        enum: ['local', 'google'],
+        default: 'local'
+    },
+    googleId: {
+        type: String,
+        sparse: true
+    },
+    avatar: {
         type: String,
         default: ''
     },
-    verifyOtpExpireAt: {
+    verifyEmailOtp: {
+        type: String,
+        default: ''
+    },
+    verifyEmailOtpExpireAt: {
         type: Number,
         default: 0
     },
@@ -26,11 +39,11 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    resetOtp: {
+    resetPasswordOtp: {
         type: String,
         default: ''
     },
-    resetOtpExpireAt: {
+    resetPasswordOtpExpireAt: {
         type: Number,
         default: 0
     }
