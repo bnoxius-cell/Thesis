@@ -1,0 +1,11 @@
+{
+  "name": "stresscare-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix Thesis-main run dev",
+    "dev:open": "npm --prefix Thesis-main run dev:open",
+    "dev:server": "npm --prefix Thesis-main run dev:server",
+    "dev:client": "npm --prefix Thesis-main run dev:client"
+  }
+}
