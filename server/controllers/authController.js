@@ -162,5 +162,29 @@ export const verifyEmail = async (req, res) => {
     } catch (error) {
         return res.json({ success: false, message: error.message });
     }
-
 };
+
+export const isAuthenticated = async (req, res) => {
+    try {
+        return res.json({success: true, message: 'User is authenticated'})
+    } catch (error) {
+        return res.json({success: false, message: error.message})
+    }
+};
+
+export const sendResetPasswordOtp = async (req, res) => {
+    const { email } = req.body;
+    
+    try {} catch (error) {
+        return res.json({ success: false, message: error.message });
+    }
+};
+
+export const resetPassword = async (req, res) => {
+    const { email, otp, password } = req.body;
+
+    try {} catch (error) {
+        return res.json({ success: false, message: error.message });
+    }
+};
+
