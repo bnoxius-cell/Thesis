@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }) => {
     const guestUser = {
       _id: "guest_" + Date.now(),
       name: "Guest Student",
-      email: "guest@stresscare.io",
+      email: "guest@student.fatima.edu.ph",
       authProvider: "local",
     };
     setUser(guestUser);

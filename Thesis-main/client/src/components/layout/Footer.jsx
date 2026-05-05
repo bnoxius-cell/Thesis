@@ -10,9 +10,9 @@ export default function Footer() {
         </div>
 
         <div className="footer-center">
-          <a href="#">Dashboard</a>
-          <a href="#">Assessment</a>
-          <a href="#">Reports</a>
+          <a href="#dashboard">Dashboard</a>
+          <a href="#assessment">Assessment</a>
+          <a href="#reports">Reports</a>
         </div>
 
         <div className="footer-right">

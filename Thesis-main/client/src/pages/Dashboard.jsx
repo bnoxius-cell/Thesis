@@ -7,6 +7,7 @@ import TaskBoard from "../components/TaskBoard";
 import "../App.css";
 
 const STORAGE_KEY = "stresscare-dashboard";
+const SCHOOL_EMAIL_DOMAIN = "@student.fatima.edu.ph";
 
 const initialProfile = {
   studentName: "",
@@ -14,15 +15,6 @@ const initialProfile = {
   studyHoursPerDay: 4,
   sleepHours: 7,
   wellbeingGoal: "steady",
-};
-
-const initialTaskForm = {
-  title: "",
-  course: "",
-  dueDate: "",
-  hours: 3,
-  difficulty: 3,
-  importance: 3,
 };
 
 const seededTasks = [
@@ -110,7 +102,7 @@ function buildSchedule(tasks, profile) {
     const { daysLeft } = getTaskMetrics(task);
     const maxSpread = Math.min(Math.max(daysLeft, 0), days.length - 1);
 
-    for (let dayIndex = 0; dayIndex <= maxSpread && remainingHours > 0; dayIndex += 1) {
+for (let dayIndex = 0; dayIndex <= maxSpread && remainingHours > 0; dayIndex += 1) {
       const day = days[dayIndex];
       const available = Math.max(capacity - day.load, 0.5);
       const chunk = Math.min(remainingHours, Math.max(available, remainingHours / (maxSpread + 1 - dayIndex)));
@@ -193,7 +185,6 @@ function buildInsights(tasks, profile, schedule) {
 
 const Dashboard = () => {
   const [profile, setProfile] = useState(initialProfile);
-  const [taskForm, setTaskForm] = useState(initialTaskForm);
   const [tasks, setTasks] = useState(seededTasks);
   const { user, login, register, continueAsGuest } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
@@ -234,9 +225,23 @@ const Dashboard = () => {
     setLoading(true);
     setError('');
 
+    const email = formData.email.trim().toLowerCase();
+
+    if (!email.endsWith(SCHOOL_EMAIL_DOMAIN)) {
+      setError(`Use your Fatima student email ending in ${SCHOOL_EMAIL_DOMAIN}.`);
+      setLoading(false);
+      return;
+    }
+
+    if (!isLogin && formData.password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      setLoading(false);
+      return;
+    }
+
     const authPromise = isLogin 
-      ? login(formData.email, formData.password)
-      : register(formData.name, formData.email, formData.password);
+      ? login(email, formData.password)
+      : register(formData.name.trim(), email, formData.password);
 
     authPromise
       .then(() => {
@@ -276,34 +281,6 @@ const Dashboard = () => {
     }));
   };
 
-  const updateTaskForm = (key, value) => {
-    setTaskForm((current) => ({
-      ...current,
-      [key]: value,
-    }));
-  };
-
-  const handleAddTask = (event) => {
-    event.preventDefault();
-
-    if (!taskForm.title.trim() || !taskForm.course.trim() || !taskForm.dueDate) {
-      return;
-    }
-
-    const newTask = {
-      id: Date.now(),
-      title: taskForm.title.trim(),
-      course: taskForm.course.trim(),
-      dueDate: taskForm.dueDate,
-      hours: Number(taskForm.hours),
-      difficulty: Number(taskForm.difficulty),
-      importance: Number(taskForm.importance),
-    };
-
-    setTasks((current) => [...current, newTask]);
-    setTaskForm(initialTaskForm);
-  };
-
   const handleDeleteTask = (id) => {
     setTasks((current) => current.filter((task) => task.id !== id));
   };
@@ -312,101 +289,110 @@ const Dashboard = () => {
     return (
       <div className="app">
         <Header />
-        <main className="dashboard">
-          <section className="hero" id="login">
-            <div className="hero-copy">
-              <span className="eyebrow">Welcome to StressCare</span>
-              <h1>Sign in to manage your academic workload</h1>
-              <p>Access your personalized dashboard to plan tasks, track progress, and maintain balance.</p>
+        <main className="auth-page">
+          <section className="auth-shell" id="login">
+            <div className="auth-copy">
+              <span className="eyebrow">Student workload system</span>
+              <h1>Plan personal tasks and group work from one dashboard.</h1>
+              <p>
+                Sign in with your Fatima student email to create tasks, prepare group sharing,
+                and keep the first demo loop clear for the panel.
+              </p>
+
+              <div className="auth-preview" aria-label="Phase one demo flow">
+                <span>School email login</span>
+                <span>Personal task board</span>
+                <span>Group-ready workflow</span>
+              </div>
             </div>
-            <div className="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-8 mt-8">
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {isLogin ? 'Sign In' : 'Create Account'}
-                </h2>
-                <p className="text-gray-500 mt-2">
-                  {isLogin ? 'Welcome back to StressCare' : 'Join StressCare today'}
+            <div className="auth-card">
+              <div className="auth-card-header">
+                <span className="panel-kicker">{isLogin ? 'Welcome back' : 'Create profile'}</span>
+                <h2>{isLogin ? 'Sign in' : 'Student signup'}</h2>
+                <p>
+                  {isLogin
+                    ? 'Use your school account to open your dashboard.'
+                    : 'Create the profile used by the task and group modules.'}
                 </p>
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl text-sm mb-4">
+                <div className="form-error">
                   {error}
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="auth-form">
                 {!isLogin && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Full Name
-                    </label>
+                  <label>
+                    Full Name
                     <input
                       type="text"
                       name="name"
                       value={formData.name}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="John Doe"
+                      placeholder="Juan Dela Cruz"
                       required={!isLogin}
                     />
-                  </div>
+                  </label>
                 )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
-                  </label>
+                <label>
+                  Email
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="student@university.edu"
+                    placeholder={`name${SCHOOL_EMAIL_DOMAIN}`}
                     required
                   />
-                </div>
+                </label>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Password
-                  </label>
+                <label>
+                  Password
                   <input
                     type="password"
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="••••••••"
                     required
                   />
-                </div>
+                </label>
 
                 <button
                   type="submit"
                   disabled={loading}
                   className="primary-button"
-                  style={{ width: '100%', padding: '14px 18px' }}
                 >
                   {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
                 </button>
               </form>
 
-              <div className="text-center mt-6">
+              <div className="auth-actions">
                 <button
                   type="button"
-                  onClick={isLogin ? handleSignupAccess : () => setIsLogin(true)}
+                  onClick={() => {
+                    setError('');
+                    setIsLogin((current) => !current);
+                  }}
                   className="secondary-button"
-                  style={{ width: '100%', padding: '12px 18px' }}
                 >
                   {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSignupAccess}
+                  className="ghost-button"
+                >
+                  Continue as demo student
                 </button>
               </div>
             </div>
           </section>
         </main>
-    <Footer onDashboardClick={continueAsGuest} />
+        <Footer />
       </div>
     );
   }
@@ -457,153 +443,14 @@ const Dashboard = () => {
               <li>Peak day: {insights.peakDay.label}</li>
               <li>Overdue tasks: {insights.overdueCount}</li>
               <li>Daily study capacity: {profile.studyHoursPerDay} hrs</li>
+              <li>Student: {profile.studentName || 'Not set'} ({profile.program})</li>
+              <li>Sleep target: {profile.sleepHours} hrs</li>
+              <li>Goal: {profile.wellbeingGoal.replace('-', ' ')}</li>
             </ul>
+            <p className="profile-note">
+              <small>Edit profile <a href="/profile">here</a></small>
+            </p>
           </aside>
-        </section>
-
-        <section className="grid">
-          <section className="panel form-panel" id="assessment">
-            <div className="panel-heading">
-              <div>
-                <span className="panel-kicker">Student profile</span>
-                <h2>Set your weekly capacity</h2>
-              </div>
-            </div>
-
-            <div className="form-grid compact">
-              <label>
-                Student name
-                <input
-                  type="text"
-                  placeholder="Juan Dela Cruz"
-                  value={profile.studentName}
-                  onChange={(event) => updateProfile("studentName", event.target.value)}
-                />
-              </label>
-
-              <label>
-                Program
-                <input
-                  type="text"
-                  value={profile.program}
-                  onChange={(event) => updateProfile("program", event.target.value)}
-                />
-              </label>
-
-              <label>
-                Study hours per day
-                <input
-                  type="number"
-                  min="1"
-                  max="12"
-                  value={profile.studyHoursPerDay}
-                  onChange={(event) => updateProfile("studyHoursPerDay", Number(event.target.value))}
-                />
-              </label>
-
-              <label>
-                Sleep hours
-                <input
-                  type="number"
-                  min="1"
-                  max="12"
-                  value={profile.sleepHours}
-                  onChange={(event) => updateProfile("sleepHours", Number(event.target.value))}
-                />
-              </label>
-
-              <label className="full-span">
-                Wellbeing goal
-                <select
-                  value={profile.wellbeingGoal}
-                  onChange={(event) => updateProfile("wellbeingGoal", event.target.value)}
-                >
-                  <option value="steady">Stay balanced</option>
-                  <option value="catch-up">Recover from backlog</option>
-                  <option value="high-performance">Push for high performance</option>
-                </select>
-              </label>
-            </div>
-          </section>
-
-          <section className="panel form-panel">
-            <div className="panel-heading">
-              <div>
-                <span className="panel-kicker">Task intake</span>
-                <h2>Add academic tasks</h2>
-              </div>
-            </div>
-
-            <form className="form-grid" onSubmit={handleAddTask}>
-              <label className="full-span">
-                Task title
-                <input
-                  type="text"
-                  placeholder="Network security lab report"
-                  value={taskForm.title}
-                  onChange={(event) => updateTaskForm("title", event.target.value)}
-                />
-              </label>
-
-              <label>
-                Course
-                <input
-                  type="text"
-                  placeholder="Network Security"
-                  value={taskForm.course}
-                  onChange={(event) => updateTaskForm("course", event.target.value)}
-                />
-              </label>
-
-              <label>
-                Deadline
-                <input
-                  type="date"
-                  value={taskForm.dueDate}
-                  onChange={(event) => updateTaskForm("dueDate", event.target.value)}
-                />
-              </label>
-
-              <label>
-                Estimated hours
-                <input
-                  type="number"
-                  min="1"
-                  max="40"
-                  value={taskForm.hours}
-                  onChange={(event) => updateTaskForm("hours", event.target.value)}
-                />
-              </label>
-
-              <label>
-                Difficulty
-                <input
-                  type="range"
-                  min="1"
-                  max="5"
-                  value={taskForm.difficulty}
-                  onChange={(event) => updateTaskForm("difficulty", event.target.value)}
-                />
-                <span className="range-value">{taskForm.difficulty}/5</span>
-              </label>
-
-              <label>
-                Importance
-                <input
-                  type="range"
-                  min="1"
-                  max="5"
-                  value={taskForm.importance}
-                  onChange={(event) => updateTaskForm("importance", event.target.value)}
-                />
-                <span className="range-value">{taskForm.importance}/5</span>
-              </label>
-
-              <button className="primary-button full-span" type="submit">
-                Add task to planner
-              </button>
-            </form>
-          </section>
         </section>
 
         <section className="grid analytics-grid">
@@ -648,7 +495,7 @@ const Dashboard = () => {
         </section>
       </main>
 
-  <Footer onDashboardClick={continueAsGuest} />
+      <Footer />
     </div>
   );
 };

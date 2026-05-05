@@ -1,6 +1,7 @@
 import "./Header.css";
 import { useAuth } from "../../context/AuthContext";
-import { LogOut } from 'lucide-react';
+import { LogOut, UserCircle, User, Plus, Info, Settings, Users, UserCheck, Bell } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -8,21 +9,54 @@ export default function Header() {
   return (
     <header className="header">
       <div className="logo">
-        Stress<span>Care</span>
+        <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+          Stress<span>Care</span>
+        </Link>
       </div>
 
       <nav className="nav">
         {user ? (
           <>
-            <span className="user-info text-gray-700 font-medium">
+            <div className="menu">
+              <Link to="/profile" className="menu-item">
+                <User size={16} />
+                Profile
+              </Link>
+              <Link to="/create-task" className="menu-item">
+                <Plus size={16} />
+                Create Task
+              </Link>
+              <Link to="/about" className="menu-item">
+                <Info size={16} />
+                About
+              </Link>
+              <Link to="/settings" className="menu-item">
+                <Settings size={16} />
+                Settings
+              </Link>
+              <Link to="/groups" className="menu-item">
+                <Users size={16} />
+                Groups
+              </Link>
+              <Link to="/friends" className="menu-item">
+                <UserCheck size={16} />
+                Friends
+              </Link>
+              <Link to="/notifications" className="menu-item">
+                <Bell size={16} />
+                Notifications
+              </Link>
+            </div>
+            <span className="user-info">
+              <UserCircle size={18} />
               Hi, {user.name?.split(' ')[0] || 'Student'}
             </span>
             <button 
               onClick={logout} 
-              className="logout-btn flex items-center gap-1 font-medium transition-colors"
+              className="logout-btn"
               title="Logout"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut size={17} />
               Logout
             </button>
           </>
