@@ -1,7 +1,7 @@
 import { Observable, from, throwError } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import axios from 'axios';
-import { User, AuthResponse } from './user.interface';
+import { User, AuthResponse } from '../interfaces/user.interface';
 
 const API_BASE = 'http://localhost:5000/api/auth';
 

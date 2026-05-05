@@ -1,5 +1,5 @@
 import "./Header.css";
-import { useAuth } from "./context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { LogOut } from 'lucide-react';
 
 export default function Header() {

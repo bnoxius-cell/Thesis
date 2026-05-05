@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Dashboard from './Dashboard';
+import Dashboard from './pages/Dashboard';
 import './App.css';
 
 const AppContent = () => {

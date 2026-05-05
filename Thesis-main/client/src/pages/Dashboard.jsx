@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "./context/AuthContext";
-import Header from "./Header";
-import Footer from "./Footer";
-import WorkloadChart from "./components/WorkloadChart";
-import TaskBoard from "./components/TaskBoard";
-import "./App.css";
+import { useAuth } from "../context/AuthContext";
+import Header from "../components/layout/Header";
+import Footer from "../components/layout/Footer";
+import WorkloadChart from "../components/WorkloadChart";
+import TaskBoard from "../components/TaskBoard";
+import "../App.css";
 
 const STORAGE_KEY = "stresscare-dashboard";
 
