@@ -2,7 +2,8 @@ import mongoose from 'mongoose'
 
 const connectDB = async () => {
     if (!process.env.MONGO_URI) {
-        throw new Error('MONGO_URI is missing. Create Thesis-main/server/.env and add your MongoDB connection string.')
+        console.warn('MONGO_URI is missing. Server will run in demo mode with admin@stresscare.com login only.');
+        return false;
     }
 
     mongoose.connection.on('connected', () => {
@@ -10,6 +11,7 @@ const connectDB = async () => {
     })
 
     await mongoose.connect(process.env.MONGO_URI);
+    return true;
 }
 
 export default connectDB;

@@ -16,13 +16,14 @@
     "nodemon": "^3.1.14"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.3",
+    "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1",
+    "express": "^4.21.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.5.0",
-    "nodemailer": "^8.0.5"
+    "nodemailer": "^8.0.5",
+    "stresscare-workspace": "file:../.."
   }
 }

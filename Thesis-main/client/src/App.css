@@ -232,7 +232,8 @@ input[type="range"] {
 }
 
 .primary-button,
-.ghost-button {
+.ghost-button,
+.secondary-button {
   border: none;
   border-radius: 16px;
   padding: 14px 18px;
@@ -244,6 +245,19 @@ input[type="range"] {
   background: linear-gradient(135deg, #dc2626, #fb7185);
   color: #fff;
   box-shadow: 0 16px 30px rgba(239, 68, 68, 0.2);
+}
+
+.secondary-button {
+  background: #fff;
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.08);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.secondary-button:hover {
+  background: rgba(220, 38, 38, 0.08);
+  color: #b91c1c;
 }
 
 .ghost-button {

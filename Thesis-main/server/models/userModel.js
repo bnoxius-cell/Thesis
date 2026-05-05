@@ -12,7 +12,8 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: optional
+        required: true,
+        minlength: 6
     },
     authProvider: {
         type: String,
@@ -49,6 +50,12 @@ const userSchema = new mongoose.Schema({
     }
 }) 
 
-const userModel = mongoose.models.user || mongoose.model('user', userSchema)
+const userModel = mongoose.models.user || mongoose.model('User', userSchema)
+
+userSchema.methods.toJSON = function () {
+  const user = this.toObject();
+  delete user.password;
+  return user;
+};
 
 export default userModel;

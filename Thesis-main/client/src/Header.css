@@ -20,6 +20,7 @@
 .nav {
   display: flex;
   gap: 20px;
+  align-items: center;
 }
 
 .nav a {
@@ -30,5 +31,20 @@
 }
 
 .nav a:hover {
+  color: #ef4444;
+}
+
+/* New logout button style – matches .nav a theme */
+.logout-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: inherit;
+  font-weight: 500;
+  color: #b91c1c;
+  transition: 0.3s;
+}
+
+.logout-btn:hover {
   color: #ef4444;
 }
