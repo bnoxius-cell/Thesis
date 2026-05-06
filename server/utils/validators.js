@@ -45,3 +45,16 @@ export const validateVerifyEmailFields = (userId, otp) => {
 
     return { isValid: true };
 };
+
+export const validateResetPasswordFields = (email, otp, password) => {
+    if (!email) {
+        return res.json({ isValid: false, message: 'Email is required'})
+    }
+    if (!newPassword) {
+        return res.json({ isValid: false, message: 'New password is required' })
+    }
+    if (!otp) {
+        return res.json({ isValid: false, message: 'OTP is required' })
+    }
+    return { isValid: true };
+};

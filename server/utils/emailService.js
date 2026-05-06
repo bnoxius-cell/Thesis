@@ -50,7 +50,7 @@ export const sendWelcomeEmail = async (email) => {
     });
 };
 
-export const sendVerifyOtpEmail = async (email, otp) => {
+export const sendVerifyEmailOtp= async (email, otp) => {
     const content = `
         <h2 style="margin: 0 0 16px 0; color: #0f172a; font-size: 24px; font-weight: 600;">Verify your email address</h2>
         <p style="margin: 0 0 24px 0; color: #475569; font-size: 16px; line-height: 1.5;">
