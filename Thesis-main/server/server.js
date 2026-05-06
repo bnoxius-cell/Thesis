@@ -10,6 +10,7 @@ import authMiddleware from './middleware/auth.js';
 import 'dotenv/config'
 
 let mongoConnected = false;
+const SCHOOL_EMAIL_DOMAIN = '@student.fatima.edu.ph';
 
 // init app
 const app = express();
@@ -34,7 +35,13 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ message: 'Please fill all fields' });
     }
 
-    const existingUser = await User.findOne({ email });
+    const normalizedEmail = email.toLowerCase();
+
+    if (!normalizedEmail.endsWith(SCHOOL_EMAIL_DOMAIN)) {
+      return res.status(403).json({ message: `Use a Fatima student email ending in ${SCHOOL_EMAIL_DOMAIN}` });
+    }
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
@@ -44,7 +51,7 @@ app.post('/api/auth/register', async (req, res) => {
 
     const user = await User.create({ 
       name, 
-      email, 
+      email: normalizedEmail,
       password: hashedPassword 
     });
 
@@ -65,13 +72,14 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = email?.toLowerCase() || '';
 
     // Demo account
-    if (email === 'admin@stresscare.com' && password === 'admin') {
+    if (normalizedEmail === 'admin@student.fatima.edu.ph' && password === 'admin') {
       const demoUser = {
         _id: 'demo',
-        name: 'Admin User',
-        email: 'admin@stresscare.com',
+        name: 'Demo Student',
+        email: 'admin@student.fatima.edu.ph',
         authProvider: 'local',
         isAccountVerified: true,
       };
@@ -85,10 +93,14 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     if (!mongoConnected) {
-      return res.status(503).json({ message: 'Database unavailable. Only admin@stresscare.com login is available in demo mode.' });
+      return res.status(503).json({ message: 'Database unavailable. Only admin@student.fatima.edu.ph login is available in demo mode.' });
     }
 
-    const user = await User.findOne({ email });
+    if (!normalizedEmail.endsWith(SCHOOL_EMAIL_DOMAIN)) {
+      return res.status(403).json({ message: `Use a Fatima student email ending in ${SCHOOL_EMAIL_DOMAIN}` });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
@@ -134,10 +146,9 @@ const startServer = async () => {
         console.log(`Server running on port ${PORT}`);
         console.log('Auth endpoints: POST /api/auth/register, POST /api/auth/login');
         if (!mongoConnected) {
-            console.log('Running in demo mode: registration is disabled and only admin@stresscare.com works for login.');
+            console.log('Running in demo mode: registration is disabled and only admin@student.fatima.edu.ph works for login.');
         }
     });
 };
 
 startServer();
-
