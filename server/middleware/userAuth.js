@@ -6,11 +6,12 @@ const userAuth = async (req, res, next) => {
     if (!token) {
         return res.json({ success: false, message: 'Unauthorized' });
     }
+    
     try {
         const tokenDecode = jwt.verify(token, process.env.JWT_SECRET);
 
         if (tokenDecode.id) {
-            req.userId = tokenDecode.id;
+            req.body.userId = tokenDecode.id;
         } else {
             return res.json({ success: false, message: 'Unauthorized' });
         }

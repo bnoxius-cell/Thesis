@@ -19,7 +19,7 @@ const baseHtmlTemplate = (content) => `
                     
                     <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0 20px 0;" />
                     <p style="margin: 0; color: #94a3b8; font-size: 12px; text-align: center;">
-                        This is an automated message from Resourcery. Please do not reply to this email.
+                        This is an automated message from Stress Care. Please do not reply to this email.
                     </p>
                 </div>
             </td>
@@ -33,9 +33,9 @@ const baseHtmlTemplate = (content) => `
 
 export const sendWelcomeEmail = async (email) => {
     const content = `
-        <h2 style="margin: 0 0 16px 0; color: #0f172a; font-size: 24px; font-weight: 600;">Welcome to Resourcery</h2>
+        <h2 style="margin: 0 0 16px 0; color: #0f172a; font-size: 24px; font-weight: 600;">Welcome to Stress Care</h2>
         <p style="margin: 0 0 24px 0; color: #475569; font-size: 16px; line-height: 1.5;">
-            Your account has been successfully created. Resourcery is designed to provide you with secure, reliable tools for your stress management journey.
+            Your account has been successfully created. Stress Care is designed to provide you with secure, reliable tools for your stress management journey.
         </p>
         <p style="margin: 0; color: #475569; font-size: 16px; line-height: 1.5;">
             You can now log in to access your dashboard and begin setting up your profile.
@@ -43,9 +43,9 @@ export const sendWelcomeEmail = async (email) => {
     `;
 
     await transporter.sendMail({
-        from: `"Resourcery" <${process.env.SENDER_EMAIL}>`,
+        from: `"Stress Care" <${process.env.SENDER_EMAIL}>`,
         to: email,
-        subject: 'Welcome to Resourcery',
+        subject: 'Welcome to Stress Care',
         html: baseHtmlTemplate(content)
     });
 };
@@ -67,7 +67,7 @@ export const sendVerifyEmailOtp= async (email, otp) => {
     `;
 
     await transporter.sendMail({
-        from: `"Resourcery Support" <${process.env.SENDER_EMAIL}>`,
+        from: `"Stress Care Support" <${process.env.SENDER_EMAIL}>`,
         to: email,
         subject: 'Verify your email address',
         html: baseHtmlTemplate(content)
@@ -91,7 +91,7 @@ export const sendPasswordResetEmail = async (email, otp) => {
     `;
 
     await transporter.sendMail({
-        from: `"Resourcery Security" <${process.env.SENDER_EMAIL}>`,
+        from: `"Stress Care Security" <${process.env.SENDER_EMAIL}>`,
         to: email,
         subject: 'Password reset request',
         html: baseHtmlTemplate(content)
@@ -102,7 +102,7 @@ export const sendPasswordResetSuccessEmail = async (email) => {
     const content = `
         <h2 style="margin: 0 0 16px 0; color: #0f172a; font-size: 24px; font-weight: 600;">Password successfully updated</h2>
         <p style="margin: 0 0 24px 0; color: #475569; font-size: 16px; line-height: 1.5;">
-            This email is to confirm that the password for your Resourcery account has been successfully changed.
+            This email is to confirm that the password for your Stress Care account has been successfully changed.
         </p>
         <p style="margin: 0; color: #475569; font-size: 16px; line-height: 1.5;">
             If you made this change, no further action is required. If you did not authorize this change, please contact support immediately.
@@ -110,7 +110,7 @@ export const sendPasswordResetSuccessEmail = async (email) => {
     `;
 
     await transporter.sendMail({
-        from: `"Resourcery Security" <${process.env.SENDER_EMAIL}>`,
+        from: `"Stress Care Security" <${process.env.SENDER_EMAIL}>`,
         to: email,
         subject: 'Password successfully updated',
         html: baseHtmlTemplate(content)

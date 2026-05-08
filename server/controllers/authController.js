@@ -51,7 +51,7 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     const validate = validateLoginFields(email, password);
     if (!validate.isValid) {
@@ -109,6 +109,10 @@ export const sendVerifyOtp = async (req, res) => {
 
         const user = await userModel.findById(userId);
 
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
         if (user.isAccountVerified) {
             return res.json({success: false, message: 'Email is already verified.'});
         }
@@ -141,10 +145,10 @@ export const verifyEmail = async (req, res) => {
         if (!user) {
             return res.json({ success: false, message: 'User not found.' });
         }
-        if (user.verifyOtp === '' || user.verifyOtp != otp) {
+        if (user.verifyEmailOtp === '' || user.verifyEmailOtp != otp) {
             return res.json({ success: false, message: 'Invalid OTP.' })
         }
-        if (user.verifyOtpExpireAt < Date.now()) {
+        if (user.verifyEmailOtpExpireAt < Date.now()) {
             return res.json({success: false, message: 'OTP has expired.'})
         }
 
