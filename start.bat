@@ -1,59 +1,75 @@
 @echo off
-setlocal
+setlocal EnableExtensions
+
 title StressCare Launcher
 
+:: ===== ROOT PATH =====
 set "ROOT_DIR=%~dp0"
 set "APP_DIR=%ROOT_DIR%Thesis-main"
 
-cd /d "%ROOT_DIR%"
+echo ==============================
+echo   StressCare Launcher
+echo ==============================
+echo.
 
-where node >nul 2>&1
-if errorlevel 1 (
-    echo Node.js is not installed or not added to PATH.
+:: ===== CHECK NODE =====
+where node >nul 2>&1 || (
+    echo [ERROR] Node.js is not installed or not in PATH.
     pause
     exit /b 1
 )
 
-where npm >nul 2>&1
-if errorlevel 1 (
-    echo npm is not installed or not added to PATH.
+:: ===== CHECK NPM =====
+where npm >nul 2>&1 || (
+    echo [ERROR] npm is not installed or not in PATH.
     pause
     exit /b 1
 )
 
+:: ===== CHECK PROJECT =====
 if not exist "%APP_DIR%\package.json" (
-    echo App folder not found: %APP_DIR%
+    echo [ERROR] App folder not found:
+    echo %APP_DIR%
     pause
     exit /b 1
 )
 
-call :install_if_needed "%APP_DIR%" "app"
-if errorlevel 1 exit /b 1
+cd /d "%APP_DIR%"
 
-call :install_if_needed "%APP_DIR%\client" "client"
-if errorlevel 1 exit /b 1
-
-call :install_if_needed "%APP_DIR%\server" "server"
-if errorlevel 1 exit /b 1
-
-echo Starting StressCare...
-cd /d "%ROOT_DIR%"
-call npm.cmd run dev:open
-exit /b %errorlevel%
-
-:install_if_needed
-set "TARGET_DIR=%~1"
-set "LABEL=%~2"
-
-if exist "%TARGET_DIR%\node_modules" exit /b 0
-
-echo Installing %LABEL% dependencies...
-cd /d "%TARGET_DIR%"
-call npm.cmd install
-if errorlevel 1 (
-    echo Failed to install %LABEL% dependencies.
-    pause
-    exit /b 1
+:: ===== INSTALL ROOT DEPENDENCIES =====
+if not exist "node_modules" (
+    echo Installing root dependencies...
+    call npm install || goto :error
 )
+
+:: ===== INSTALL CLIENT =====
+if not exist "client\node_modules" (
+    echo Installing client dependencies...
+    cd client
+    call npm install || goto :error
+    cd ..
+)
+
+:: ===== INSTALL SERVER =====
+if not exist "server\node_modules" (
+    echo Installing server dependencies...
+    cd server
+    call npm install || goto :error
+    cd ..
+)
+
+:: ===== START SYSTEM =====
+echo.
+echo Starting StressCare system...
+echo.
+
+cd /d "%APP_DIR%"
+call npm run dev:open
 
 exit /b 0
+
+:error
+echo.
+echo [FAILED] Something went wrong during installation or startup.
+pause
+exit /b 1
