@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import TaskCreation from './pages/TaskCreation';
+import AuthPage from './pages/authentication/AuthPage';
 import './App.css';
 
 const AppContent = () => {
@@ -10,6 +11,7 @@ const AppContent = () => {
     <Router>
       <Routes>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/auth" element={<AuthPage />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/create-task" element={<TaskCreation />} />
         <Route path="*" element={<Navigate to="/" replace />} />
