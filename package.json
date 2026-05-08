@@ -1,11 +1,27 @@
 {
-  "name": "stresscare-workspace",
+  "name": "thesis",
   "version": "1.0.0",
-  "private": true,
+  "description": "Thesis Project: StressCare - A Web-Based Stress Management Application for College Students",
+  "main": "index.js",
   "scripts": {
-    "dev": "npm --prefix Thesis-main run dev",
-    "dev:open": "npm --prefix Thesis-main run dev:open",
-    "dev:server": "npm --prefix Thesis-main run dev:server",
-    "dev:client": "npm --prefix Thesis-main run dev:client"
+    "dev:server": "cd server && npx nodemon server.js",
+    "dev:client": "cd client && npm run dev",
+    "dev": "concurrently -k -n \"server,client\" -c \"cyan,magenta\" \"npm run dev:server\" \"npm run dev:client\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bnoxius-cell/Thesis.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/bnoxius-cell/Thesis/issues"
+  },
+  "homepage": "https://github.com/bnoxius-cell/Thesis#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }
