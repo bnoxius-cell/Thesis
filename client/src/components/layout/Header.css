@@ -1,3 +1,4 @@
+/* Header.css - theme-aware using CSS variables */
 .header {
   position: sticky;
   top: 0;
@@ -6,9 +7,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px max(24px, calc((100vw - 1200px) / 2));
-  color: #991b1b;
-  background: rgba(255, 255, 255, 0.92);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  color: var(--header-text, #991b1b);
+  background: var(--header-bg, rgba(255, 255, 255, 0.92));
+  border-bottom: 1px solid var(--header-border, rgba(148, 163, 184, 0.18));
   box-shadow: 0 12px 36px rgba(15, 23, 42, 0.05);
   backdrop-filter: blur(16px);
 }
@@ -20,7 +21,7 @@
 }
 
 .logo span {
-  color: #ef4444;
+  color: #ef4444; /* keep red accent always */
 }
 
 .nav {
@@ -39,23 +40,23 @@
 }
 
 .user-info {
-  color: #334155;
+  color: var(--user-info-color, #334155);
 }
 
 .logout-btn {
   padding: 10px 14px;
-  color: #991b1b;
+  color: var(--logout-btn-color, #991b1b);
   cursor: pointer;
-  background: #fff;
-  border: 1px solid rgba(185, 28, 28, 0.18);
+  background: var(--logout-btn-bg, #fff);
+  border: 1px solid var(--logout-btn-border, rgba(185, 28, 28, 0.18));
   border-radius: 999px;
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .logout-btn:hover {
-  color: #b91c1c;
-  background: #fff1f2;
-  border-color: rgba(185, 28, 28, 0.35);
+  color: var(--logout-btn-hover-color, #b91c1c);
+  background: var(--logout-btn-hover-bg, #fff1f2);
+  border-color: var(--logout-btn-hover-border, rgba(185, 28, 28, 0.35));
 }
 
 .menu {
@@ -71,7 +72,7 @@
   gap: 6px;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--menu-item-color, #334155);
   text-decoration: none;
   padding: 8px 12px;
   border-radius: 6px;
@@ -79,8 +80,8 @@
 }
 
 .menu-item:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: var(--menu-item-hover-bg, #f1f5f9);
+  color: var(--menu-item-hover-color, #0f172a);
 }
 
 @media (max-width: 640px) {
