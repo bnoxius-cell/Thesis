@@ -1,7 +1,7 @@
 {
   "name": "thesis",
   "version": "1.0.0",
-  "description": "��#\u0000 \u0000T\u0000h\u0000e\u0000s\u0000i\u0000s\u0000\r\u0000 \u0000",
+  "description": "Thesis Project: StressCare - A Web-Based Stress Management Application for College Students",
   "main": "index.js",
   "scripts": {
     "dev:server": "cd server && npx nodemon server.js",
