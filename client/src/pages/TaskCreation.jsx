@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom"; // <-- add this
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import "../App.css";
+
+const STORAGE_KEY = "stresscare-dashboard";
 
 const initialTaskForm = {
   title: "",
@@ -15,6 +18,7 @@ const initialTaskForm = {
 
 export default function TaskCreation() {
   const { user } = useAuth();
+  const navigate = useNavigate(); // <-- for redirect
   const [taskForm, setTaskForm] = useState(initialTaskForm);
   const [message, setMessage] = useState("");
 
@@ -43,9 +47,30 @@ export default function TaskCreation() {
       importance: Number(taskForm.importance),
     };
 
-    console.log("New task created:", newTask);
-    setMessage("Task created successfully!");
+    // --- PERSIST TO LOCALSTORAGE ---
+    const saved = localStorage.getItem(STORAGE_KEY);
+    let existingData = { profile: {}, tasks: [] };
+    if (saved) {
+      try {
+        existingData = JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse localStorage", e);
+      }
+    }
+    const updatedTasks = [...(existingData.tasks || []), newTask];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      profile: existingData.profile,
+      tasks: updatedTasks,
+    }));
+    // --- END PERSIST ---
+
+    setMessage("Task created successfully! Redirecting to dashboard...");
     setTaskForm(initialTaskForm);
+
+    // Redirect to dashboard after a short delay
+    setTimeout(() => {
+      navigate("/");
+    }, 1500);
   };
 
   if (!user) {
@@ -67,7 +92,7 @@ export default function TaskCreation() {
         <section className="hero">
           <h1>Create New Task</h1>
           <p>Add a new task to your study schedule.</p>
-          {message && <p className="message">{message}</p>}
+          {message && <p className="message" style={{ color: message.includes("success") ? "green" : "red" }}>{message}</p>}
           <form className="form-grid" onSubmit={handleAddTask}>
             <div className="form-group">
               <label htmlFor="title">Task Title *</label>
@@ -143,12 +168,10 @@ export default function TaskCreation() {
               <span>{taskForm.importance}</span>
             </div>
 
-            {/* IMPROVED BUTTON STARTS HERE */}
             <button type="submit" className="btn-create-task">
               <span className="btn-icon">+</span>
               Create Task
             </button>
-            {/* IMPROVED BUTTON ENDS HERE */}
           </form>
         </section>
       </main>

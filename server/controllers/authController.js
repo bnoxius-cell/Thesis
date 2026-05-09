@@ -10,7 +10,7 @@ export const register = async (req, res) => {
 
     const validate = validateRegisterFields(name, email, password);
     if (!validate.isValid) {
-        return res.status(400).json(validate.message);
+        return res.status(400).json({ success: false, message: validate.message });
     }
 
     try {

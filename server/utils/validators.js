@@ -1,17 +1,16 @@
 export const validateEmail = (email) => {
     // Standard email regex pattern
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
+    const re = /^[^\s@]+@student\.fatima\.edu\.ph$/i;
+    return re.test(email.trim().toLowerCase());
 };
 
 export const validateRegisterFields = (name, email, password) => {
     if (!name || !email || !password) {
-        return { isValid: false, }
         return { isValid: false, message: "All fields must be filled." };
     }
 
     if (!validateEmail(email)) {
-        return { isValid: false, message: "Invalid email." };
+        return { isValid: false, message: "Invalid email. Please use your Fatima student email (e.g., john.doe@student.fatima.edu.ph)." };
     }
 
     if (password.length < 8) {
