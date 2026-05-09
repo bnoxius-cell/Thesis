@@ -3,7 +3,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import TaskCreation from './pages/TaskCreation';
-import AuthPage from './pages/authentication/AuthPage';
+import About from './pages/About';
+import Settings from './pages/Settings';
+import Friends from './pages/Friends';
+import Groups from './pages/Groups';
+import Notifications from './pages/Notifications';
+import { ThemeProvider } from './context/ThemeContext';
 import './App.css';
 
 const AppContent = () => {
@@ -11,13 +16,26 @@ const AppContent = () => {
     <Router>
       <Routes>
         <Route path="/" element={<Dashboard />} />
-        <Route path="/auth" element={<AuthPage />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/create-task" element={<TaskCreation />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/friends" element={<Friends />} />
+        <Route path="/groups" element={<Groups />} />
+        <Route path="/notifications" element={<Notifications />} />
         <Route path="*" element={<Navigate to="/" replace />} />
+      
       </Routes>
     </Router>
   );
 };
 
-export default AppContent;
+function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  );
+}
+
+export default App;

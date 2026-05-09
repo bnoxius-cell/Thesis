@@ -7,6 +7,7 @@ import TaskBoard from "../components/TaskBoard";
 import "../App.css";
 
 const STORAGE_KEY = "stresscare-dashboard";
+const SCHOOL_EMAIL_DOMAIN = "@student.fatima.edu.ph";
 
 const initialProfile = {
   studentName: "",
@@ -183,9 +184,17 @@ function buildInsights(tasks, profile, schedule) {
 }
 
 const Dashboard = () => {
-  const { user } = useAuth();
   const [profile, setProfile] = useState(initialProfile);
   const [tasks, setTasks] = useState(seededTasks);
+  const { user, login, register, continueAsGuest } = useAuth();
+  const [isLogin, setIsLogin] = useState(true);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -203,6 +212,53 @@ const Dashboard = () => {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ profile, tasks }));
   }, [profile, tasks]);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    const email = formData.email.trim().toLowerCase();
+
+    if (!email.endsWith(SCHOOL_EMAIL_DOMAIN)) {
+      setError(`Use your Fatima student email ending in ${SCHOOL_EMAIL_DOMAIN}.`);
+      setLoading(false);
+      return;
+    }
+
+    if (!isLogin && formData.password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      setLoading(false);
+      return;
+    }
+
+    const authPromise = isLogin 
+      ? login(email, formData.password)
+      : register(formData.name.trim(), email, formData.password);
+
+    authPromise
+      .then(() => {
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message || 'Unable to sign in.');
+        setLoading(false);
+      });
+  };
+
+  const handleSignupAccess = () => {
+    setLoading(true);
+    setError('');
+    continueAsGuest();
+    setLoading(false);
+  };
 
   const enrichedTasks = [...tasks]
     .map((task) => ({
@@ -229,8 +285,125 @@ const Dashboard = () => {
     setTasks((current) => current.filter((task) => task.id !== id));
   };
 
-  // Optional: A small failsafe in case the routing allows a non-authenticated user to land here.
-  if (!user) return null;
+  const updateTask = (id, updatedFields) => {
+    setTasks((current) =>
+      current.map((task) =>
+        task.id === id ? { ...task, ...updatedFields } : task
+      )
+    );
+  };
+
+  if (!user) {
+    return (
+      <div className="app">
+        <Header />
+        <main className="auth-page">
+          <section className="auth-shell" id="login">
+            <div className="auth-copy">
+              <span className="eyebrow">Student workload system</span>
+              <h1>Plan personal tasks and group work from one dashboard.</h1>
+              <p>
+                Sign in with your Fatima student email to create tasks, prepare group sharing,
+                and keep the first demo loop clear for the panel.
+              </p>
+
+              <div className="auth-preview" aria-label="Phase one demo flow">
+                <span>School email login</span>
+                <span>Personal task board</span>
+                <span>Group-ready workflow</span>
+              </div>
+            </div>
+            <div className="auth-card">
+              <div className="auth-card-header">
+                <span className="panel-kicker">{isLogin ? 'Welcome back' : 'Create profile'}</span>
+                <h2>{isLogin ? 'Sign in' : 'Student signup'}</h2>
+                <p>
+                  {isLogin
+                    ? 'Use your school account to open your dashboard.'
+                    : 'Create the profile used by the task and group modules.'}
+                </p>
+              </div>
+
+              {error && (
+                <div className="form-error">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="auth-form">
+                {!isLogin && (
+                  <label>
+                    Full Name
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="Juan Dela Cruz"
+                      required={!isLogin}
+                    />
+                  </label>
+                )}
+
+                <label>
+                  Email
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder={`name${SCHOOL_EMAIL_DOMAIN}`}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Password
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    required
+                  />
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="primary-button"
+                >
+                  {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
+                </button>
+              </form>
+
+              <div className="auth-actions">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError('');
+                    setIsLogin((current) => !current);
+                  }}
+                  className="secondary-button"
+                >
+                  {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSignupAccess}
+                  className="ghost-button"
+                >
+                  Continue as demo student
+                </button>
+              </div>
+            </div>
+          </section>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="app">
@@ -326,7 +499,12 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <TaskBoard tasks={enrichedTasks} schedule={schedule} onDeleteTask={handleDeleteTask} />
+          <TaskBoard
+            tasks={enrichedTasks}
+            schedule={schedule}
+            onDeleteTask={handleDeleteTask}
+            onEditTask={updateTask}
+          />
         </section>
       </main>
 
