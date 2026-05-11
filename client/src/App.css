@@ -1,20 +1,20 @@
 /* ===== THEME VARIABLES ===== */
 :root {
   /* Light theme (default) */
-  --bg-app: white;
-  --text-primary: #14213d;
+  --bg-app: #f8fafc;
+  --text-primary: #0f172a;
   --text-secondary: #475569;
-  --border-light: rgba(188, 45, 45, 0.12);
-  --card-bg: rgba(255, 255, 255, 0.92);
-  --hero-bg: radial-gradient(circle at top left, rgba(239, 68, 68, 0.16), transparent 36%),
-             linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 247, 237, 0.95));
-  --auth-card-bg: #fff;
-  --panel-bg: #fff;
-  --input-bg: #fff;
+  --border-light: rgba(0, 0, 0, 0.06);
+  --card-bg: #ffffff;
+  --hero-bg: radial-gradient(circle at top left, rgba(239, 68, 68, 0.08), transparent 36%),
+             linear-gradient(135deg, #ffffff, #fafafa);
+  --auth-card-bg: #ffffff;
+  --panel-bg: #ffffff;
+  --input-bg: #f8fafc;
   --input-border: #dbe4f0;
-  --task-card-bg: #fff;
+  --task-card-bg: #ffffff;
   --schedule-item-bg: #f8fafc;
-  --metric-card-bg: rgba(255, 255, 255, 0.86);
+  --metric-card-bg: #ffffff;
   --insight-card-bg: #fff7ed;
   --btn-secondary-bg: #fff;
   --btn-secondary-border: rgba(220, 38, 38, 0.25);
@@ -25,11 +25,12 @@
   --status-pill-critical-bg: #fee2e2;
   --status-pill-upcoming-bg: #fef3c7;
   --status-pill-overdue-bg: #1f2937;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.025);
 
   /* ===== HEADER VARIABLES (light) ===== */
-  --header-bg: rgba(255, 255, 255, 0.92);
+  --header-bg: #ffffff;
   --header-text: #991b1b;
-  --header-border: rgba(148, 163, 184, 0.18);
+  --header-border: rgba(0, 0, 0, 0.04);
   --user-info-color: #334155;
   --logout-btn-color: #991b1b;
   --logout-btn-bg: #fff;
@@ -43,21 +44,21 @@
 }
 
 .dark-theme {
-  --bg-app: #0f172a;
-  --text-primary: #e2e8f0;
+  --bg-app: #1e293b;
+  --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
-  --border-light: rgba(255, 255, 255, 0.08);
-  --card-bg: rgba(30, 41, 59, 0.92);
-  --hero-bg: radial-gradient(circle at top left, rgba(239, 68, 68, 0.2), transparent 36%),
-             linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.95));
-  --auth-card-bg: #1e293b;
-  --panel-bg: #1e293b;
-  --input-bg: #334155;
+  --border-light: rgba(255, 255, 255, 0.04);
+  --card-bg: #334155;
+  --hero-bg: radial-gradient(circle at top left, rgba(239, 68, 68, 0.12), transparent 36%),
+             linear-gradient(135deg, #334155, #1e293b);
+  --auth-card-bg: #334155;
+  --panel-bg: #334155;
+  --input-bg: #0f172a;
   --input-border: #475569;
-  --task-card-bg: #1e293b;
+  --task-card-bg: #334155;
   --schedule-item-bg: #334155;
-  --metric-card-bg: rgba(30, 41, 59, 0.86);
-  --insight-card-bg: #334155;
+  --metric-card-bg: #334155;
+  --insight-card-bg: #0f172a;
   --btn-secondary-bg: #1e293b;
   --btn-secondary-border: rgba(255, 255, 255, 0.2);
   --btn-ghost-bg: rgba(255, 255, 255, 0.08);
@@ -67,11 +68,12 @@
   --status-pill-critical-bg: #7f1d1d;
   --status-pill-upcoming-bg: #78350f;
   --status-pill-overdue-bg: #111827;
+  --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
 
   /* ===== HEADER VARIABLES (dark) ===== */
-  --header-bg: rgba(15, 23, 42, 0.92);
+  --header-bg: #0f172a;
   --header-text: #f87171;
-  --header-border: rgba(255, 255, 255, 0.08);
+  --header-border: rgba(255, 255, 255, 0.03);
   --user-info-color: #cbd5e1;
   --logout-btn-color: #f87171;
   --logout-btn-bg: #1e293b;
@@ -207,7 +209,7 @@
   gap: 16px;
   margin-top: 24px;
   padding-top: 24px;
-  border-top: 1px solid var(--header-border);
+  border-top: 1px solid var(--border-light);
 }
 
 .sidepanel-user {
@@ -275,6 +277,108 @@
 .app:has(.header-auth) .auth-page {
   flex: 1;
 }
+
+/* ===== INDUSTRY STANDARD FOOTER ===== */
+.site-footer {
+  background: var(--header-bg);
+  border-top: 1px solid var(--header-border);
+  padding: 64px 40px 24px;
+  margin-top: auto;
+}
+
+.site-footer-top {
+  display: grid;
+  grid-template-columns: 1.5fr 2fr;
+  gap: 48px;
+  max-width: 1100px;
+  margin: 0 auto 48px;
+}
+
+.site-footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.site-footer-brand .logo-link {
+  font-size: 1.5rem;
+}
+
+.site-footer-tagline {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 300px;
+  margin: 0;
+}
+
+.site-footer-socials {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.site-footer-socials a {
+  color: var(--text-secondary);
+  transition: color 0.2s ease, transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.site-footer-socials a:hover {
+  color: var(--text-primary);
+  transform: translateY(-2px);
+}
+
+.site-footer-links {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+.site-footer-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.site-footer-column h4 {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.site-footer-column a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.site-footer-column a:hover {
+  color: var(--text-primary);
+}
+
+.site-footer-bottom {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.site-footer-bottom p {
+  margin: 0;
+}
 /* ======================================= */
 
 /* Rest of the CSS – replace ALL color references with variables */
@@ -304,7 +408,7 @@
   border: 1px solid var(--border-light);
   border-radius: 8px;
   background: var(--card-bg);
-  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--card-shadow);
 }
 
 .auth-shell,
@@ -382,9 +486,9 @@
 .auth-card {
   padding: 26px;
   background: var(--auth-card-bg);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.1);
+  box-shadow: var(--card-shadow);
 }
 
 .auth-card-header {
@@ -438,7 +542,8 @@
   padding: 18px;
   border-radius: 8px;
   background: var(--metric-card-bg);
-  border: 1px solid rgba(148, 163, 184, 0.16);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--card-shadow);
 }
 
 .metric-card.accent {
@@ -768,6 +873,7 @@ input[type="range"] {
   border-radius: 8px;
   padding: 18px;
   background: var(--task-card-bg);
+  box-shadow: var(--card-shadow);
 }
 
 .task-card-top,
@@ -1085,7 +1191,7 @@ input[type="range"] {
   gap: 20px;
   padding: 30px;
   position: relative;
-  box-shadow: 20px 20px 30px rgba(0, 0, 0, 0.068);
+  box-shadow: var(--card-shadow);
   color: var(--text-primary);
 }
 
@@ -1482,6 +1588,7 @@ input[type="range"] {
   border: 1px solid var(--border-light);
   border-radius: 12px;
   background: var(--task-card-bg);
+  box-shadow: var(--card-shadow);
   transition: all 0.2s;
 }
 .friend-card-info {
@@ -1530,6 +1637,7 @@ input[type="range"] {
   border: 1px solid var(--border-light);
   border-radius: 1rem;
   padding: 1.25rem;
+  box-shadow: var(--card-shadow);
   transition: all 0.2s;
 }
 .group-header {
@@ -1630,6 +1738,7 @@ input[type="range"] {
   border: 1px solid var(--border-light);
   border-radius: 12px;
   background: var(--task-card-bg);
+  box-shadow: var(--card-shadow);
   transition: all 0.2s;
 }
 .notification-card.unread {
@@ -1671,11 +1780,36 @@ input[type="range"] {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-} font-size: 0.85rem;
+  font-size: 0.85rem;
   margin-bottom: 1rem;
 }
 .demo-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+}
+
+/* Footer Responsiveness */
+@media (max-width: 768px) {
+  .site-footer-top {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  
+  .site-footer-links {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  .site-footer-bottom {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-footer-links {
+    grid-template-columns: 1fr;
+  }
 }
