@@ -6,6 +6,7 @@ import "../../App.css";
 import { toast } from "react-toastify";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
+import { GoogleLogin } from '@react-oauth/google';
 
 const SCHOOL_EMAIL_DOMAIN = "@student.fatima.edu.ph";
 
@@ -129,6 +130,25 @@ const AuthPage = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to resend OTP');
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const { data } = await axios.post(
+        `${backendUrl}/api/auth/google`,
+        { token: credentialResponse.credential },
+        { withCredentials: true }
+      );
+      if (data.success) {
+        setIsLoggedin(true);
+        await getUserData();
+        navigate('/dashboard');
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Google Authentication failed');
     }
   };
 
@@ -317,6 +337,24 @@ const AuthPage = () => {
                   {authMode === 'login' ? 'Sign In' : 'Create Account'}
                 </button>
               </form>
+            )}
+
+            {authMode !== 'verify' && (
+              <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '10px' }}>
+                  <hr style={{ flex: 1, border: 'none', borderTop: '1px solid var(--input-border)' }} />
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>or</span>
+                  <hr style={{ flex: 1, border: 'none', borderTop: '1px solid var(--input-border)' }} />
+                </div>
+                
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => toast.error('Google Login Failed')}
+                  text={authMode === 'login' ? 'signin_with' : 'signup_with'}
+                  shape="rectangular"
+                  hosted_domain="student.fatima.edu.ph"
+                />
+              </div>
             )}
 
             <div className="auth-actions">

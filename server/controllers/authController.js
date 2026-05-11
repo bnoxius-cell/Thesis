@@ -3,7 +3,10 @@ import jwt from 'jsonwebtoken';
 import userModel from '../models/userModel.js';
 import { sendPasswordResetEmail, sendVerifyEmailOtp, sendWelcomeEmail } from '../utils/emailService.js';
 import { generateOtp } from '../utils/generateOtp.js';
-import { validateLoginFields, validateRegisterFields, validateResetPasswordFields, validateVerifyEmailFields } from '../utils/validators.js';
+import { validateLoginFields, validateRegisterFields, validateResetPasswordFields, validateVerifyEmailFields, validateEmail } from '../utils/validators.js';
+import { OAuth2Client } from 'google-auth-library';
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const register = async (req, res) => {
     const { name, email, password } = req.body;
@@ -86,6 +89,67 @@ export const login = async (req, res) => {
         return res.json({success: true, message: 'Login successful'})
     } catch (error) {
         return res.json({ success: false, message: error.message });
+    }
+};
+
+export const googleLogin = async (req, res) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.json({ success: false, message: 'Missing Google Token' });
+    }
+
+    try {
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        const { email, name, sub: googleId, picture } = payload;
+
+        if (!validateEmail(email)) {
+            return res.json({ success: false, message: "Please use your Fatima student email (@student.fatima.edu.ph)." });
+        }
+
+        let user = await userModel.findOne({ email });
+
+        if (user) {
+            // If they registered locally but were unverified, Google auth confirms their email.
+            if (!user.isAccountVerified) {
+                user.isAccountVerified = true;
+                await user.save();
+            }
+        } else {
+            // Create user. Generate a random password since Mongoose schema requires it.
+            const randomPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(randomPassword, salt);
+
+            user = new userModel({
+                name,
+                email,
+                password: hashedPassword,
+                authProvider: 'google',
+                googleId,
+                avatar: picture,
+                isAccountVerified: true // Google accounts are implicitly verified
+            });
+            await user.save();
+        }
+
+        // Generate standard JWT token to mimic local login behavior
+        const jwtToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+
+        res.cookie('token', jwtToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+            maxAge: 30 * 24 * 60 * 60 * 1000
+        });
+
+        return res.json({ success: true, message: 'Google login successful' });
+    } catch (error) {
+        return res.json({ success: false, message: 'Google authentication failed: ' + error.message });
     }
 };
 
