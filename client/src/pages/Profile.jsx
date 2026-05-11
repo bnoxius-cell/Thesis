@@ -1,5 +1,6 @@
     import { useAuth } from "./authentication/AuthContext";
     import { useState, useEffect } from "react";
+    import { useParams, Navigate } from "react-router-dom";
     import Header from "../components/layout/Header";
     import Footer from "../components/layout/Footer";
     import "../App.css";
@@ -15,6 +16,7 @@
 
     export default function Profile() {
     const { user } = useAuth();
+    const { uid } = useParams();
     const [profile, setProfile] = useState(initialProfile);
     const [loading, setLoading] = useState(true);
 
@@ -54,6 +56,11 @@
             <Footer />
         </div>
         );
+    }
+
+    // Catch both the missing UID and the literal string "undefined"
+    if ((!uid || uid === 'undefined') && user?._id) {
+        return <Navigate to={`/profile/${user._id}`} replace />;
     }
 
     return (

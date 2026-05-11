@@ -22,6 +22,7 @@ const AppContent = () => {
         <Route path="/" element={isLoggedin ? <Navigate to="/dashboard" replace /> : <AuthPage />} />
         <Route path="/dashboard" element={isLoggedin ? <Dashboard /> : <Navigate to="/" replace />} />
         <Route path="/profile" element={isLoggedin ? <Profile /> : <Navigate to="/" replace />} />
+        <Route path="/profile/:uid" element={isLoggedin ? <Profile /> : <Navigate to="/" replace />} />
         <Route path="/create-task" element={isLoggedin ? <TaskCreation /> : <Navigate to="/" replace />} />
         <Route path="/about" element={<About />} />
         <Route path="/settings" element={isLoggedin ? <Settings /> : <Navigate to="/" replace />} />

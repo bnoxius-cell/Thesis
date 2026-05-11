@@ -33,7 +33,7 @@ export default function Header() {
           <Link to="/dashboard" className={`sidepanel-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>
             <LayoutDashboard size={18} /> <span>Dashboard</span>
           </Link>
-          <Link to="/profile" className={`sidepanel-link ${location.pathname === '/profile' ? 'active' : ''}`}>
+          <Link to={user?._id ? `/profile/${user._id}` : '/profile'} className={`sidepanel-link ${location.pathname.startsWith('/profile') ? 'active' : ''}`}>
             <User size={18} /> <span>Profile</span>
           </Link>
           <Link to="/create-task" className={`sidepanel-link ${location.pathname === '/create-task' ? 'active' : ''}`}>
