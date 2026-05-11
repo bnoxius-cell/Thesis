@@ -1,67 +1,72 @@
-import "./Header.css";
 import { useAuth } from "../../pages/authentication/AuthContext";
-import { LogOut, UserCircle, User, Plus, Info, Settings, Users, UserCheck, Bell } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { LogOut, UserCircle, User, Plus, Info, Settings, Users, UserCheck, Bell, LayoutDashboard } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import Logo from '../../assets/logo.svg'; // Assuming you create this file
 
 export default function Header() {
   const { user, logout, isLoggedin } = useAuth();
+  const location = useLocation();
+
+  // Show a simple top bar with just the logo on the login/register pages
+  if (!isLoggedin) {
+    return (
+      <header className="header-auth">
+        <Link to="/" className="logo-link">
+          <img src={Logo} alt="StressCare Logo" className="logo-svg" />
+          <div>Stress<span>Care</span></div>
+        </Link>
+      </header>
+    );
+  }
 
   return (
-    <header className="header">
-      <div className="logo">
-        <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-          Stress<span>Care</span>
+    <aside className="sidepanel">
+      <div className="sidepanel-logo">
+        <Link to="/" className="logo-link">
+          <img src={Logo} alt="StressCare Logo" className="logo-svg" />
+          <div className="logo-text">Stress<span>Care</span></div>
         </Link>
       </div>
 
-      <nav className="nav">
-        {isLoggedin && user ? (
-          <>
-            <div className="menu">
-              <Link to="/profile" className="menu-item">
-                <User size={16} />
-                Profile
-              </Link>
-              <Link to="/create-task" className="menu-item">
-                <Plus size={16} />
-                Create Task
-              </Link>
-              <Link to="/about" className="menu-item">
-                <Info size={16} />
-                About
-              </Link>
-              <Link to="/settings" className="menu-item">
-                <Settings size={16} />
-                Settings
-              </Link>
-              <Link to="/groups" className="menu-item">
-                <Users size={16} />
-                Groups
-              </Link>
-              <Link to="/friends" className="menu-item">
-                <UserCheck size={16} />
-                Friends
-              </Link>
-              <Link to="/notifications" className="menu-item">
-                <Bell size={16} />
-                Notifications
-              </Link>
-            </div>
-            <span className="user-info">
-              <UserCircle size={18} />
-              Hi, {user.name?.split(' ')[0] || 'Student'}
-            </span>
-            <button 
-              onClick={logout} 
-              className="logout-btn"
-              title="Logout"
-            >
-              <LogOut size={17} />
-              Logout
-            </button>
-          </>
-        ) : null}
+      <nav className="sidepanel-nav">
+        <div className="sidepanel-menu">
+          <Link to="/dashboard" className={`sidepanel-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>
+            <LayoutDashboard size={18} /> <span>Dashboard</span>
+          </Link>
+          <Link to="/profile" className={`sidepanel-link ${location.pathname === '/profile' ? 'active' : ''}`}>
+            <User size={18} /> <span>Profile</span>
+          </Link>
+          <Link to="/create-task" className={`sidepanel-link ${location.pathname === '/create-task' ? 'active' : ''}`}>
+            <Plus size={18} /> <span>Create Task</span>
+          </Link>
+          <Link to="/groups" className={`sidepanel-link ${location.pathname === '/groups' ? 'active' : ''}`}>
+            <Users size={18} /> <span>Groups</span>
+          </Link>
+          <Link to="/friends" className={`sidepanel-link ${location.pathname === '/friends' ? 'active' : ''}`}>
+            <UserCheck size={18} /> <span>Friends</span>
+          </Link>
+          <Link to="/notifications" className={`sidepanel-link ${location.pathname === '/notifications' ? 'active' : ''}`}>
+            <Bell size={18} /> <span>Notifications</span>
+          </Link>
+          <Link to="/about" className={`sidepanel-link ${location.pathname === '/about' ? 'active' : ''}`}>
+            <Info size={18} /> <span>About</span>
+          </Link>
+          <Link to="/settings" className={`sidepanel-link ${location.pathname === '/settings' ? 'active' : ''}`}>
+            <Settings size={18} /> <span>Settings</span>
+          </Link>
+        </div>
+        
+        <div className="sidepanel-footer">
+          <span className="sidepanel-user">
+            <UserCircle size={20} /> 
+            <span className="user-name">{user.name?.split(' ')[0] || 'Student'}</span>
+          </span>
+          <button onClick={logout} className="sidepanel-logout" title="Logout">
+            <LogOut size={18} /> 
+            <span>Logout</span>
+          </button>
+        </div>
       </nav>
-    </header>
+    </aside>
   );
 }

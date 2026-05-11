@@ -84,14 +84,11 @@
   --menu-item-hover-color: #ffffff;
 
   /* ===== FRIENDS BUTTON DARK THEME – EXTREMELY SUBTLE (barely there) ===== */
-  .friend-request-button:hover .friend-button-content {
-    box-shadow: 0 20px 40px rgba(255, 255, 255, 0.02); /* almost invisible */
-  }
-  .friend-button-content::before {
+  .friend-request-button:hover .friend-button-content::before {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.005));
   }
   .friend-request-button::after {
-    background: rgba(255, 255, 255, 0.01); /* outer glow barely perceptible */
+    background: rgba(255, 255, 255, 0.01);
   }
   /* Red text remains for brand – no glow there */
   .friend-badge {
@@ -116,6 +113,169 @@
   color: var(--text-primary);
   background: var(--bg-app);
 }
+
+/* ===== NEW SIDEPANEL & GRID LAYOUT ===== */
+.app:has(.sidepanel) {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  grid-template-rows: 1fr auto;
+}
+
+.app:has(.header-auth) {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidepanel {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  width: 260px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  background: var(--header-bg);
+  border-right: 1px solid var(--header-border);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  z-index: 100;
+  overflow-y: auto;
+}
+
+.sidepanel-logo {
+  margin-bottom: 32px;
+  padding: 0 12px;
+}
+
+.logo-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--header-text);
+  font-weight: 800;
+}
+
+.sidepanel-logo .logo-link {
+  font-size: 1.6rem;
+}
+
+.logo-svg {
+  width: 36px; /* You can adjust the size here */
+  height: 36px;
+}
+
+.logo-text span, .header-auth .logo-link span {
+  color: var(--text-primary);
+}
+
+.sidepanel-nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: space-between;
+}
+
+.sidepanel-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidepanel-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  color: var(--menu-item-color);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.sidepanel-link:hover,
+.sidepanel-link.active {
+  background: var(--menu-item-hover-bg);
+  color: var(--menu-item-hover-color);
+}
+
+.sidepanel-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--header-border);
+}
+
+.sidepanel-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  font-weight: 600;
+  color: var(--user-info-color);
+}
+
+.user-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidepanel-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--logout-btn-border);
+  background: var(--logout-btn-bg);
+  color: var(--logout-btn-color);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.sidepanel-logout:hover {
+  background: var(--logout-btn-hover-bg);
+  color: var(--logout-btn-hover-color);
+  border-color: var(--logout-btn-hover-border);
+}
+
+.header-auth {
+  padding: 20px 40px;
+  display: flex;
+}
+
+.header-auth .logo-link {
+  font-size: 1.5rem;
+}
+
+/* Lock Main Content & Footer inside the Grid */
+.app:has(.sidepanel) .dashboard {
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 40px 56px;
+}
+
+.app:has(.sidepanel) .footer {
+  grid-column: 2;
+  grid-row: 2;
+  width: 100%;
+}
+
+.app:has(.header-auth) .auth-page {
+  flex: 1;
+}
+/* ======================================= */
 
 /* Rest of the CSS – replace ALL color references with variables */
 .auth-page,
@@ -1108,6 +1268,47 @@ input[type="range"] {
     height: 140px;
     padding: 8px;
   }
+  
+  /* Mobile fallback for sidepanel */
+  .app:has(.sidepanel) {
+    display: flex;
+    flex-direction: column;
+  }
+  .sidepanel {
+    width: 100%;
+    height: auto;
+    position: sticky;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-right: none;
+    border-bottom: 1px solid var(--header-border);
+    z-index: 1000;
+  }
+  .sidepanel-logo {
+    margin-bottom: 0;
+  }
+  .sidepanel-nav {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+  .sidepanel-menu {
+    flex-direction: row;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 0;
+  }
+  .sidepanel-footer {
+    display: none; /* Hide user/logout on mobile nav for space, or put in hamburger */
+  }
+  .sidepanel-link span {
+    display: none; /* Hide text, show only icons on mobile */
+  }
+  .sidepanel-link {
+    padding: 8px;
+  }
 }
 
 /* ===== FRIENDS PAGE STYLES ===== */
@@ -1464,6 +1665,13 @@ input[type="range"] {
 .demo-note {
   color: var(--text-secondary);
   font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+.demo-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+} font-size: 0.85rem;
   margin-bottom: 1rem;
 }
 .demo-buttons {
