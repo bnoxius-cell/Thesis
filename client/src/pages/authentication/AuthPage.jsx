@@ -20,13 +20,28 @@ const AuthPage = () => {
   const [otp, setOtp] = useState(Array(6).fill(''));
   const inputRefs = useRef([]);
 
+  // 3-minute (180 seconds) countdown timer
+  const [resendTimer, setResendTimer] = useState(0);
+
   const { backendUrl, setIsLoggedin, getUserData, userData } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   // Lock unverified users into the OTP screen on page refresh
   useEffect(() => {
     if (userData && userData.isAccountVerified === false) {
       setAuthMode('verify');
+      // Optional: Start the timer when they are loaded into the verify screen
+      setResendTimer(180);
     }
   }, [userData]);
 
@@ -92,7 +107,14 @@ const AuthPage = () => {
     }
   };
 
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
   const handleResendOtp = async () => {
+    if (resendTimer > 0) return; // Prevent double clicks during cooldown
     try {
       const { data } = await axios.post(
         `${backendUrl}/api/auth/send-verify-otp`,
@@ -101,6 +123,7 @@ const AuthPage = () => {
       );
       if (data.success) {
         toast.success('Verification code resent to your email.');
+        setResendTimer(180); // Start 3-minute cooldown
       } else {
         toast.error(data.message);
       }
@@ -123,6 +146,7 @@ const AuthPage = () => {
             if (otpRes.data.success) {
               toast.info('Please verify your email to continue.');
               setAuthMode('verify');
+              setResendTimer(180);
             } else {
               toast.error(otpRes.data.message);
             }
@@ -141,6 +165,7 @@ const AuthPage = () => {
           if (otpRes.data.success) {
             toast.success('Registration successful! Check your email for the verification code.');
             setAuthMode('verify');
+            setResendTimer(180);
           } else {
             toast.error(otpRes.data.message);
           }
@@ -220,8 +245,14 @@ const AuthPage = () => {
                 <button type="submit" className="primary-button">
                   Verify Email
                 </button>
-                <button type="button" onClick={handleResendOtp} className="ghost-button" style={{ marginTop: '10px' }}>
-                  Resend Code
+                <button 
+                  type="button" 
+                  onClick={handleResendOtp} 
+                  className="ghost-button" 
+                  style={{ marginTop: '10px' }}
+                  disabled={resendTimer > 0}
+                >
+                  {resendTimer > 0 ? `Resend Code in ${formatTime(resendTimer)}` : 'Resend Code'}
                 </button>
               </form>
             ) : (

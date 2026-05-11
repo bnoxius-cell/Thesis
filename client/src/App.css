@@ -471,7 +471,20 @@ input[type="range"] {
 
 .primary-button:hover,
 .ghost-button:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.15);
+}
+
+.secondary-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+}
+
+.primary-button:active,
+.secondary-button:active,
+.ghost-button:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .primary-button:disabled {
