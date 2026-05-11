@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom"; // <-- add this
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "./authentication/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import "../App.css";

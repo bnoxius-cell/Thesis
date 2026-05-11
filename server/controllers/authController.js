@@ -10,7 +10,7 @@ export const register = async (req, res) => {
 
     const validate = validateRegisterFields(name, email, password);
     if (!validate.isValid) {
-        return res.status(400).json({ success: false, message: validate.message });
+        return res.json({ success: false, message: validate.message });
     }
 
     try {
@@ -55,7 +55,7 @@ export const login = async (req, res) => {
 
     const validate = validateLoginFields(email, password);
     if (!validate.isValid) {
-        return res.status(400).json(validate);
+        return res.json({ success: false, message: validate.message });
     }
 
     try {
@@ -136,7 +136,7 @@ export const verifyEmail = async (req, res) => {
 
     const validate = validateVerifyEmailFields(userId, otp);
     if (!validate.isValid) {
-        return res.json(validate);
+        return res.json({ success: false, message: validate.message });
     }
 
     try {
@@ -208,7 +208,7 @@ export const resetPassword = async (req, res) => {
 
     const validate = validateResetPasswordFields(email, otp, password);
     if (!validate.isValid) {
-        return res.status(400).json(validate.message);
+        return res.json({ success: false, message: validate.message });
     }
 
     try {
@@ -238,4 +238,3 @@ export const resetPassword = async (req, res) => {
         return res.json({ success: false, message: error.message });
     }
 };
-

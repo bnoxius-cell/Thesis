@@ -1,10 +1,10 @@
 import "./Header.css";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../pages/authentication/AuthContext";
 import { LogOut, UserCircle, User, Plus, Info, Settings, Users, UserCheck, Bell } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Header() {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoggedin } = useAuth();
 
   return (
     <header className="header">
@@ -15,7 +15,7 @@ export default function Header() {
       </div>
 
       <nav className="nav">
-        {user ? (
+        {isLoggedin && user ? (
           <>
             <div className="menu">
               <Link to="/profile" className="menu-item">
