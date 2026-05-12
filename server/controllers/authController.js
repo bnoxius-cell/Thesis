@@ -92,65 +92,58 @@ export const login = async (req, res) => {
     }
 };
 
+
+
 export const googleLogin = async (req, res) => {
-    const { token } = req.body;
+  try {
+    // 1. The token sent from your React <GoogleLogin> component
+    const { token } = req.body; 
 
-    if (!token) {
-        return res.json({ success: false, message: 'Missing Google Token' });
+    // 2. Verify the token with Google
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID, 
+    });
+
+    // 3. Extract the user's details from the verified token
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name } = payload;
+
+    // 4. Find or create the user in your database
+    let user = await userModel.findOne({ email });
+
+    if (!user) {
+      // Create new user if they don't exist
+      user = await userModel.create({
+        name,
+        email,
+        googleId,
+        isAccountVerified: true, // Google emails are already verified
+      });
+    } else if (!user.googleId) {
+      // If they registered manually before, link their Google ID now
+      user.googleId = googleId;
+      await user.save();
     }
 
-    try {
-        const ticket = await client.verifyIdToken({
-            idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID,
-        });
-        const payload = ticket.getPayload();
-        const { email, name, sub: googleId, picture } = payload;
+    // 5. Generate your app's JWT token (just like your normal login)
+    const jwtToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-        if (!validateEmail(email)) {
-            return res.json({ success: false, message: "Please use your Fatima student email (@student.fatima.edu.ph)." });
-        }
+    // 6. Set the HTTP-Only cookie
+    res.cookie('token', jwtToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
 
-        let user = await userModel.findOne({ email });
+    // 7. Send success response back to React
+    return res.json({ success: true, message: "Google login successful", user });
 
-        if (user) {
-            // If they registered locally but were unverified, Google auth confirms their email.
-            if (!user.isAccountVerified) {
-                user.isAccountVerified = true;
-                await user.save();
-            }
-        } else {
-            // Create user. Generate a random password since Mongoose schema requires it.
-            const randomPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(randomPassword, salt);
-
-            user = new userModel({
-                name,
-                email,
-                password: hashedPassword,
-                authProvider: 'google',
-                googleId,
-                avatar: picture,
-                isAccountVerified: true // Google accounts are implicitly verified
-            });
-            await user.save();
-        }
-
-        // Generate standard JWT token to mimic local login behavior
-        const jwtToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-
-        res.cookie('token', jwtToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-            maxAge: 30 * 24 * 60 * 60 * 1000
-        });
-
-        return res.json({ success: true, message: 'Google login successful' });
-    } catch (error) {
-        return res.json({ success: false, message: 'Google authentication failed: ' + error.message });
-    }
+  } catch (error) {
+    console.error("Google Auth Error:", error);
+    return res.status(401).json({ success: false, message: "Invalid Google Token" });
+  }
 };
 
 export const logout = async (req, res) => {
