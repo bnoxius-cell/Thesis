@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // <-- add this
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "./authentication/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
@@ -18,7 +18,7 @@ const initialTaskForm = {
 
 export default function TaskCreation() {
   const { user } = useAuth();
-  const navigate = useNavigate(); // <-- for redirect
+  const navigate = useNavigate();
   const [taskForm, setTaskForm] = useState(initialTaskForm);
   const [message, setMessage] = useState("");
 
@@ -47,7 +47,6 @@ export default function TaskCreation() {
       importance: Number(taskForm.importance),
     };
 
-    // --- PERSIST TO LOCALSTORAGE ---
     const saved = localStorage.getItem(STORAGE_KEY);
     let existingData = { profile: {}, tasks: [] };
     if (saved) {
@@ -62,12 +61,10 @@ export default function TaskCreation() {
       profile: existingData.profile,
       tasks: updatedTasks,
     }));
-    // --- END PERSIST ---
 
     setMessage("Task created successfully! Redirecting to dashboard...");
     setTaskForm(initialTaskForm);
 
-    // Redirect to dashboard after a short delay
     setTimeout(() => {
       navigate("/");
     }, 1500);
@@ -75,7 +72,7 @@ export default function TaskCreation() {
 
   if (!user) {
     return (
-      <div>
+      <div className="app">
         <Header />
         <main className="dashboard">
           <p>Please log in to create tasks.</p>
@@ -86,7 +83,7 @@ export default function TaskCreation() {
   }
 
   return (
-    <div>
+    <div className="app">   {/* ← FIX: added "app" class */}
       <Header />
       <main className="dashboard">
         <section className="hero">

@@ -16,6 +16,7 @@ const AuthPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [isReadOnly, setIsReadOnly] = useState(true);
 
   // OTP state and refs for the 6-cell input
   const [otp, setOtp] = useState(Array(6).fill(''));
@@ -58,6 +59,7 @@ const AuthPage = () => {
       inputRefs.current[index + 1].focus();
     }
   };
+  
 
   const handleOtpKeyDown = (e, index) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
@@ -294,6 +296,8 @@ const AuthPage = () => {
                 <label>
                   Email
                   <input
+                    readOnly={isReadOnly}
+                    onFocus={() => setIsReadOnly(false)}
                     onChange={e => setEmail(e.target.value)}
                     value={email}
                     type="email"
@@ -353,6 +357,7 @@ const AuthPage = () => {
                   text={authMode === 'login' ? 'signin_with' : 'signup_with'}
                   shape="rectangular"
                   hosted_domain="student.fatima.edu.ph"
+                  prompt="select_account"
                 />
               </div>
             )}
