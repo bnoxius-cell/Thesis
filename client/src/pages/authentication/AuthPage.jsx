@@ -11,55 +11,47 @@ import { GoogleLogin } from '@react-oauth/google';
 const SCHOOL_EMAIL_DOMAIN = "@student.fatima.edu.ph";
 
 const AuthPage = () => {
-  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register' | 'verify'
+  const [authMode, setAuthMode] = useState('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  const [isReadOnly, setIsReadOnly] = useState(true);
 
-  // OTP state and refs for the 6-cell input
   const [otp, setOtp] = useState(Array(6).fill(''));
   const inputRefs = useRef([]);
-
-  // 3-minute (180 seconds) countdown timer
   const [resendTimer, setResendTimer] = useState(0);
 
-  const { backendUrl, setIsLoggedin, getUserData, userData } = useAuth();
+  const { backendUrl, login, register, googleLogin, setIsLoggedin, getUserData, userData, loading } = useAuth();
   const navigate = useNavigate();
 
+  // Countdown timer for OTP resend
   useEffect(() => {
     let interval;
     if (resendTimer > 0) {
-      interval = setInterval(() => {
-        setResendTimer((prev) => prev - 1);
-      }, 1000);
+      interval = setInterval(() => setResendTimer(prev => prev - 1), 1000);
     }
     return () => clearInterval(interval);
   }, [resendTimer]);
 
-  // Lock unverified users into the OTP screen on page refresh
+  // If user is already logged in, redirect to dashboard
   useEffect(() => {
-    if (userData && userData.isAccountVerified === false) {
+    if (!loading && userData?.isAccountVerified === true) {
+      navigate('/dashboard');
+    } else if (!loading && userData?.isAccountVerified === false) {
       setAuthMode('verify');
-      // Optional: Start the timer when they are loaded into the verify screen
       setResendTimer(180);
     }
-  }, [userData]);
+  }, [loading, userData, navigate]);
 
+  // OTP handlers
   const handleOtpChange = (e, index) => {
     const value = e.target.value;
     if (value && /[^0-9]/.test(value)) return;
-    
     const newOtp = [...otp];
     newOtp[index] = value.slice(-1);
     setOtp(newOtp);
-
-    if (value && index < 5) {
-      inputRefs.current[index + 1].focus();
-    }
+    if (value && index < 5) inputRefs.current[index + 1].focus();
   };
-  
 
   const handleOtpKeyDown = (e, index) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
@@ -71,17 +63,11 @@ const AuthPage = () => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text').slice(0, 6);
     if (!/^\d+$/.test(pastedData)) return;
-
     const newOtp = [...otp];
-    for (let i = 0; i < pastedData.length; i++) {
-      newOtp[i] = pastedData[i];
-    }
+    for (let i = 0; i < pastedData.length; i++) newOtp[i] = pastedData[i];
     setOtp(newOtp);
-    
     const focusIndex = Math.min(pastedData.length, 5);
-    if (inputRefs.current[focusIndex]) {
-      inputRefs.current[focusIndex].focus();
-    }
+    if (inputRefs.current[focusIndex]) inputRefs.current[focusIndex].focus();
   };
 
   const onVerifySubmit = async (e) => {
@@ -92,11 +78,7 @@ const AuthPage = () => {
       return;
     }
     try {
-      const { data } = await axios.post(
-        `${backendUrl}/api/auth/verify-email`,
-        { otp: otpCode },
-        { withCredentials: true }
-      );
+      const { data } = await axios.post(`${backendUrl}/api/auth/verify-email`, { otp: otpCode }, { withCredentials: true });
       if (data.success) {
         toast.success(data.message);
         setIsLoggedin(true);
@@ -110,23 +92,13 @@ const AuthPage = () => {
     }
   };
 
-  const formatTime = (seconds) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
   const handleResendOtp = async () => {
-    if (resendTimer > 0) return; // Prevent double clicks during cooldown
+    if (resendTimer > 0) return;
     try {
-      const { data } = await axios.post(
-        `${backendUrl}/api/auth/send-verify-otp`,
-        {},
-        { withCredentials: true }
-      );
+      const { data } = await axios.post(`${backendUrl}/api/auth/send-verify-otp`, {}, { withCredentials: true });
       if (data.success) {
-        toast.success('Verification code resent to your email.');
-        setResendTimer(180); // Start 3-minute cooldown
+        toast.success('Verification code resent.');
+        setResendTimer(180);
       } else {
         toast.error(data.message);
       }
@@ -136,68 +108,53 @@ const AuthPage = () => {
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    try {
-      const { data } = await axios.post(
-        `${backendUrl}/api/auth/google`,
-        { token: credentialResponse.credential },
-        { withCredentials: true }
-      );
-      if (data.success) {
-        setIsLoggedin(true);
-        await getUserData();
-        navigate('/dashboard');
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Google Authentication failed');
-    }
+    const success = await googleLogin(credentialResponse.credential);
+    if (success) navigate('/dashboard');
   };
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
+    // Validate school email domain
+    if (!email.endsWith(SCHOOL_EMAIL_DOMAIN)) {
+      toast.error(`Only ${SCHOOL_EMAIL_DOMAIN} emails are allowed.`);
+      return;
+    }
 
-    try {
-      if (authMode === 'login') {
-        const { data } = await axios.post(`${backendUrl}/api/auth/login`, { email, password, rememberMe }, { withCredentials: true });
-        if (data.success) {
-          const userRes = await axios.get(`${backendUrl}/api/user/data`, { withCredentials: true });
-          
-          if (userRes.data.success && !userRes.data.userData.isAccountVerified) {
-            const otpRes = await axios.post(`${backendUrl}/api/auth/send-verify-otp`, {}, { withCredentials: true });
-            if (otpRes.data.success) {
-              toast.info('Please verify your email to continue.');
-              setAuthMode('verify');
-              setResendTimer(180);
-            } else {
-              toast.error(otpRes.data.message);
-            }
-          } else {
-            setIsLoggedin(true);
-            await getUserData();
-            navigate('/dashboard');
-          }
+    if (authMode === 'login') {
+      const success = await login(email, password, rememberMe);
+      if (success) {
+        // After login, the context will have userData; check verification
+        if (userData?.isAccountVerified === false) {
+          // Not verified – OTP already sent in the login API, just switch mode
+          setAuthMode('verify');
+          setResendTimer(180);
+          toast.info('Please verify your email to continue.');
         } else {
-          toast.error(data.message);
-        }
-      } else if (authMode === 'register') {
-        const { data } = await axios.post(`${backendUrl}/api/auth/register`, { name, email, password }, { withCredentials: true });
-        if (data.success) {
-          const otpRes = await axios.post(`${backendUrl}/api/auth/send-verify-otp`, {}, { withCredentials: true });
-          if (otpRes.data.success) {
-            toast.success('Registration successful! Check your email for the verification code.');
-            setAuthMode('verify');
-            setResendTimer(180);
-          } else {
-            toast.error(otpRes.data.message);
-          }
-        } else {
-          toast.error(data.message);
+          navigate('/dashboard');
         }
       }
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Authentication error');
+    } else if (authMode === 'register') {
+      const result = await register(name, email, password);
+      if (result.success && result.needsVerification) {
+        setAuthMode('verify');
+        setResendTimer(180);
+        toast.info('Check your email for the verification code.');
+      }
     }
+  };
+
+  if (loading) {
+    return (
+      <div className="app">
+        <Header />
+        <main className="auth-page">
+          <div className="auth-shell" style={{ justifyContent: 'center', textAlign: 'center' }}>
+            <p>Loading...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   return (
@@ -212,7 +169,7 @@ const AuthPage = () => {
               Sign in with your Fatima student email to create tasks, prepare group sharing,
               and keep the first demo loop clear for the panel.
             </p>
-            <div className="auth-preview" aria-label="Phase one demo flow">
+            <div className="auth-preview">
               <span>School email login</span>
               <span>Personal task board</span>
               <span>Group-ready workflow</span>
@@ -232,7 +189,7 @@ const AuthPage = () => {
                   ? 'Use your school account to open your dashboard.'
                   : authMode === 'register'
                   ? 'Create the profile used by the task and group modules.'
-                  : 'We sent a 6-digit verification code to your email. Enter it below to continue.'}
+                  : 'We sent a 6‑digit verification code. Enter it below to continue.'}
               </p>
             </div>
 
@@ -264,17 +221,15 @@ const AuthPage = () => {
                     />
                   ))}
                 </div>
-                <button type="submit" className="primary-button">
-                  Verify Email
-                </button>
-                <button 
-                  type="button" 
-                  onClick={handleResendOtp} 
-                  className="ghost-button" 
+                <button type="submit" className="primary-button">Verify Email</button>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  className="ghost-button"
                   style={{ marginTop: '10px' }}
                   disabled={resendTimer > 0}
                 >
-                  {resendTimer > 0 ? `Resend Code in ${formatTime(resendTimer)}` : 'Resend Code'}
+                  {resendTimer > 0 ? `Resend Code in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend Code'}
                 </button>
               </form>
             ) : (
@@ -286,39 +241,31 @@ const AuthPage = () => {
                       onChange={e => setName(e.target.value)}
                       value={name}
                       type="text"
-                      name="name"
                       placeholder="Juan Dela Cruz"
-                      required={authMode === 'register'}
+                      required
                     />
                   </label>
                 )}
-
                 <label>
                   Email
                   <input
-                    readOnly={isReadOnly}
-                    onFocus={() => setIsReadOnly(false)}
                     onChange={e => setEmail(e.target.value)}
                     value={email}
                     type="email"
-                    name="email"
                     placeholder={`name${SCHOOL_EMAIL_DOMAIN}`}
                     required
                   />
                 </label>
-
                 <label>
                   Password
                   <input
                     onChange={e => setPassword(e.target.value)}
                     value={password}
                     type="password"
-                    name="password"
                     placeholder="••••••••"
                     required
                   />
                 </label>
-
                 {authMode === 'login' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <input
@@ -333,11 +280,7 @@ const AuthPage = () => {
                     </label>
                   </div>
                 )}
-
-                <button
-                  type="submit"
-                  className="primary-button"
-                >
+                <button type="submit" className="primary-button">
                   {authMode === 'login' ? 'Sign In' : 'Create Account'}
                 </button>
               </form>
@@ -350,25 +293,19 @@ const AuthPage = () => {
                   <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>or</span>
                   <hr style={{ flex: 1, border: 'none', borderTop: '1px solid var(--input-border)' }} />
                 </div>
-                
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
                   onError={() => toast.error('Google Login Failed')}
                   text={authMode === 'login' ? 'signin_with' : 'signup_with'}
                   shape="rectangular"
                   hosted_domain="student.fatima.edu.ph"
-                  prompt="select_account"
                 />
               </div>
             )}
 
             <div className="auth-actions">
               {authMode === 'verify' ? (
-                <button
-                  type="button"
-                  onClick={() => setAuthMode('login')}
-                  className="secondary-button"
-                >
+                <button type="button" onClick={() => setAuthMode('login')} className="secondary-button">
                   Back to login
                 </button>
               ) : (
