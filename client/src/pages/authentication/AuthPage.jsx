@@ -3,7 +3,6 @@ import axios from "axios";
 import Header from "../../components/layout/Header";
 import Footer from "../../components/layout/Footer";
 import "../../App.css";
-import "./AuthPage.css";
 import { toast } from "react-toastify";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
