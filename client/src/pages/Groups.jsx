@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import { useAuth } from "./authentication/AuthContext";
-import "../App.css";
 
 const STORAGE_KEY = "stresscare-groups";
 
@@ -137,18 +136,18 @@ export default function Groups() {
   return (
     <div className="app">
       <Header />
-      <main className="dashboard">
-        <section className="hero" id="groups-hero">
-          <div className="hero-copy">
-            <span className="eyebrow">Collaboration Hub</span>
-            <h1>Study groups & shared tasks</h1>
-            <p>
+      <main className="w-[min(1200px,calc(100%-20px))] md:w-[min(1200px,calc(100%-32px))] mx-auto pt-5 md:pt-8 pb-14 flex flex-col gap-6">
+        <section className="border border-[var(--border-light)] rounded-lg bg-[var(--hero-bg)] shadow-[var(--card-shadow)] grid grid-cols-1 lg:grid-cols-[1.65fr_1fr] gap-6 p-[18px] md:p-8" id="groups-hero">
+          <div>
+            <span className="inline-flex gap-2 items-center uppercase tracking-[0.12em] text-[0.72rem] font-bold text-[#b91c1c]">Collaboration Hub</span>
+            <h1 className="mt-[14px] mb-[16px] max-w-none lg:max-w-[15ch] text-[clamp(2rem,4vw,3.6rem)] leading-[1.04] font-bold text-[var(--text-primary)]">Study groups & shared tasks</h1>
+            <p className="text-[var(--text-secondary)] leading-[1.6]">
               Create a group, invite classmates with a join code, and share tasks to work together.
             </p>
           </div>
-          <aside className="hero-panel">
-            <h2>Groups</h2>
-            <ul className="hero-list">
+          <aside className="bg-[var(--hero-panel-bg)] text-[var(--hero-panel-text)] p-6 rounded-lg flex flex-col gap-4">
+            <h2 className="m-0 font-bold text-xl">Groups</h2>
+            <ul className="list-disc pl-5 flex flex-col gap-2 text-[var(--hero-panel-text)]/90 leading-[1.6]">
               <li>Create group → get join code</li>
               <li>Join existing group with code</li>
               <li>Share tasks to the group board</li>
@@ -158,59 +157,59 @@ export default function Groups() {
         </section>
 
         <div style={{ display: "flex", gap: "1rem", justifyContent: "center", marginBottom: "2rem" }}>
-          <button className="primary-button" onClick={() => setCreateModalOpen(true)}>
+          <button className="border-none rounded-lg px-[18px] py-[14px] font-bold cursor-pointer transition-all duration-200 ease-in-out bg-gradient-to-br from-[#dc2626] to-[#fb7185] text-white shadow-[0_16px_30px_rgba(239,68,68,0.2)] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(220,38,38,0.15)] active:translate-y-[1px] active:scale-[0.98] active:shadow-[0_2px_5px_rgba(0,0,0,0.1)]" onClick={() => setCreateModalOpen(true)}>
             + Create Group
           </button>
-          <button className="secondary-button" onClick={() => setJoinModalOpen(true)}>
+          <button className="border border-[var(--btn-secondary-border)] rounded-lg px-[18px] py-[14px] font-bold cursor-pointer transition-all duration-200 ease-in-out bg-[var(--btn-secondary-bg)] text-[#dc2626] shadow-[inset_0_0_0_1px_rgba(220,38,38,0.08)] hover:bg-[rgba(220,38,38,0.08)] hover:text-[#b91c1c] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.05)] active:translate-y-[1px] active:scale-[0.98] active:shadow-[0_2px_5px_rgba(0,0,0,0.1)]" onClick={() => setJoinModalOpen(true)}>
             🔗 Join Group
           </button>
         </div>
 
         {myGroups.length === 0 ? (
-          <div className="panel" style={{ textAlign: "center" }}>
-            <p className="schedule-empty">
+          <div className="border border-[var(--border-light)] rounded-lg bg-[var(--panel-bg)] shadow-[var(--card-shadow)] p-[18px] md:p-6 text-center">
+            <p className="p-3 rounded-lg bg-[var(--schedule-item-bg)] text-[var(--text-secondary)] leading-[1.6]">
               You are not in any group yet. Create a new group or join one with a code.
             </p>
           </div>
         ) : (
-          <div className="groups-grid">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-6 mt-4">
             {myGroups.map((group) => (
-              <div key={group.id} className="group-card">
-                <div className="group-header">
-                  <h3>{group.name}</h3>
+              <div key={group.id} className="bg-[var(--task-card-bg)] border border-[var(--border-light)] rounded-2xl p-5 shadow-[var(--card-shadow)] transition-all duration-200">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="m-0 text-xl text-[var(--text-primary)] font-bold">{group.name}</h3>
                   {group.ownerId === (user?.uid || user?.email) && (
-                    <span className="owner-badge">Owner</span>
+                    <span className="bg-[#dc2626] text-white text-[0.7rem] font-semibold py-1 px-2.5 rounded-full">Owner</span>
                   )}
                 </div>
-                {group.description && <p className="group-desc">{group.description}</p>}
-                <div className="group-code">
-                  Join code: <strong>{group.code}</strong>
+                {group.description && <p className="text-[var(--text-secondary)] text-[0.85rem] my-2">{group.description}</p>}
+                <div className="bg-[var(--input-bg)] py-1.5 px-3 rounded-lg text-[0.85rem] my-3 text-[var(--text-primary)]">
+                  Join code: <strong className="font-mono text-base tracking-[1px]">{group.code}</strong>
                 </div>
-                <div className="group-members">
-                  <span className="group-members-title">
+                <div>
+                  <span className="font-semibold text-[0.85rem] text-[var(--text-secondary)] block mb-2">
                     Members ({group.members.length})
                   </span>
-                  <ul className="members-list">
+                  <ul className="list-none p-0 m-0 flex flex-wrap gap-2">
                     {group.members.map((member) => (
-                      <li key={member.id}>
+                      <li key={member.id} className="bg-[var(--schedule-item-bg)] py-1 px-2.5 rounded-full text-[0.8rem] text-[var(--text-primary)]">
                         {member.name} {member.id === (user?.uid || user?.email) && "(you)"}
                       </li>
                     ))}
                   </ul>
                 </div>
-                <div className="group-actions">
+                <div className="flex gap-3 mt-4">
                   <button
-                    className="ghost-button"
+                    className="border-none rounded-lg font-bold cursor-pointer transition-all duration-200 ease-in-out bg-[var(--btn-ghost-bg)] text-[#b91c1c] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(220,38,38,0.15)] active:translate-y-[1px] active:scale-[0.98] active:shadow-[0_2px_5px_rgba(0,0,0,0.1)] py-1.5 px-4 text-[0.85rem]"
                     onClick={() => alert("Coming soon: share tasks to this group")}
                   >
                     Share Task
                   </button>
                   {group.ownerId === (user?.uid || user?.email) ? (
-                    <button className="remove-friend-btn" onClick={() => deleteGroup(group.id)}>
+                    <button className="bg-transparent border-none cursor-pointer py-1.5 px-4 rounded-full text-[var(--text-secondary)] transition-all duration-200 hover:bg-[rgba(220,38,38,0.1)] hover:text-[#dc2626] text-[0.85rem] font-medium" onClick={() => deleteGroup(group.id)}>
                       Delete Group
                     </button>
                   ) : (
-                    <button className="remove-friend-btn" onClick={() => leaveGroup(group.id)}>
+                    <button className="bg-transparent border-none cursor-pointer py-1.5 px-4 rounded-full text-[var(--text-secondary)] transition-all duration-200 hover:bg-[rgba(220,38,38,0.1)] hover:text-[#dc2626] text-[0.85rem] font-medium" onClick={() => leaveGroup(group.id)}>
                       Leave Group
                     </button>
                   )}
@@ -223,16 +222,17 @@ export default function Groups() {
 
       {/* Create Group Modal */}
       {createModalOpen && (
-        <div className="modal-overlay" onClick={() => setCreateModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Create a new study group</h2>
-              <button className="modal-close" onClick={() => setCreateModalOpen(false)}>×</button>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[1000] p-4" onClick={() => setCreateModalOpen(false)}>
+          <div className="bg-[var(--panel-bg)] rounded-2xl max-w-[550px] w-full max-h-[85vh] overflow-y-auto p-6 shadow-[0_24px_48px_rgba(0,0,0,0.2)] text-[var(--text-primary)]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="m-0 text-[#b91c1c] text-xl font-bold">Create a new study group</h2>
+              <button className="bg-transparent border-none text-[1.8rem] cursor-pointer leading-none text-[var(--text-secondary)] hover:text-[#b91c1c]" onClick={() => setCreateModalOpen(false)}>×</button>
             </div>
-            <div className="form-grid">
-              <div className="form-group full-span">
-                <label>Group name *</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2 col-span-full">
+                <label className="text-[0.9rem] font-semibold text-[var(--text-secondary)]">Group name *</label>
                 <input
+                  className="w-full px-[14px] py-[13px] rounded-lg border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--text-primary)] transition-all duration-200 focus:outline-none focus:border-[#ef4444] focus:shadow-[0_0_0_4px_rgba(239,68,68,0.12)] font-normal"
                   type="text"
                   value={newGroupName}
                   onChange={(e) => {
@@ -243,21 +243,22 @@ export default function Groups() {
                   autoFocus
                 />
               </div>
-              <div className="form-group full-span">
-                <label>Description (optional)</label>
+              <div className="flex flex-col gap-2 col-span-full">
+                <label className="text-[0.9rem] font-semibold text-[var(--text-secondary)]">Description (optional)</label>
                 <input
+                  className="w-full px-[14px] py-[13px] rounded-lg border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--text-primary)] transition-all duration-200 focus:outline-none focus:border-[#ef4444] focus:shadow-[0_0_0_4px_rgba(239,68,68,0.12)] font-normal"
                   type="text"
                   value={newGroupDesc}
                   onChange={(e) => setNewGroupDesc(e.target.value)}
                   placeholder="What's this group for?"
                 />
               </div>
-              {error && <p className="form-error full-span">{error}</p>}
-              <div className="modal-actions full-span">
-                <button className="secondary-button" onClick={() => setCreateModalOpen(false)}>
+              {error && <p className="col-span-full mb-4 px-[14px] py-[12px] text-[#991b1b] bg-[#fef2f2] border border-[#fecaca] rounded-lg text-[0.92rem] font-bold">{error}</p>}
+              <div className="col-span-full flex justify-end gap-3 mt-4">
+                <button className="border border-[var(--btn-secondary-border)] rounded-lg px-[18px] py-[14px] font-bold cursor-pointer transition-all duration-200 ease-in-out bg-[var(--btn-secondary-bg)] text-[#dc2626] shadow-[inset_0_0_0_1px_rgba(220,38,38,0.08)] hover:bg-[rgba(220,38,38,0.08)] hover:text-[#b91c1c] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.05)] active:translate-y-[1px] active:scale-[0.98] active:shadow-[0_2px_5px_rgba(0,0,0,0.1)]" onClick={() => setCreateModalOpen(false)}>
                   Cancel
                 </button>
-                <button className="btn-create-task" style={{ width: "auto" }} onClick={handleCreateGroup}>
+                <button className="bg-gradient-to-br from-[#dc2626] to-[#fb7185] border-none py-[14px] px-[24px] rounded-[40px] font-bold text-base text-white inline-flex items-center justify-center gap-2 cursor-pointer transition-all duration-200 shadow-[0_2px_6px_rgba(0,0,0,0.1)] hover:-translate-y-0.5 hover:shadow-[0_6px_14px_rgba(220,38,38,0.3)] hover:from-[#b91c1c] hover:to-[#ef4444] active:translate-y-[1px] w-auto" onClick={handleCreateGroup}>
                   Create Group
                 </button>
               </div>
@@ -268,16 +269,17 @@ export default function Groups() {
 
       {/* Join Group Modal */}
       {joinModalOpen && (
-        <div className="modal-overlay" onClick={() => setJoinModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Join a group</h2>
-              <button className="modal-close" onClick={() => setJoinModalOpen(false)}>×</button>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[1000] p-4" onClick={() => setJoinModalOpen(false)}>
+          <div className="bg-[var(--panel-bg)] rounded-2xl max-w-[550px] w-full max-h-[85vh] overflow-y-auto p-6 shadow-[0_24px_48px_rgba(0,0,0,0.2)] text-[var(--text-primary)]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="m-0 text-[#b91c1c] text-xl font-bold">Join a group</h2>
+              <button className="bg-transparent border-none text-[1.8rem] cursor-pointer leading-none text-[var(--text-secondary)] hover:text-[#b91c1c]" onClick={() => setJoinModalOpen(false)}>×</button>
             </div>
-            <div className="form-grid">
-              <div className="form-group full-span">
-                <label>Enter the 6‑character join code</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2 col-span-full">
+                <label className="text-[0.9rem] font-semibold text-[var(--text-secondary)]">Enter the 6‑character join code</label>
                 <input
+                  className="w-full px-[14px] py-[13px] rounded-lg border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--text-primary)] transition-all duration-200 focus:outline-none focus:border-[#ef4444] focus:shadow-[0_0_0_4px_rgba(239,68,68,0.12)] font-normal"
                   type="text"
                   value={joinCode}
                   onChange={(e) => {
@@ -288,12 +290,12 @@ export default function Groups() {
                   autoFocus
                 />
               </div>
-              {error && <p className="form-error full-span">{error}</p>}
-              <div className="modal-actions full-span">
-                <button className="secondary-button" onClick={() => setJoinModalOpen(false)}>
+              {error && <p className="col-span-full mb-4 px-[14px] py-[12px] text-[#991b1b] bg-[#fef2f2] border border-[#fecaca] rounded-lg text-[0.92rem] font-bold">{error}</p>}
+              <div className="col-span-full flex justify-end gap-3 mt-4">
+                <button className="border border-[var(--btn-secondary-border)] rounded-lg px-[18px] py-[14px] font-bold cursor-pointer transition-all duration-200 ease-in-out bg-[var(--btn-secondary-bg)] text-[#dc2626] shadow-[inset_0_0_0_1px_rgba(220,38,38,0.08)] hover:bg-[rgba(220,38,38,0.08)] hover:text-[#b91c1c] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.05)] active:translate-y-[1px] active:scale-[0.98] active:shadow-[0_2px_5px_rgba(0,0,0,0.1)]" onClick={() => setJoinModalOpen(false)}>
                   Cancel
                 </button>
-                <button className="btn-create-task" style={{ width: "auto" }} onClick={handleJoinGroup}>
+                <button className="bg-gradient-to-br from-[#dc2626] to-[#fb7185] border-none py-[14px] px-[24px] rounded-[40px] font-bold text-base text-white inline-flex items-center justify-center gap-2 cursor-pointer transition-all duration-200 shadow-[0_2px_6px_rgba(0,0,0,0.1)] hover:-translate-y-0.5 hover:shadow-[0_6px_14px_rgba(220,38,38,0.3)] hover:from-[#b91c1c] hover:to-[#ef4444] active:translate-y-[1px] w-auto" onClick={handleJoinGroup}>
                   Join Group
                 </button>
               </div>
