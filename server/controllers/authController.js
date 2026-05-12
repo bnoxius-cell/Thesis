@@ -92,8 +92,6 @@ export const login = async (req, res) => {
     }
 };
 
-
-
 export const googleLogin = async (req, res) => {
   try {
     // 1. The token sent from your React <GoogleLogin> component
@@ -107,7 +105,8 @@ export const googleLogin = async (req, res) => {
 
     // 3. Extract the user's details from the verified token
     const payload = ticket.getPayload();
-    const { sub: googleId, email, name } = payload;
+    // FIX: Extracted 'picture' from the payload to use as the avatar
+    const { sub: googleId, email, name, picture } = payload; 
 
     // 4. Find or create the user in your database
     let user = await userModel.findOne({ email });
@@ -118,15 +117,30 @@ export const googleLogin = async (req, res) => {
         name,
         email,
         googleId,
-        isAccountVerified: true, // Google emails are already verified
+        authProvider: 'google', // FIX: Explicitly set the provider to 'google'
+        avatar: picture,        // FIX: Save the Google picture URL to your avatar field
+        isAccountVerified: true, 
       });
-    } else if (!user.googleId) {
-      // If they registered manually before, link their Google ID now
-      user.googleId = googleId;
-      await user.save();
+    } else {
+      // If the user already exists, update missing Google info
+      let isUpdated = false;
+      
+      if (!user.googleId) {
+        user.googleId = googleId;
+        isUpdated = true;
+      }
+      // Optional: If they didn't have an avatar before, give them the Google one
+      if (!user.avatar && picture) {
+        user.avatar = picture;
+        isUpdated = true;
+      }
+      
+      if (isUpdated) {
+        await user.save();
+      }
     }
 
-    // 5. Generate your app's JWT token (just like your normal login)
+    // 5. Generate your app's JWT token
     const jwtToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     // 6. Set the HTTP-Only cookie
@@ -137,6 +151,8 @@ export const googleLogin = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
+    await sendWelcomeEmail(user.email);
+    
     // 7. Send success response back to React
     return res.json({ success: true, message: "Google login successful", user });
 
