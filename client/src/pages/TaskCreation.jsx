@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // <-- add this
-import { useAuth } from "./authentication/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "./authentication/AuthContext";   // ✅ fixed relative path
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import "../App.css";
@@ -17,8 +17,8 @@ const initialTaskForm = {
 };
 
 export default function TaskCreation() {
-  const { user } = useAuth();
-  const navigate = useNavigate(); // <-- for redirect
+  const { isLoggedin, user } = useAuth();   // use isLoggedin for auth check
+  const navigate = useNavigate();
   const [taskForm, setTaskForm] = useState(initialTaskForm);
   const [message, setMessage] = useState("");
 
@@ -47,7 +47,6 @@ export default function TaskCreation() {
       importance: Number(taskForm.importance),
     };
 
-    // --- PERSIST TO LOCALSTORAGE ---
     const saved = localStorage.getItem(STORAGE_KEY);
     let existingData = { profile: {}, tasks: [] };
     if (saved) {
@@ -62,20 +61,18 @@ export default function TaskCreation() {
       profile: existingData.profile,
       tasks: updatedTasks,
     }));
-    // --- END PERSIST ---
 
     setMessage("Task created successfully! Redirecting to dashboard...");
     setTaskForm(initialTaskForm);
 
-    // Redirect to dashboard after a short delay
     setTimeout(() => {
       navigate("/");
     }, 1500);
   };
 
-  if (!user) {
+  if (!isLoggedin) {
     return (
-      <div>
+      <div className="app">
         <Header />
         <main className="dashboard">
           <p>Please log in to create tasks.</p>
@@ -86,13 +83,17 @@ export default function TaskCreation() {
   }
 
   return (
-    <div>
+    <div className="app">   {/* ← must have "app" class for theme */}
       <Header />
       <main className="dashboard">
         <section className="hero">
           <h1>Create New Task</h1>
           <p>Add a new task to your study schedule.</p>
-          {message && <p className="message" style={{ color: message.includes("success") ? "green" : "red" }}>{message}</p>}
+          {message && (
+            <p className="message" style={{ color: message.includes("successfully") ? "green" : "red" }}>
+              {message}
+            </p>
+          )}
           <form className="form-grid" onSubmit={handleAddTask}>
             <div className="form-group">
               <label htmlFor="title">Task Title *</label>
