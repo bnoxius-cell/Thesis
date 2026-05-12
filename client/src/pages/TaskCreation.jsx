@@ -1,6 +1,7 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "./authentication/AuthContext";
+import { useAuth } from "./authentication/AuthContext";   // ✅ fixed relative path
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import "../App.css";
@@ -17,7 +18,7 @@ const initialTaskForm = {
 };
 
 export default function TaskCreation() {
-  const { user } = useAuth();
+  const { isLoggedin, user } = useAuth();   // use isLoggedin for auth check
   const navigate = useNavigate();
   const [taskForm, setTaskForm] = useState(initialTaskForm);
   const [message, setMessage] = useState("");
@@ -70,7 +71,7 @@ export default function TaskCreation() {
     }, 1500);
   };
 
-  if (!user) {
+  if (!isLoggedin) {
     return (
       <div className="app">
         <Header />
@@ -83,13 +84,17 @@ export default function TaskCreation() {
   }
 
   return (
-    <div className="app">   {/* ← FIX: added "app" class */}
+    <div className="app">   {/* ← must have "app" class for theme */}
       <Header />
       <main className="dashboard">
         <section className="hero">
           <h1>Create New Task</h1>
           <p>Add a new task to your study schedule.</p>
-          {message && <p className="message" style={{ color: message.includes("success") ? "green" : "red" }}>{message}</p>}
+          {message && (
+            <p className="message" style={{ color: message.includes("successfully") ? "green" : "red" }}>
+              {message}
+            </p>
+          )}
           <form className="form-grid" onSubmit={handleAddTask}>
             <div className="form-group">
               <label htmlFor="title">Task Title *</label>
