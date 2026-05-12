@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
+import Profile from './pages/user/Profile';
 import TaskCreation from './pages/TaskCreation';
 import About from './pages/About';
 import Settings from './pages/Settings';
@@ -30,7 +30,6 @@ const AppContent = () => {
         <Route path="/groups" element={isLoggedin ? <Groups /> : <Navigate to="/" replace />} />
         <Route path="/notifications" element={isLoggedin ? <Notifications /> : <Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
-      
       </Routes>
     </Router>
   );

@@ -201,31 +201,31 @@ const AuthPage = () => {
   return (
     <div className="app">
       <Header />
-      <main className="auth-page">
-        <section className="auth-shell" id="login">
-          <div className="auth-copy">
+      <main className="w-[min(1200px,calc(100%_-_20px))] md:w-[min(1200px,calc(100%_-_32px))] mx-auto min-h-[calc(100vh-220px)] pt-5 md:pt-12 pb-16 grid items-center flex-1">
+        <section className="border border-[var(--border-light)] rounded-lg bg-[var(--hero-bg)] shadow-[var(--card-shadow)] grid grid-cols-1 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.72fr)] gap-6 p-[18px] md:p-8 items-center" id="login">
+          <div>
             <span className="eyebrow">Student workload system</span>
-            <h1>Plan personal tasks and group work from one dashboard.</h1>
-            <p>
+            <h1 className="mt-[14px] mb-[16px] max-w-[15ch] text-[clamp(2rem,4vw,3.6rem)] leading-[1.04] font-bold text-[var(--text-primary)]">Plan personal tasks and group work from one dashboard.</h1>
+            <p className="text-[var(--text-secondary)] leading-[1.6]">
               Sign in with your Fatima student email to create tasks, prepare group sharing,
               and keep the first demo loop clear for the panel.
             </p>
-            <div className="auth-preview" aria-label="Phase one demo flow">
-              <span>School email login</span>
-              <span>Personal task board</span>
-              <span>Group-ready workflow</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-[12px] mt-[28px]" aria-label="Phase one demo flow">
+              <span className="min-h-[76px] flex items-center p-4 text-[#7f1d1d] text-[0.9rem] font-extrabold bg-white/[0.72] border border-[#dc2626]/[0.14] rounded-lg">School email login</span>
+              <span className="min-h-[76px] flex items-center p-4 text-[#7f1d1d] text-[0.9rem] font-extrabold bg-white/[0.72] border border-[#dc2626]/[0.14] rounded-lg">Personal task board</span>
+              <span className="min-h-[76px] flex items-center p-4 text-[#7f1d1d] text-[0.9rem] font-extrabold bg-white/[0.72] border border-[#dc2626]/[0.14] rounded-lg">Group-ready workflow</span>
             </div>
           </div>
 
-          <div className="auth-card">
-            <div className="auth-card-header">
+          <div className="p-[26px] bg-[var(--auth-card-bg)] border border-[var(--border-light)] rounded-lg shadow-[var(--card-shadow)]">
+            <div className="mb-[22px]">
               <span className="panel-kicker">
                 {authMode === 'login' ? 'Welcome back' : authMode === 'register' ? 'Create profile' : 'Verify account'}
               </span>
-              <h2>
+              <h2 className="mt-[8px] mb-[6px] text-[1.6rem] font-bold text-[var(--text-primary)]">
                 {authMode === 'login' ? 'Sign in' : authMode === 'register' ? 'Student signup' : 'Check your email'}
               </h2>
-              <p>
+              <p className="m-0 text-[var(--text-secondary)] leading-[1.6]">
                 {authMode === 'login'
                   ? 'Use your school account to open your dashboard.'
                   : authMode === 'register'
@@ -235,7 +235,7 @@ const AuthPage = () => {
             </div>
 
             {authMode === 'verify' ? (
-              <form className="auth-form" onSubmit={onVerifySubmit}>
+              <form className="grid gap-[14px]" onSubmit={onVerifySubmit}>
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', margin: '12px 0 24px' }}>
                   {otp.map((digit, index) => (
                     <input
@@ -262,21 +262,20 @@ const AuthPage = () => {
                     />
                   ))}
                 </div>
-                <button type="submit" className="primary-button">
+                <button type="submit" className="primary-button w-full">
                   Verify Email
                 </button>
                 <button 
                   type="button" 
                   onClick={handleResendOtp} 
-                  className="ghost-button" 
-                  style={{ marginTop: '10px' }}
+                  className="ghost-button w-full mt-[10px]" 
                   disabled={resendTimer > 0}
                 >
                   {resendTimer > 0 ? `Resend Code in ${formatTime(resendTimer)}` : 'Resend Code'}
                 </button>
               </form>
             ) : (
-              <form className="auth-form" onSubmit={onSubmitHandler}>
+              <form className="grid gap-[14px]" onSubmit={onSubmitHandler}>
                 {authMode === 'register' && (
                   <label>
                     Full Name
@@ -332,7 +331,7 @@ const AuthPage = () => {
 
                 <button
                   type="submit"
-                  className="primary-button"
+                  className="primary-button w-full"
                 >
                   {authMode === 'login' ? 'Sign In' : 'Create Account'}
                 </button>
@@ -357,12 +356,12 @@ const AuthPage = () => {
               </div>
             )}
 
-            <div className="auth-actions">
+            <div className="grid gap-[14px] mt-[14px]">
               {authMode === 'verify' ? (
                 <button
                   type="button"
                   onClick={() => setAuthMode('login')}
-                  className="secondary-button"
+                  className="secondary-button w-full"
                 >
                   Back to login
                 </button>
@@ -370,7 +369,7 @@ const AuthPage = () => {
                 <button
                   type="button"
                   onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-                  className="secondary-button"
+                  className="secondary-button w-full"
                 >
                   {authMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
                 </button>
