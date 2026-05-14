@@ -44,7 +44,7 @@ export default function About() {
               self‑assessments, StressCare introduces a <strong>Workload Indicator Algorithm</strong>.
               It estimates stress levels based on measurable academic factors:
             </p>
-            <ul style={{ marginTop: "1rem", paddingLeft: "1.5rem", color: "#475569" }}>
+            <ul style={{ marginTop: "1rem", paddingLeft: "1.5rem" }}>
               <li>Task load and estimated hours</li>
               <li>Study hours per day</li>
               <li>Deadline proximity</li>
