@@ -5,6 +5,9 @@ import connectDB from './config/db.js';
 import 'dotenv/config'
 import authRouter from './routes/authRoutes.js'
 import userRouter from './routes/userRoutes.js'
+import taskRouter from './routes/taskRoutes.js'
+import groupRouter from './routes/groupRoutes.js'
+import notificationRouter from './routes/notificationRoutes.js'
 
 // init app
 const app = express();
@@ -16,6 +19,9 @@ app.use(cors({
 app.use(cookieParser());
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
+app.use('/api/tasks', taskRouter);
+app.use('/api/groups', groupRouter);
+app.use('/api/notifications', notificationRouter);
 
 // declare port and connect to db
 const PORT = process.env.PORT || 5000;
