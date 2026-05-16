@@ -1,23 +1,14 @@
 import { useAuth } from "./authentication/AuthContext";
 import { useState, useEffect } from "react";
 import { useParams, Navigate } from "react-router-dom";
+import axios from "axios";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import "../App.css";
 
-const STORAGE_KEY = "stresscare-dashboard";
-const initialProfile = {
-  studentName: "",
-  program: "BS Information Technology",
-  studyHoursPerDay: 4,
-  sleepHours: 7,
-  wellbeingGoal: "steady",
-};
-
 // Helper to get optimized Google avatar URL (larger size)
 const getOptimizedAvatarUrl = (avatar) => {
   if (!avatar) return null;
-  // Replace default size 's96-c' with higher resolution 's150-c'
   return avatar.replace('s96-c', 's150-c');
 };
 
@@ -29,38 +20,81 @@ const getInitialsAvatar = (name) => {
 };
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, backendUrl } = useAuth();
   const { uid } = useParams();
-  const [profile, setProfile] = useState(initialProfile);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
+  // Profile state (capacity fields only)
+  const [profile, setProfile] = useState({
+    studentName: "",
+    program: "BS Information Technology",
+    studyHoursPerDay: 4,
+    wellbeingGoal: "steady",
+  });
+
+  // Temporary edit state
+  const [editForm, setEditForm] = useState({ ...profile });
+
+  // Fetch profile from backend when component mounts
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
+    const fetchProfile = async () => {
       try {
-        const parsed = JSON.parse(saved);
-        if (parsed.profile) {
-          setProfile(parsed.profile);
+        const { data } = await axios.get(`${backendUrl}/api/user/data`, { withCredentials: true });
+        if (data.success && data.userData) {
+          const userData = data.userData;
+          setProfile({
+            studentName: userData.name || "",
+            program: userData.program || "BS Information Technology",
+            studyHoursPerDay: userData.studyHoursPerDay || 4,
+            wellbeingGoal: userData.wellbeingGoal || "steady",
+          });
+          setEditForm({
+            studentName: userData.name || "",
+            program: userData.program || "BS Information Technology",
+            studyHoursPerDay: userData.studyHoursPerDay || 4,
+            wellbeingGoal: userData.wellbeingGoal || "steady",
+          });
         }
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
+      } catch (err) {
+        console.error("Failed to load profile", err);
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
-  }, []);
+    };
+    fetchProfile();
+  }, [backendUrl]);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ profile }));
-  }, [profile]);
-
-  const updateProfile = (key, value) => {
-    setProfile((current) => ({
-      ...current,
-      [key]: value,
-    }));
+  const handleEditChange = (key, value) => {
+    setEditForm(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { data } = await axios.put(`${backendUrl}/api/user/profile`, editForm, { withCredentials: true });
+      if (data.success) {
+        setProfile({ ...editForm });
+        setIsEditing(false);
+        // Optionally show success toast
+      } else {
+        console.error("Update failed", data.message);
+      }
+    } catch (err) {
+      console.error("Error saving profile", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditForm({ ...profile });
+    setIsEditing(false);
+  };
+
+  // Authentication check
   if (!user) {
     return (
       <div className="app">
@@ -73,20 +107,33 @@ export default function Profile() {
     );
   }
 
+  // Redirect if no uid in URL (or "undefined")
   if ((!uid || uid === 'undefined') && user?._id) {
     return <Navigate to={`/profile/${user._id}`} replace />;
   }
 
-  // Determine avatar source
-  let avatarSrc = getInitialsAvatar(user.name); // fallback
+  // Avatar source
+  let avatarSrc = getInitialsAvatar(user.name);
   if (user.avatar && !imgError) {
     const optimized = getOptimizedAvatarUrl(user.avatar);
     if (optimized) avatarSrc = optimized;
   }
 
-  const handleImageError = () => {
-    setImgError(true);
-  };
+  const handleImageError = () => setImgError(true);
+
+  if (loading) {
+    return (
+      <div className="app">
+        <Header />
+        <main className="dashboard">
+          <div className="panel" style={{ textAlign: "center" }}>
+            <p>Loading profile...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="app">
@@ -107,7 +154,7 @@ export default function Profile() {
                   src={avatarSrc}
                   alt="Profile"
                   onError={handleImageError}
-                  referrerPolicy="no-referrer"   // Critical for Google images
+                  referrerPolicy="no-referrer"
                   style={{ borderRadius: "50%", width: "150px", height: "150px", objectFit: "cover" }}
                 />
               </div>
@@ -121,70 +168,76 @@ export default function Profile() {
           </aside>
         </section>
 
-        <section className="grid">
-          <section className="panel form-panel" id="assessment">
-            <div className="panel-heading">
-              <div>
-                <span className="panel-kicker">Student profile</span>
-                <h2>Set your weekly capacity</h2>
+        <section className="panel form-panel">
+          <div className="panel-heading">
+            <div>
+              <span className="panel-kicker">Student profile</span>
+              <h2>Set your weekly capacity</h2>
+            </div>
+            {!isEditing ? (
+              <button className="secondary-button" onClick={() => setIsEditing(true)}>
+                Edit Profile
+              </button>
+            ) : (
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button className="secondary-button" onClick={handleCancel} disabled={saving}>
+                  Cancel
+                </button>
+                <button className="primary-button" onClick={handleSave} disabled={saving}>
+                  {saving ? "Saving..." : "Save Changes"}
+                </button>
               </div>
-            </div>
+            )}
+          </div>
 
-            <div className="form-grid compact">
-              <label>
-                Student name
-                <input
-                  type="text"
-                  placeholder="Juan Dela Cruz"
-                  value={profile.studentName}
-                  onChange={(event) => updateProfile("studentName", event.target.value)}
-                />
-              </label>
+          <div className="form-grid compact">
+            <label>
+              Student name
+              <input
+                type="text"
+                placeholder="Juan Dela Cruz"
+                value={isEditing ? editForm.studentName : profile.studentName}
+                onChange={(e) => handleEditChange("studentName", e.target.value)}
+                disabled={!isEditing}
+              />
+            </label>
 
-              <label>
-                Program
-                <input
-                  type="text"
-                  value={profile.program}
-                  onChange={(event) => updateProfile("program", event.target.value)}
-                />
-              </label>
+            <label>
+              Program
+              <input
+                type="text"
+                placeholder="e.g., BS Information Technology"
+                value={isEditing ? editForm.program : profile.program}
+                onChange={(e) => handleEditChange("program", e.target.value)}
+                disabled={!isEditing}
+              />
+            </label>
 
-              <label>
-                Study hours per day
-                <input
-                  type="number"
-                  min="1"
-                  max="12"
-                  value={profile.studyHoursPerDay}
-                  onChange={(event) => updateProfile("studyHoursPerDay", Number(event.target.value))}
-                />
-              </label>
+            <label>
+              Study hours per day
+              <input
+                type="number"
+                min="1"
+                max="12"
+                value={isEditing ? editForm.studyHoursPerDay : profile.studyHoursPerDay}
+                onChange={(e) => handleEditChange("studyHoursPerDay", Number(e.target.value))}
+                disabled={!isEditing}
+              />
+            </label>
 
-              <label>
-                Sleep hours
-                <input
-                  type="number"
-                  min="1"
-                  max="12"
-                  value={profile.sleepHours}
-                  onChange={(event) => updateProfile("sleepHours", Number(event.target.value))}
-                />
-              </label>
-
-              <label className="full-span">
-                Wellbeing goal
-                <select
-                  value={profile.wellbeingGoal}
-                  onChange={(event) => updateProfile("wellbeingGoal", event.target.value)}
-                >
-                  <option value="steady">Stay balanced</option>
-                  <option value="catch-up">Recover from backlog</option>
-                  <option value="high-performance">Push for high performance</option>
-                </select>
-              </label>
-            </div>
-          </section>
+            <label className="full-span">
+              Wellbeing goal
+              <select
+                value={isEditing ? editForm.wellbeingGoal : profile.wellbeingGoal}
+                onChange={(e) => handleEditChange("wellbeingGoal", e.target.value)}
+                disabled={!isEditing}
+              >
+                <option value="steady">Stay balanced</option>
+                <option value="catch-up">Recover from backlog</option>
+                <option value="high-performance">Push for high performance</option>
+              </select>
+            </label>
+          </div>
         </section>
       </main>
       <Footer />
