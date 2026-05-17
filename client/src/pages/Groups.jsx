@@ -135,7 +135,7 @@ export default function Groups() {
   );
 
   return (
-    <div className="app">
+    <div className="app app-layout">
       <Header />
       <main className="dashboard">
         <section className="hero" id="groups-hero">

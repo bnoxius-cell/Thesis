@@ -90,7 +90,7 @@ export default function Notifications() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <div className="app">
+    <div className="app app-layout">
       <Header />
       <main className="dashboard">
         <section className="hero" id="notifications-hero">

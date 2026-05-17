@@ -145,7 +145,7 @@ const AuthPage = () => {
 
   if (loading) {
     return (
-      <div className="app">
+      <div className="app auth-layout">
         <Header />
         <main className="auth-page">
           <div className="auth-shell" style={{ justifyContent: 'center', textAlign: 'center' }}>
@@ -158,7 +158,7 @@ const AuthPage = () => {
   }
 
   return (
-    <div className="app">
+    <div className="app auth-layout">
       <Header />
       <main className="auth-page">
         <section className="auth-shell" id="login">

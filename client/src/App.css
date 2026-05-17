@@ -1,4 +1,7 @@
-/* ===== THEME VARIABLES ===== */
+/* ==========================================================================
+   THEME VARIABLES (Light & Dark)
+   ========================================================================== */
+
 :root {
   /* Light theme (default) */
   --bg-app: #f8fafc;
@@ -27,7 +30,7 @@
   --status-pill-overdue-bg: #1f2937;
   --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.025);
 
-  /* ===== HEADER VARIABLES (light) ===== */
+  /* Header & sidepanel (light) */
   --header-bg: #ffffff;
   --header-text: #991b1b;
   --header-border: rgba(0, 0, 0, 0.04);
@@ -44,6 +47,7 @@
 }
 
 .dark-theme {
+  /* Dark theme overrides */
   --bg-app: #1e293b;
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
@@ -70,7 +74,7 @@
   --status-pill-overdue-bg: #111827;
   --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
 
-  /* ===== HEADER VARIABLES (dark) ===== */
+  /* Header & sidepanel (dark) */
   --header-bg: #0f172a;
   --header-text: #f87171;
   --header-border: rgba(255, 255, 255, 0.03);
@@ -85,14 +89,13 @@
   --menu-item-hover-bg: #334155;
   --menu-item-hover-color: #ffffff;
 
-  /* ===== FRIENDS BUTTON DARK THEME – EXTREMELY SUBTLE (barely there) ===== */
+  /* Friends button dark adjustments (extremely subtle) */
   .friend-request-button:hover .friend-button-content::before {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.005));
   }
   .friend-request-button::after {
     background: rgba(255, 255, 255, 0.01);
   }
-  /* Red text remains for brand – no glow there */
   .friend-badge {
     color: #f87171;
   }
@@ -110,31 +113,61 @@
   }
 }
 
+/* ==========================================================================
+   GLOBAL & BASE
+   ========================================================================== */
 .app {
   min-height: 100vh;
   color: var(--text-primary);
   background: var(--bg-app);
 }
 
-/* ===== NEW SIDEPANEL & GRID LAYOUT ===== */
-.app:has(.sidepanel) {
+/* ==========================================================================
+   EXPLICIT LAYOUT CLASSES (no :has() used)
+   ========================================================================== */
+
+/* Layout for logged‑in pages (with sidepanel) */
+.app.app-layout {
   display: grid;
   grid-template-columns: 260px 1fr;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: 1fr auto;  /* sidepanel auto, main content fills, footer at bottom */
+  min-height: 100vh;
 }
 
-.app:has(.header-auth) {
+/* Main content area – second column, second row */
+.app.app-layout .dashboard {
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 40px 56px;
+}
+
+/* Footer – second column, second row (since dashboard takes row 1, footer row 2) */
+.app.app-layout .footer {
+  grid-column: 2;
+  grid-row: 2;
+  width: 100%;
+}
+
+/* Layout for auth pages (login/register – no sidepanel) */
+.app.auth-layout {
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
+}
+.app.auth-layout .auth-page {
+  flex: 1;
 }
 
+/* ==========================================================================
+   SIDEPANEL (logged‑in menu)
+   ========================================================================== */
 .sidepanel {
-  grid-column: 1;
-  grid-row: 1 / 3;
-  width: 260px;
-  height: 100vh;
   position: sticky;
   top: 0;
+  height: 100vh;           /* fixed height – does not grow with content */
   background: var(--header-bg);
   border-right: 1px solid var(--header-border);
   display: flex;
@@ -142,13 +175,13 @@
   padding: 24px 16px;
   z-index: 100;
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .sidepanel-logo {
   margin-bottom: 32px;
   padding: 0 12px;
 }
-
 .logo-link {
   display: flex;
   align-items: center;
@@ -157,17 +190,15 @@
   color: var(--header-text);
   font-weight: 800;
 }
-
 .sidepanel-logo .logo-link {
   font-size: 1.6rem;
 }
-
 .logo-svg {
-  width: 36px; /* You can adjust the size here */
+  width: 36px;
   height: 36px;
 }
-
-.logo-text span, .header-auth .logo-link span {
+.logo-text span,
+.header-auth .logo-link span {
   color: var(--text-primary);
 }
 
@@ -177,13 +208,11 @@
   flex: 1;
   justify-content: space-between;
 }
-
 .sidepanel-menu {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-
 .sidepanel-link {
   display: flex;
   align-items: center;
@@ -196,13 +225,11 @@
   font-size: 0.95rem;
   transition: all 0.2s ease;
 }
-
 .sidepanel-link:hover,
 .sidepanel-link.active {
   background: var(--menu-item-hover-bg);
   color: var(--menu-item-hover-color);
 }
-
 .sidepanel-footer {
   display: flex;
   flex-direction: column;
@@ -211,7 +238,6 @@
   padding-top: 24px;
   border-top: 1px solid var(--border-light);
 }
-
 .sidepanel-user {
   display: flex;
   align-items: center;
@@ -220,13 +246,11 @@
   font-weight: 600;
   color: var(--user-info-color);
 }
-
 .user-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .sidepanel-logout {
   display: flex;
   align-items: center;
@@ -242,50 +266,30 @@
   transition: all 0.2s;
   width: 100%;
 }
-
 .sidepanel-logout:hover {
   background: var(--logout-btn-hover-bg);
   color: var(--logout-btn-hover-color);
   border-color: var(--logout-btn-hover-border);
 }
 
+/* Simple header for auth pages (no sidepanel) */
 .header-auth {
   padding: 20px 40px;
   display: flex;
 }
-
 .header-auth .logo-link {
   font-size: 1.5rem;
 }
 
-/* Lock Main Content & Footer inside the Grid */
-.app:has(.sidepanel) .dashboard {
-  grid-column: 2;
-  grid-row: 1;
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 32px 40px 56px;
-}
-
-.app:has(.sidepanel) .footer {
-  grid-column: 2;
-  grid-row: 2;
-  width: 100%;
-}
-
-.app:has(.header-auth) .auth-page {
-  flex: 1;
-}
-
-/* ===== INDUSTRY STANDARD FOOTER ===== */
+/* ==========================================================================
+   FOOTER (site-wide)
+   ========================================================================== */
 .site-footer {
   background: var(--header-bg);
   border-top: 1px solid var(--header-border);
   padding: 64px 40px 24px;
   margin-top: auto;
 }
-
 .site-footer-top {
   display: grid;
   grid-template-columns: 1.5fr 2fr;
@@ -293,17 +297,14 @@
   max-width: 1100px;
   margin: 0 auto 48px;
 }
-
 .site-footer-brand {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
-
 .site-footer-brand .logo-link {
   font-size: 1.5rem;
 }
-
 .site-footer-tagline {
   color: var(--text-secondary);
   font-size: 0.95rem;
@@ -311,13 +312,11 @@
   max-width: 300px;
   margin: 0;
 }
-
 .site-footer-socials {
   display: flex;
   gap: 16px;
   margin-top: 8px;
 }
-
 .site-footer-socials a {
   color: var(--text-secondary);
   transition: color 0.2s ease, transform 0.2s ease;
@@ -325,24 +324,20 @@
   align-items: center;
   justify-content: center;
 }
-
 .site-footer-socials a:hover {
   color: var(--text-primary);
   transform: translateY(-2px);
 }
-
 .site-footer-links {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 32px;
 }
-
 .site-footer-column {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
-
 .site-footer-column h4 {
   color: var(--text-primary);
   font-size: 0.95rem;
@@ -351,7 +346,6 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-
 .site-footer-column a {
   color: var(--text-secondary);
   text-decoration: none;
@@ -359,11 +353,9 @@
   font-weight: 500;
   transition: color 0.2s ease;
 }
-
 .site-footer-column a:hover {
   color: var(--text-primary);
 }
-
 .site-footer-bottom {
   max-width: 1100px;
   margin: 0 auto;
@@ -375,33 +367,30 @@
   color: var(--text-secondary);
   font-size: 0.85rem;
 }
-
 .site-footer-bottom p {
   margin: 0;
 }
-/* ======================================= */
 
-/* Rest of the CSS – replace ALL color references with variables */
+/* ==========================================================================
+   COMMON PAGE ELEMENTS (shared by multiple pages)
+   ========================================================================== */
 .auth-page,
 .dashboard {
   width: min(1200px, calc(100% - 32px));
   margin: 0 auto;
 }
-
 .auth-page {
   min-height: calc(100vh - 220px);
   padding: 48px 0 64px;
   display: grid;
   align-items: center;
 }
-
 .dashboard {
   padding: 32px 0 56px;
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
-
 .auth-shell,
 .hero,
 .panel {
@@ -410,7 +399,6 @@
   background: var(--card-bg);
   box-shadow: var(--card-shadow);
 }
-
 .auth-shell,
 .hero {
   display: grid;
@@ -419,12 +407,10 @@
   padding: 32px;
   background: var(--hero-bg);
 }
-
 .auth-shell {
   grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.72fr);
   align-items: center;
 }
-
 .eyebrow,
 .panel-kicker {
   display: inline-flex;
@@ -436,21 +422,18 @@
   font-weight: 700;
   color: #b91c1c;
 }
-
 .hero h1 {
   margin: 14px 0 16px;
   font-size: clamp(2rem, 4vw, 3.4rem);
   line-height: 1.04;
   max-width: 14ch;
 }
-
 .auth-copy h1 {
   margin: 14px 0 16px;
   max-width: 15ch;
   font-size: clamp(2rem, 4vw, 3.6rem);
   line-height: 1.04;
 }
-
 .hero-copy p,
 .auth-copy p,
 .auth-card-header p,
@@ -462,14 +445,12 @@
   color: var(--text-secondary);
   line-height: 1.6;
 }
-
 .auth-preview {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-top: 28px;
 }
-
 .auth-preview span {
   min-height: 76px;
   display: flex;
@@ -482,7 +463,6 @@
   border: 1px solid rgba(220, 38, 38, 0.14);
   border-radius: 8px;
 }
-
 .auth-card {
   padding: 26px;
   background: var(--auth-card-bg);
@@ -490,36 +470,29 @@
   border-radius: 8px;
   box-shadow: var(--card-shadow);
 }
-
 .auth-card-header {
   margin-bottom: 22px;
 }
-
 .auth-card-header h2 {
   margin: 8px 0 6px;
   font-size: 1.6rem;
 }
-
 .auth-card-header p {
   margin: 0;
 }
-
 .auth-form,
 .auth-actions {
   display: grid;
   gap: 14px;
 }
-
 .auth-actions {
   margin-top: 14px;
 }
-
 .auth-form .primary-button,
 .auth-actions .secondary-button,
 .auth-actions .ghost-button {
   width: 100%;
 }
-
 .form-error {
   margin-bottom: 16px;
   padding: 12px 14px;
@@ -530,14 +503,12 @@
   font-size: 0.92rem;
   font-weight: 700;
 }
-
 .hero-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-top: 28px;
 }
-
 .metric-card {
   padding: 18px;
   border-radius: 8px;
@@ -545,25 +516,21 @@
   border: 1px solid var(--border-light);
   box-shadow: var(--card-shadow);
 }
-
 .metric-card.accent {
   background: linear-gradient(135deg, #dc2626, #fb7185);
   color: #fff;
 }
-
 .metric-card span {
   display: block;
   font-size: 0.8rem;
   margin-bottom: 12px;
   opacity: 0.9;
 }
-
 .metric-card strong {
   display: block;
   font-size: 1.9rem;
   margin-bottom: 6px;
 }
-
 .hero-panel {
   padding: 22px;
   border-radius: 8px;
@@ -573,45 +540,10 @@
   flex-direction: column;
   gap: 18px;
 }
-
 .hero-panel h2 {
   color: inherit;
   margin: 0;
 }
-
-.stress-ring {
-  width: 100%;
-  aspect-ratio: 1;
-  max-width: 240px;
-  margin: 0 auto;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at center, #14213d 45%, transparent 47%),
-    conic-gradient(#fca5a5, #ef4444, #7f1d1d, #fca5a5);
-  display: grid;
-  place-items: center;
-}
-
-.stress-ring-inner {
-  width: 62%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: rgba(20, 33, 61, 0.92);
-  display: grid;
-  place-items: center;
-  text-align: center;
-  padding: 12px;
-}
-
-.stress-ring-inner strong {
-  font-size: 1.15rem;
-}
-
-.stress-ring-inner span {
-  font-size: 0.85rem;
-  color: #cbd5e1;
-}
-
 .hero-list {
   list-style: none;
   padding: 0;
@@ -620,22 +552,18 @@
   gap: 10px;
   color: inherit;
 }
-
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 24px;
 }
-
 .analytics-grid {
   align-items: stretch;
 }
-
 .panel {
   padding: 24px;
   background: var(--panel-bg);
 }
-
 .panel-heading {
   display: flex;
   justify-content: space-between;
@@ -643,31 +571,25 @@
   gap: 16px;
   margin-bottom: 20px;
 }
-
 .panel-heading h2,
 .task-card h3,
 .schedule-panel h3 {
   margin: 6px 0 0;
 }
-
 .form-panel {
-  min-height: 100%;
+  min-height: auto;
 }
-
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
-
 .form-grid.compact {
   align-items: end;
 }
-
 .full-span {
   grid-column: 1 / -1;
 }
-
 label {
   display: flex;
   flex-direction: column;
@@ -676,9 +598,9 @@ label {
   font-weight: 600;
   color: var(--text-secondary);
 }
-
 input,
-select {
+select,
+textarea {
   width: 100%;
   padding: 13px 14px;
   border-radius: 8px;
@@ -687,24 +609,28 @@ select {
   color: var(--text-primary);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-
+textarea {
+  resize: vertical;
+  min-height: 110px;
+  font: inherit;
+}
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: none;
   border-color: #ef4444;
   box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
 }
-
 input[type="range"] {
   padding: 0;
   accent-color: #dc2626;
 }
-
 .range-value {
   color: var(--text-secondary);
   font-size: 0.82rem;
 }
 
+/* Buttons */
 .primary-button,
 .ghost-button,
 .secondary-button {
@@ -715,60 +641,54 @@ input[type="range"] {
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
-
 .primary-button {
   background: linear-gradient(135deg, #dc2626, #fb7185);
   color: #fff;
   box-shadow: 0 16px 30px rgba(239, 68, 68, 0.2);
 }
-
 .secondary-button {
   background: var(--btn-secondary-bg);
   color: #dc2626;
   border: 1px solid var(--btn-secondary-border);
   box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.08);
 }
-
 .secondary-button:hover {
   background: rgba(220, 38, 38, 0.08);
   color: #b91c1c;
 }
-
 .primary-button:hover,
 .ghost-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(220, 38, 38, 0.15);
 }
-
 .secondary-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
 }
-
 .primary-button:active,
 .secondary-button:active,
 .ghost-button:active {
   transform: translateY(1px) scale(0.98);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
-
 .primary-button:disabled {
   cursor: not-allowed;
   opacity: 0.7;
   transform: none;
 }
-
 .ghost-button {
   background: var(--btn-ghost-bg);
   color: #b91c1c;
 }
 
+/* ==========================================================================
+   WORKLOAD CHART (Dashboard)
+   ========================================================================== */
 .chart-shell {
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
-
 .chart-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -776,20 +696,17 @@ input[type="range"] {
   align-items: end;
   min-height: 280px;
 }
-
 .chart-column {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
 }
-
 .chart-value,
 .chart-date {
   font-size: 0.78rem;
   color: var(--text-secondary);
 }
-
 .chart-bar-track {
   width: 100%;
   height: 180px;
@@ -800,17 +717,14 @@ input[type="range"] {
   border-radius: 20px;
   background: var(--chart-track-bg);
 }
-
 .chart-bar {
   width: 100%;
   border-radius: 18px 18px 8px 8px;
   background: linear-gradient(180deg, #fb7185, #dc2626);
 }
-
 .chart-bar.overloaded {
   background: linear-gradient(180deg, #1d4ed8, #14213d);
 }
-
 .chart-legend {
   display: flex;
   flex-wrap: wrap;
@@ -818,7 +732,6 @@ input[type="range"] {
   color: var(--text-secondary);
   font-size: 0.9rem;
 }
-
 .legend-swatch {
   width: 12px;
   height: 12px;
@@ -827,16 +740,17 @@ input[type="range"] {
   background: #ef4444;
   margin-right: 8px;
 }
-
 .legend-swatch.overload {
   background: #1d4ed8;
 }
 
+/* ==========================================================================
+   INSIGHTS (Dashboard recommendations)
+   ========================================================================== */
 .insight-stack {
   display: grid;
   gap: 14px;
 }
-
 .insight-card {
   display: flex;
   gap: 12px;
@@ -845,7 +759,6 @@ input[type="range"] {
   border-radius: 8px;
   background: var(--insight-card-bg);
 }
-
 .insight-dot {
   width: 12px;
   height: 12px;
@@ -855,18 +768,19 @@ input[type="range"] {
   flex-shrink: 0;
 }
 
+/* ==========================================================================
+   TASK BOARD (Dashboard)
+   ========================================================================== */
 .task-board {
   display: grid;
   grid-template-columns: 1.2fr 0.9fr;
   gap: 22px;
 }
-
 .task-list,
 .schedule-stack {
   display: grid;
   gap: 16px;
 }
-
 .task-card,
 .schedule-day {
   border: 1px solid var(--border-light);
@@ -875,7 +789,10 @@ input[type="range"] {
   background: var(--task-card-bg);
   box-shadow: var(--card-shadow);
 }
-
+.task-description {
+  margin: 8px 0 0;
+  font-size: 0.92rem;
+}
 .task-card-top,
 .task-meta,
 .schedule-day-head,
@@ -884,14 +801,58 @@ input[type="range"] {
   justify-content: space-between;
   gap: 12px;
 }
-
 .task-meta {
   flex-wrap: wrap;
   margin: 16px 0 14px;
   color: var(--text-secondary);
   font-size: 0.88rem;
 }
-
+.task-import-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.task-import-form .secondary-button {
+  white-space: nowrap;
+}
+.task-message {
+  margin: 0 0 16px;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+.task-share-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--schedule-item-bg);
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+}
+.task-share-row strong {
+  color: var(--text-primary);
+  font-family: monospace;
+  letter-spacing: 0.08em;
+}
+.copy-code-button {
+  border: 1px solid var(--btn-secondary-border);
+  border-radius: 8px;
+  background: var(--btn-secondary-bg);
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+.copy-code-button:hover {
+  background: rgba(220, 38, 38, 0.08);
+}
 .status-pill {
   display: inline-flex;
   margin-bottom: 10px;
@@ -902,50 +863,41 @@ input[type="range"] {
   background: #ecfeff;
   color: #0f766e;
 }
-
 .status-pill.critical {
   background: var(--status-pill-critical-bg);
   color: #fee2e2;
 }
-
 .status-pill.upcoming {
   background: var(--status-pill-upcoming-bg);
   color: #fef3c7;
 }
-
 .status-pill.overdue {
   background: var(--status-pill-overdue-bg);
   color: #fff;
 }
-
 .progress-track {
   height: 10px;
   border-radius: 999px;
   background: var(--input-border);
   overflow: hidden;
 }
-
 .progress-fill {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, #f97316, #dc2626);
 }
-
 .schedule-panel {
   padding: 10px 4px 10px 0;
 }
-
 .schedule-date-label {
   margin: 8px 0 14px;
   font-size: 0.85rem;
   color: var(--text-secondary);
 }
-
 .schedule-items {
   display: grid;
   gap: 10px;
 }
-
 .schedule-item {
   padding: 10px 12px;
   border-radius: 8px;
@@ -954,7 +906,6 @@ input[type="range"] {
   font-size: 0.92rem;
   color: var(--text-primary);
 }
-
 .schedule-empty {
   padding: 12px;
   border-radius: 8px;
@@ -962,14 +913,12 @@ input[type="range"] {
   color: var(--text-secondary);
 }
 
-/* Task action buttons (edit/done) - unchanged except colors use variables */
+/* Animated task action buttons (Edit / Done / Delete) */
 .task-actions {
   display: flex;
   gap: 8px;
   align-items: center;
 }
-
-/* All animated button styles stay same, but background is theme-neutral */
 .edit-button,
 .done-button,
 .remove-button {
@@ -987,31 +936,21 @@ input[type="range"] {
   transition-duration: 0.3s;
   overflow: hidden;
   position: relative;
-  text-decoration: none !important;
   flex-shrink: 0;
 }
-
 .edit-svgIcon,
 .done-svgIcon,
 .remove-svgIcon {
   width: 18px;
   transition-duration: 0.3s;
 }
-
-.edit-svgIcon path {
-  fill: white;
-}
-
+.edit-svgIcon path { fill: white; }
 .done-svgIcon {
   stroke: white;
   stroke-width: 2.5;
   fill: none;
 }
-
-.remove-svgIcon path {
-  fill: white;
-}
-
+.remove-svgIcon path { fill: white; }
 .edit-button:hover,
 .done-button:hover,
 .remove-button:hover {
@@ -1020,7 +959,6 @@ input[type="range"] {
   transition-duration: 0.3s;
   gap: 6px;
 }
-
 .edit-button:hover .edit-svgIcon,
 .done-button:hover .done-svgIcon,
 .remove-button:hover .remove-svgIcon {
@@ -1028,7 +966,6 @@ input[type="range"] {
   transition-duration: 0.3s;
   transform: rotate(360deg);
 }
-
 .edit-button::before,
 .done-button::before,
 .remove-button::before {
@@ -1038,7 +975,6 @@ input[type="range"] {
   transition-duration: 0.3s;
   font-size: 2px;
 }
-
 .edit-button:hover::before,
 .done-button:hover::before,
 .remove-button:hover::before {
@@ -1050,29 +986,22 @@ input[type="range"] {
   transition-duration: 0.3s;
   font-weight: 500;
 }
-
 .edit-button:hover {
   background-color: #6b7280;
 }
-.edit-button:hover::before {
-  content: "Edit";
-}
-
+.edit-button:hover::before { content: "Edit"; }
 .done-button:hover {
   background-color: #22c55e;
 }
-.done-button:hover::before {
-  content: "Done";
-}
-
+.done-button:hover::before { content: "Done"; }
 .remove-button:hover {
   background-color: rgb(255, 69, 69);
 }
-.remove-button:hover::before {
-  content: "Delete";
-}
+.remove-button:hover::before { content: "Delete"; }
 
-/* Modal overlay stays largely independent */
+/* ==========================================================================
+   MODALS & CONFIRM DIALOGS (shared)
+   ========================================================================== */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1085,7 +1014,6 @@ input[type="range"] {
   justify-content: center;
   z-index: 1000;
 }
-
 .modal-content {
   background: var(--panel-bg);
   border-radius: 16px;
@@ -1097,19 +1025,16 @@ input[type="range"] {
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
   color: var(--text-primary);
 }
-
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
 }
-
 .modal-header h2 {
   margin: 0;
   color: #b91c1c;
 }
-
 .modal-close {
   background: none;
   border: none;
@@ -1118,11 +1043,9 @@ input[type="range"] {
   line-height: 1;
   color: var(--text-secondary);
 }
-
 .modal-close:hover {
   color: #b91c1c;
 }
-
 .modal-actions {
   grid-column: span 2;
   display: flex;
@@ -1130,7 +1053,6 @@ input[type="range"] {
   gap: 12px;
   margin-top: 16px;
 }
-
 .btn-create-task {
   background: linear-gradient(135deg, #dc2626, #fb7185);
   border: none;
@@ -1148,24 +1070,19 @@ input[type="range"] {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   width: 100%;
 }
-
 .btn-create-task:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 14px rgba(220, 38, 38, 0.3);
   background: linear-gradient(135deg, #b91c1c, #ef4444);
 }
-
 .btn-create-task:active {
   transform: translateY(1px);
 }
-
 .btn-icon {
   font-size: 1.2rem;
   font-weight: 600;
   line-height: 1;
 }
-
-/* ===== CUSTOM CONFIRM MODAL (theme-aware) ===== */
 .confirm-overlay {
   position: fixed;
   top: 0;
@@ -1178,11 +1095,10 @@ input[type="range"] {
   justify-content: center;
   z-index: 2000;
 }
-
 .confirm-card {
   width: 300px;
   height: fit-content;
-  background: var(--panel-bg);  /* theme-aware */
+  background: var(--panel-bg);
   border-radius: 20px;
   display: flex;
   flex-direction: column;
@@ -1194,7 +1110,6 @@ input[type="range"] {
   box-shadow: var(--card-shadow);
   color: var(--text-primary);
 }
-
 .confirm-card .card-content {
   width: 100%;
   height: fit-content;
@@ -1203,20 +1118,17 @@ input[type="range"] {
   gap: 5px;
   text-align: center;
 }
-
 .confirm-card .card-heading {
   font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
 }
-
 .confirm-card .card-description {
   font-weight: 100;
   color: var(--text-secondary);
   margin: 0;
 }
-
 .confirm-card .card-button-wrapper {
   width: 100%;
   display: flex;
@@ -1224,7 +1136,6 @@ input[type="range"] {
   justify-content: center;
   gap: 10px;
 }
-
 .confirm-card .card-button {
   width: 50%;
   height: 35px;
@@ -1234,7 +1145,6 @@ input[type="range"] {
   font-weight: 600;
   transition: all 0.2s;
 }
-
 .confirm-card .primary {
   background-color: rgb(255, 114, 109);
   color: white;
@@ -1249,7 +1159,6 @@ input[type="range"] {
 .confirm-card .secondary:hover {
   background-color: rgb(197, 197, 197);
 }
-
 .confirm-card .exit-button {
   display: flex;
   align-items: center;
@@ -1272,7 +1181,9 @@ input[type="range"] {
   fill: var(--text-primary);
 }
 
-/* ===== MARK AS READ BUTTON (fixed spacing to match delete button) ===== */
+/* ==========================================================================
+   NOTIFICATIONS MARK AS READ BUTTON
+   ========================================================================== */
 .mark-read-button {
   width: 40px;
   height: 40px;
@@ -1288,10 +1199,8 @@ input[type="range"] {
   transition-duration: 0.3s;
   overflow: hidden;
   position: relative;
-  text-decoration: none !important;
   flex-shrink: 0;
 }
-
 .mark-read-button .done-svgIcon {
   width: 18px;
   stroke: white;
@@ -1299,22 +1208,18 @@ input[type="range"] {
   fill: none;
   transition-duration: 0.3s;
 }
-
-/* Hover state – matches remove-button spacing exactly */
 .mark-read-button:hover {
-  width: 135px;          /* slightly wider to fit "Mark as Read" comfortably */
+  width: 135px;
   border-radius: 50px;
   transition-duration: 0.3s;
-  gap: 6px;              /* same as remove-button */
+  gap: 6px;
   background-color: #22c55e;
 }
-
 .mark-read-button:hover .done-svgIcon {
   width: 20px;
   transition-duration: 0.3s;
   transform: rotate(360deg);
 }
-
 .mark-read-button::before {
   display: none;
   content: "";
@@ -1323,10 +1228,9 @@ input[type="range"] {
   font-size: 2px;
   white-space: nowrap;
 }
-
 .mark-read-button:hover::before {
   display: inline-block;
-  padding-right: 6px;    /* same as remove-button */
+  padding-right: 6px;
   font-size: 13px;
   opacity: 1;
   transform: translateY(0px);
@@ -1335,89 +1239,9 @@ input[type="range"] {
   content: "Mark as Read";
 }
 
-/* Responsive */
-@media (max-width: 1100px) {
-  .auth-shell,
-  .hero,
-  .grid,
-  .task-board {
-    grid-template-columns: 1fr;
-  }
-  .hero h1 {
-    max-width: none;
-  }
-}
-
-@media (max-width: 720px) {
-  .auth-page,
-  .dashboard {
-    width: min(100% - 20px, 1200px);
-    padding-top: 20px;
-  }
-  .auth-shell,
-  .hero,
-  .panel {
-    padding: 18px;
-  }
-  .auth-preview,
-  .hero-metrics,
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-  .auth-shell {
-    grid-template-columns: 1fr;
-  }
-  .chart-grid {
-    gap: 8px;
-  }
-  .chart-bar-track {
-    height: 140px;
-    padding: 8px;
-  }
-  
-  /* Mobile fallback for sidepanel */
-  .app:has(.sidepanel) {
-    display: flex;
-    flex-direction: column;
-  }
-  .sidepanel {
-    width: 100%;
-    height: auto;
-    position: sticky;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    border-right: none;
-    border-bottom: 1px solid var(--header-border);
-    z-index: 1000;
-  }
-  .sidepanel-logo {
-    margin-bottom: 0;
-  }
-  .sidepanel-nav {
-    flex-direction: row;
-    align-items: center;
-    gap: 16px;
-  }
-  .sidepanel-menu {
-    flex-direction: row;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 0;
-  }
-  .sidepanel-footer {
-    display: none; /* Hide user/logout on mobile nav for space, or put in hamburger */
-  }
-  .sidepanel-link span {
-    display: none; /* Hide text, show only icons on mobile */
-  }
-  .sidepanel-link {
-    padding: 8px;
-  }
-}
-
-/* ===== FRIENDS PAGE STYLES ===== */
+/* ==========================================================================
+   FRIENDS PAGE
+   ========================================================================== */
 .friend-request-button {
   position: relative;
   background: transparent;
@@ -1430,8 +1254,6 @@ input[type="range"] {
 .friend-request-button:active {
   transform: scale(0.95);
 }
-
-/* Floating particles (unchanged, keep red/orange for fun) */
 .particle {
   position: absolute;
   opacity: 0;
@@ -1449,8 +1271,6 @@ input[type="range"] {
   20% { opacity: 1; }
   100% { opacity: 0; transform: translateY(-40px); }
 }
-
-/* Kittens (unchanged) */
 .kitten-left, .kitten-right {
   position: absolute;
   width: 3.5rem;
@@ -1468,8 +1288,6 @@ input[type="range"] {
   0%, 90%, 100% { transform: scale(1); }
   95% { transform: scaleY(0.1); }
 }
-
-/* Button glass panel – keep subtle */
 .friend-button-content {
   position: relative;
   z-index: 10;
@@ -1486,13 +1304,10 @@ input[type="range"] {
   transition: all 0.5s ease;
   overflow: hidden;
 }
-/* Hover: very faint white-pink shadow – almost invisible */
 .friend-request-button:hover .friend-button-content {
   transform: scale(1.05);
-  box-shadow: 0 20px 40px rgba(255, 200, 200, 0.12); /* subtle warm light */
+  box-shadow: 0 20px 40px rgba(255, 200, 200, 0.12);
 }
-
-/* Inner overlay – extremely subtle pinkish tint, not red */
 .friend-button-content::before {
   content: "";
   position: absolute;
@@ -1505,8 +1320,6 @@ input[type="range"] {
 .friend-request-button:hover .friend-button-content::before {
   opacity: 1;
 }
-
-/* Text wrapper */
 .friend-text-wrapper {
   display: flex;
   flex-direction: column;
@@ -1523,7 +1336,7 @@ input[type="range"] {
   transition: color 0.3s;
 }
 .friend-request-button:hover .friend-badge {
-  color: #b91c1c; /* slightly darker red, but you can keep #dc2626 if too strong */
+  color: #b91c1c;
 }
 .friend-title {
   font-size: 1.25rem;
@@ -1534,8 +1347,6 @@ input[type="range"] {
 .friend-request-button:hover .friend-title {
   color: #0f172a;
 }
-
-/* Right icon – keep existing */
 .friend-icon {
   margin-left: auto;
   width: 2.5rem;
@@ -1555,14 +1366,12 @@ input[type="range"] {
   height: 1.5rem;
   color: #dc2626;
 }
-
-/* Outer backdrop glow – almost imperceptible warm white */
 .friend-request-button::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: 2rem;
-  background: rgba(255, 235, 235, 0.15); /* very light pinkish white */
+  background: rgba(255, 235, 235, 0.15);
   scale: 0.9;
   opacity: 0;
   transition: all 0.7s;
@@ -1572,8 +1381,6 @@ input[type="range"] {
   scale: 1.1;
   opacity: 1;
 }
-
-/* Friends grid (unchanged) */
 .friends-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -1624,8 +1431,9 @@ input[type="range"] {
   color: #dc2626;
 }
 
-
-/* ===== GROUPS PAGE STYLES ===== */
+/* ==========================================================================
+   GROUPS PAGE
+   ========================================================================== */
 .groups-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -1710,7 +1518,9 @@ input[type="range"] {
   font-size: 0.85rem;
 }
 
-/* ===== NOTIFICATIONS PAGE STYLES ===== */
+/* ==========================================================================
+   NOTIFICATIONS PAGE
+   ========================================================================== */
 .notification-actions {
   display: flex;
   gap: 0.5rem;
@@ -1789,18 +1599,106 @@ input[type="range"] {
   gap: 0.75rem;
 }
 
-/* Footer Responsiveness */
+/* ==========================================================================
+   RESPONSIVE STYLES
+   ========================================================================== */
+@media (max-width: 1100px) {
+  .auth-shell,
+  .hero,
+  .grid,
+  .task-board {
+    grid-template-columns: 1fr;
+  }
+  .hero h1 {
+    max-width: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .auth-page,
+  .dashboard {
+    width: min(100% - 20px, 1200px);
+    padding-top: 20px;
+  }
+  .auth-shell,
+  .hero,
+  .panel {
+    padding: 18px;
+  }
+  .auth-preview,
+  .hero-metrics,
+  .form-grid,
+  .task-import-form {
+    grid-template-columns: 1fr;
+  }
+  .auth-shell {
+    grid-template-columns: 1fr;
+  }
+  .chart-grid {
+    gap: 8px;
+  }
+  .chart-bar-track {
+    height: 140px;
+    padding: 8px;
+  }
+
+  /* Mobile sidebar – switch from grid to column */
+  .app.app-layout {
+    display: flex;
+    flex-direction: column;
+  }
+  .sidepanel {
+    width: 100%;
+    height: auto;
+    position: sticky;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-right: none;
+    border-bottom: 1px solid var(--header-border);
+  }
+  .sidepanel-logo {
+    margin-bottom: 0;
+  }
+  .sidepanel-nav {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+  .sidepanel-menu {
+    flex-direction: row;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 0;
+  }
+  .sidepanel-footer {
+    display: none;
+  }
+  .sidepanel-link span {
+    display: none;
+  }
+  .sidepanel-link {
+    padding: 8px;
+  }
+  .app.app-layout .dashboard,
+  .app.app-layout .footer {
+    grid-column: auto;
+    grid-row: auto;
+    max-width: 100%;
+    padding: 24px 20px;
+  }
+}
+
 @media (max-width: 768px) {
   .site-footer-top {
     grid-template-columns: 1fr;
     gap: 40px;
   }
-  
   .site-footer-links {
     grid-template-columns: repeat(2, 1fr);
     gap: 24px;
   }
-
   .site-footer-bottom {
     flex-direction: column;
     gap: 12px;

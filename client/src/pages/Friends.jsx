@@ -55,7 +55,7 @@ export default function Friends() {
   };
 
   return (
-    <div className="app">
+    <div className="app app-layout">
       <Header />
       <main className="dashboard">
         <section className="hero" id="friends-hero">

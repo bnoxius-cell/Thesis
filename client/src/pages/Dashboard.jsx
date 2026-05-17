@@ -1,63 +1,17 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "./authentication/AuthContext";
+import axios from "axios";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import WorkloadChart from "../components/WorkloadChart";
 import TaskBoard from "../components/TaskBoard";
 import "../App.css";
 
-const STORAGE_KEY = "stresscare-dashboard";
-
-const initialProfile = {
-  studentName: "",
-  program: "BS Information Technology",
-  studyHoursPerDay: 4,
-  sleepHours: 7,
-  wellbeingGoal: "steady",
-};
-
-const seededTasks = [
-  {
-    id: 1,
-    title: "Capstone progress report",
-    course: "Research Methods",
-    dueDate: offsetDate(2),
-    hours: 6,
-    difficulty: 4,
-    importance: 5,
-  },
-  {
-    id: 2,
-    title: "Database normalization worksheet",
-    course: "Database Systems",
-    dueDate: offsetDate(4),
-    hours: 3,
-    difficulty: 3,
-    importance: 4,
-  },
-  {
-    id: 3,
-    title: "UI prototype revision",
-    course: "Human Computer Interaction",
-    dueDate: offsetDate(6),
-    hours: 5,
-    difficulty: 2,
-    importance: 4,
-  },
-];
-
-function offsetDate(days) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().split("T")[0];
-}
-
 function differenceInDays(dateString) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
   const target = new Date(dateString);
   target.setHours(0, 0, 0, 0);
-
   return Math.round((target - today) / 86400000);
 }
 
@@ -72,11 +26,7 @@ function getTaskMetrics(task) {
   else if (daysLeft <= 1) status = "Critical";
   else if (daysLeft <= 3) status = "Upcoming";
 
-  return {
-    daysLeft,
-    workload,
-    status,
-  };
+  return { daysLeft, workload, status };
 }
 
 function buildSchedule(tasks, profile) {
@@ -104,7 +54,6 @@ function buildSchedule(tasks, profile) {
       const day = days[dayIndex];
       const available = Math.max(capacity - day.load, 0.5);
       const chunk = Math.min(remainingHours, Math.max(available, remainingHours / (maxSpread + 1 - dayIndex)));
-
       day.load += chunk;
       day.items.push({
         title: task.title,
@@ -182,27 +131,143 @@ function buildInsights(tasks, profile, schedule) {
 }
 
 const Dashboard = () => {
-  const [profile, setProfile] = useState(initialProfile);
-  const [tasks, setTasks] = useState(seededTasks);
+  const { backendUrl, isLoggedin } = useAuth();
+  const [profile, setProfile] = useState({
+    studentName: "",
+    program: "BS Information Technology",
+    studyHoursPerDay: 4,
+    sleepHours: 7,
+    wellbeingGoal: "steady",
+  });
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [importCode, setImportCode] = useState("");
+  const [taskMessage, setTaskMessage] = useState("");
 
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return;
-
+  // Fetch tasks from backend
+  const fetchTasks = async () => {
     try {
-      const parsed = JSON.parse(saved);
-      if (parsed.profile) setProfile(parsed.profile);
-      if (Array.isArray(parsed.tasks)) setTasks(parsed.tasks);
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
+      const { data } = await axios.get(`${backendUrl}/api/tasks`, { withCredentials: true });
+      if (data.success) setTasks(data.tasks);
+    } catch (err) {
+      console.error("Failed to fetch tasks", err);
+    }
+  };
+
+  // Load profile from localStorage (temporary – will be replaced with backend later)
+  useEffect(() => {
+    const saved = localStorage.getItem("stresscare-dashboard");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.profile) setProfile(parsed.profile);
+      } catch (e) {}
     }
   }, []);
 
+  // Save profile to localStorage (temporary)
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ profile, tasks }));
-  }, [profile, tasks]);
+    localStorage.setItem("stresscare-dashboard", JSON.stringify({ profile }));
+  }, [profile]);
 
-  const enrichedTasks = [...tasks]
+  // Fetch tasks when user is logged in
+  useEffect(() => {
+    if (isLoggedin) {
+      fetchTasks();
+      setLoading(false);
+    } else {
+      setLoading(false);
+    }
+  }, [isLoggedin]);
+
+  const updateProfile = (key, value) => {
+    setProfile((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    try {
+      const { data } = await axios.delete(`${backendUrl}/api/tasks/${taskId}`, { withCredentials: true });
+      if (data.success) {
+        setTasks((prev) => prev.filter((t) => t._id !== taskId));
+      } else {
+        console.error("Delete failed", data.message);
+      }
+    } catch (err) {
+      console.error("Delete error", err);
+    }
+  };
+
+  const markTaskDone = async (taskId) => {
+    await updateTask(taskId, { isCompleted: true });
+  };
+
+  const updateTask = async (taskId, updatedFields) => {
+    try {
+      const { data } = await axios.put(`${backendUrl}/api/tasks/${taskId}`, updatedFields, { withCredentials: true });
+      if (data.success) {
+        setTasks((prev) => prev.map((t) => (t._id === taskId ? data.task : t)));
+      }
+    } catch (err) {
+      console.error("Update failed", err);
+    }
+  };
+
+  const importTask = async (e) => {
+    e.preventDefault();
+    const normalizedCode = importCode.trim();
+
+    if (!/^\d{6}$/.test(normalizedCode)) {
+      setTaskMessage("Enter a valid 6-digit task code.");
+      return;
+    }
+
+    try {
+      const { data } = await axios.post(
+        `${backendUrl}/api/tasks/import`,
+        { shareTag: normalizedCode },
+        { withCredentials: true }
+      );
+
+      if (data.success) {
+        setTasks((prev) => [...prev, data.task]);
+        setImportCode("");
+        setTaskMessage("Task imported into your schedule.");
+      } else {
+        setTaskMessage(data.message || "Task import failed.");
+      }
+    } catch (err) {
+      setTaskMessage(err.response?.data?.message || "Task import failed.");
+    }
+  };
+
+  if (!isLoggedin) {
+    return (
+      <div className="app auth-layout">
+        <Header />
+        <main className="dashboard">
+          <p>Please log in to view your dashboard.</p>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="app app-layout">
+        <Header />
+        <main className="dashboard">
+          <div className="panel" style={{ textAlign: "center" }}>
+            <p>Loading dashboard...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  const activeTasks = tasks.filter((task) => !task.isCompleted);
+  const enrichedTasks = [...activeTasks]
     .map((task) => ({
       ...task,
       ...getTaskMetrics(task),
@@ -213,32 +278,12 @@ const Dashboard = () => {
   const insights = buildInsights(enrichedTasks, profile, schedule);
 
   const completionRate = tasks.length
-    ? Math.max(12, Math.round(((tasks.length - insights.overdueCount) / tasks.length) * 100))
+    ? Math.round(((tasks.length - activeTasks.length) / tasks.length) * 100)
     : 100;
 
-  const updateProfile = (key, value) => {
-    setProfile((current) => ({
-      ...current,
-      [key]: value,
-    }));
-  };
-
-  const handleDeleteTask = (id) => {
-    setTasks((current) => current.filter((task) => task.id !== id));
-  };
-
-  const updateTask = (id, updatedFields) => {
-    setTasks((current) =>
-      current.map((task) =>
-        task.id === id ? { ...task, ...updatedFields } : task
-      )
-    );
-  };
-
   return (
-    <div className="app">
+    <div className="app app-layout">
       <Header />
-
       <main className="dashboard">
         <section className="hero" id="dashboard">
           <div className="hero-copy">
@@ -257,7 +302,7 @@ const Dashboard = () => {
               </article>
               <article className="metric-card">
                 <span>Tracked Tasks</span>
-                <strong>{tasks.length}</strong>
+                <strong>{activeTasks.length}</strong>
                 <p>{insights.criticalCount} urgent right now</p>
               </article>
               <article className="metric-card">
@@ -329,15 +374,29 @@ const Dashboard = () => {
             </div>
           </div>
 
+          <form className="task-import-form" onSubmit={importTask}>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength="6"
+              value={importCode}
+              onChange={(e) => setImportCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="6-digit task code"
+              aria-label="6-digit task code"
+            />
+            <button type="submit" className="secondary-button">Import Task</button>
+          </form>
+          {taskMessage && <p className="task-message">{taskMessage}</p>}
+
           <TaskBoard
             tasks={enrichedTasks}
             schedule={schedule}
             onDeleteTask={handleDeleteTask}
             onEditTask={updateTask}
+            onMarkDone={markTaskDone}
           />
         </section>
       </main>
-
       <Footer />
     </div>
   );

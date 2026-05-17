@@ -1,10 +1,13 @@
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import { useAuth } from "./authentication/AuthContext";
 import "../App.css";
 
 export default function About() {
+  const { isLoggedin } = useAuth();
+
   return (
-    <div className="app">
+    <div className={`app ${isLoggedin ? "app-layout" : "auth-layout"}`}>
       <Header />
       <main className="dashboard">
         {/* Hero Section */}

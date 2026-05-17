@@ -6,13 +6,13 @@ import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import "../App.css";
 
-// Helper to get optimized Google avatar URL (larger size)
+// Helper to get optimized Google avatar URL
 const getOptimizedAvatarUrl = (avatar) => {
   if (!avatar) return null;
   return avatar.replace('s96-c', 's150-c');
 };
 
-// Fallback: initials avatar using ui-avatars.com
+// Fallback: initials avatar
 const getInitialsAvatar = (name) => {
   if (!name) return "https://ui-avatars.com/api/?name=U&background=dc2626&color=fff&size=150&rounded=true&bold=true";
   const initials = name.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -26,8 +26,12 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
-  // Profile state (capacity fields only)
+  // Generate a 6‑character short tag from the user's _id
+  const shortTag = user?._id ? user._id.slice(0, 6).toUpperCase() : "";
+
+  // Profile state (capacity fields only – no sleepHours)
   const [profile, setProfile] = useState({
     studentName: "",
     program: "BS Information Technology",
@@ -35,10 +39,8 @@ export default function Profile() {
     wellbeingGoal: "steady",
   });
 
-  // Temporary edit state
   const [editForm, setEditForm] = useState({ ...profile });
 
-  // Fetch profile from backend when component mounts
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -78,7 +80,6 @@ export default function Profile() {
       if (data.success) {
         setProfile({ ...editForm });
         setIsEditing(false);
-        // Optionally show success toast
       } else {
         console.error("Update failed", data.message);
       }
@@ -94,10 +95,20 @@ export default function Profile() {
     setIsEditing(false);
   };
 
-  // Authentication check
+  const copyProfileTag = async () => {
+    if (!shortTag) return;
+    try {
+      await navigator.clipboard.writeText(shortTag);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
   if (!user) {
     return (
-      <div className="app">
+      <div className="app auth-layout">
         <Header />
         <main className="dashboard">
           <p>Please log in to view your profile.</p>
@@ -107,12 +118,10 @@ export default function Profile() {
     );
   }
 
-  // Redirect if no uid in URL (or "undefined")
   if ((!uid || uid === 'undefined') && user?._id) {
     return <Navigate to={`/profile/${user._id}`} replace />;
   }
 
-  // Avatar source
   let avatarSrc = getInitialsAvatar(user.name);
   if (user.avatar && !imgError) {
     const optimized = getOptimizedAvatarUrl(user.avatar);
@@ -123,7 +132,7 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="app">
+      <div className="app app-layout">
         <Header />
         <main className="dashboard">
           <div className="panel" style={{ textAlign: "center" }}>
@@ -136,7 +145,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="app">
+    <div className="app app-layout">
       <Header />
       <main className="dashboard">
         <section className="hero" id="profile-hero">
@@ -144,6 +153,37 @@ export default function Profile() {
             <span className="eyebrow">Your Account</span>
             <h1>Profile &amp; Capacity Settings</h1>
             <p>Manage your authentication and weekly study capacity.</p>
+            
+            {/* Improved Profile Tag – short code with modern copy button */}
+            <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-light)', paddingTop: '1rem' }}>
+              <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Your Profile Tag</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div style={{
+                  background: 'var(--input-bg)',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '12px',
+                  fontFamily: 'monospace',
+                  fontSize: '1.2rem',
+                  fontWeight: 'bold',
+                  letterSpacing: '1px',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-light)',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}>
+                  {shortTag}
+                </div>
+                <button
+                  onClick={copyProfileTag}
+                  className="secondary-button"
+                  style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  {copySuccess ? '✓ Copied!' : '📋 Copy Tag'}
+                </button>
+              </div>
+              <p style={{ fontSize: '0.75rem', marginTop: '0.5rem', color: 'var(--text-secondary)' }}>
+                Share this 6‑character tag to add friends.
+              </p>
+            </div>
           </div>
 
           <aside className="hero-panel">

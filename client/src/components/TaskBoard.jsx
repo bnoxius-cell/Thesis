@@ -7,16 +7,23 @@ function formatDays(daysLeft) {
   return `${daysLeft} days left`;
 }
 
-export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask }) {
+function toDateInputValue(dateString) {
+  if (!dateString) return "";
+  return new Date(dateString).toISOString().split("T")[0];
+}
+
+export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask, onMarkDone }) {
   const [editingTask, setEditingTask] = useState(null);
   const [editForm, setEditForm] = useState({
     title: "",
     course: "",
+    description: "",
     dueDate: "",
     hours: 3,
     difficulty: 3,
     importance: 3,
   });
+  const [copiedCode, setCopiedCode] = useState("");
 
   // State for delete confirmation modal
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, taskId: null });
@@ -26,7 +33,8 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask })
     setEditForm({
       title: task.title,
       course: task.course,
-      dueDate: task.dueDate,
+      description: task.description || "",
+      dueDate: toDateInputValue(task.dueDate),
       hours: task.hours,
       difficulty: task.difficulty,
       importance: task.importance,
@@ -44,7 +52,7 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask })
   const handleEditSubmit = (e) => {
     e.preventDefault();
     if (editingTask) {
-      onEditTask(editingTask.id, editForm);
+      onEditTask(editingTask._id, editForm);
       closeEditModal();
     }
   };
@@ -52,7 +60,19 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask })
   const handleMarkDone = (taskId) => {
     const confirmDone = window.confirm("✅ Mark this task as done?\nIt will be removed from your board.");
     if (confirmDone) {
-      onDeleteTask(taskId);
+      onMarkDone(taskId);
+    }
+  };
+
+  const copyTaskCode = async (shareTag) => {
+    if (!shareTag) return;
+
+    try {
+      await navigator.clipboard.writeText(shareTag);
+      setCopiedCode(shareTag);
+      setTimeout(() => setCopiedCode(""), 1600);
+    } catch (error) {
+      window.prompt("Copy this task code:", shareTag);
     }
   };
 
@@ -78,7 +98,7 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask })
         {/* TASK LIST */}
         <div className="task-list">
           {tasks.map((task) => (
-            <article className="task-card" key={task.id}>
+            <article className="task-card" key={task._id}>
               <div className="task-card-top">
                 <div>
                   <span className={`status-pill ${task.status.toLowerCase().replace(/\s+/g, "-")}`}>
@@ -86,6 +106,7 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask })
                   </span>
                   <h3>{task.title}</h3>
                   <p>{task.course}</p>
+                  {task.description && <p className="task-description">{task.description}</p>}
                 </div>
 
                 <div className="task-actions">
@@ -97,14 +118,14 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask })
                   </button>
 
                   {/* DONE BUTTON */}
-                  <button className="done-button" onClick={() => handleMarkDone(task.id)}>
+                  <button className="done-button" onClick={() => handleMarkDone(task._id)}>
                     <svg className="done-svgIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M20 6L9 17l-5-5" />
                     </svg>
                   </button>
 
                   {/* REMOVE BUTTON (animated, with trash icon) */}
-                  <button className="remove-button" onClick={() => confirmDelete(task.id)}>
+                  <button className="remove-button" onClick={() => confirmDelete(task._id)}>
                     <svg className="remove-svgIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                       <line x1="10" y1="11" x2="10" y2="17" />
@@ -118,6 +139,13 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask })
                 <span>{formatDays(task.daysLeft)}</span>
                 <span>{task.hours} hrs est.</span>
                 <span>{task.workload.toFixed(1)} score</span>
+              </div>
+
+              <div className="task-share-row">
+                <span>Task code: <strong>{task.shareTag}</strong></span>
+                <button type="button" className="copy-code-button" onClick={() => copyTaskCode(task.shareTag)}>
+                  {copiedCode === task.shareTag ? "Copied" : "Copy Code"}
+                </button>
               </div>
 
               <div className="task-progress">
@@ -174,6 +202,10 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask })
               <div className="form-group">
                 <label>Course *</label>
                 <input type="text" value={editForm.course} onChange={(e) => handleEditChange("course", e.target.value)} required />
+              </div>
+              <div className="form-group full-span">
+                <label>Description</label>
+                <textarea rows="4" value={editForm.description} onChange={(e) => handleEditChange("description", e.target.value)} />
               </div>
               <div className="form-group">
                 <label>Due Date *</label>

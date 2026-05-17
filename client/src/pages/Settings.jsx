@@ -7,7 +7,7 @@ export default function Settings() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <div className="app">
+    <div className="app app-layout">
       <Header />
       <main className="dashboard">
         <section className="hero" id="settings-hero">
