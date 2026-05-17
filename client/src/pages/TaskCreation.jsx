@@ -7,6 +7,7 @@ import Footer from "../components/layout/Footer";
 import "../App.css";
 
 const initialTaskForm = {
+  shareTag: "",
   title: "",
   course: "",
   description: "",
@@ -16,15 +17,66 @@ const initialTaskForm = {
   importance: 3,
 };
 
+function toDateInputValue(dateString) {
+  if (!dateString) return "";
+  return new Date(dateString).toISOString().split("T")[0];
+}
+
 export default function TaskCreation() {
   const { isLoggedin, backendUrl } = useAuth();
   const navigate = useNavigate();
   const [taskForm, setTaskForm] = useState(initialTaskForm);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [tagLoading, setTagLoading] = useState(false);
 
   const updateTaskForm = (key, value) => {
     setTaskForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const loadTaskTag = async (shareTag) => {
+    const normalizedTag = String(shareTag || "").replace(/\D/g, "").slice(0, 6);
+    if (!/^\d{6}$/.test(normalizedTag)) {
+      setMessage("Enter a valid 6-digit task tag.");
+      return;
+    }
+
+    setTagLoading(true);
+    setMessage("");
+
+    try {
+      const { data } = await axios.get(`${backendUrl}/api/tasks/share/${normalizedTag}`, {
+        withCredentials: true,
+      });
+      if (data.success && data.task) {
+        setTaskForm((prev) => ({
+          ...prev,
+          shareTag: normalizedTag,
+          title: data.task.title || "",
+          course: data.task.course || "",
+          description: data.task.description || "",
+          dueDate: toDateInputValue(data.task.dueDate),
+          hours: data.task.hours || 3,
+          difficulty: data.task.difficulty || 3,
+          importance: data.task.importance || 3,
+        }));
+        setMessage("Task details loaded. Review them, then add it to your schedule.");
+      } else {
+        setMessage(data.message || "Task tag not found.");
+      }
+    } catch (err) {
+      setMessage(err.response?.data?.message || "Task tag not found.");
+    } finally {
+      setTagLoading(false);
+    }
+  };
+
+  const updateShareTag = (value) => {
+    const normalizedTag = value.replace(/\D/g, "").slice(0, 6);
+    setTaskForm((prev) => ({ ...prev, shareTag: normalizedTag }));
+    if (/^\d{6}$/.test(normalizedTag)) {
+      loadTaskTag(normalizedTag);
+    }
   };
 
   const handleAddTask = async (e) => {
@@ -32,6 +84,11 @@ export default function TaskCreation() {
 
     if (!taskForm.title.trim() || !taskForm.course.trim() || !taskForm.dueDate) {
       setMessage("Please fill in all required fields.");
+      return;
+    }
+
+    if (taskForm.shareTag && !/^\d{6}$/.test(taskForm.shareTag)) {
+      setMessage("Task tag must be 6 digits.");
       return;
     }
 
@@ -82,6 +139,30 @@ export default function TaskCreation() {
             </p>
           )}
           <form className="form-grid" onSubmit={handleAddTask}>
+            <div className="form-group full-span">
+              <label htmlFor="shareTag">Task Tag</label>
+              <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+                <input
+                  id="shareTag"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength="6"
+                  value={taskForm.shareTag}
+                  onChange={(e) => updateShareTag(e.target.value)}
+                  placeholder="Paste a 6-digit task tag to autofill"
+                  style={{ flex: "1 1 220px" }}
+                />
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => loadTaskTag(taskForm.shareTag)}
+                  disabled={tagLoading || !taskForm.shareTag}
+                >
+                  {tagLoading ? "Loading..." : "Load Tag"}
+                </button>
+              </div>
+            </div>
+
             <div className="form-group">
               <label htmlFor="title">Task Title *</label>
               <input

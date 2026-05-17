@@ -12,6 +12,15 @@ function toDateInputValue(dateString) {
   return new Date(dateString).toISOString().split("T")[0];
 }
 
+function formatCreatedOn(dateString) {
+  if (!dateString) return "Created date unavailable";
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask, onMarkDone }) {
   const [editingTask, setEditingTask] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -71,7 +80,7 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask, o
       await navigator.clipboard.writeText(shareTag);
       setCopiedCode(shareTag);
       setTimeout(() => setCopiedCode(""), 1600);
-    } catch (error) {
+    } catch {
       window.prompt("Copy this task code:", shareTag);
     }
   };
@@ -139,12 +148,13 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask, o
                 <span>{formatDays(task.daysLeft)}</span>
                 <span>{task.hours} hrs est.</span>
                 <span>{task.workload.toFixed(1)} score</span>
+                <span>Created on: {formatCreatedOn(task.createdAt)}</span>
               </div>
 
               <div className="task-share-row">
-                <span>Task code: <strong>{task.shareTag}</strong></span>
+                <span>Task tag: <strong>{task.shareTag}</strong></span>
                 <button type="button" className="copy-code-button" onClick={() => copyTaskCode(task.shareTag)}>
-                  {copiedCode === task.shareTag ? "Copied" : "Copy Code"}
+                  {copiedCode === task.shareTag ? "Copied" : "Copy Tag"}
                 </button>
               </div>
 

@@ -67,7 +67,6 @@ echo.
 echo Starting StressCare system...
 echo.
 
-:: Start backend/frontend in this window
 npm.cmd run dev
 
 popd
@@ -79,4 +78,3 @@ echo [FAILED] Something went wrong during installation or startup.
 popd
 pause
 exit /b 1
-

@@ -1,56 +1,102 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "./authentication/AuthContext";
+import axios from "axios";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import "../App.css";
 
-const STORAGE_KEY = "stresscare-friends";
-
 export default function Friends() {
+  const { backendUrl } = useAuth();
   const [friends, setFriends] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [friendId, setFriendId] = useState("");
+  const [friendTag, setFriendTag] = useState("");
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    try {
+      const [friendsRes, pendingRes] = await Promise.all([
+        axios.get(`${backendUrl}/api/friends`, { withCredentials: true }),
+        axios.get(`${backendUrl}/api/friends/pending`, { withCredentials: true })
+      ]);
+      if (friendsRes.data.success) setFriends(friendsRes.data.friends);
+      if (pendingRes.data.success) setPendingRequests(pendingRes.data.requests);
+    } catch (err) {
+      console.error("Failed to fetch data", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        setFriends(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse friends", e);
-      }
-    }
+    fetchData();
   }, []);
 
-  const saveFriends = (newFriends) => {
-    setFriends(newFriends);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newFriends));
-  };
-
-  const handleAddFriend = () => {
-    const trimmedId = friendId.trim();
-    if (!trimmedId) {
-      setError("Please enter a friend ID.");
+  const handleSendRequest = async () => {
+    const tag = friendTag.trim().toUpperCase();
+    if (!tag) {
+      setError("Please enter a friend's profile tag (6 characters).");
+      setTimeout(() => setError(""), 3000);
       return;
     }
-    if (friends.some(f => f.id === trimmedId)) {
-      setError("Friend already added.");
-      return;
+    try {
+      const { data } = await axios.post(
+        `${backendUrl}/api/friends/request`,
+        { profileTag: tag },
+        { withCredentials: true }
+      );
+      if (data.success) {
+        setFriendTag("");
+        setModalOpen(false);
+        setSuccessMsg("Friend request sent!");
+        setTimeout(() => setSuccessMsg(""), 3000);
+      } else {
+        setError(data.message);
+        setTimeout(() => setError(""), 3000);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to send request.");
+      setTimeout(() => setError(""), 3000);
     }
-    const newFriend = {
-      id: trimmedId,
-      name: `Friend ${trimmedId.slice(0, 8)}`,
-      addedAt: new Date().toISOString(),
-    };
-    saveFriends([...friends, newFriend]);
-    setFriendId("");
-    setModalOpen(false);
-    setError("");
   };
 
-  const removeFriend = (id) => {
+  const acceptRequest = async (requestId) => {
+    try {
+      const { data } = await axios.put(`${backendUrl}/api/friends/accept/${requestId}`, {}, { withCredentials: true });
+      if (data.success) {
+        setSuccessMsg("Friend request accepted!");
+        setTimeout(() => setSuccessMsg(""), 3000);
+        fetchData(); // refresh both lists
+      } else {
+        setError("Failed to accept request.");
+        setTimeout(() => setError(""), 3000);
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to accept request.");
+      setTimeout(() => setError(""), 3000);
+    }
+  };
+
+  const removeFriend = async (friendId) => {
     if (window.confirm("Remove this friend?")) {
-      saveFriends(friends.filter(f => f.id !== id));
+      try {
+        const { data } = await axios.delete(`${backendUrl}/api/friends/${friendId}`, { withCredentials: true });
+        if (data.success) {
+          setFriends(prev => prev.filter(f => f._id !== friendId));
+          setSuccessMsg("Friend removed.");
+          setTimeout(() => setSuccessMsg(""), 3000);
+        } else {
+          setError("Failed to remove friend.");
+          setTimeout(() => setError(""), 3000);
+        }
+      } catch (err) {
+        console.error(err);
+        setError("Failed to remove friend.");
+        setTimeout(() => setError(""), 3000);
+      }
     }
   };
 
@@ -58,13 +104,14 @@ export default function Friends() {
     <div className="app app-layout">
       <Header />
       <main className="dashboard">
+        {successMsg && <div className="success-toast">{successMsg}</div>}
+        {error && <div className="error-toast">{error}</div>}
+
         <section className="hero" id="friends-hero">
           <div className="hero-copy">
             <span className="eyebrow">Study Buddies</span>
             <h1>Connect with classmates</h1>
-            <p>
-              Add friends by their unique ID to share tasks and collaborate on group projects.
-            </p>
+            <p>Add friends by their 6‑character profile tag to share tasks and collaborate on group projects.</p>
           </div>
           <aside className="hero-panel">
             <h2>Friends</h2>
@@ -76,12 +123,9 @@ export default function Friends() {
           </aside>
         </section>
 
-        {/* Animated Add Friend Button */}
+        {/* Animated Add Friend Button – fully original with kittens */}
         <div style={{ display: "flex", justifyContent: "center", margin: "2rem 0" }}>
-          <button
-            className="friend-request-button"
-            onClick={() => setModalOpen(true)}
-          >
+          <button className="friend-request-button" onClick={() => setModalOpen(true)}>
             {/* Floating particles */}
             <div className="particle left-12 top-0 text-red-300">✦</div>
             <div className="particle right-16 top-2 text-orange-300" style={{ animationDelay: "0.7s" }}>🌸</div>
@@ -119,24 +163,47 @@ export default function Friends() {
             </svg>
 
             {/* Button content */}
-<div className="friend-button-content">
-  <div className="friend-text-wrapper">
-    <span className="friend-badge">Find a friend</span>
-    <span className="friend-title">Add a Friend</span> {/* Change manually */}
-  </div>
-  <div className="friend-icon">
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <circle cx="12" cy="16" r="3.5" />
-      <circle cx="8" cy="11" r="2" />
-      <circle cx="12" cy="8" r="2" />
-      <circle cx="16" cy="11" r="2" />
-    </svg>
-  </div>
-</div>
-
+            <div className="friend-button-content">
+              <div className="friend-text-wrapper">
+                <span className="friend-badge">Find a friend</span>
+                <span className="friend-title">Add a Friend</span>
+              </div>
+              <div className="friend-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="16" r="3.5" />
+                  <circle cx="8" cy="11" r="2" />
+                  <circle cx="12" cy="8" r="2" />
+                  <circle cx="16" cy="11" r="2" />
+                </svg>
+              </div>
+            </div>
             <div className="friend-button-backdrop"></div>
           </button>
         </div>
+
+        {/* Pending Requests Section */}
+        {pendingRequests.length > 0 && (
+          <section className="panel">
+            <div className="panel-heading">
+              <div>
+                <span className="panel-kicker">Friend requests</span>
+                <h2>Pending ({pendingRequests.length})</h2>
+              </div>
+            </div>
+            <div className="friends-grid">
+              {pendingRequests.map((req) => (
+                <div key={req._id} className="friend-card">
+                  <div className="friend-card-info">
+                    <strong>{req.user.name}</strong>
+                    <span className="friend-id">Tag: {req.user.profileTag}</span>
+                    <small>{req.user.email}</small>
+                  </div>
+                  <button className="primary-button small" onClick={() => acceptRequest(req._id)}>Accept</button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Friends List */}
         <section className="panel">
@@ -146,24 +213,20 @@ export default function Friends() {
               <h2>Friends ({friends.length})</h2>
             </div>
           </div>
-          {friends.length === 0 ? (
+          {loading ? (
+            <p className="schedule-empty">Loading friends...</p>
+          ) : friends.length === 0 ? (
             <p className="schedule-empty">No friends added yet. Click the button above to add your first study buddy!</p>
           ) : (
             <div className="friends-grid">
               {friends.map((friend) => (
-                <div key={friend.id} className="friend-card">
+                <div key={friend._id} className="friend-card">
                   <div className="friend-card-info">
                     <strong>{friend.name}</strong>
-                    <span className="friend-id">ID: {friend.id}</span>
-                    <small>Added: {new Date(friend.addedAt).toLocaleDateString()}</small>
+                    <span className="friend-id">Tag: {friend.profileTag}</span>
+                    <small>{friend.email}</small>
                   </div>
-                  <button
-                    className="icon-btn remove-friend-btn"
-                    onClick={() => removeFriend(friend.id)}
-                    title="Remove friend"
-                  >
-                    ✕
-                  </button>
+                  <button className="icon-btn remove-friend-btn" onClick={() => removeFriend(friend._id)}>✕</button>
                 </div>
               ))}
             </div>
@@ -171,7 +234,7 @@ export default function Friends() {
         </section>
       </main>
 
-      {/* Modal */}
+      {/* Add Friend Modal */}
       {modalOpen && (
         <div className="modal-overlay" onClick={() => setModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -181,24 +244,20 @@ export default function Friends() {
             </div>
             <div className="form-grid">
               <div className="form-group full-span">
-                <label>Friend's unique ID</label>
+                <label>Friend's 6‑character profile tag</label>
                 <input
                   type="text"
-                  value={friendId}
-                  onChange={(e) => {
-                    setFriendId(e.target.value);
-                    setError("");
-                  }}
-                  placeholder="e.g., student123"
+                  maxLength="6"
+                  value={friendTag}
+                  onChange={(e) => { setFriendTag(e.target.value.toUpperCase()); setError(""); }}
+                  placeholder="e.g., A3F9K2"
                   autoFocus
                 />
-                {error && <p className="form-error" style={{ marginTop: "8px" }}>{error}</p>}
+                {error && <p className="form-error">{error}</p>}
               </div>
               <div className="modal-actions">
                 <button className="secondary-button" onClick={() => setModalOpen(false)}>Cancel</button>
-                <button className="btn-create-task" style={{ width: "auto" }} onClick={handleAddFriend}>
-                  + Add Friend
-                </button>
+                <button className="btn-create-task" onClick={handleSendRequest}>Send Request</button>
               </div>
             </div>
           </div>

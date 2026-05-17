@@ -21,9 +21,14 @@ export const getUserData = async (req, res) => {
                 bio: user.bio,
                 program: user.program,
                 studyHoursPerDay: user.studyHoursPerDay,
-                // sleepHours removed – no longer needed
                 wellbeingGoal: user.wellbeingGoal,
-                friends: user.friends
+                friends: user.friends,
+                lastPSSSubmission: user.lastPSSSubmission,
+                latestPSSScore: user.lastPSSSubmission ? user.latestPSSScore : null,
+                lastWHOSubmission: user.lastWHOSubmission,
+                latestWHOScore: user.lastWHOSubmission ? user.latestWHOScore : null,
+                // ✅ Added profileTag
+                profileTag: user.profileTag,
             }
         });
     } catch (error) {
@@ -34,10 +39,8 @@ export const getUserData = async (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const userId = req.userId;
-        // Frontend sends: { studentName, program, studyHoursPerDay, wellbeingGoal }
         const { studentName, program, studyHoursPerDay, wellbeingGoal } = req.body;
 
-        // Build update object dynamically (only include fields that are provided)
         const updateFields = {};
         if (studentName !== undefined) updateFields.name = studentName;
         if (program !== undefined) updateFields.program = program;
@@ -63,7 +66,6 @@ export const updateProfile = async (req, res) => {
                 program: updatedUser.program,
                 studyHoursPerDay: updatedUser.studyHoursPerDay,
                 wellbeingGoal: updatedUser.wellbeingGoal,
-                // sleepHours excluded
             }
         });
     } catch (error) {

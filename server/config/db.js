@@ -7,18 +7,29 @@ const ensureTaskShareTagIndex = async () => {
         const indexes = await collection.indexes();
         const shareTagIndex = indexes.find((index) => index.name === 'shareTag_1');
 
-        if (shareTagIndex && (!shareTagIndex.unique || !shareTagIndex.sparse)) {
+        if (shareTagIndex) {
             await collection.dropIndex('shareTag_1');
         }
 
         await collection.updateMany({ shareTag: null }, { $unset: { shareTag: '' } });
-        await collection.createIndex(
-            { shareTag: 1 },
-            { unique: true, sparse: true, name: 'shareTag_1' }
-        );
     } catch (error) {
         if (error.codeName !== 'NamespaceNotFound') {
             console.error('Task share code index setup failed:', error.message);
+        }
+    }
+};
+
+const ensureTaskShareTemplateIndex = async () => {
+    const collection = mongoose.connection.db.collection('taskshares');
+
+    try {
+        await collection.createIndex(
+            { shareTag: 1 },
+            { unique: true, name: 'shareTag_1' }
+        );
+    } catch (error) {
+        if (error.codeName !== 'NamespaceNotFound') {
+            console.error('Task share template index setup failed:', error.message);
         }
     }
 };
@@ -29,6 +40,7 @@ const connectDB = async () => {
     })
     await mongoose.connect(process.env.MONGO_URI);
     await ensureTaskShareTagIndex();
+    await ensureTaskShareTemplateIndex();
 }
 
 export default connectDB;

@@ -1711,3 +1711,173 @@ input[type="range"] {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* PSS Survey Modal Styles */
+.pss-modal {
+  max-width: 700px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.pss-instructions {
+  background: var(--insight-card-bg);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.pss-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.pss-question {
+  padding: 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--card-bg);
+}
+
+.question-text {
+  margin-bottom: 10px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.pss-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.pss-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.pss-option input {
+  width: auto;
+  margin: 0;
+  accent-color: #dc2626;
+}
+
+.pss-welcome {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
+}
+.pss-welcome h3 {
+  margin: 0 0 8px 0;
+  color: #dc2626;
+  font-size: 1.3rem;
+}
+.pss-welcome p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Well-being Survey Modal Styles */
+
+.who-modal {
+  max-width: 700px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.who-welcome {
+  text-align: center;
+  margin-bottom: 20px;
+  padding: 12px;
+  background: var(--insight-card-bg);
+  border-radius: 8px;
+}
+.who-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.who-question {
+  padding: 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--card-bg);
+}
+.who-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-top: 8px;
+}
+.who-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.who-option input {
+  width: auto;
+  margin: 0;
+  accent-color: #dc2626;
+}
+
+/* SurveyPriorityModal Styles */
+.survey-priority-modal {
+  max-width: 450px;
+}
+.priority-content {
+  text-align: center;
+  padding: 0 0 1rem;
+}
+.priority-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+/*success toast in friends page*/
+
+.success-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #22c55e;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  z-index: 1100;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  animation: fadeOut 3s forwards;
+}
+.error-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #ef4444;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  z-index: 1100;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  animation: fadeOut 3s forwards;
+}
+@keyframes fadeOut {
+  0% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-10px); visibility: hidden; }
+}

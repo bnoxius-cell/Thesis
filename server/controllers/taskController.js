@@ -1,5 +1,18 @@
 import taskModel from '../models/taskModel.js';
+import taskShareModel from '../models/taskShareModel.js';
 import mongoose from 'mongoose';
+
+const generateShareTag = () => String(Math.floor(100000 + Math.random() * 900000));
+
+const getSharePayloadFromTask = (task) => ({
+    title: task.title,
+    course: task.course,
+    description: task.description || '',
+    dueDate: task.dueDate,
+    hours: task.hours,
+    difficulty: task.difficulty,
+    importance: task.importance,
+});
 
 const getTaskPayload = (body) => {
     const title = body.title?.trim();
@@ -43,23 +56,38 @@ const getTaskPayload = (body) => {
     };
 };
 
-const isDuplicateShareTagError = (error) => (
-    error?.code === 11000
-    && (error?.keyPattern?.shareTag || error?.keyValue?.shareTag)
-);
-
-const saveTaskWithShareTagRetry = async (task) => {
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-        try {
-            return await task.save();
-        } catch (error) {
-            if (!isDuplicateShareTagError(error) || attempt === 2) {
-                throw error;
-            }
-            task.set('shareTag', undefined);
-            task.markModified('shareTag');
+const createShareTemplate = async (payload, userId) => {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+        const shareTag = generateShareTag();
+        const existing = await taskShareModel.exists({ shareTag });
+        if (!existing) {
+            return taskShareModel.create({ ...payload, shareTag, createdBy: userId });
         }
     }
+    throw new Error('Unable to generate a unique task code.');
+};
+
+const ensureShareTemplateForTask = async (task) => {
+    if (task.shareTag) {
+        const existingTemplate = await taskShareModel.findOne({ shareTag: task.shareTag });
+        if (existingTemplate) return existingTemplate;
+
+        try {
+            return await taskShareModel.create({
+                shareTag: task.shareTag,
+                ...getSharePayloadFromTask(task),
+                createdBy: task.owner,
+            });
+        } catch (error) {
+            if (error.code !== 11000) throw error;
+            return taskShareModel.findOne({ shareTag: task.shareTag });
+        }
+    }
+
+    const template = await createShareTemplate(getSharePayloadFromTask(task), task.owner);
+    task.shareTag = template.shareTag;
+    await task.save();
+    return template;
 };
 
 const getTaskUpdatePayload = (body) => {
@@ -77,6 +105,26 @@ const getTaskUpdatePayload = (body) => {
     return allowedFields;
 };
 
+const findShareTemplateByTag = async (shareTag) => {
+    let template = await taskShareModel.findOne({ shareTag });
+    if (template) return template;
+
+    const legacyTask = await taskModel.findOne({ shareTag });
+    if (!legacyTask) return null;
+
+    return ensureShareTemplateForTask(legacyTask);
+};
+
+const sameTaskDetails = (payload, template) => (
+    payload.title === template.title
+    && payload.course === template.course
+    && payload.description === (template.description || '')
+    && new Date(payload.dueDate).getTime() === new Date(template.dueDate).getTime()
+    && Number(payload.hours) === Number(template.hours)
+    && Number(payload.difficulty) === Number(template.difficulty)
+    && Number(payload.importance) === Number(template.importance)
+);
+
 export const createTask = async (req, res) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(req.userId)) {
@@ -88,8 +136,31 @@ export const createTask = async (req, res) => {
             return res.status(400).json({ success: false, message: error });
         }
 
-        const newTask = new taskModel({ ...payload, owner: req.userId });
-        await saveTaskWithShareTagRetry(newTask);
+        let shareTag = null;
+
+        if (req.body.shareTag) {
+            const normalizedShareTag = String(req.body.shareTag).trim();
+            if (!/^\d{6}$/.test(normalizedShareTag)) {
+                return res.status(400).json({ success: false, message: 'Please enter a valid 6-digit task code.' });
+            }
+
+            const template = await findShareTemplateByTag(normalizedShareTag);
+            if (!template) {
+                return res.status(404).json({ success: false, message: 'Task code not found.' });
+            }
+            if (sameTaskDetails(payload, template)) {
+                shareTag = template.shareTag;
+            } else {
+                const editedTemplate = await createShareTemplate(payload, req.userId);
+                shareTag = editedTemplate.shareTag;
+            }
+        } else {
+            const template = await createShareTemplate(payload, req.userId);
+            shareTag = template.shareTag;
+        }
+
+        const newTask = new taskModel({ ...payload, owner: req.userId, shareTag });
+        await newTask.save();
         res.json({ success: true, message: 'Task created', task: newTask });
     } catch (error) {
         console.error('Create task error:', error);
@@ -103,8 +174,36 @@ export const createTask = async (req, res) => {
 export const getTasks = async (req, res) => {
     try {
         const tasks = await taskModel.find({ owner: req.userId }).sort({ dueDate: 1 });
-        await Promise.all(tasks.map((task) => task.shareTag ? task : saveTaskWithShareTagRetry(task)));
+        await Promise.all(tasks.map((task) => ensureShareTemplateForTask(task)));
         res.json({ success: true, tasks });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getTaskByTag = async (req, res) => {
+    try {
+        const shareTag = String(req.params.shareTag || '').trim();
+        if (!/^\d{6}$/.test(shareTag)) {
+            return res.status(400).json({ success: false, message: 'Please enter a valid 6-digit task code.' });
+        }
+
+        const template = await findShareTemplateByTag(shareTag);
+        if (!template) return res.status(404).json({ success: false, message: 'Task code not found.' });
+
+        res.json({
+            success: true,
+            task: {
+                shareTag: template.shareTag,
+                title: template.title,
+                course: template.course,
+                description: template.description,
+                dueDate: template.dueDate,
+                hours: template.hours,
+                difficulty: template.difficulty,
+                importance: template.importance,
+            },
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -113,12 +212,19 @@ export const getTasks = async (req, res) => {
 export const updateTask = async (req, res) => {
     try {
         const updateFields = getTaskUpdatePayload(req.body);
-        const task = await taskModel.findOneAndUpdate(
-            { _id: req.params.taskId, owner: req.userId },
-            updateFields,
-            { new: true, runValidators: true }
-        );
+        const task = await taskModel.findOne({ _id: req.params.taskId, owner: req.userId });
         if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+
+        Object.assign(task, updateFields);
+
+        const detailFields = ['title', 'course', 'description', 'dueDate', 'hours', 'difficulty', 'importance'];
+        const detailsChanged = detailFields.some((field) => updateFields[field] !== undefined);
+        if (detailsChanged) {
+            const template = await createShareTemplate(getSharePayloadFromTask(task), req.userId);
+            task.shareTag = template.shareTag;
+        }
+
+        await task.save();
         res.json({ success: true, task });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -135,7 +241,6 @@ export const deleteTask = async (req, res) => {
     }
 };
 
-// Import a task by its shareTag (copy to current user's tasks)
 export const importTaskByTag = async (req, res) => {
     try {
         const shareTag = String(req.body.shareTag || '').trim();
@@ -143,22 +248,15 @@ export const importTaskByTag = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Please enter a valid 6-digit task code.' });
         }
 
-        const originalTask = await taskModel.findOne({ shareTag });
-        if (!originalTask) return res.status(404).json({ success: false, message: 'Task not found' });
+        const template = await findShareTemplateByTag(shareTag);
+        if (!template) return res.status(404).json({ success: false, message: 'Task code not found.' });
 
-        // Create a new task for the current user
         const importedTask = new taskModel({
-            title: originalTask.title,
-            course: originalTask.course,
-            description: originalTask.description,
-            dueDate: originalTask.dueDate,
-            hours: originalTask.hours,
-            difficulty: originalTask.difficulty,
-            importance: originalTask.importance,
+            ...getSharePayloadFromTask(template),
             owner: req.userId,
-            // shareTag will be auto-generated again for the imported copy
+            shareTag: template.shareTag,
         });
-        await saveTaskWithShareTagRetry(importedTask);
+        await importedTask.save();
         res.json({ success: true, message: 'Task imported successfully', task: importedTask });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

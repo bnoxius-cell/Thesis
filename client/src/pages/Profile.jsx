@@ -4,6 +4,8 @@ import { useParams, Navigate } from "react-router-dom";
 import axios from "axios";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import PSSSurveyModal from "../components/PSSSurveyModal";
+import WHOSurveyModal from "../components/WHOSurveyModal";
 import "../App.css";
 
 // Helper to get optimized Google avatar URL
@@ -28,10 +30,18 @@ export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
-  // Generate a 6‑character short tag from the user's _id
-  const shortTag = user?._id ? user._id.slice(0, 6).toUpperCase() : "";
+  // Survey modals state
+  const [showPSSModal, setShowPSSModal] = useState(false);
+  const [showWHOModal, setShowWHOModal] = useState(false);
+  const [pssScore, setPssScore] = useState(null);
+  const [whoScore, setWhoScore] = useState(null);
+  const [lastPSSSubmission, setLastPSSSubmission] = useState(null);
+  const [lastWHOSubmission, setLastWHOSubmission] = useState(null);
 
-  // Profile state (capacity fields only – no sleepHours)
+// Profile TAG
+const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCase() : "");
+
+  // Profile state
   const [profile, setProfile] = useState({
     studentName: "",
     program: "BS Information Technology",
@@ -59,6 +69,10 @@ export default function Profile() {
             studyHoursPerDay: userData.studyHoursPerDay || 4,
             wellbeingGoal: userData.wellbeingGoal || "steady",
           });
+          setPssScore(userData.latestPSSScore ?? null);
+          setWhoScore(userData.latestWHOScore ?? null);
+          setLastPSSSubmission(userData.lastPSSSubmission ?? null);
+          setLastWHOSubmission(userData.lastWHOSubmission ?? null);
         }
       } catch (err) {
         console.error("Failed to load profile", err);
@@ -106,6 +120,19 @@ export default function Profile() {
     }
   };
 
+  const handlePSSComplete = (newScore) => {
+    setPssScore(newScore);
+    setLastPSSSubmission(new Date().toISOString());
+    setShowPSSModal(false);
+    // Optionally refetch profile to update lastPSSSubmission
+  };
+
+  const handleWHOComplete = (newScore) => {
+    setWhoScore(newScore);
+    setLastWHOSubmission(new Date().toISOString());
+    setShowWHOModal(false);
+  };
+
   if (!user) {
     return (
       <div className="app auth-layout">
@@ -144,6 +171,21 @@ export default function Profile() {
     );
   }
 
+  // Helper to get stress level from PSS score
+  const getStressLevel = (score) => {
+    if (score <= 13) return "Low Stress";
+    if (score <= 26) return "Moderate Stress";
+    return "High Stress";
+  };
+
+  // Helper to get well-being interpretation from WHO score
+  const getWellbeingInterpretation = (score) => {
+    if (score <= 28) return "Very Poor Well-being";
+    if (score <= 50) return "Low Well-being";
+    if (score <= 75) return "Moderate Well-being";
+    return "Good Well-being";
+  };
+
   return (
     <div className="app app-layout">
       <Header />
@@ -154,7 +196,7 @@ export default function Profile() {
             <h1>Profile &amp; Capacity Settings</h1>
             <p>Manage your authentication and weekly study capacity.</p>
             
-            {/* Improved Profile Tag – short code with modern copy button */}
+            {/* Profile Tag */}
             <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-light)', paddingTop: '1rem' }}>
               <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Your Profile Tag</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -279,8 +321,92 @@ export default function Profile() {
             </label>
           </div>
         </section>
+
+        {/* Survey History Section */}
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <span className="panel-kicker">Health Check-ins</span>
+              <h2>Your latest survey results</h2>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* PSS-10 Card */}
+            <div style={{ padding: '1rem', border: '1px solid var(--border-light)', borderRadius: '12px', background: 'var(--card-bg)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 0.25rem 0' }}>📊 Perceived Stress Scale (PSS-10)</h3>
+                  <p style={{ margin: '0', color: 'var(--text-secondary)' }}>Your stress level over the last month</p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                    {pssScore === null ? "No result" : `${pssScore} / 40`}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#dc2626' }}>
+                    {pssScore === null ? "Take the survey to personalize your score" : getStressLevel(pssScore)}
+                  </div>
+                </div>
+              </div>
+              <div style={{ marginTop: '1rem' }}>
+                <button
+                  className="secondary-button"
+                  onClick={() => setShowPSSModal(true)}
+                  style={{ fontSize: '0.85rem' }}
+                >
+                  {!lastPSSSubmission ? "Take Survey" : "Retake Survey"}
+                </button>
+              </div>
+            </div>
+
+            {/* WHO-5 Card */}
+            <div style={{ padding: '1rem', border: '1px solid var(--border-light)', borderRadius: '12px', background: 'var(--card-bg)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 0.25rem 0' }}>💚 WHO-5 Well-Being Index</h3>
+                  <p style={{ margin: '0', color: 'var(--text-secondary)' }}>Your emotional well-being over the last two weeks</p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                    {whoScore === null ? "No result" : `${whoScore} / 100`}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#dc2626' }}>
+                    {whoScore === null ? "Take the survey to personalize your score" : getWellbeingInterpretation(whoScore)}
+                  </div>
+                </div>
+              </div>
+              <div style={{ marginTop: '1rem' }}>
+                <button
+                  className="secondary-button"
+                  onClick={() => setShowWHOModal(true)}
+                  style={{ fontSize: '0.85rem' }}
+                >
+                  {!lastWHOSubmission ? "Take Survey" : "Retake Survey"}
+                </button>
+              </div>
+            </div>
+          </div>
+          <p style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+            Your responses help personalize your workload recommendations. You can retake any survey at any time.
+          </p>
+        </section>
       </main>
       <Footer />
+
+      {/* PSS-10 Modal */}
+      <PSSSurveyModal
+        isOpen={showPSSModal}
+        onClose={() => setShowPSSModal(false)}
+        onComplete={handlePSSComplete}
+        onRemindLater={() => setShowPSSModal(false)}
+      />
+
+      {/* WHO-5 Modal */}
+      <WHOSurveyModal
+        isOpen={showWHOModal}
+        onClose={() => setShowWHOModal(false)}
+        onComplete={handleWHOComplete}
+        onRemindLater={() => setShowWHOModal(false)}
+      />
     </div>
   );
 }
