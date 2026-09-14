@@ -30,8 +30,10 @@ export const AppContextProvider = (props) => {
   };
 
   // Check authentication state
-  const getAuthState = async () => {
-    setLoading(true);
+  // `silent` skips the global loading state so the auth page (and the Google button iframe)
+  // isn't swapped out for a spinner while refreshing after a login.
+  const getAuthState = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const { data } = await axios.post(backendUrl + '/api/auth/is-authenticated');
       if (data.success) {
@@ -59,7 +61,7 @@ export const AppContextProvider = (props) => {
     try {
       const { data } = await axios.post(backendUrl + '/api/auth/login', { email, password, rememberMe });
       if (data.success) {
-        await getAuthState(); // re‑fetch user & login status
+        await getAuthState({ silent: true }); // re‑fetch user & login status
         toast.success("Logged in successfully");
         return true;
       } else {
@@ -95,7 +97,7 @@ export const AppContextProvider = (props) => {
     try {
       const { data } = await axios.post(backendUrl + '/api/auth/google', { token: credentialToken });
       if (data.success) {
-        await getAuthState();
+        await getAuthState({ silent: true });
         toast.success("Google sign‑in successful");
         return true;
       } else {

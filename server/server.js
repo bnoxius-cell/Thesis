@@ -13,8 +13,22 @@ import notificationRouter from './routes/notificationRoutes.js';
 
 const app = express();
 app.use(express.json());
+
+// In dev, Vite auto-bumps to 5174/5175/... whenever something is already holding 5173
+// (e.g. a leftover `npm run dev` from a previous session), which would otherwise fail
+// CORS against a single hardcoded origin. Allow any localhost port in development;
+// production still locks to the single configured CLIENT_URL.
+const configuredClientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+const isDev = process.env.NODE_ENV !== 'production';
+const localhostOrigin = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
+
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: isDev
+        ? (origin, callback) => {
+            if (!origin || localhostOrigin.test(origin)) return callback(null, true);
+            callback(new Error('Not allowed by CORS'));
+        }
+        : configuredClientUrl,
     credentials: true,
 }));
 app.use(cookieParser());

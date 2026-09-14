@@ -1,15 +1,25 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import userModel from '../models/userModel.js';
-import { sendPasswordResetEmail, sendVerifyEmailOtp, sendWelcomeEmail } from '../utils/emailService.js';
+import { sendPasswordResetEmail, sendPasswordResetSuccessEmail, sendVerifyEmailOtp, sendWelcomeEmail } from '../utils/emailService.js';
 import { generateOtp } from '../utils/generateOtp.js';
 import { validateLoginFields, validateRegisterFields, validateResetPasswordFields, validateVerifyEmailFields, validateEmail } from '../utils/validators.js';
 import { OAuth2Client } from 'google-auth-library';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+const normalizeEmail = (email) => String(email).trim().toLowerCase();
+
+// Case-insensitive lookup so accounts saved with mixed-case emails (before normalization)
+// still match the lowercase email Google returns.
+const findUserByEmail = (email) => {
+    const escaped = normalizeEmail(email).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return userModel.findOne({ email: new RegExp(`^${escaped}$`, 'i') });
+};
+
 export const register = async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, password } = req.body;
+    const email = req.body.email ? normalizeEmail(req.body.email) : req.body.email;
 
     const validate = validateRegisterFields(name, email, password);
     if (!validate.isValid) {
@@ -17,17 +27,15 @@ export const register = async (req, res) => {
     }
 
     try {
-        const existingUser = await userModel.findOne({ email });
-        
+        const existingUser = await findUserByEmail(email);
+
         if (existingUser) {
             if (existingUser.authProvider === 'google') {
                 return res.json({ success: false, message: "This email is already registered with Google. Please use Google Login" });
             }
-            if (existingUser.authProvider === 'local') {
-                return res.json({ success: false, message: "Email already exists." });
-            }
+            return res.json({ success: false, message: "Email already exists." });
         }
-        
+
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -62,13 +70,16 @@ export const login = async (req, res) => {
     }
 
     try {
-        const user = await userModel.findOne({ email });
+        const user = await findUserByEmail(email);
         if (!user) {
             return res.json({ success: false, message: "User not found. Please enter a valid email." });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
+        const isMatch = user.password ? await bcrypt.compare(password, user.password) : false;
         if (!isMatch) {
+            if (user.authProvider === 'google') {
+                return res.json({ success: false, message: "This account uses Google sign-in. Please continue with Google." });
+            }
             return res.json({ success: false, message: "Incorrect password. Please try again."})
         }
 
@@ -105,20 +116,26 @@ export const googleLogin = async (req, res) => {
             audience: process.env.GOOGLE_CLIENT_ID,
         });
         const payload = ticket.getPayload();
-        const { email, name, sub: googleId, picture } = payload;
+        const { name, sub: googleId, picture, email_verified } = payload;
+        const email = payload.email ? normalizeEmail(payload.email) : '';
+
+        if (!email || !email_verified) {
+            return res.json({ success: false, message: "Your Google account email is not verified." });
+        }
 
         if (!validateEmail(email)) {
             return res.json({ success: false, message: "Please use your Fatima student email (@student.fatima.edu.ph)." });
         }
 
-        let user = await userModel.findOne({ email });
+        let user = await findUserByEmail(email);
 
         if (user) {
-            // If they registered locally but were unverified, Google auth confirms their email.
-            if (!user.isAccountVerified) {
-                user.isAccountVerified = true;
-                await user.save();
-            }
+            // Link the Google identity to the existing account. Google auth also confirms the email.
+            let changed = false;
+            if (!user.isAccountVerified) { user.isAccountVerified = true; changed = true; }
+            if (!user.googleId) { user.googleId = googleId; changed = true; }
+            if (!user.avatar && picture) { user.avatar = picture; changed = true; }
+            if (changed) await user.save();
         } else {
             // Create user. Generate a random password since Mongoose schema requires it.
             const randomPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
@@ -247,7 +264,7 @@ export const sendResetPasswordOtp = async (req, res) => {
     }
     
     try {
-        const user = await userModel.findOne({ email });
+        const user = await findUserByEmail(email);
 
         if (!user) {
             return res.json({success: false, message: 'User not found.'});
@@ -277,7 +294,7 @@ export const resetPassword = async (req, res) => {
     }
 
     try {
-        const user = await userModel.findOne({ email });
+        const user = await findUserByEmail(email);
 
         if (!user) {
             return res.json({ success: false, message: 'User not found.' })
@@ -297,8 +314,9 @@ export const resetPassword = async (req, res) => {
         user.resetPasswordOtpExpireAt = 0;
         await user.save();
 
-        await sendPasswordResetSuccessEmail(email);
+        await sendPasswordResetSuccessEmail(user.email);
 
+        return res.json({ success: true, message: 'Password reset successfully.' });
     } catch (error) {
         return res.json({ success: false, message: error.message });
     }

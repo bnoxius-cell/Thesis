@@ -108,8 +108,13 @@ const AuthPage = () => {
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    const success = await googleLogin(credentialResponse.credential);
-    if (success) navigate('/dashboard');
+    if (!credentialResponse?.credential) {
+      toast.error('Google Login Failed');
+      return;
+    }
+    // On success the route guard in App.jsx redirects to /dashboard once isLoggedin flips,
+    // so no extra navigate() here (it caused competing redirects).
+    await googleLogin(credentialResponse.credential);
   };
 
   const onSubmitHandler = async (e) => {
