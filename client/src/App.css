@@ -3,119 +3,184 @@
    ========================================================================== */
 
 :root {
+  /* ---- Core palette: a warm, grounded wellbeing tone, not a SaaS-alert red ---- */
+  --paper: #f1efe3;         /* base background — warm, sage-cast neutral */
+  --paper-raised: #fbfaf3;  /* cards / surfaces that sit above the page */
+  --ink: #2a2e26;           /* body text — warm near-black, green undertone */
+  --ink-soft: #5c6156;      /* secondary text */
+  --sage: #4c6350;          /* primary brand — calm, grounded, everyday actions */
+  --sage-deep: #33453a;     /* the one bold, filled moment on a page */
+  --sage-soft: #dde4d8;     /* subtle sage fills */
+  --ochre: #c98a2c;         /* warm accent — peer / human touches (friends, sharing) */
+  --ochre-soft: #f1e3c2;
+  --clay: #b1543c;          /* reserved for genuine urgency only */
+  --clay-soft: #f0dbd2;
+  --mist: rgba(42, 46, 38, 0.08);
+
   /* Light theme (default) */
-  --bg-app: #f8fafc;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --border-light: rgba(0, 0, 0, 0.06);
-  --card-bg: #ffffff;
-  --hero-bg: radial-gradient(circle at top left, rgba(239, 68, 68, 0.08), transparent 36%),
-             linear-gradient(135deg, #ffffff, #fafafa);
-  --auth-card-bg: #ffffff;
-  --panel-bg: #ffffff;
-  --input-bg: #f8fafc;
-  --input-border: #dbe4f0;
-  --task-card-bg: #ffffff;
-  --schedule-item-bg: #f8fafc;
-  --metric-card-bg: #ffffff;
-  --insight-card-bg: #fff7ed;
-  --btn-secondary-bg: #fff;
-  --btn-secondary-border: rgba(220, 38, 38, 0.25);
-  --btn-ghost-bg: rgba(220, 38, 38, 0.08);
-  --hero-panel-bg: #14213d;
-  --hero-panel-text: #fff;
-  --chart-track-bg: linear-gradient(180deg, rgba(248, 250, 252, 0.7), #eef2ff);
-  --status-pill-critical-bg: #fee2e2;
-  --status-pill-upcoming-bg: #fef3c7;
-  --status-pill-overdue-bg: #1f2937;
-  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.025);
+  --bg-app: var(--paper);
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-soft);
+  --border-light: rgba(42, 46, 38, 0.12);
+  --card-bg: var(--paper-raised);
+  --hero-bg: linear-gradient(165deg, #f8f6ec, var(--paper));
+  --auth-card-bg: var(--paper-raised);
+  --panel-bg: var(--paper-raised);
+  --input-bg: #fbfaf3;
+  --input-border: #dbd6c3;
+  --task-card-bg: var(--paper-raised);
+  --schedule-item-bg: #ebe8d9;
+  --metric-card-bg: var(--paper-raised);
+  --insight-card-bg: var(--ochre-soft);
+  --btn-secondary-bg: var(--paper-raised);
+  --btn-secondary-border: rgba(76, 99, 80, 0.28);
+  --btn-ghost-bg: rgba(76, 99, 80, 0.1);
+  --hero-panel-bg: var(--sage-deep);
+  --hero-panel-text: #f3efe1;
+  --chart-track-bg: linear-gradient(180deg, rgba(251, 250, 243, 0.7), var(--sage-soft));
+  --status-pill-critical-bg: var(--clay-soft);
+  --status-pill-upcoming-bg: var(--ochre-soft);
+  --status-pill-overdue-bg: var(--ink);
+  --card-shadow: 0 2px 10px -4px rgba(42, 46, 38, 0.12);
 
   /* Header & sidepanel (light) */
-  --header-bg: #ffffff;
-  --header-text: #991b1b;
-  --header-border: rgba(0, 0, 0, 0.04);
-  --user-info-color: #334155;
-  --logout-btn-color: #991b1b;
-  --logout-btn-bg: #fff;
-  --logout-btn-border: rgba(185, 28, 28, 0.18);
-  --logout-btn-hover-color: #b91c1c;
-  --logout-btn-hover-bg: #fff1f2;
-  --logout-btn-hover-border: rgba(185, 28, 28, 0.35);
-  --menu-item-color: #334155;
-  --menu-item-hover-bg: #f1f5f9;
-  --menu-item-hover-color: #0f172a;
+  --header-bg: var(--paper-raised);
+  --header-text: var(--sage-deep);
+  --header-border: rgba(42, 46, 38, 0.08);
+  --user-info-color: var(--ink-soft);
+  --logout-btn-color: var(--ink-soft);
+  --logout-btn-bg: var(--paper-raised);
+  --logout-btn-border: rgba(42, 46, 38, 0.14);
+  --logout-btn-hover-color: var(--clay);
+  --logout-btn-hover-bg: var(--clay-soft);
+  --logout-btn-hover-border: rgba(177, 84, 60, 0.3);
+  --menu-item-color: var(--ink-soft);
+  --menu-item-hover-bg: var(--sage-soft);
+  --menu-item-hover-color: var(--sage-deep);
 }
 
 .dark-theme {
-  /* Dark theme overrides */
-  --bg-app: #1e293b;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --border-light: rgba(255, 255, 255, 0.04);
-  --card-bg: #334155;
-  --hero-bg: radial-gradient(circle at top left, rgba(239, 68, 68, 0.12), transparent 36%),
-             linear-gradient(135deg, #334155, #1e293b);
-  --auth-card-bg: #334155;
-  --panel-bg: #334155;
-  --input-bg: #0f172a;
-  --input-border: #475569;
-  --task-card-bg: #334155;
-  --schedule-item-bg: #334155;
-  --metric-card-bg: #334155;
-  --insight-card-bg: #0f172a;
-  --btn-secondary-bg: #1e293b;
-  --btn-secondary-border: rgba(255, 255, 255, 0.2);
-  --btn-ghost-bg: rgba(255, 255, 255, 0.08);
-  --hero-panel-bg: #0f172a;
-  --hero-panel-text: #e2e8f0;
-  --chart-track-bg: linear-gradient(180deg, rgba(30, 41, 59, 0.7), #0f172a);
-  --status-pill-critical-bg: #7f1d1d;
-  --status-pill-upcoming-bg: #78350f;
-  --status-pill-overdue-bg: #111827;
-  --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+  /* Dark theme — warm charcoal, not cold slate */
+  --paper: #23251e;
+  --paper-raised: #2c2e25;
+  --ink: #f1eede;
+  --ink-soft: #b7b6a4;
+  --sage: #8fac8f;
+  --sage-deep: #2c4736;
+  --sage-soft: #3a4536;
+  --ochre: #e0aa5c;
+  --ochre-soft: #3c331f;
+  --clay: #e08a6f;
+  --clay-soft: #402c25;
+  --mist: rgba(241, 238, 222, 0.06);
+
+  --bg-app: var(--paper);
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-soft);
+  --border-light: rgba(241, 238, 222, 0.08);
+  --card-bg: var(--paper-raised);
+  --hero-bg: linear-gradient(165deg, #2c2e25, var(--paper));
+  --auth-card-bg: var(--paper-raised);
+  --panel-bg: var(--paper-raised);
+  --input-bg: #1c1e18;
+  --input-border: #454738;
+  --task-card-bg: var(--paper-raised);
+  --schedule-item-bg: #33352a;
+  --metric-card-bg: var(--paper-raised);
+  --insight-card-bg: var(--ochre-soft);
+  --btn-secondary-bg: var(--paper-raised);
+  --btn-secondary-border: rgba(143, 172, 143, 0.3);
+  --btn-ghost-bg: rgba(143, 172, 143, 0.1);
+  --hero-panel-bg: var(--sage-deep);
+  --hero-panel-text: #f1eede;
+  --chart-track-bg: linear-gradient(180deg, rgba(44, 46, 37, 0.7), var(--sage-deep));
+  --status-pill-critical-bg: var(--clay-soft);
+  --status-pill-upcoming-bg: var(--ochre-soft);
+  --status-pill-overdue-bg: #111309;
+  --card-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.4);
 
   /* Header & sidepanel (dark) */
-  --header-bg: #0f172a;
-  --header-text: #f87171;
-  --header-border: rgba(255, 255, 255, 0.03);
-  --user-info-color: #cbd5e1;
-  --logout-btn-color: #f87171;
-  --logout-btn-bg: #1e293b;
-  --logout-btn-border: rgba(248, 113, 113, 0.3);
-  --logout-btn-hover-color: #fca5a5;
-  --logout-btn-hover-bg: #334155;
-  --logout-btn-hover-border: rgba(248, 113, 113, 0.5);
-  --menu-item-color: #cbd5e1;
-  --menu-item-hover-bg: #334155;
-  --menu-item-hover-color: #ffffff;
+  --header-bg: var(--paper-raised);
+  --header-text: var(--sage);
+  --header-border: rgba(241, 238, 222, 0.06);
+  --user-info-color: var(--ink-soft);
+  --logout-btn-color: var(--ink-soft);
+  --logout-btn-bg: var(--paper-raised);
+  --logout-btn-border: rgba(241, 238, 222, 0.14);
+  --logout-btn-hover-color: var(--clay);
+  --logout-btn-hover-bg: var(--clay-soft);
+  --logout-btn-hover-border: rgba(224, 138, 111, 0.4);
+  --menu-item-color: var(--ink-soft);
+  --menu-item-hover-bg: var(--sage-soft);
+  --menu-item-hover-color: var(--ink);
 
   /* Friends button dark adjustments (extremely subtle) */
   .friend-request-button:hover .friend-button-content::before {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.005));
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.008));
   }
   .friend-request-button::after {
-    background: rgba(255, 255, 255, 0.01);
+    background: rgba(255, 255, 255, 0.02);
   }
   .friend-badge {
-    color: #f87171;
+    color: var(--ochre);
   }
   .friend-request-button:hover .friend-badge {
-    color: #fca5a5;
+    color: #edc07e;
   }
   .friend-title {
-    color: #e2e8f0;
+    color: var(--ink);
   }
   .friend-request-button:hover .friend-title {
-    color: white;
+    color: #fff;
   }
   .friend-icon svg {
-    color: #f87171;
+    color: var(--ochre);
   }
+}
+
+/* ==========================================================================
+   SCROLLBARS
+   The default OS scrollbar (thick, grey, boxy arrows) clashes badly with a
+   warm/calm page, especially inside scrolling modals. Restyle it everywhere,
+   in both themes.
+   ========================================================================== */
+:root {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sage) transparent;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--sage);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  /* Relative brightness, not a swap to --sage-deep: that token is near-black
+     in the dark theme, which would make the thumb vanish on hover instead
+     of standing out. */
+  filter: brightness(0.85);
 }
 
 /* ==========================================================================
    GLOBAL & BASE
    ========================================================================== */
+body {
+  font-family: "Karla", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+h1, h2, h3,
+.eyebrow-mark {
+  font-family: "Fraunces", Georgia, serif;
+  font-optical-sizing: auto;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
 .app {
   min-height: 100vh;
   color: var(--text-primary);
@@ -339,12 +404,10 @@
   gap: 12px;
 }
 .site-footer-column h4 {
-  color: var(--text-primary);
+  color: var(--sage);
   font-size: 0.95rem;
   font-weight: 700;
   margin: 0 0 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 .site-footer-column a {
   color: var(--text-secondary);
@@ -395,7 +458,7 @@
 .hero,
 .panel {
   border: 1px solid var(--border-light);
-  border-radius: 8px;
+  border-radius: 16px;
   background: var(--card-bg);
   box-shadow: var(--card-shadow);
 }
@@ -403,8 +466,8 @@
 .hero {
   display: grid;
   grid-template-columns: 1.65fr 1fr;
-  gap: 24px;
-  padding: 32px;
+  gap: 28px;
+  padding: 36px;
   background: var(--hero-bg);
 }
 .auth-shell {
@@ -416,23 +479,22 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #b91c1c;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--sage);
 }
 .hero h1 {
-  margin: 14px 0 16px;
-  font-size: clamp(2rem, 4vw, 3.4rem);
-  line-height: 1.04;
-  max-width: 14ch;
+  margin: 10px 0 16px;
+  font-size: clamp(1.8rem, 3.4vw, 2.7rem);
+  line-height: 1.14;
+  max-width: 16ch;
+  color: var(--text-primary);
 }
 .auth-copy h1 {
-  margin: 14px 0 16px;
-  max-width: 15ch;
-  font-size: clamp(2rem, 4vw, 3.6rem);
-  line-height: 1.04;
+  margin: 10px 0 16px;
+  max-width: 16ch;
+  font-size: clamp(1.9rem, 3.6vw, 2.9rem);
+  line-height: 1.12;
 }
 .hero-copy p,
 .auth-copy p,
@@ -456,18 +518,18 @@
   display: flex;
   align-items: center;
   padding: 16px;
-  color: #7f1d1d;
+  color: var(--sage);
   font-size: 0.9rem;
-  font-weight: 800;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(220, 38, 38, 0.14);
-  border-radius: 8px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(76, 99, 80, 0.16);
+  border-radius: 12px;
 }
 .auth-card {
-  padding: 26px;
+  padding: 30px;
   background: var(--auth-card-bg);
   border: 1px solid var(--border-light);
-  border-radius: 8px;
+  border-radius: 16px;
   box-shadow: var(--card-shadow);
 }
 .auth-card-header {
@@ -496,10 +558,10 @@
 .form-error {
   margin-bottom: 16px;
   padding: 12px 14px;
-  color: #991b1b;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
+  color: var(--clay);
+  background: var(--clay-soft);
+  border: 1px solid rgba(177, 84, 60, 0.25);
+  border-radius: 10px;
   font-size: 0.92rem;
   font-weight: 700;
 }
@@ -511,14 +573,14 @@
 }
 .metric-card {
   padding: 18px;
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--metric-card-bg);
   border: 1px solid var(--border-light);
   box-shadow: var(--card-shadow);
 }
 .metric-card.accent {
-  background: linear-gradient(135deg, #dc2626, #fb7185);
-  color: #fff;
+  background: linear-gradient(135deg, var(--sage-deep), var(--sage));
+  color: #f3efe1;
 }
 .metric-card span {
   display: block;
@@ -532,8 +594,8 @@
   margin-bottom: 6px;
 }
 .hero-panel {
-  padding: 22px;
-  border-radius: 8px;
+  padding: 26px;
+  border-radius: 20px;
   background: var(--hero-panel-bg);
   color: var(--hero-panel-text);
   display: flex;
@@ -564,12 +626,12 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 14px 20px;
+  padding: 16px 22px;
   margin: 0 0 20px;
-  border-radius: 8px;
+  border-radius: 14px;
   background: var(--card-bg);
   border: 1px solid var(--border-light);
-  border-left: 4px solid #dc2626;
+  border-left: 4px solid var(--ochre);
   box-shadow: var(--card-shadow);
 }
 .checkin-banner-text {
@@ -603,16 +665,18 @@
   border: none;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 1.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
   line-height: 1;
   cursor: pointer;
-  padding: 4px 6px;
+  padding: 10px 12px;
   border-radius: 6px;
+  white-space: nowrap;
   transition: background 0.2s ease, color 0.2s ease;
 }
 .checkin-banner-dismiss:hover {
-  background: rgba(220, 38, 38, 0.08);
-  color: #b91c1c;
+  background: var(--ochre-soft);
+  color: #a8701f;
 }
 
 /* ==========================================================================
@@ -631,6 +695,121 @@
 }
 .welcome-panel .primary-button {
   align-self: flex-start;
+  /* Sits on the dark sage-deep hero panel — invert so it stays visible
+     instead of using the default (also sage-deep) primary-button fill. */
+  background: #f3efe1;
+  color: var(--sage-deep);
+  box-shadow: none;
+}
+.welcome-panel .primary-button:hover {
+  background: #fff;
+}
+.welcome-hero .hero-copy h2 {
+  margin: 10px 0 16px;
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
+  line-height: 1.15;
+  max-width: 18ch;
+}
+.welcome-hero .hero-copy .primary-button {
+  margin-top: 10px;
+  display: inline-flex;
+}
+
+/* ==========================================================================
+   GREETING + TODAY (Dashboard, returning users)
+   ========================================================================== */
+.greeting {
+  padding: 4px 4px 0;
+}
+.greeting h1 {
+  margin: 0 0 6px;
+  font-size: clamp(1.6rem, 2.6vw, 2.1rem);
+}
+.greeting p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1.02rem;
+}
+.today-grid {
+  grid-template-columns: 1.5fr 1fr;
+  align-items: stretch;
+}
+.today-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+.today-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.today-item strong {
+  display: block;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.today-meta {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-top: 2px;
+}
+.today-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-top: 7px;
+  flex-shrink: 0;
+  background: var(--sage);
+}
+.today-dot.critical,
+.today-dot.overdue {
+  background: var(--clay);
+}
+.today-dot.upcoming {
+  background: var(--ochre);
+}
+.today-empty {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.today-add {
+  display: inline-flex;
+  margin-top: 18px;
+  text-decoration: none;
+}
+
+/* "How you're doing" — a calm badge, not a percentage meter */
+.stress-ring {
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px auto 4px;
+  border: 10px solid rgba(243, 239, 225, 0.18);
+  background: rgba(243, 239, 225, 0.06);
+  transition: border-color 0.4s ease;
+}
+.stress-ring.calm { border-color: rgba(143, 172, 143, 0.6); }
+.stress-ring.steady { border-color: rgba(201, 138, 44, 0.5); }
+.stress-ring.full { border-color: rgba(201, 138, 44, 0.85); }
+.stress-ring.a-lot { border-color: rgba(224, 138, 111, 0.9); }
+.stress-ring-inner {
+  text-align: center;
+  padding: 0 14px;
+}
+.stress-ring-inner strong {
+  display: block;
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 500;
+  font-size: 1rem;
+  line-height: 1.25;
+  color: inherit;
 }
 
 .grid {
@@ -699,12 +878,12 @@ input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: #ef4444;
-  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+  border-color: var(--sage);
+  box-shadow: 0 0 0 4px rgba(76, 99, 80, 0.14);
 }
 input[type="range"] {
   padding: 0;
-  accent-color: #dc2626;
+  accent-color: var(--sage);
 }
 .range-value {
   color: var(--text-secondary);
@@ -715,36 +894,41 @@ input[type="range"] {
 .primary-button,
 .ghost-button,
 .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 14px 18px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+  text-decoration: none;
+  transition: transform 0.28s ease, box-shadow 0.28s ease, background 0.28s ease, color 0.28s ease;
 }
 .primary-button {
-  background: linear-gradient(135deg, #dc2626, #fb7185);
-  color: #fff;
-  box-shadow: 0 16px 30px rgba(239, 68, 68, 0.2);
+  background: var(--sage-deep);
+  color: #f3efe1;
+  box-shadow: 0 10px 22px rgba(51, 69, 58, 0.18);
 }
 .secondary-button {
   background: var(--btn-secondary-bg);
-  color: #dc2626;
+  color: var(--sage);
   border: 1px solid var(--btn-secondary-border);
-  box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(76, 99, 80, 0.06);
 }
 .secondary-button:hover {
-  background: rgba(220, 38, 38, 0.08);
-  color: #b91c1c;
+  background: var(--sage-soft);
+  color: var(--sage);
 }
 .primary-button:hover,
 .ghost-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.15);
+  box-shadow: 0 8px 18px rgba(51, 69, 58, 0.16);
 }
 .secondary-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.05);
 }
 .primary-button:active,
 .secondary-button:active,
@@ -759,7 +943,7 @@ input[type="range"] {
 }
 .ghost-button {
   background: var(--btn-ghost-bg);
-  color: #b91c1c;
+  color: var(--sage);
 }
 
 /* ==========================================================================
@@ -801,10 +985,12 @@ input[type="range"] {
 .chart-bar {
   width: 100%;
   border-radius: 18px 18px 8px 8px;
-  background: linear-gradient(180deg, #fb7185, #dc2626);
+  /* Healthy day = calm sage, not alarm red */
+  background: linear-gradient(180deg, var(--sage), var(--sage-deep));
 }
 .chart-bar.overloaded {
-  background: linear-gradient(180deg, #1d4ed8, #14213d);
+  /* Only an overloaded day earns the warning color */
+  background: linear-gradient(180deg, #d38a6f, var(--clay));
 }
 .chart-legend {
   display: flex;
@@ -818,11 +1004,11 @@ input[type="range"] {
   height: 12px;
   display: inline-block;
   border-radius: 999px;
-  background: #ef4444;
+  background: var(--sage);
   margin-right: 8px;
 }
 .legend-swatch.overload {
-  background: #1d4ed8;
+  background: var(--clay);
 }
 
 /* ==========================================================================
@@ -837,14 +1023,14 @@ input[type="range"] {
   gap: 12px;
   align-items: flex-start;
   padding: 16px;
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--insight-card-bg);
 }
 .insight-dot {
   width: 12px;
   height: 12px;
   border-radius: 999px;
-  background: #dc2626;
+  background: var(--ochre);
   margin-top: 7px;
   flex-shrink: 0;
 }
@@ -865,7 +1051,7 @@ input[type="range"] {
 .task-card,
 .schedule-day {
   border: 1px solid var(--border-light);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 18px;
   background: var(--task-card-bg);
   box-shadow: var(--card-shadow);
@@ -903,6 +1089,14 @@ input[type="range"] {
   color: var(--text-secondary);
   font-weight: 700;
 }
+.task-list-empty,
+.schedule-empty-state {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  padding: 18px;
+  border-radius: 12px;
+  background: var(--schedule-item-bg);
+}
 .task-share-row {
   display: flex;
   justify-content: space-between;
@@ -924,7 +1118,7 @@ input[type="range"] {
   border: 1px solid var(--btn-secondary-border);
   border-radius: 8px;
   background: var(--btn-secondary-bg);
-  color: #dc2626;
+  color: var(--sage);
   cursor: pointer;
   font-size: 0.78rem;
   font-weight: 800;
@@ -932,7 +1126,7 @@ input[type="range"] {
   white-space: nowrap;
 }
 .copy-code-button:hover {
-  background: rgba(220, 38, 38, 0.08);
+  background: var(--sage-soft);
 }
 .status-pill {
   display: inline-flex;
@@ -941,16 +1135,16 @@ input[type="range"] {
   padding: 6px 12px;
   font-size: 0.76rem;
   font-weight: 700;
-  background: #ecfeff;
-  color: #0f766e;
+  background: var(--sage-soft);
+  color: var(--sage);
 }
 .status-pill.critical {
   background: var(--status-pill-critical-bg);
-  color: #fee2e2;
+  color: var(--clay);
 }
 .status-pill.upcoming {
   background: var(--status-pill-upcoming-bg);
-  color: #fef3c7;
+  color: var(--ochre);
 }
 .status-pill.overdue {
   background: var(--status-pill-overdue-bg);
@@ -965,7 +1159,7 @@ input[type="range"] {
 .progress-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #f97316, #dc2626);
+  background: linear-gradient(90deg, var(--sage), var(--ochre));
 }
 .schedule-panel {
   padding: 10px 4px 10px 0;
@@ -1076,7 +1270,7 @@ input[type="range"] {
 }
 .done-button:hover::before { content: "Done"; }
 .remove-button:hover {
-  background-color: rgb(255, 69, 69);
+  background-color: var(--clay);
 }
 .remove-button:hover::before { content: "Delete"; }
 
@@ -1114,7 +1308,7 @@ input[type="range"] {
 }
 .modal-header h2 {
   margin: 0;
-  color: #b91c1c;
+  color: var(--sage);
 }
 .modal-close {
   background: none;
@@ -1125,7 +1319,7 @@ input[type="range"] {
   color: var(--text-secondary);
 }
 .modal-close:hover {
-  color: #b91c1c;
+  color: var(--clay);
 }
 .modal-actions {
   grid-column: span 2;
@@ -1135,26 +1329,26 @@ input[type="range"] {
   margin-top: 16px;
 }
 .btn-create-task {
-  background: linear-gradient(135deg, #dc2626, #fb7185);
+  background: var(--sage-deep);
   border: none;
   padding: 14px 24px;
   border-radius: 40px;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 1rem;
-  color: white;
+  color: #f3efe1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.28s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   width: 100%;
 }
 .btn-create-task:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(220, 38, 38, 0.3);
-  background: linear-gradient(135deg, #b91c1c, #ef4444);
+  box-shadow: 0 6px 14px rgba(51, 69, 58, 0.25);
+  background: var(--sage);
 }
 .btn-create-task:active {
   transform: translateY(1px);
@@ -1227,18 +1421,18 @@ input[type="range"] {
   transition: all 0.2s;
 }
 .confirm-card .primary {
-  background-color: rgb(255, 114, 109);
+  background-color: var(--clay);
   color: white;
 }
 .confirm-card .primary:hover {
-  background-color: rgb(255, 73, 66);
+  background-color: #9c4835;
 }
 .confirm-card .secondary {
-  background-color: #ddd;
-  color: #333;
+  background-color: var(--mist);
+  color: var(--text-primary);
 }
 .confirm-card .secondary:hover {
-  background-color: rgb(197, 197, 197);
+  background-color: var(--sage-soft);
 }
 .confirm-card .exit-button {
   display: flex;
@@ -1341,9 +1535,9 @@ input[type="range"] {
   pointer-events: none;
   font-size: 1.2rem;
 }
-.particle-1 { top: -10px; left: 40px; color: #ef4444; }
-.particle-2 { top: 0; right: 30px; color: #f97316; }
-.particle-3 { top: 10px; left: 50%; color: #dc2626; }
+.particle-1 { top: -10px; left: 40px; color: var(--ochre); }
+.particle-2 { top: 0; right: 30px; color: var(--sage); }
+.particle-3 { top: 10px; left: 50%; color: var(--clay); }
 .friend-request-button:hover .particle-1 { animation: floatUp 1s ease-out forwards; }
 .friend-request-button:hover .particle-2 { animation: floatUp 1s ease-out 0.4s forwards; }
 .friend-request-button:hover .particle-3 { animation: floatUp 1s ease-out 0.8s forwards; }
@@ -1408,25 +1602,25 @@ input[type="range"] {
   line-height: 1.2;
 }
 .friend-badge {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: #dc2626;
+  letter-spacing: 0.03em;
+  color: var(--ochre);
   margin-bottom: 0.25rem;
   transition: color 0.3s;
 }
 .friend-request-button:hover .friend-badge {
-  color: #b91c1c;
+  color: #a8701f;
 }
 .friend-title {
+  font-family: "Fraunces", Georgia, serif;
   font-size: 1.25rem;
-  font-weight: 700;
-  color: #1e293b;
+  font-weight: 500;
+  color: var(--text-primary);
   transition: color 0.3s;
 }
 .friend-request-button:hover .friend-title {
-  color: #0f172a;
+  color: var(--sage-deep);
 }
 .friend-icon {
   margin-left: auto;
@@ -1445,14 +1639,14 @@ input[type="range"] {
 .friend-icon svg {
   width: 1.5rem;
   height: 1.5rem;
-  color: #dc2626;
+  color: var(--ochre);
 }
 .friend-request-button::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: 2rem;
-  background: rgba(255, 235, 235, 0.15);
+  background: rgba(201, 138, 44, 0.12);
   scale: 0.9;
   opacity: 0;
   transition: all 0.7s;
@@ -1508,8 +1702,8 @@ input[type="range"] {
   transition: all 0.2s;
 }
 .remove-friend-btn:hover {
-  background: rgba(220,38,38,0.1);
-  color: #dc2626;
+  background: var(--clay-soft);
+  color: var(--clay);
 }
 
 /* ==========================================================================
@@ -1541,7 +1735,7 @@ input[type="range"] {
   color: var(--text-primary);
 }
 .owner-badge {
-  background: #dc2626;
+  background: var(--ochre);
   color: white;
   font-size: 0.7rem;
   font-weight: 600;
@@ -1633,7 +1827,7 @@ input[type="range"] {
   transition: all 0.2s;
 }
 .notification-card.unread {
-  border-left: 4px solid #dc2626;
+  border-left: 4px solid var(--ochre);
   background: var(--insight-card-bg);
 }
 .notification-content {
@@ -1801,6 +1995,62 @@ input[type="range"] {
   overflow-y: auto;
 }
 
+/* Shared across both survey modals: the validated-instrument citation, the
+   answered-count progress bar, and the warm completion screen. */
+.survey-citation {
+  margin: -12px 0 18px;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+.survey-progress {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 10px 0;
+  background: var(--panel-bg);
+}
+.survey-progress-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--mist);
+  overflow: hidden;
+}
+.survey-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--sage);
+  transition: width 0.3s ease;
+}
+.survey-progress span {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.survey-complete {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 48px 24px;
+  color: var(--sage);
+}
+.survey-complete h3 {
+  margin: 4px 0 0;
+  font-size: 1.4rem;
+}
+.survey-complete p {
+  margin: 0;
+  max-width: 32ch;
+  color: var(--text-secondary);
+}
+
 .pss-instructions {
   background: var(--insight-card-bg);
   padding: 12px 16px;
@@ -1849,7 +2099,7 @@ input[type="range"] {
 .pss-option input {
   width: auto;
   margin: 0;
-  accent-color: #dc2626;
+  accent-color: var(--sage);
 }
 
 .pss-welcome {
@@ -1858,9 +2108,14 @@ input[type="range"] {
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border-light);
 }
-.pss-welcome h3 {
+.pss-welcome h3,
+.who-welcome h3 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   margin: 0 0 8px 0;
-  color: #dc2626;
+  color: var(--sage);
   font-size: 1.3rem;
 }
 .pss-welcome p {
@@ -1913,17 +2168,16 @@ input[type="range"] {
 .who-option input {
   width: auto;
   margin: 0;
-  accent-color: #dc2626;
+  accent-color: var(--ochre);
 }
 
-/* SurveyPriorityModal Styles */
 /*success toast in friends page*/
 
 .success-toast {
   position: fixed;
   top: 20px;
   right: 20px;
-  background: #22c55e;
+  background: var(--sage-deep);
   color: white;
   padding: 10px 20px;
   border-radius: 8px;
@@ -1935,7 +2189,7 @@ input[type="range"] {
   position: fixed;
   top: 20px;
   right: 20px;
-  background: #ef4444;
+  background: var(--clay);
   color: white;
   padding: 10px 20px;
   border-radius: 8px;

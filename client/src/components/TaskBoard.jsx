@@ -106,6 +106,9 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask, o
       <div className="task-board">
         {/* TASK LIST */}
         <div className="task-list">
+          {tasks.length === 0 && (
+            <p className="task-list-empty">No tasks yet. Add one above to get started.</p>
+          )}
           {tasks.map((task) => (
             <article className="task-card" key={task._id}>
               <div className="task-card-top">
@@ -167,32 +170,36 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask, o
           ))}
         </div>
 
-        {/* SCHEDULE PANEL (unchanged) */}
+        {/* SCHEDULE PANEL */}
         <aside className="schedule-panel">
           <h3>7-Day Study Plan</h3>
-          <div className="schedule-stack">
-            {schedule.map((day) => (
-              <article className="schedule-day" key={day.key}>
-                <div className="schedule-day-head">
-                  <strong>{day.label}</strong>
-                  <span>{day.load}h planned</span>
-                </div>
-                <p className="schedule-date-label">{day.dateLabel}</p>
-                <div className="schedule-items">
-                  {day.items.length ? (
-                    day.items.map((item, index) => (
-                      <div className="schedule-item" key={`${day.key}-${item.title}-${index}`}>
-                        <span>{item.title}</span>
-                        <strong>{item.hours}h</strong>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="schedule-empty">Recovery block or review session</div>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
+          {tasks.length === 0 ? (
+            <p className="schedule-empty-state">Nothing scheduled yet. Once you add a task, your week fills in here.</p>
+          ) : (
+            <div className="schedule-stack">
+              {schedule.map((day) => (
+                <article className="schedule-day" key={day.key}>
+                  <div className="schedule-day-head">
+                    <strong>{day.label}</strong>
+                    <span>{day.load}h planned</span>
+                  </div>
+                  <p className="schedule-date-label">{day.dateLabel}</p>
+                  <div className="schedule-items">
+                    {day.items.length ? (
+                      day.items.map((item, index) => (
+                        <div className="schedule-item" key={`${day.key}-${item.title}-${index}`}>
+                          <span>{item.title}</span>
+                          <strong>{item.hours}h</strong>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="schedule-empty">Recovery block or review session</div>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </aside>
       </div>
 
