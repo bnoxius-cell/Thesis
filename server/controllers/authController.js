@@ -4,9 +4,7 @@ import userModel from '../models/userModel.js';
 import { sendPasswordResetEmail, sendPasswordResetSuccessEmail, sendVerifyEmailOtp, sendWelcomeEmail } from '../utils/emailService.js';
 import { generateOtp } from '../utils/generateOtp.js';
 import { validateLoginFields, validateRegisterFields, validateResetPasswordFields, validateVerifyEmailFields, validateEmail } from '../utils/validators.js';
-import { OAuth2Client } from 'google-auth-library';
-
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+import { verifyGoogleIdToken } from '../utils/googleAuth.js';
 
 const normalizeEmail = (email) => String(email).trim().toLowerCase();
 
@@ -111,10 +109,7 @@ export const googleLogin = async (req, res) => {
     }
 
     try {
-        const ticket = await client.verifyIdToken({
-            idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID,
-        });
+        const ticket = await verifyGoogleIdToken(token);
         const payload = ticket.getPayload();
         const { name, sub: googleId, picture, email_verified } = payload;
         const email = payload.email ? normalizeEmail(payload.email) : '';
