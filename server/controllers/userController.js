@@ -15,6 +15,7 @@ export const getUserData = async (req, res) => {
                 _id: user._id,
                 name: user.name,
                 email: user.email,
+                createdAt: user.createdAt,
                 isAccountVerified: user.isAccountVerified,
                 authProvider: user.authProvider,
                 avatar: user.avatar,
