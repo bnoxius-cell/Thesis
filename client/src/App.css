@@ -552,6 +552,87 @@
   gap: 10px;
   color: inherit;
 }
+
+/* ==========================================================================
+   CHECK-IN BANNER (Dashboard)
+   Dismissible, non-blocking nudge — deliberately not a modal, so it never
+   stops a user from using the rest of the page while it's showing.
+   ========================================================================== */
+.checkin-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  margin: 0 0 20px;
+  border-radius: 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-light);
+  border-left: 4px solid #dc2626;
+  box-shadow: var(--card-shadow);
+}
+.checkin-banner-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.checkin-banner-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+.checkin-banner-text strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--text-primary);
+}
+.checkin-banner-text p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.checkin-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.checkin-banner-dismiss {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.checkin-banner-dismiss:hover {
+  background: rgba(220, 38, 38, 0.08);
+  color: #b91c1c;
+}
+
+/* ==========================================================================
+   WELCOME PANEL (Dashboard — new / empty-data accounts)
+   Shown instead of the full metrics snapshot until there's real data to
+   summarize, so a brand-new account doesn't open on a wall of zeroes.
+   ========================================================================== */
+.welcome-panel p {
+  color: inherit;
+  line-height: 1.6;
+}
+.welcome-panel .welcome-hint {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin-top: 4px;
+}
+.welcome-panel .primary-button {
+  align-self: flex-start;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1836,20 +1917,6 @@ input[type="range"] {
 }
 
 /* SurveyPriorityModal Styles */
-.survey-priority-modal {
-  max-width: 450px;
-}
-.priority-content {
-  text-align: center;
-  padding: 0 0 1rem;
-}
-.priority-buttons {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin: 1.5rem 0;
-}
-
 /*success toast in friends page*/
 
 .success-toast {

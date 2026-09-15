@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
     lastWHOSubmission: { type: Date, default: null },
     latestWHOScore: { type: Number, default: null },
     profileTag: { type: String, unique: true, sparse: true, default: null },
-});
+}, { timestamps: true });
 
 function generateProfileTag() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();

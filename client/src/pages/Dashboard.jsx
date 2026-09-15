@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "./authentication/AuthContext";
 import axios from "axios";
 import Header from "../components/layout/Header";
@@ -7,8 +8,20 @@ import WorkloadChart from "../components/WorkloadChart";
 import TaskBoard from "../components/TaskBoard";
 import PSSSurveyModal from "../components/PSSSurveyModal";
 import WHOSurveyModal from "../components/WHOSurveyModal";
-import SurveyPriorityModal from "../components/SurveyPriorityModal";
+import CheckInBanner from "../components/CheckInBanner";
 import "../App.css";
+
+// New accounts get a quiet first day: no survey nudge fires until this much
+// time has passed since registration. Accounts from before this feature
+// shipped have no createdAt on record, so they fall back to the old
+// immediate-reminder behavior instead of silently getting a permanent grace
+// period.
+const ONBOARDING_GRACE_MS = 24 * 60 * 60 * 1000;
+
+function isWithinGracePeriod(createdAt) {
+  if (!createdAt) return false;
+  return Date.now() - new Date(createdAt).getTime() < ONBOARDING_GRACE_MS;
+}
 
 function differenceInDays(dateString) {
   const today = new Date();
@@ -93,6 +106,7 @@ function computeWorkloadInsights(tasks, profile, schedule, pssScore, whoScore, i
       availableStudyHours,
       importantCount: 0,
       difficultCount: 0,
+      isNewUser: true,
     };
   }
 
@@ -174,6 +188,7 @@ function computeWorkloadInsights(tasks, profile, schedule, pssScore, whoScore, i
     availableStudyHours,
     importantCount: importantTasks,
     difficultCount: difficultTasks,
+    isNewUser: false,
   };
 }
 
@@ -194,7 +209,8 @@ const Dashboard = () => {
   // Survey states
   const [showPSSModal, setShowPSSModal] = useState(false);
   const [showWHOModal, setShowWHOModal] = useState(false);
-  const [showPriorityModal, setShowPriorityModal] = useState(false);
+  const [pssDue, setPssDue] = useState(false);
+  const [whoDue, setWhoDue] = useState(false);
   const [surveyUserId, setSurveyUserId] = useState("");
   const [pssScore, setPssScore] = useState(null);
   const [whoScore, setWhoScore] = useState(null);
@@ -211,26 +227,6 @@ const Dashboard = () => {
     localStorage.setItem(getReminderKey(type), remindUntil);
   };
 
-  // Update modals based on due status
-  const updateModalsFromDue = (pssDue, whoDue) => {
-    if (!pssDue && !whoDue) {
-      setShowPriorityModal(false);
-      setShowPSSModal(false);
-      setShowWHOModal(false);
-    } else if (pssDue && whoDue) {
-      setShowPriorityModal(true);
-      setShowPSSModal(false);
-      setShowWHOModal(false);
-    } else if (pssDue) {
-      setShowPriorityModal(false);
-      setShowPSSModal(true);
-      setShowWHOModal(false);
-    } else if (whoDue) {
-      setShowPriorityModal(false);
-      setShowPSSModal(false);
-      setShowWHOModal(true);
-    }
-  };
 
   const fetchProfile = async () => {
     try {
@@ -254,30 +250,36 @@ const Dashboard = () => {
         now.setHours(0, 0, 0, 0);
         const pssReminder = getReminder("PSS", u._id);
         const whoReminder = getReminder("WHO", u._id);
+        const inGracePeriod = isWithinGracePeriod(u.createdAt);
 
-        let pssDue = false, whoDue = false;
+        let nextPssDue = false, nextWhoDue = false;
 
         if (Date.now() >= pssReminder) {
-          if (!u.lastPSSSubmission) pssDue = true;
-          else {
+          if (!u.lastPSSSubmission) {
+            // Never taken: hold off during the new-account grace period
+            // instead of nagging on day one.
+            nextPssDue = !inGracePeriod;
+          } else {
             const last = new Date(u.lastPSSSubmission);
             last.setHours(0, 0, 0, 0);
             const daysSince = (now - last) / (1000 * 60 * 60 * 24);
-            if (daysSince >= 30) pssDue = true;
+            if (daysSince >= 30) nextPssDue = true;
           }
         }
 
         if (Date.now() >= whoReminder) {
-          if (!u.lastWHOSubmission) whoDue = true;
-          else {
+          if (!u.lastWHOSubmission) {
+            nextWhoDue = !inGracePeriod;
+          } else {
             const last = new Date(u.lastWHOSubmission);
             last.setHours(0, 0, 0, 0);
             const daysSince = (now - last) / (1000 * 60 * 60 * 24);
-            if (daysSince >= 14) whoDue = true;
+            if (daysSince >= 14) nextWhoDue = true;
           }
         }
 
-        updateModalsFromDue(pssDue, whoDue);
+        setPssDue(nextPssDue);
+        setWhoDue(nextWhoDue);
       }
     } catch (err) {
       console.error("Failed to fetch profile", err);
@@ -373,52 +375,77 @@ const Dashboard = () => {
     <div className="app app-layout">
       <Header />
       <main className="dashboard">
+        <CheckInBanner
+          isOpen
+          pssDue={pssDue}
+          whoDue={whoDue}
+          onSelectPSS={() => setShowPSSModal(true)}
+          onSelectWHO={() => setShowWHOModal(true)}
+          onDismiss={() => {
+            if (pssDue) setReminder("PSS");
+            if (whoDue) setReminder("WHO");
+            fetchProfile();
+          }}
+        />
+
         <section className="hero" id="dashboard">
           <div className="hero-copy">
             <span className="eyebrow">Student Workload Command Center</span>
             <h1>Manage workload, reduce stress.</h1>
             <p>StressCare turns academic deadlines into a realistic weekly plan, flags overload risk, and gives you a calmer way to stay on top of submissions.</p>
-            <div className="hero-metrics">
-              <article className="metric-card accent">
-                <span>Workload Score</span>
-                <strong>{workloadInsights.workloadScore}/100</strong>
-                <p>{workloadInsights.band}</p>
-              </article>
-              <article className="metric-card">
-                <span>Active Tasks</span>
-                <strong>{activeTasks.length}</strong>
-                <p>{criticalCount} urgent right now</p>
-              </article>
-              <article className="metric-card">
-                <span>Completion Rate</span>
-                <strong>{completionRate}%</strong>
-                <p>{workloadInsights.totalTaskHours} planned study hours</p>
-              </article>
-            </div>
+            {!workloadInsights.isNewUser && (
+              <div className="hero-metrics">
+                <article className="metric-card accent">
+                  <span>Workload Score</span>
+                  <strong>{workloadInsights.workloadScore}/100</strong>
+                  <p>{workloadInsights.band}</p>
+                </article>
+                <article className="metric-card">
+                  <span>Active Tasks</span>
+                  <strong>{activeTasks.length}</strong>
+                  <p>{criticalCount} urgent right now</p>
+                </article>
+                <article className="metric-card">
+                  <span>Completion Rate</span>
+                  <strong>{completionRate}%</strong>
+                  <p>{workloadInsights.totalTaskHours} planned study hours</p>
+                </article>
+              </div>
+            )}
           </div>
-          <aside className="hero-panel">
-            <h2>Workload Snapshot</h2>
-            <div className="stress-ring"><div className="stress-ring-inner"><strong>{workloadInsights.band}</strong><span>: {workloadInsights.totalTaskHours} task hours</span></div></div>
-            <ul className="hero-list">
-              <li>Time pressure: {Math.round(workloadInsights.T)}%</li>
-              <li>Stress score: {Math.round(workloadInsights.P)}%</li>
-              <li>Well-being risk: {Math.round(workloadInsights.W)}%</li>
-              <li>Important tasks: {workloadInsights.importantCount}</li>
-              <li>Difficult tasks: {workloadInsights.difficultCount}</li>
-              <li>Daily capacity: {profile.studyHoursPerDay} hrs</li>
-              <li>Student: {profile.studentName || 'Not set'} ({profile.program})</li>
-              <li>Goal: {profile.wellbeingGoal?.replace('-', ' ') || 'steady'}</li>
-              {workloadInsights.G !== 0 && <li>Goal modifier: {workloadInsights.G > 0 ? `+${workloadInsights.G}` : workloadInsights.G}</li>}
-              {isExamWeek && <li>⚠️ Exam week – +15 workload bonus</li>}
-            </ul>
-            
-          </aside>
+          {workloadInsights.isNewUser ? (
+            <aside className="hero-panel welcome-panel">
+              <h2>Welcome{profile.studentName ? `, ${profile.studentName}` : ""} 👋</h2>
+              <p>You're all set up. Add your first task and StressCare will start building your weekly plan and workload forecast around it.</p>
+              <Link to="/create-task" className="primary-button">+ Add your first task</Link>
+              <p className="welcome-hint">Feel free to look around first — nothing here needs to happen right away.</p>
+            </aside>
+          ) : (
+            <aside className="hero-panel">
+              <h2>Workload Snapshot</h2>
+              <div className="stress-ring"><div className="stress-ring-inner"><strong>{workloadInsights.band}</strong><span>: {workloadInsights.totalTaskHours} task hours</span></div></div>
+              <ul className="hero-list">
+                <li>Time pressure: {Math.round(workloadInsights.T)}%</li>
+                <li>Stress score: {Math.round(workloadInsights.P)}%</li>
+                <li>Well-being risk: {Math.round(workloadInsights.W)}%</li>
+                <li>Important tasks: {workloadInsights.importantCount}</li>
+                <li>Difficult tasks: {workloadInsights.difficultCount}</li>
+                <li>Daily capacity: {profile.studyHoursPerDay} hrs</li>
+                <li>Student: {profile.studentName || 'Not set'} ({profile.program})</li>
+                <li>Goal: {profile.wellbeingGoal?.replace('-', ' ') || 'steady'}</li>
+                {workloadInsights.G !== 0 && <li>Goal modifier: {workloadInsights.G > 0 ? `+${workloadInsights.G}` : workloadInsights.G}</li>}
+                {isExamWeek && <li>⚠️ Exam week – +15 workload bonus</li>}
+              </ul>
+            </aside>
+          )}
         </section>
 
-        <section className="grid analytics-grid">
-          <section className="panel"><div className="panel-heading"><div><span className="panel-kicker">Workload graph</span><h2>Weekly pressure forecast</h2></div></div><WorkloadChart schedule={schedule} /></section>
-          <section className="panel insights-panel"><div className="panel-heading"><div><span className="panel-kicker">Guidance</span><h2>Recommended actions</h2></div></div><div className="insight-stack">{workloadInsights.suggestions.map((s, i) => (<article className="insight-card" key={i}><span className="insight-dot" /><p>{s}</p></article>))}</div></section>
-        </section>
+        {!workloadInsights.isNewUser && (
+          <section className="grid analytics-grid">
+            <section className="panel"><div className="panel-heading"><div><span className="panel-kicker">Workload graph</span><h2>Weekly pressure forecast</h2></div></div><WorkloadChart schedule={schedule} /></section>
+            <section className="panel insights-panel"><div className="panel-heading"><div><span className="panel-kicker">Guidance</span><h2>Recommended actions</h2></div></div><div className="insight-stack">{workloadInsights.suggestions.map((s, i) => (<article className="insight-card" key={i}><span className="insight-dot" /><p>{s}</p></article>))}</div></section>
+          </section>
+        )}
 
         <section className="panel">
           <div className="panel-heading"><div><span className="panel-kicker">Task organization</span><h2>Priority queue and smart schedule</h2></div></div>
@@ -431,13 +458,6 @@ const Dashboard = () => {
         </section>
       </main>
       <Footer />
-
-      <SurveyPriorityModal
-        isOpen={showPriorityModal}
-        onSelectPSS={() => { setShowPriorityModal(false); setShowPSSModal(true); }}
-        onSelectWHO={() => { setShowPriorityModal(false); setShowWHOModal(true); }}
-        onRemindLater={() => { setReminder("PSS"); setReminder("WHO"); setShowPriorityModal(false); fetchProfile(); }}
-      />
 
       <PSSSurveyModal
         isOpen={showPSSModal}
