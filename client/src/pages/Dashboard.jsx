@@ -23,6 +23,31 @@ function isWithinGracePeriod(createdAt) {
   return Date.now() - new Date(createdAt).getTime() < ONBOARDING_GRACE_MS;
 }
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+// Maps a workload band to a calm severity scale for the "how you're doing"
+// visual, sage (fine) through clay (a lot), instead of a raw percentage.
+const BAND_SEVERITY = {
+  "Light Workload": "calm",
+  "Moderate Workload": "steady",
+  "Heavy Workload": "full",
+  "Critical Overload": "a-lot",
+};
+
+// Words first, numbers second. How the workload band actually feels,
+// not just what it measures.
+const WELLBEING_MESSAGE = {
+  "Light Workload": "Today's looking manageable. You're in a good spot.",
+  "Moderate Workload": "You've got a fair amount going on, but it's steady.",
+  "Heavy Workload": "Your plate is fuller than usual, so it's worth pacing yourself this week.",
+  "Critical Overload": "This is a lot right now. Be gentle with yourself, and lean on a friend if you need to.",
+};
+
 function differenceInDays(dateString) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -211,6 +236,8 @@ const Dashboard = () => {
   const [showWHOModal, setShowWHOModal] = useState(false);
   const [pssDue, setPssDue] = useState(false);
   const [whoDue, setWhoDue] = useState(false);
+  const [pssNeverTaken, setPssNeverTaken] = useState(false);
+  const [whoNeverTaken, setWhoNeverTaken] = useState(false);
   const [surveyUserId, setSurveyUserId] = useState("");
   const [pssScore, setPssScore] = useState(null);
   const [whoScore, setWhoScore] = useState(null);
@@ -222,9 +249,13 @@ const Dashboard = () => {
     const until = localStorage.getItem(getReminderKey(type, userId));
     return until ? parseInt(until) : 0;
   };
+  // "Not today" snoozes until tomorrow rather than a nagging 30-minute
+  // countdown that would just resurface the check-in again the same afternoon.
   const setReminder = (type) => {
-    const remindUntil = Date.now() + 30 * 60 * 1000;
-    localStorage.setItem(getReminderKey(type), remindUntil);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    localStorage.setItem(getReminderKey(type), tomorrow.getTime());
   };
 
 
@@ -243,6 +274,8 @@ const Dashboard = () => {
         }));
         setPssScore(u.latestPSSScore ?? null);
         setWhoScore(u.latestWHOScore ?? null);
+        setPssNeverTaken(!u.lastPSSSubmission);
+        setWhoNeverTaken(!u.lastWHOSubmission);
         // For exam week, you would read from profile later
         // setIsExamWeek(u.isExamWeek || false);
 
@@ -368,8 +401,8 @@ const Dashboard = () => {
   const enrichedTasks = activeTasks.map(task => ({ ...task, ...getTaskMetrics(task) })).sort((a,b) => b.workload - a.workload);
   const schedule = buildSchedule(enrichedTasks, profile);
   const workloadInsights = computeWorkloadInsights(activeTasks, profile, schedule, pssScore, whoScore, isExamWeek);
-  const completionRate = tasks.length ? Math.round(((tasks.length - activeTasks.length) / tasks.length) * 100) : 100;
-  const criticalCount = enrichedTasks.filter(t => t.status === "Critical").length;
+  const todayTasks = enrichedTasks.filter(t => t.daysLeft <= 1).slice(0, 5);
+  const firstName = profile.studentName?.split(" ")[0];
 
   return (
     <div className="app app-layout">
@@ -388,67 +421,73 @@ const Dashboard = () => {
           }}
         />
 
-        <section className="hero" id="dashboard">
-          <div className="hero-copy">
-            <span className="eyebrow">Student Workload Command Center</span>
-            <h1>Manage workload, reduce stress.</h1>
-            <p>StressCare turns academic deadlines into a realistic weekly plan, flags overload risk, and gives you a calmer way to stay on top of submissions.</p>
-            {!workloadInsights.isNewUser && (
-              <div className="hero-metrics">
-                <article className="metric-card accent">
-                  <span>Workload Score</span>
-                  <strong>{workloadInsights.workloadScore}/100</strong>
-                  <p>{workloadInsights.band}</p>
-                </article>
-                <article className="metric-card">
-                  <span>Active Tasks</span>
-                  <strong>{activeTasks.length}</strong>
-                  <p>{criticalCount} urgent right now</p>
-                </article>
-                <article className="metric-card">
-                  <span>Completion Rate</span>
-                  <strong>{completionRate}%</strong>
-                  <p>{workloadInsights.totalTaskHours} planned study hours</p>
-                </article>
-              </div>
-            )}
-          </div>
-          {workloadInsights.isNewUser ? (
-            <aside className="hero-panel welcome-panel">
-              <h2>Welcome{profile.studentName ? `, ${profile.studentName}` : ""} 👋</h2>
-              <p>You're all set up. Add your first task and StressCare will start building your weekly plan and workload forecast around it.</p>
+        <section className="greeting" id="dashboard">
+          <h1>{getGreeting()}{firstName ? `, ${firstName}` : ""}.</h1>
+          <p>{workloadInsights.isNewUser ? "Here's your space. Let's get it set up." : "Here's what's on your plate today."}</p>
+        </section>
+
+        {workloadInsights.isNewUser ? (
+          <section className="hero welcome-hero">
+            <div className="hero-copy">
+              <span className="panel-kicker">Getting started</span>
+              <h2>Add your first task</h2>
+              <p>StressCare turns your deadlines into a realistic weekly plan and a gentle read on how you're doing, once there's something to work with.</p>
               <Link to="/create-task" className="primary-button">+ Add your first task</Link>
-              <p className="welcome-hint">Feel free to look around first — nothing here needs to happen right away.</p>
-            </aside>
-          ) : (
-            <aside className="hero-panel">
-              <h2>Workload Snapshot</h2>
-              <div className="stress-ring"><div className="stress-ring-inner"><strong>{workloadInsights.band}</strong><span>: {workloadInsights.totalTaskHours} task hours</span></div></div>
+              <p className="welcome-hint">Feel free to look around first. Nothing here needs to happen right away.</p>
+            </div>
+            <aside className="hero-panel welcome-panel">
+              <h2>What you'll see here</h2>
               <ul className="hero-list">
-                <li>Time pressure: {Math.round(workloadInsights.T)}%</li>
-                <li>Stress score: {Math.round(workloadInsights.P)}%</li>
-                <li>Well-being risk: {Math.round(workloadInsights.W)}%</li>
-                <li>Important tasks: {workloadInsights.importantCount}</li>
-                <li>Difficult tasks: {workloadInsights.difficultCount}</li>
-                <li>Daily capacity: {profile.studyHoursPerDay} hrs</li>
-                <li>Student: {profile.studentName || 'Not set'} ({profile.program})</li>
-                <li>Goal: {profile.wellbeingGoal?.replace('-', ' ') || 'steady'}</li>
-                {workloadInsights.G !== 0 && <li>Goal modifier: {workloadInsights.G > 0 ? `+${workloadInsights.G}` : workloadInsights.G}</li>}
-                {isExamWeek && <li>⚠️ Exam week – +15 workload bonus</li>}
+                <li>What's due today, in one place</li>
+                <li>A weekly plan that adjusts to your pace</li>
+                <li>A gentle read on how you're doing, in words rather than just numbers</li>
               </ul>
             </aside>
-          )}
-        </section>
+          </section>
+        ) : (
+          <section className="grid today-grid">
+            <section className="panel">
+              <div className="panel-heading"><div><span className="panel-kicker">Today</span><h2>What's in front of you</h2></div></div>
+              {todayTasks.length ? (
+                <ul className="today-list">
+                  {todayTasks.map((task) => (
+                    <li key={task._id} className="today-item">
+                      <span className={`today-dot ${task.status.toLowerCase().replace(/\s+/g, "-")}`} aria-hidden="true" />
+                      <div>
+                        <strong>{task.title}</strong>
+                        <span className="today-meta">{task.course} · {task.daysLeft < 0 ? "overdue" : task.daysLeft === 0 ? "due today" : "due tomorrow"}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="today-empty">Nothing due today or tomorrow. A good day to get ahead, or just breathe.</p>
+              )}
+              <Link to="/create-task" className="ghost-button today-add">+ Add a task</Link>
+            </section>
+
+            <aside className="hero-panel">
+              <h2>How you're doing</h2>
+              <div className={`stress-ring ${BAND_SEVERITY[workloadInsights.band]}`}>
+                <div className="stress-ring-inner"><strong>{workloadInsights.band}</strong></div>
+              </div>
+              <p>{WELLBEING_MESSAGE[workloadInsights.band]}</p>
+              {!(pssScore !== null || whoScore !== null) && (
+                <p className="welcome-hint">This gets more personal once you take a check-in.</p>
+              )}
+            </aside>
+          </section>
+        )}
 
         {!workloadInsights.isNewUser && (
           <section className="grid analytics-grid">
-            <section className="panel"><div className="panel-heading"><div><span className="panel-kicker">Workload graph</span><h2>Weekly pressure forecast</h2></div></div><WorkloadChart schedule={schedule} /></section>
-            <section className="panel insights-panel"><div className="panel-heading"><div><span className="panel-kicker">Guidance</span><h2>Recommended actions</h2></div></div><div className="insight-stack">{workloadInsights.suggestions.map((s, i) => (<article className="insight-card" key={i}><span className="insight-dot" /><p>{s}</p></article>))}</div></section>
+            <section className="panel"><div className="panel-heading"><div><span className="panel-kicker">This week</span><h2>A lighter look at your week</h2></div></div><WorkloadChart schedule={schedule} /></section>
+            <section className="panel insights-panel"><div className="panel-heading"><div><span className="panel-kicker">Guidance</span><h2>Where to focus</h2></div></div><div className="insight-stack">{workloadInsights.suggestions.map((s, i) => (<article className="insight-card" key={i}><span className="insight-dot" /><p>{s}</p></article>))}</div></section>
           </section>
         )}
 
         <section className="panel">
-          <div className="panel-heading"><div><span className="panel-kicker">Task organization</span><h2>Priority queue and smart schedule</h2></div></div>
+          <div className="panel-heading"><div><span className="panel-kicker">All tasks</span><h2>Everything on your plate</h2></div></div>
           <form className="task-import-form" onSubmit={importTask}>
             <input type="text" inputMode="numeric" maxLength="6" value={importCode} onChange={(e) => handleImportCodeChange(e.target.value)} onPaste={handleImportCodePaste} placeholder="6-digit task tag" />
             <button type="submit" className="secondary-button" disabled={importingTask}>{importingTask ? "Importing..." : "Import Task"}</button>
@@ -459,27 +498,36 @@ const Dashboard = () => {
       </main>
       <Footer />
 
-      <PSSSurveyModal
-        isOpen={showPSSModal}
-        onClose={() => setShowPSSModal(false)}
-        onComplete={(newScore) => {
-          setPssScore(newScore);
-          setShowPSSModal(false);
-          fetchProfile();
-        }}
-        onRemindLater={() => { setReminder("PSS"); setShowPSSModal(false); fetchProfile(); }}
-      />
+      {/* Mounted only while open, so each one starts from a clean slate
+          (unanswered questions, no leftover "thanks for checking in" state)
+          instead of needing an effect to reset it on reopen. */}
+      {showPSSModal && (
+        <PSSSurveyModal
+          isOpen={showPSSModal}
+          isFirstTime={pssNeverTaken}
+          onClose={() => setShowPSSModal(false)}
+          onComplete={(newScore) => {
+            setPssScore(newScore);
+            setShowPSSModal(false);
+            fetchProfile();
+          }}
+          onRemindLater={() => { setReminder("PSS"); setShowPSSModal(false); fetchProfile(); }}
+        />
+      )}
 
-      <WHOSurveyModal
-        isOpen={showWHOModal}
-        onClose={() => setShowWHOModal(false)}
-        onComplete={(newScore) => {
-          setWhoScore(newScore);
-          setShowWHOModal(false);
-          fetchProfile();
-        }}
-        onRemindLater={() => { setReminder("WHO"); setShowWHOModal(false); fetchProfile(); }}
-      />
+      {showWHOModal && (
+        <WHOSurveyModal
+          isOpen={showWHOModal}
+          isFirstTime={whoNeverTaken}
+          onClose={() => setShowWHOModal(false)}
+          onComplete={(newScore) => {
+            setWhoScore(newScore);
+            setShowWHOModal(false);
+            fetchProfile();
+          }}
+          onRemindLater={() => { setReminder("WHO"); setShowWHOModal(false); fetchProfile(); }}
+        />
+      )}
     </div>
   );
 };
