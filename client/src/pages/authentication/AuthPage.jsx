@@ -200,7 +200,7 @@ const AuthPage = () => {
 
             {authMode === 'verify' ? (
               <form className="auth-form" onSubmit={onVerifySubmit}>
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', margin: '12px 0 24px' }}>
+                <div className="otp-input-row">
                   {otp.map((digit, index) => (
                     <input
                       key={index}
@@ -211,17 +211,7 @@ const AuthPage = () => {
                       onKeyDown={(e) => handleOtpKeyDown(e, index)}
                       onPaste={index === 0 ? handleOtpPaste : undefined}
                       ref={(el) => (inputRefs.current[index] = el)}
-                      style={{
-                        width: '48px',
-                        height: '56px',
-                        textAlign: 'center',
-                        fontSize: '1.5rem',
-                        fontWeight: '700',
-                        borderRadius: '8px',
-                        border: '1px solid var(--input-border)',
-                        backgroundColor: 'var(--input-bg)',
-                        color: 'var(--text-primary)'
-                      }}
+                      className="otp-input"
                       required
                     />
                   ))}

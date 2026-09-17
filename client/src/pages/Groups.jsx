@@ -157,7 +157,7 @@ export default function Groups() {
           </aside>
         </section>
 
-        <div style={{ display: "flex", gap: "1rem", justifyContent: "center", marginBottom: "2rem" }}>
+        <div style={{ display: "flex", gap: "1rem", justifyContent: "center", marginBottom: "2rem", flexWrap: "wrap" }}>
           <button className="primary-button" onClick={() => setCreateModalOpen(true)}>
             + Create Group
           </button>
