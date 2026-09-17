@@ -336,6 +336,12 @@ h1, h2, h3,
   color: var(--logout-btn-hover-color);
   border-color: var(--logout-btn-hover-border);
 }
+.sidepanel-toggle {
+  display: none;
+}
+.sidepanel-backdrop {
+  display: none;
+}
 
 /* Simple header for auth pages (no sidepanel) */
 .header-auth {
@@ -1089,6 +1095,7 @@ input[type="range"] {
 .schedule-day-head,
 .schedule-item {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
 }
@@ -1123,6 +1130,7 @@ input[type="range"] {
 }
 .task-share-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
@@ -1954,80 +1962,89 @@ input[type="range"] {
     padding: 8px;
   }
 
-  /* Mobile sidebar – switch from grid to column */
+  /* Mobile sidebar – stays on the left as a narrow icon rail, expands into
+     an overlay drawer when toggled, instead of moving to the top. */
   .app.app-layout {
-    display: flex;
-    flex-direction: column;
-  }
-  .sidepanel {
-    width: 100%;
-    height: auto;
-    position: sticky;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    border-right: none;
-    border-bottom: 1px solid var(--header-border);
-  }
-  .sidepanel-logo {
-    margin-bottom: 0;
-    padding: 0;
-    flex-shrink: 0;
-  }
-  .sidepanel-logo .logo-text {
-    display: none;
-  }
-  .sidepanel-nav {
-    flex-direction: row;
-    align-items: center;
-    gap: 16px;
-    min-width: 0;
-  }
-  .sidepanel-menu {
-    flex-direction: row;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 0;
-    flex: 1;
-    min-width: 0;
-  }
-  .sidepanel-footer {
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-    margin-top: 0;
-    padding-top: 0;
-    padding-left: 12px;
-    border-top: none;
-    border-left: 1px solid var(--header-border);
-    flex-shrink: 0;
-  }
-  .sidepanel-user {
-    padding: 0;
-  }
-  .sidepanel-user .user-name {
-    display: none;
-  }
-  .sidepanel-logout {
-    width: auto;
-    padding: 8px;
-  }
-  .sidepanel-logout span {
-    display: none;
-  }
-  .sidepanel-link span {
-    display: none;
-  }
-  .sidepanel-link {
-    padding: 8px;
+    grid-template-columns: 64px minmax(0, 1fr);
   }
   .app.app-layout .dashboard,
   .app.app-layout .footer {
-    grid-column: auto;
-    grid-row: auto;
-    max-width: 100%;
     padding: 24px 20px;
+  }
+
+  .sidepanel {
+    width: 64px;
+    padding: 20px 8px;
+    align-items: center;
+    transition: width 0.2s ease;
+  }
+  .sidepanel.expanded {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 100vh;
+    padding: 20px 16px;
+    align-items: stretch;
+    z-index: 1000;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  }
+  .sidepanel-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 20, 20, 0.45);
+    z-index: 999;
+  }
+
+  .sidepanel-logo {
+    margin-bottom: 16px;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+  }
+  .sidepanel-logo .logo-link {
+    display: none;
+  }
+  .sidepanel.expanded .sidepanel-logo {
+    justify-content: space-between;
+  }
+  .sidepanel.expanded .sidepanel-logo .logo-link {
+    display: flex;
+  }
+  .sidepanel-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    border: 1px solid var(--header-border);
+    background: transparent;
+    color: var(--menu-item-color);
+    cursor: pointer;
+  }
+  .sidepanel-toggle:hover {
+    background: var(--menu-item-hover-bg);
+    color: var(--menu-item-hover-color);
+  }
+
+  .sidepanel:not(.expanded) .sidepanel-link {
+    justify-content: center;
+    padding: 10px;
+  }
+  .sidepanel:not(.expanded) .sidepanel-link span,
+  .sidepanel:not(.expanded) .sidepanel-user .user-name,
+  .sidepanel:not(.expanded) .sidepanel-logout span {
+    display: none;
+  }
+  .sidepanel:not(.expanded) .sidepanel-user {
+    justify-content: center;
+    padding: 0;
+  }
+  .sidepanel:not(.expanded) .sidepanel-logout {
+    padding: 10px;
   }
 }
 
