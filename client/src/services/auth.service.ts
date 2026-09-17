@@ -3,7 +3,7 @@ import { map, catchError } from 'rxjs/operators';
 import axios from 'axios';
 import { User, AuthResponse } from '../interfaces/user.interface';
 
-const API_BASE = 'http://localhost:5000/api/auth';
+const API_BASE = `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/auth`;
 
 class AxiosInstance {
   private axios = axios.create({
