@@ -2030,7 +2030,7 @@ input[type="range"] {
     font-size: 0.95rem;
   }
   .hero h1 {
-    font-size: 1.55rem;
+    font-size: 1.4rem;
     line-height: 1.22;
     max-width: none;
   }
@@ -2043,6 +2043,27 @@ input[type="range"] {
     font-size: 1.6rem;
     line-height: 1.2;
     max-width: none;
+  }
+  .site-footer-brand .logo-link {
+    font-size: 1.2rem;
+  }
+  .header-auth {
+    padding: 16px 20px;
+  }
+  .header-auth .logo-link {
+    font-size: 1.2rem;
+  }
+  .hero-panel h2 {
+    font-size: 1.25rem;
+  }
+  .metric-card strong {
+    font-size: 1.15rem;
+  }
+  .metric-card span {
+    font-size: 0.75rem;
+  }
+  .metric-card p {
+    font-size: 0.85rem;
   }
 
   /* Profile's Account Info card: a 150px avatar stacked above the name
@@ -2150,6 +2171,7 @@ input[type="range"] {
   }
   .sidepanel.expanded .sidepanel-logo .logo-link {
     display: flex;
+    font-size: 1.2rem;
   }
   .sidepanel-toggle {
     display: flex;
@@ -2243,7 +2265,7 @@ input[type="range"] {
     font-size: 0.88rem;
   }
   .hero h1 {
-    font-size: 1.3rem;
+    font-size: 1.15rem;
     line-height: 1.2;
   }
   .welcome-hero .hero-copy h2 {
@@ -2251,8 +2273,14 @@ input[type="range"] {
     line-height: 1.25;
   }
   .auth-copy h1 {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     line-height: 1.2;
+  }
+  .hero-panel h2 {
+    font-size: 1.1rem;
+  }
+  .metric-card strong {
+    font-size: 1rem;
   }
   .checkin-banner {
     padding: 12px 14px;
