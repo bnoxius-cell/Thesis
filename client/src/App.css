@@ -635,6 +635,15 @@ h1, h2, h3,
 .profile-info p {
   overflow-wrap: anywhere;
 }
+.profile-avatar {
+  border-radius: 50%;
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+}
+.profile-info h3 {
+  margin: 0 0 4px;
+}
 .hero-list {
   list-style: none;
   padding: 0;
@@ -1225,6 +1234,45 @@ input[type="range"] {
   border-radius: 8px;
   background: var(--schedule-item-bg);
   color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   SURVEY HISTORY CARDS (Profile — PSS-10 / WHO-5 result summaries)
+   ========================================================================== */
+.survey-card {
+  padding: 1rem;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  background: var(--card-bg);
+}
+.survey-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.survey-card-head h3 {
+  margin: 0 0 0.25rem;
+}
+.survey-card-head p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+.survey-score {
+  text-align: right;
+}
+.survey-score-value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+.survey-score-label {
+  font-size: 0.85rem;
+  color: #dc2626;
+}
+.survey-card-actions {
+  margin-top: 1rem;
 }
 
 /* Animated task action buttons (Edit / Done / Delete) */
@@ -1995,6 +2043,51 @@ input[type="range"] {
     font-size: 1.6rem;
     line-height: 1.2;
     max-width: none;
+  }
+
+  /* Profile's Account Info card: a 150px avatar stacked above the name
+     was eating most of the column's height and width on mobile. Move it
+     beside the name instead, at a size that fits the rail. */
+  .hero-panel {
+    padding: 18px;
+  }
+  .profile-image {
+    display: flex;
+    justify-content: center;
+  }
+  .profile-avatar {
+    width: 84px;
+    height: 84px;
+  }
+  .profile-info {
+    text-align: center;
+    margin-top: 10px;
+  }
+  .profile-info h3 {
+    font-size: 1.15rem;
+  }
+  .profile-info p {
+    font-size: 0.85rem;
+    margin: 2px 0;
+  }
+
+  /* Survey history cards: the score used a fixed 1.8rem regardless of
+     screen size, which dominated the card once it wrapped onto its own
+     line on mobile. */
+  .survey-card-head h3 {
+    font-size: 1.05rem;
+  }
+  .survey-card-head p {
+    font-size: 0.88rem;
+  }
+  .survey-score {
+    text-align: left;
+  }
+  .survey-score-value {
+    font-size: 1.4rem;
+  }
+  .survey-score-label {
+    font-size: 0.8rem;
   }
 
   /* Check-in banner: stack the icon above the text instead of beside it,

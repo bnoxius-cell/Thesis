@@ -237,7 +237,7 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
                   alt="Profile"
                   onError={handleImageError}
                   referrerPolicy="no-referrer"
-                  style={{ borderRadius: "50%", width: "150px", height: "150px", objectFit: "cover" }}
+                  className="profile-avatar"
                 />
               </div>
               <div className="profile-info">
@@ -332,26 +332,25 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {/* PSS-10 Card */}
-            <div style={{ padding: '1rem', border: '1px solid var(--border-light)', borderRadius: '12px', background: 'var(--card-bg)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div className="survey-card">
+              <div className="survey-card-head">
                 <div>
-                  <h3 style={{ margin: '0 0 0.25rem 0' }}>📊 Perceived Stress Scale (PSS-10)</h3>
-                  <p style={{ margin: '0', color: 'var(--text-secondary)' }}>Your stress level over the last month</p>
+                  <h3>📊 Perceived Stress Scale (PSS-10)</h3>
+                  <p>Your stress level over the last month</p>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                <div className="survey-score">
+                  <div className="survey-score-value">
                     {pssScore === null ? "No result" : `${pssScore} / 40`}
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: '#dc2626' }}>
+                  <div className="survey-score-label">
                     {pssScore === null ? "Take the survey to personalize your score" : getStressLevel(pssScore)}
                   </div>
                 </div>
               </div>
-              <div style={{ marginTop: '1rem' }}>
+              <div className="survey-card-actions">
                 <button
-                  className="secondary-button"
+                  className="secondary-button small"
                   onClick={() => setShowPSSModal(true)}
-                  style={{ fontSize: '0.85rem' }}
                 >
                   {!lastPSSSubmission ? "Take Survey" : "Retake Survey"}
                 </button>
@@ -359,26 +358,25 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
             </div>
 
             {/* WHO-5 Card */}
-            <div style={{ padding: '1rem', border: '1px solid var(--border-light)', borderRadius: '12px', background: 'var(--card-bg)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div className="survey-card">
+              <div className="survey-card-head">
                 <div>
-                  <h3 style={{ margin: '0 0 0.25rem 0' }}>💚 WHO-5 Well-Being Index</h3>
-                  <p style={{ margin: '0', color: 'var(--text-secondary)' }}>Your emotional well-being over the last two weeks</p>
+                  <h3>💚 WHO-5 Well-Being Index</h3>
+                  <p>Your emotional well-being over the last two weeks</p>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                <div className="survey-score">
+                  <div className="survey-score-value">
                     {whoScore === null ? "No result" : `${whoScore} / 100`}
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: '#dc2626' }}>
+                  <div className="survey-score-label">
                     {whoScore === null ? "Take the survey to personalize your score" : getWellbeingInterpretation(whoScore)}
                   </div>
                 </div>
               </div>
-              <div style={{ marginTop: '1rem' }}>
+              <div className="survey-card-actions">
                 <button
-                  className="secondary-button"
+                  className="secondary-button small"
                   onClick={() => setShowWHOModal(true)}
-                  style={{ fontSize: '0.85rem' }}
                 >
                   {!lastWHOSubmission ? "Take Survey" : "Retake Survey"}
                 </button>
