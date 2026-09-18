@@ -34,6 +34,10 @@ app.use(cors({
 }));
 app.use(cookieParser());
 
+// Plain 200 for uptime monitors/health checks hitting the bare root — there's
+// no other unauthenticated GET route, so without this they'd see a 404.
+app.get('/', (req, res) => res.send('OK'));
+
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
 app.use('/api/surveys', surveyRouter);
