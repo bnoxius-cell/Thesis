@@ -551,6 +551,7 @@ h1, h2, h3,
 .auth-form,
 .auth-actions {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
 .auth-actions {
@@ -639,6 +640,7 @@ h1, h2, h3,
   padding: 0;
   margin: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   color: inherit;
 }
@@ -768,10 +770,12 @@ h1, h2, h3,
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
 .today-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: 12px;
 }
@@ -1046,6 +1050,7 @@ input[type="range"] {
    ========================================================================== */
 .insight-stack {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
 .insight-card {
@@ -1076,6 +1081,7 @@ input[type="range"] {
 .task-list,
 .schedule-stack {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 .task-card,
@@ -1203,6 +1209,7 @@ input[type="range"] {
 }
 .schedule-items {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 .schedule-item {
@@ -2106,6 +2113,80 @@ input[type="range"] {
 @media (max-width: 480px) {
   .site-footer-links {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Extra-narrow devices/windows (below any real phone's width, but the
+   320-430px tier above still isn't the floor — shrink further rather
+   than let headings blow their column out into a wall of single-word
+   lines). Sizes stay well above body text so headings still read as
+   headings, just more compact. */
+@media (max-width: 300px) {
+  .app.app-layout {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+  .app.app-layout .dashboard,
+  .app.app-layout .footer {
+    padding: 16px 12px;
+  }
+  .sidepanel {
+    width: 48px;
+    padding: 16px 4px;
+  }
+  .sidepanel:not(.expanded) .sidepanel-link {
+    padding: 8px;
+  }
+  .auth-shell,
+  .hero,
+  .panel,
+  .auth-card {
+    padding: 14px;
+  }
+  .greeting h1 {
+    font-size: 1.2rem;
+    line-height: 1.25;
+  }
+  .greeting p {
+    font-size: 0.88rem;
+  }
+  .hero h1 {
+    font-size: 1.3rem;
+    line-height: 1.2;
+  }
+  .welcome-hero .hero-copy h2 {
+    font-size: 1.2rem;
+    line-height: 1.25;
+  }
+  .auth-copy h1 {
+    font-size: 1.3rem;
+    line-height: 1.2;
+  }
+  .checkin-banner {
+    padding: 12px 14px;
+  }
+  .checkin-banner-text strong {
+    font-size: 0.95rem;
+  }
+  .checkin-banner-text p {
+    font-size: 0.82rem;
+  }
+  .panel-heading h2 {
+    font-size: 1.05rem;
+  }
+  .task-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .edit-button,
+  .done-button,
+  .remove-button {
+    width: 32px;
+    height: 32px;
+  }
+  .edit-svgIcon,
+  .done-svgIcon,
+  .remove-svgIcon {
+    width: 15px;
   }
 }
 
