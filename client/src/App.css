@@ -1962,19 +1962,58 @@ input[type="range"] {
     padding: 8px;
   }
 
+  /* Hero/greeting headings use vw-based clamp() sizing tuned for the full
+     viewport width, but on mobile the sidebar rail eats a fixed chunk of
+     that width, leaving the text column much narrower than the clamp
+     assumes — so short headings were wrapping into three or four ragged
+     lines. Give them fixed, smaller sizes instead of scaling with vw. */
+  .greeting h1 {
+    font-size: 1.5rem;
+    line-height: 1.25;
+  }
+  .greeting p {
+    font-size: 0.95rem;
+  }
+  .hero h1 {
+    font-size: 1.55rem;
+    line-height: 1.22;
+    max-width: none;
+  }
+  .welcome-hero .hero-copy h2 {
+    font-size: 1.4rem;
+    line-height: 1.25;
+    max-width: none;
+  }
+  .auth-copy h1 {
+    font-size: 1.6rem;
+    line-height: 1.2;
+    max-width: none;
+  }
+
+  /* Check-in banner: stack the icon above the text instead of beside it,
+     so the message gets the full column width to wrap in rather than
+     losing ~30px to the icon + gap on an already-narrow screen. */
+  .checkin-banner-text {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .checkin-banner-text strong {
+    font-size: 1.05rem;
+  }
+
   /* Mobile sidebar – stays on the left as a narrow icon rail, expands into
      an overlay drawer when toggled, instead of moving to the top. */
   .app.app-layout {
-    grid-template-columns: 64px minmax(0, 1fr);
+    grid-template-columns: 56px minmax(0, 1fr);
   }
   .app.app-layout .dashboard,
   .app.app-layout .footer {
-    padding: 24px 20px;
+    padding: 20px 16px;
   }
 
   .sidepanel {
-    width: 64px;
-    padding: 20px 8px;
+    width: 56px;
+    padding: 20px 6px;
     align-items: center;
     transition: width 0.2s ease;
   }
