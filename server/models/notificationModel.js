@@ -6,6 +6,7 @@ export const NOTIFICATION_TYPES = [
     'group_invite',
     'group_message',
     'group_task',
+    'group_schedule',
     'group_member',
     'task_reminder',
     'schedule_share',

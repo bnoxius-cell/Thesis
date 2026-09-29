@@ -1,11 +1,12 @@
 import mongoose from 'mongoose';
+import { entrySchema } from './scheduleModel.js';
 
 // One document per chat message. Kept out of the group document so a busy chat
 // never bloats it, and so history can be paged by _id.
 const groupMessageSchema = new mongoose.Schema({
     group: { type: mongoose.Schema.Types.ObjectId, ref: 'group', required: true, index: true },
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true },
-    type: { type: String, enum: ['text', 'task'], default: 'text' },
+    type: { type: String, enum: ['text', 'task', 'schedule'], default: 'text' },
     text: { type: String, default: '', maxlength: 1000 },
     // Snapshot of a shared task. shareTag is what a teammate imports from.
     task: {
@@ -17,6 +18,15 @@ const groupMessageSchema = new mongoose.Schema({
         hours: Number,
         difficulty: Number,
         importance: Number,
+    },
+    // Snapshot of a shared schedule (pictures left out). Teammates copy entries from this,
+    // so later edits or deletion of the original never change what was shared.
+    schedule: {
+        title: String,
+        ownerName: String,
+        theme: String,
+        country: String,
+        entries: [entrySchema],
     },
 }, { timestamps: true });
 

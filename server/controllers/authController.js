@@ -5,6 +5,7 @@ import { sendPasswordResetEmail, sendPasswordResetSuccessEmail, sendVerifyEmailO
 import { generateOtp } from '../utils/generateOtp.js';
 import { validateLoginFields, validateRegisterFields, validateResetPasswordFields, validateVerifyEmailFields, validateSchoolEmail } from '../utils/validators.js';
 import { verifyGoogleIdToken } from '../utils/googleAuth.js';
+import { LEGAL_VERSION } from '../utils/legal.js';
 
 const normalizeEmail = (email) => String(email).trim().toLowerCase();
 
@@ -32,12 +33,15 @@ const issueVerifyOtp = async (user) => {
 };
 
 export const register = async (req, res) => {
-    const { name, password } = req.body;
+    const { name, password, acceptedTerms } = req.body;
     const email = req.body.email ? normalizeEmail(req.body.email) : req.body.email;
 
     const validate = validateRegisterFields(name, email, password);
     if (!validate.isValid) {
         return res.json({ success: false, message: validate.message });
+    }
+    if (acceptedTerms !== true) {
+        return res.json({ success: false, message: "Please agree to the Terms of Service and Privacy Policy to create an account." });
     }
 
     try {
@@ -56,7 +60,9 @@ export const register = async (req, res) => {
         const user = new userModel({
             name,
             email,
-            password: hashedPassword
+            password: hashedPassword,
+            termsVersion: LEGAL_VERSION,
+            termsAcceptedAt: new Date()
         });
         await user.save();
 

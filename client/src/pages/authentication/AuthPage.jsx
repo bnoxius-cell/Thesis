@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { useAuth } from "./AuthContext";
 import { GoogleLogin } from '@react-oauth/google';
 import { Eye, EyeOff } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const SCHOOL_EMAIL_DOMAIN = "student.fatima.edu.ph";
 const RESEND_COOLDOWN_SECONDS = 180;
@@ -21,6 +22,7 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(''));
@@ -157,11 +159,15 @@ const AuthPage = () => {
   const onSubmitHandler = async (e) => {
     e.preventDefault();
     const normalizedEmail = email.trim().toLowerCase();
+    if (authMode === 'register' && !acceptedTerms) {
+      toast.error('Please agree to the Terms of Service and Privacy Policy to create an account.');
+      return;
+    }
     setBusy(true);
     try {
       const result = authMode === 'login'
         ? await login(normalizedEmail, password, rememberMe)
-        : await register(name.trim(), normalizedEmail, password);
+        : await register(name.trim(), normalizedEmail, password, acceptedTerms);
 
       if (result.success && result.needsVerification) {
         startVerifyStep(result.otpSent);
@@ -322,6 +328,15 @@ const AuthPage = () => {
                     </label>
                   </div>
                 )}
+                {authMode === 'register' && (
+                  <label className="terms-check">
+                    <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />
+                    <span>
+                      I agree to the <Link to="/terms-of-service">Terms of Service</Link> and{' '}
+                      <Link to="/privacy-policy">Privacy Policy</Link>.
+                    </span>
+                  </label>
+                )}
                 <button type="submit" className="primary-button" disabled={busy}>
                   {busy
                     ? (authMode === 'login' ? 'Signing in...' : 'Creating account...')
@@ -344,6 +359,11 @@ const AuthPage = () => {
                   shape="rectangular"
                   hosted_domain={SCHOOL_EMAIL_DOMAIN}
                 />
+                <p className="auth-legal-note">
+                  New to StressCare? Signing in with Google means you agree to our{' '}
+                  <Link to="/terms-of-service">Terms</Link> and <Link to="/privacy-policy">Privacy Policy</Link>.
+                  We'll ask you to confirm once you're in.
+                </p>
               </div>
             )}
 

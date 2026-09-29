@@ -14,6 +14,7 @@ const ICONS = {
   friend_accepted: UserCheck,
   group_message: MessageSquare,
   group_task: ClipboardList,
+  group_schedule: CalendarDays,
   group_member: Users,
   group_invite: Users,
   task_reminder: Clock,

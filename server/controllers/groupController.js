@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import groupModel from '../models/groupMode.js';
 import groupMessageModel from '../models/groupMessageModel.js';
 import taskModel from '../models/taskModel.js';
+import scheduleModel from '../models/scheduleModel.js';
 import userModel from '../models/userModel.js';
 import { notify } from '../utils/notify.js';
 import { ensureShareTemplateForTask } from './taskController.js';
@@ -58,9 +59,17 @@ const serializeMessages = async (messages, userId) => {
         : [];
     const ownedTags = new Set(owned.map((task) => task.shareTag));
 
+    const scheduleTokens = messages.filter((m) => m.type === 'schedule').map((m) => `message:${m._id}`);
+    const addedTokens = new Set();
+    if (scheduleTokens.length) {
+        const copies = await scheduleModel.find({ owner: userId, importedFrom: { $in: scheduleTokens } }).select('importedFrom').lean();
+        copies.forEach((c) => c.importedFrom.forEach((t) => addedTokens.add(t)));
+    }
+
     return messages.map((message) => {
         const plain = message.toObject();
         if (plain.type === 'task') plain.addedByMe = ownedTags.has(plain.task.shareTag);
+        if (plain.type === 'schedule') plain.addedByMe = addedTokens.has(`message:${plain._id}`);
         return plain;
     });
 };
@@ -217,7 +226,8 @@ export const getMessages = async (req, res) => {
     }
 };
 
-// POST /:groupId/messages  body: { text } for chat, or { taskId, text? } to share one of your tasks
+// POST /:groupId/messages  body: { text } for chat, { taskId } to share one of your tasks,
+// or { scheduleId } to share one of your schedules
 export const sendMessage = async (req, res) => {
     try {
         const group = await loadGroupForMember(req, res);
@@ -249,6 +259,25 @@ export const sendMessage = async (req, res) => {
                 difficulty: task.difficulty,
                 importance: task.importance,
             };
+        } else if (req.body.scheduleId) {
+            if (!mongoose.Types.ObjectId.isValid(req.body.scheduleId)) {
+                return res.status(404).json({ success: false, message: 'Schedule not found' });
+            }
+            // Only your own schedules can be posted, so a viewer can't re-share someone else's.
+            const schedule = await scheduleModel.findOne({ _id: req.body.scheduleId, owner: req.userId }).populate('owner', 'name');
+            if (!schedule) return res.status(404).json({ success: false, message: 'Schedule not found' });
+            if (!schedule.entries.length) {
+                return res.status(400).json({ success: false, message: 'That schedule is empty. Add a class first.' });
+            }
+            messageData.type = 'schedule';
+            messageData.schedule = {
+                title: schedule.title,
+                ownerName: schedule.owner?.name || '',
+                theme: schedule.theme,
+                country: schedule.country,
+                // Pictures stay out of chat: they are the heavy part and not needed to copy a week.
+                entries: schedule.entries.map((e) => ({ ...e.toObject(), _id: undefined, image: '' })),
+            };
         } else if (!text) {
             return res.status(400).json({ success: false, message: "Message can't be empty." });
         }
@@ -259,19 +288,22 @@ export const sendMessage = async (req, res) => {
 
         const senderName = message.sender?.name || 'Someone';
         const isTask = message.type === 'task';
+        const isSchedule = message.type === 'schedule';
         const preview = text.length > 90 ? `${text.slice(0, 90)}...` : text;
         await notify({
             recipients: group.members,
             sender: req.userId,
-            type: isTask ? 'group_task' : 'group_message',
+            type: isSchedule ? 'group_schedule' : isTask ? 'group_task' : 'group_message',
             title: group.name,
-            message: isTask
-                ? `${senderName} shared a task: ${message.task.title}`
-                : `${senderName}: ${preview}`,
+            message: isSchedule
+                ? `${senderName} shared a schedule: ${message.schedule.title}`
+                : isTask
+                    ? `${senderName} shared a task: ${message.task.title}`
+                    : `${senderName}: ${preview}`,
             link: `/groups?g=${group._id}`,
             group: group._id,
             // Chat folds into one unread entry per group. A shared task always stands alone.
-            collapse: !isTask,
+            collapse: !isTask && !isSchedule,
         });
 
         res.json({ success: true, message: serialized });

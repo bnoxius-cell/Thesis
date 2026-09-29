@@ -9,9 +9,11 @@ import TaskBoard from "../components/TaskBoard";
 import PSSSurveyModal from "../components/PSSSurveyModal";
 import WHOSurveyModal from "../components/WHOSurveyModal";
 import CheckInBanner from "../components/CheckInBanner";
+import TaskImportDialog from "../components/TaskImportDialog";
 import { AlertTriangle, Eye, Lightbulb, Sparkles, CalendarDays, MapPin } from "lucide-react";
 import { toISODate, formatTime } from "../utils/scheduleUtils";
 import { buildWeek, computeWorkload, getTaskMetrics } from "../utils/workload";
+import useCountUp from "../utils/useCountUp";
 import "../App.css";
 
 // New accounts get a quiet first day: no survey nudge fires until this much
@@ -24,6 +26,21 @@ const ONBOARDING_GRACE_MS = 24 * 60 * 60 * 1000;
 function isWithinGracePeriod(createdAt) {
   if (!createdAt) return false;
   return Date.now() - new Date(createdAt).getTime() < ONBOARDING_GRACE_MS;
+}
+
+function CountUp({ value }) {
+  return useCountUp(value);
+}
+
+// "Tuesday, Sep 29. 3 classes today and 2 tasks due soon."
+function summarizeDay(day, dueCount) {
+  const date = new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+  const classes = day.entries.filter((e) => e.kind === "class").length;
+  const bits = [];
+  if (day.holiday) bits.push(`a day off for ${day.holiday}`);
+  else if (classes) bits.push(`${classes} ${classes === 1 ? "class" : "classes"} today`);
+  if (dueCount) bits.push(`${dueCount} ${dueCount === 1 ? "task" : "tasks"} due soon`);
+  return bits.length ? `${date}. ${bits.join(" and ")}.` : `${date}. Nothing pressing today.`;
 }
 
 function getGreeting() {
@@ -68,7 +85,7 @@ const Dashboard = () => {
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [importCode, setImportCode] = useState("");
-  const [importingTask, setImportingTask] = useState(false);
+  const [importTag, setImportTag] = useState(null); // 6-digit code being previewed
   const [taskMessage, setTaskMessage] = useState("");
 
   // Survey states
@@ -217,27 +234,16 @@ const Dashboard = () => {
 
   const markTaskDone = async (taskId) => await updateTask(taskId, { isCompleted: true });
 
-  const importTaskByCode = async (code) => {
+  // A code opens a preview (details, whether you already have it, what else is due that
+  // day) instead of adding straight away.
+  const importTaskByCode = (code) => {
     const normalizedCode = code.trim();
     if (!/^\d{6}$/.test(normalizedCode)) {
       setTaskMessage("Enter a valid 6-digit task code.");
       return;
     }
-    if (importingTask) return;
-
-    setImportingTask(true);
-    try {
-      const { data } = await axios.post(`${backendUrl}/api/tasks/import`, { shareTag: normalizedCode }, { withCredentials: true });
-      if (data.success) {
-        setTasks(prev => [...prev, data.task]);
-        setImportCode("");
-        setTaskMessage("Task imported into your schedule.");
-      } else setTaskMessage(data.message || "Task import failed.");
-    } catch (err) {
-      setTaskMessage(err.response?.data?.message || "Task import failed.");
-    } finally {
-      setImportingTask(false);
-    }
+    setTaskMessage("");
+    setImportTag(normalizedCode);
   };
 
   const importTask = async (e) => {
@@ -289,7 +295,7 @@ const Dashboard = () => {
 
         <section className="greeting" id="dashboard">
           <h1>{getGreeting()}{firstName ? `, ${firstName}` : ""}.</h1>
-          <p>{workloadInsights.isNewUser ? "Here's your space. Let's get it set up." : "Here's what's on your plate today."}</p>
+          <p>{workloadInsights.isNewUser ? "Here's your space. Let's get it set up." : summarizeDay(today, todayTasks.length)}</p>
         </section>
 
         {workloadInsights.isNewUser ? (
@@ -371,7 +377,7 @@ const Dashboard = () => {
               <div className={`stress-ring ${BAND_SEVERITY[workloadInsights.band]}`}>
                 <div className="stress-ring-inner">
                   <strong>{workloadInsights.band}</strong>
-                  <span className="stress-ring-score">{workloadInsights.workloadScore} / 100</span>
+                  <span className="stress-ring-score"><CountUp value={workloadInsights.workloadScore} /> / 100</span>
                 </div>
               </div>
               <p>{WELLBEING_MESSAGE[workloadInsights.band]}</p>
@@ -423,7 +429,7 @@ const Dashboard = () => {
           <div className="panel-heading"><div><span className="panel-kicker">All tasks</span><h2>Everything on your plate</h2></div></div>
           <form className="task-import-form" onSubmit={importTask}>
             <input type="text" inputMode="numeric" maxLength="6" value={importCode} onChange={(e) => handleImportCodeChange(e.target.value)} onPaste={handleImportCodePaste} placeholder="6-digit task tag" />
-            <button type="submit" className="secondary-button" disabled={importingTask}>{importingTask ? "Importing..." : "Import Task"}</button>
+            <button type="submit" className="secondary-button">Import Task</button>
           </form>
           {taskMessage && <p className="task-message">{taskMessage}</p>}
           <TaskBoard tasks={enrichedTasks} schedule={week} onDeleteTask={handleDeleteTask} onEditTask={updateTask} onMarkDone={markTaskDone} />
@@ -434,6 +440,19 @@ const Dashboard = () => {
       {/* Mounted only while open, so each one starts from a clean slate
           (unanswered questions, no leftover "thanks for checking in" state)
           instead of needing an effect to reset it on reopen. */}
+      {importTag && (
+        <TaskImportDialog
+          tag={importTag}
+          onClose={() => setImportTag(null)}
+          onImported={(task) => {
+            setTasks(prev => [...prev, task]);
+            setImportCode("");
+            setTaskMessage("Task imported into your list.");
+            setImportTag(null);
+          }}
+        />
+      )}
+
       {showPSSModal && (
         <PSSSurveyModal
           isOpen={showPSSModal}

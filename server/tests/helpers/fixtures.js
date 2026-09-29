@@ -3,5 +3,6 @@ export const validRegisterPayload = (overrides = {}) => ({
     name: 'Test Student',
     email: 'test.student@student.fatima.edu.ph',
     password: 'Password123',
+    acceptedTerms: true,
     ...overrides,
 });

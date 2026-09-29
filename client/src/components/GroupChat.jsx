@@ -4,10 +4,11 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import {
   ArrowLeft, Send, Smile, ClipboardList, Check, Copy, Users, Clock, BookOpen,
-  LogOut, Trash2, ArrowDown, MessageSquare, X, Gauge,
+  LogOut, Trash2, ArrowDown, MessageSquare, X, Gauge, CalendarDays,
 } from "lucide-react";
 import { useAuth } from "../pages/authentication/AuthContext";
-import ConfirmDialog from "./ConfirmDialog";
+import TaskImportDialog from "./TaskImportDialog";
+import ScheduleImportDialog from "./schedule/ScheduleImportDialog";
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_LENGTH = 1000;
@@ -63,6 +64,41 @@ function TaskCard({ message, onAdd }) {
   );
 }
 
+const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function ScheduleCard({ message, onAdd, addedId }) {
+  const { schedule, addedByMe } = message;
+  const entries = schedule.entries || [];
+  const weekdays = [...new Set(entries.flatMap((e) => e.days || []))].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
+  return (
+    <div className="chat-task-card chat-schedule-card">
+      <div className="chat-task-head">
+        <CalendarDays size={16} aria-hidden="true" />
+        <span>Shared schedule</span>
+      </div>
+      <h4>{schedule.title}</h4>
+      <p className="chat-task-course">
+        {entries.length} {entries.length === 1 ? "entry" : "entries"}
+        {weekdays.length > 0 && ` · ${weekdays.map((d) => DAY_SHORT[d]).join(", ")}`}
+      </p>
+      <ul className="chat-schedule-preview">
+        {entries.slice(0, 4).map((e) => <li key={e._id}>{e.title}</li>)}
+        {entries.length > 4 && <li className="more">+{entries.length - 4} more</li>}
+      </ul>
+      {addedByMe ? (
+        <span className="chat-task-added">
+          <Check size={14} aria-hidden="true" /> In your schedules
+          {addedId && <> · <Link to={`/schedule?s=${addedId}`}>Open</Link></>}
+        </span>
+      ) : (
+        <button type="button" className="primary-button small" onClick={() => onAdd(message)}>
+          Add to my schedule
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function GroupChat({ group, onBack, onLeave, onDelete }) {
   const { backendUrl, user } = useAuth();
   const myId = user?._id;
@@ -77,12 +113,14 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
   const [unseen, setUnseen] = useState(0);
   const [copied, setCopied] = useState(false);
 
-  const [shareOpen, setShareOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(null); // null | "task" | "schedule"
   const [myTasks, setMyTasks] = useState(null); // null = loading
+  const [mySchedules, setMySchedules] = useState(null);
   const [sharingId, setSharingId] = useState(null);
 
   const [pendingTask, setPendingTask] = useState(null);
-  const [adding, setAdding] = useState(false);
+  const [pendingSchedule, setPendingSchedule] = useState(null);
+  const [addedSchedules, setAddedSchedules] = useState({}); // message id -> id of the schedule it went into
 
   const listRef = useRef(null);
   const inputRef = useRef(null);
@@ -221,8 +259,19 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
   };
 
   // Share a task
-  const openShare = async () => {
-    setShareOpen(true);
+  const openShare = async (kind) => {
+    setShareOpen(kind);
+    if (kind === "schedule") {
+      setMySchedules(null);
+      try {
+        const { data } = await axios.get(`${backendUrl}/api/schedules`, { withCredentials: true });
+        setMySchedules(data.success ? data.schedules.filter((s) => s.role === "owner" && s.entryCount > 0) : []);
+      } catch {
+        setMySchedules([]);
+        toast.error("Couldn't load your schedules.");
+      }
+      return;
+    }
     setMyTasks(null);
     try {
       const { data } = await axios.get(`${backendUrl}/api/tasks`, { withCredentials: true });
@@ -230,6 +279,26 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
     } catch {
       setMyTasks([]);
       toast.error("Couldn't load your tasks.");
+    }
+  };
+
+  const shareSchedule = async (schedule) => {
+    if (sharingId) return;
+    setSharingId(schedule._id);
+    try {
+      const { data } = await axios.post(base, { scheduleId: schedule._id }, { withCredentials: true });
+      if (data.success) {
+        stickRef.current = true;
+        mergeMessages([data.message]);
+        setShareOpen(null);
+        toast.success("Schedule shared with the group.");
+      } else {
+        toast.error(data.message || "Couldn't share that schedule.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Couldn't share that schedule.");
+    } finally {
+      setSharingId(null);
     }
   };
 
@@ -241,7 +310,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
       if (data.success) {
         stickRef.current = true;
         mergeMessages([data.message]);
-        setShareOpen(false);
+        setShareOpen(null);
         toast.success("Task shared with the group.");
       } else {
         toast.error(data.message || "Couldn't share that task.");
@@ -253,30 +322,13 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
     }
   };
 
-  // Add a shared task to my own schedule (after the confirm dialog)
-  const confirmAdd = async () => {
-    if (!pendingTask || adding) return;
-    setAdding(true);
-    try {
-      const { data } = await axios.post(
-        `${backendUrl}/api/tasks/import`,
-        { shareTag: pendingTask.task.shareTag },
-        { withCredentials: true }
-      );
-      if (data.success) {
-        setMessages((prev) => prev.map((m) => (
-          m.task?.shareTag === pendingTask.task.shareTag ? { ...m, addedByMe: true } : m
-        )));
-        toast.success("Added to your schedule.");
-        setPendingTask(null);
-      } else {
-        toast.error(data.message || "Couldn't add that task.");
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Couldn't add that task.");
-    } finally {
-      setAdding(false);
-    }
+  // Once a shared task or schedule has been added, the card switches to "In your ...".
+  const markTaskAdded = (shareTag) => setMessages((prev) => prev.map((m) => (
+    m.task?.shareTag === shareTag ? { ...m, addedByMe: true } : m
+  )));
+  const markScheduleAdded = (messageId, scheduleId) => {
+    setMessages((prev) => prev.map((m) => (m._id === messageId ? { ...m, addedByMe: true } : m)));
+    setAddedSchedules((prev) => ({ ...prev, [messageId]: scheduleId }));
   };
 
   const copyCode = async () => {
@@ -370,6 +422,9 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
                     )}
                     {message.text && <p className="chat-text">{message.text}</p>}
                     {message.type === "task" && <TaskCard message={message} onAdd={setPendingTask} />}
+                    {message.type === "schedule" && (
+                      <ScheduleCard message={message} onAdd={setPendingSchedule} addedId={addedSchedules[message._id]} />
+                    )}
                   </div>
                 </div>
               );
@@ -404,8 +459,11 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
                   </div>
                 )}
               </div>
-              <button type="button" className="chat-icon-btn" onClick={openShare} aria-label="Share a task">
+              <button type="button" className="chat-icon-btn" onClick={() => openShare("task")} aria-label="Share a task">
                 <ClipboardList size={20} />
+              </button>
+              <button type="button" className="chat-icon-btn" onClick={() => openShare("schedule")} aria-label="Share a schedule">
+                <CalendarDays size={20} />
               </button>
             </div>
             <textarea
@@ -464,50 +522,82 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
       </div>
 
       {shareOpen && (
-        <div className="modal-overlay" onClick={() => setShareOpen(false)}>
-          <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="share-task-title" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => setShareOpen(null)}>
+          <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="share-title" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 id="share-task-title">Share a task</h2>
-              <button type="button" className="modal-close" onClick={() => setShareOpen(false)} aria-label="Close"><X size={20} /></button>
+              <h2 id="share-title">{shareOpen === "schedule" ? "Share a schedule" : "Share a task"}</h2>
+              <button type="button" className="modal-close" onClick={() => setShareOpen(null)} aria-label="Close"><X size={20} /></button>
             </div>
-            {myTasks === null && <p className="chat-state">Loading your tasks...</p>}
-            {myTasks?.length === 0 && (
-              <p className="chat-state">
-                You don't have any open tasks to share. <Link to="/create-task">Create one</Link> first.
-              </p>
+
+            {shareOpen === "task" && (
+              <>
+                {myTasks === null && <p className="chat-state">Loading your tasks...</p>}
+                {myTasks?.length === 0 && (
+                  <p className="chat-state">
+                    You don't have any open tasks to share. <Link to="/create-task">Create one</Link> first.
+                  </p>
+                )}
+                {myTasks?.length > 0 && (
+                  <ul className="share-task-list">
+                    {myTasks.map((task) => (
+                      <li key={task._id}>
+                        <button type="button" onClick={() => shareTask(task)} disabled={Boolean(sharingId)}>
+                          <strong>{task.title}</strong>
+                          <span>{task.course} · Due {formatDue(task.dueDate)}</span>
+                          {sharingId === task._id && <em>Sharing...</em>}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
             )}
-            {myTasks?.length > 0 && (
-              <ul className="share-task-list">
-                {myTasks.map((task) => (
-                  <li key={task._id}>
-                    <button type="button" onClick={() => shareTask(task)} disabled={Boolean(sharingId)}>
-                      <strong>{task.title}</strong>
-                      <span>{task.course} · Due {formatDue(task.dueDate)}</span>
-                      {sharingId === task._id && <em>Sharing...</em>}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+
+            {shareOpen === "schedule" && (
+              <>
+                {mySchedules === null && <p className="chat-state">Loading your schedules...</p>}
+                {mySchedules?.length === 0 && (
+                  <p className="chat-state">
+                    You don't have a schedule with anything in it yet. <Link to="/schedule">Build one</Link> first.
+                  </p>
+                )}
+                {mySchedules?.length > 0 && (
+                  <>
+                    <p className="chat-state">Groupmates can tap it to add a copy to their own schedules. They can't change yours.</p>
+                    <ul className="share-task-list">
+                      {mySchedules.map((schedule) => (
+                        <li key={schedule._id}>
+                          <button type="button" onClick={() => shareSchedule(schedule)} disabled={Boolean(sharingId)}>
+                            <strong>{schedule.title}</strong>
+                            <span>{schedule.entryCount} {schedule.entryCount === 1 ? "entry" : "entries"}</span>
+                            {sharingId === schedule._id && <em>Sharing...</em>}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </>
             )}
           </div>
         </div>
       )}
 
-      <ConfirmDialog
-        open={Boolean(pendingTask)}
-        title="Add to your schedule?"
-        confirmLabel="Add task"
-        busy={adding}
-        onConfirm={confirmAdd}
-        onCancel={() => setPendingTask(null)}
-      >
-        {pendingTask && (
-          <p>
-            <strong>{pendingTask.task.title}</strong> ({pendingTask.task.course}), due{" "}
-            {formatDue(pendingTask.task.dueDate)}, will be added to your own schedule.
-          </p>
-        )}
-      </ConfirmDialog>
+      {pendingTask && (
+        <TaskImportDialog
+          tag={pendingTask.task.shareTag}
+          onClose={() => setPendingTask(null)}
+          onImported={() => { markTaskAdded(pendingTask.task.shareTag); setPendingTask(null); }}
+        />
+      )}
+
+      {pendingSchedule && (
+        <ScheduleImportDialog
+          source={{ groupId: group._id, messageId: pendingSchedule._id }}
+          onClose={() => setPendingSchedule(null)}
+          onImported={(added) => { markScheduleAdded(pendingSchedule._id, added._id); setPendingSchedule(null); }}
+        />
+      )}
     </section>
   );
 }
