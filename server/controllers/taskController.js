@@ -67,7 +67,7 @@ const createShareTemplate = async (payload, userId) => {
     throw new Error('Unable to generate a unique task code.');
 };
 
-const ensureShareTemplateForTask = async (task) => {
+export const ensureShareTemplateForTask = async (task) => {
     if (task.shareTag) {
         const existingTemplate = await taskShareModel.findOne({ shareTag: task.shareTag });
         if (existingTemplate) return existingTemplate;

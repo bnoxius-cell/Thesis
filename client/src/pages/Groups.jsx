@@ -1,138 +1,213 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
+import axios from "axios";
+import { toast } from "react-toastify";
+import { Plus, Link2, MessageSquare } from "lucide-react";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import GroupChat from "../components/GroupChat";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { useAuth } from "./authentication/AuthContext";
 import "../App.css";
 
-const STORAGE_KEY = "stresscare-groups";
-
-function generateJoinCode() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
+const GROUP_REFRESH_MS = 10000;
 
 export default function Groups() {
-  const { user } = useAuth();
+  const { backendUrl, user } = useAuth();
+  const myId = user?._id;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openGroupId = searchParams.get("g");
+
   const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDesc, setNewGroupDesc] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const [confirm, setConfirm] = useState(null); // { kind: "leave" | "delete", group }
+  const [confirming, setConfirming] = useState(false);
+
+  const fetchGroups = useCallback(async () => {
+    try {
+      const { data } = await axios.get(`${backendUrl}/api/groups`, { withCredentials: true });
+      if (data.success) {
+        setGroups(data.groups);
+        setLoadFailed(false);
+      } else {
+        setLoadFailed(true);
+      }
+    } catch {
+      setLoadFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [backendUrl]);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        setGroups(JSON.parse(saved));
-      } catch (e) {}
-    }
-  }, []);
+    fetchGroups();
+  }, [fetchGroups]);
 
-  const saveGroups = (newGroups) => {
-    setGroups(newGroups);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newGroups));
-  };
+  // Keep the member list fresh while a chat is open, so people who join or leave show up.
+  useEffect(() => {
+    if (!openGroupId) return undefined;
+    const id = setInterval(() => { if (!document.hidden) fetchGroups(); }, GROUP_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [openGroupId, fetchGroups]);
 
-  const handleCreateGroup = () => {
-    const trimmedName = newGroupName.trim();
-    if (!trimmedName) {
-      setError("Group name is required.");
-      return;
-    }
-    const newGroup = {
-      id: Date.now(),
-      name: trimmedName,
-      description: newGroupDesc.trim(),
-      code: generateJoinCode(),
-      ownerId: user?.uid || user?.email || "current-user",
-      members: [
-        {
-          id: user?.uid || user?.email,
-          name: user?.name || user?.email?.split('@')[0] || "You",
-          email: user?.email,
-        },
-      ],
-      tasks: [], // for future shared tasks
-      createdAt: new Date().toISOString(),
-    };
-    saveGroups([...groups, newGroup]);
-    setNewGroupName("");
-    setNewGroupDesc("");
+  const openChat = (groupId) => setSearchParams({ g: groupId });
+  const closeChat = () => setSearchParams({});
+
+  const closeModals = () => {
     setCreateModalOpen(false);
+    setJoinModalOpen(false);
     setError("");
   };
 
-  const handleJoinGroup = () => {
+  const handleCreateGroup = async (e) => {
+    e?.preventDefault();
+    const name = newGroupName.trim();
+    if (!name) {
+      setError("Group name is required.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { data } = await axios.post(
+        `${backendUrl}/api/groups`,
+        { name, description: newGroupDesc.trim() },
+        { withCredentials: true }
+      );
+      if (data.success) {
+        setNewGroupName("");
+        setNewGroupDesc("");
+        closeModals();
+        await fetchGroups();
+        toast.success("Group created. Share the join code with your classmates.");
+        openChat(data.group._id);
+      } else {
+        setError(data.message || "Couldn't create the group.");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Couldn't create the group.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleJoinGroup = async (e) => {
+    e?.preventDefault();
     const code = joinCode.trim().toUpperCase();
     if (!code) {
       setError("Please enter a join code.");
       return;
     }
-    const groupToJoin = groups.find(g => g.code === code);
-    if (!groupToJoin) {
-      setError("Group not found with that code.");
-      return;
-    }
-    // Check if already a member
-    const alreadyMember = groupToJoin.members.some(
-      m => m.id === (user?.uid || user?.email)
-    );
-    if (alreadyMember) {
-      setError("You are already a member of this group.");
-      return;
-    }
-    const updatedGroups = groups.map(g => {
-      if (g.id === groupToJoin.id) {
-        return {
-          ...g,
-          members: [
-            ...g.members,
-            {
-              id: user?.uid || user?.email,
-              name: user?.name || user?.email?.split('@')[0] || "Student",
-              email: user?.email,
-            },
-          ],
-        };
+    setSubmitting(true);
+    try {
+      const { data } = await axios.post(
+        `${backendUrl}/api/groups/join`,
+        { joinCode: code },
+        { withCredentials: true }
+      );
+      if (data.success) {
+        setJoinCode("");
+        closeModals();
+        await fetchGroups();
+        toast.success("You joined the group.");
+        openChat(data.group._id);
+      } else {
+        setError(data.message === "Group not found" ? "No group found with that code." : data.message);
       }
-      return g;
-    });
-    saveGroups(updatedGroups);
-    setJoinCode("");
-    setJoinModalOpen(false);
-    setError("");
-  };
-
-  const leaveGroup = (groupId) => {
-    if (window.confirm("Leave this group? You will no longer see shared tasks.")) {
-      const updatedGroups = groups.map(g => {
-        if (g.id === groupId) {
-          return {
-            ...g,
-            members: g.members.filter(m => m.id !== (user?.uid || user?.email)),
-          };
-        }
-        return g;
-      }).filter(g => g.members.length > 0); // remove empty groups
-      saveGroups(updatedGroups);
+    } catch (err) {
+      setError(err.response?.data?.message || "Couldn't join the group.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const deleteGroup = (groupId) => {
-    const group = groups.find(g => g.id === groupId);
-    if (group?.ownerId !== (user?.uid || user?.email)) {
-      alert("Only the group owner can delete the group.");
-      return;
-    }
-    if (window.confirm("Delete this group permanently? This cannot be undone.")) {
-      saveGroups(groups.filter(g => g.id !== groupId));
+  const handleConfirm = async () => {
+    if (!confirm) return;
+    const { kind, group } = confirm;
+    setConfirming(true);
+    try {
+      const { data } = kind === "delete"
+        ? await axios.delete(`${backendUrl}/api/groups/${group._id}`, { withCredentials: true })
+        : await axios.post(`${backendUrl}/api/groups/leave`, { groupId: group._id }, { withCredentials: true });
+      if (data.success) {
+        toast.success(kind === "delete" ? "Group deleted." : "You left the group.");
+        setConfirm(null);
+        if (openGroupId === group._id) closeChat();
+        await fetchGroups();
+      } else {
+        toast.error(data.message || "Something went wrong.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Something went wrong.");
+    } finally {
+      setConfirming(false);
     }
   };
 
-  const myGroups = groups.filter(g =>
-    g.members.some(m => m.id === (user?.uid || user?.email))
+  const isOwner = (group) => group.admin?._id === myId;
+  const openGroup = groups.find((g) => g._id === openGroupId);
+
+  const confirmDialog = (
+    <ConfirmDialog
+      open={Boolean(confirm)}
+      title={confirm?.kind === "delete" ? "Delete this group?" : "Leave this group?"}
+      confirmLabel={confirm?.kind === "delete" ? "Delete group" : "Leave group"}
+      tone="danger"
+      busy={confirming}
+      onConfirm={handleConfirm}
+      onCancel={() => setConfirm(null)}
+    >
+      {confirm?.kind === "delete" ? (
+        <p>
+          <strong>{confirm.group.name}</strong> and its whole chat will be deleted for everyone. This can't be undone.
+        </p>
+      ) : (
+        <p>
+          You'll leave <strong>{confirm?.group.name}</strong> and lose access to its chat. You can rejoin later with the join code.
+        </p>
+      )}
+    </ConfirmDialog>
   );
+
+  // Chat view: takes over the page so the conversation has room.
+  if (openGroupId && !loading) {
+    return (
+      <div className="app app-layout">
+        <Header />
+        <main className="dashboard chat-page">
+          {openGroup ? (
+            <GroupChat
+              key={openGroup._id}
+              group={openGroup}
+              onBack={closeChat}
+              onLeave={() => setConfirm({ kind: "leave", group: openGroup })}
+              onDelete={() => setConfirm({ kind: "delete", group: openGroup })}
+            />
+          ) : (
+            <div className="panel" style={{ textAlign: "center" }}>
+              <p className="schedule-empty">
+                {loadFailed
+                  ? "Couldn't load your groups. Check your connection and try again."
+                  : "That group doesn't exist, or you're no longer a member."}
+              </p>
+              <button type="button" className="secondary-button" onClick={closeChat}>Back to groups</button>
+            </div>
+          )}
+        </main>
+        {confirmDialog}
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="app app-layout">
@@ -143,77 +218,78 @@ export default function Groups() {
             <span className="eyebrow">Collaboration Hub</span>
             <h1>Study groups & shared tasks</h1>
             <p>
-              Create a group, invite classmates with a join code, and share tasks to work together.
+              Create a group, invite classmates with a join code, then chat and share tasks to work together.
             </p>
           </div>
           <aside className="hero-panel">
             <h2>Groups</h2>
             <ul className="hero-list">
-              <li>Create group → get join code</li>
-              <li>Join existing group with code</li>
-              <li>Share tasks to the group board</li>
-              <li>Track group progress</li>
+              <li>Create a group and get a join code</li>
+              <li>Join a classmate's group with their code</li>
+              <li>Chat with everyone in the group</li>
+              <li>Share a task and let others add it to their schedule</li>
             </ul>
           </aside>
         </section>
 
-        <div style={{ display: "flex", gap: "1rem", justifyContent: "center", marginBottom: "2rem", flexWrap: "wrap" }}>
-          <button className="primary-button" onClick={() => setCreateModalOpen(true)}>
-            + Create Group
+        <div className="groups-actions">
+          <button className="primary-button" onClick={() => { setError(""); setCreateModalOpen(true); }}>
+            <Plus size={18} aria-hidden="true" /> Create group
           </button>
-          <button className="secondary-button" onClick={() => setJoinModalOpen(true)}>
-            🔗 Join Group
+          <button className="secondary-button" onClick={() => { setError(""); setJoinModalOpen(true); }}>
+            <Link2 size={18} aria-hidden="true" /> Join group
           </button>
         </div>
 
-        {myGroups.length === 0 ? (
+        {loading ? (
+          <div className="panel" style={{ textAlign: "center" }}>
+            <p className="schedule-empty">Loading your groups...</p>
+          </div>
+        ) : loadFailed ? (
+          <div className="panel" style={{ textAlign: "center" }}>
+            <p className="schedule-empty">Couldn't load your groups.</p>
+            <button type="button" className="secondary-button" onClick={() => { setLoading(true); fetchGroups(); }}>
+              Try again
+            </button>
+          </div>
+        ) : groups.length === 0 ? (
           <div className="panel" style={{ textAlign: "center" }}>
             <p className="schedule-empty">
-              You are not in any group yet. Create a new group or join one with a code.
+              You're not in any group yet. Create one, or join a classmate's with a code.
             </p>
           </div>
         ) : (
           <div className="groups-grid">
-            {myGroups.map((group) => (
-              <div key={group.id} className="group-card">
+            {groups.map((group) => (
+              <div key={group._id} className="group-card">
                 <div className="group-header">
                   <h3>{group.name}</h3>
-                  {group.ownerId === (user?.uid || user?.email) && (
-                    <span className="owner-badge">Owner</span>
-                  )}
+                  {isOwner(group) && <span className="owner-badge">Owner</span>}
                 </div>
                 {group.description && <p className="group-desc">{group.description}</p>}
                 <div className="group-code">
-                  Join code: <strong>{group.code}</strong>
+                  Join code: <strong>{group.joinCode}</strong>
                 </div>
                 <div className="group-members">
-                  <span className="group-members-title">
-                    Members ({group.members.length})
-                  </span>
+                  <span className="group-members-title">Members ({group.members.length})</span>
                   <ul className="members-list">
                     {group.members.map((member) => (
-                      <li key={member.id}>
-                        {member.name} {member.id === (user?.uid || user?.email) && "(you)"}
+                      <li key={member._id}>
+                        {member.name} {member._id === myId && "(you)"}
                       </li>
                     ))}
                   </ul>
                 </div>
                 <div className="group-actions">
-                  <button
-                    className="ghost-button"
-                    onClick={() => alert("Coming soon: share tasks to this group")}
-                  >
-                    Share Task
+                  <button className="primary-button small" onClick={() => openChat(group._id)}>
+                    <MessageSquare size={16} aria-hidden="true" /> Open chat
                   </button>
-                  {group.ownerId === (user?.uid || user?.email) ? (
-                    <button className="remove-friend-btn" onClick={() => deleteGroup(group.id)}>
-                      Delete Group
-                    </button>
-                  ) : (
-                    <button className="remove-friend-btn" onClick={() => leaveGroup(group.id)}>
-                      Leave Group
-                    </button>
-                  )}
+                  <button
+                    className="remove-friend-btn"
+                    onClick={() => setConfirm({ kind: isOwner(group) ? "delete" : "leave", group })}
+                  >
+                    {isOwner(group) ? "Delete group" : "Leave group"}
+                  </button>
                 </div>
               </div>
             ))}
@@ -223,18 +299,20 @@ export default function Groups() {
 
       {/* Create Group Modal */}
       {createModalOpen && (
-        <div className="modal-overlay" onClick={() => setCreateModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={closeModals}>
+          <form className="modal-content" onClick={(e) => e.stopPropagation()} onSubmit={handleCreateGroup}>
             <div className="modal-header">
               <h2>Create a new study group</h2>
-              <button className="modal-close" onClick={() => setCreateModalOpen(false)}>×</button>
+              <button type="button" className="modal-close" onClick={closeModals} aria-label="Close">×</button>
             </div>
             <div className="form-grid">
               <div className="form-group full-span">
-                <label>Group name *</label>
+                <label htmlFor="group-name">Group name *</label>
                 <input
+                  id="group-name"
                   type="text"
                   value={newGroupName}
+                  maxLength={60}
                   onChange={(e) => {
                     setNewGroupName(e.target.value);
                     setError("");
@@ -244,64 +322,69 @@ export default function Groups() {
                 />
               </div>
               <div className="form-group full-span">
-                <label>Description (optional)</label>
+                <label htmlFor="group-desc">Description (optional)</label>
                 <input
+                  id="group-desc"
                   type="text"
                   value={newGroupDesc}
+                  maxLength={140}
                   onChange={(e) => setNewGroupDesc(e.target.value)}
                   placeholder="What's this group for?"
                 />
               </div>
               {error && <p className="form-error full-span">{error}</p>}
               <div className="modal-actions full-span">
-                <button className="secondary-button" onClick={() => setCreateModalOpen(false)}>
+                <button type="button" className="secondary-button" onClick={closeModals}>
                   Cancel
                 </button>
-                <button className="btn-create-task" style={{ width: "auto" }} onClick={handleCreateGroup}>
-                  Create Group
+                <button type="submit" className="btn-create-task" style={{ width: "auto" }} disabled={submitting}>
+                  {submitting ? "Creating..." : "Create group"}
                 </button>
               </div>
             </div>
-          </div>
+          </form>
         </div>
       )}
 
       {/* Join Group Modal */}
       {joinModalOpen && (
-        <div className="modal-overlay" onClick={() => setJoinModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={closeModals}>
+          <form className="modal-content" onClick={(e) => e.stopPropagation()} onSubmit={handleJoinGroup}>
             <div className="modal-header">
               <h2>Join a group</h2>
-              <button className="modal-close" onClick={() => setJoinModalOpen(false)}>×</button>
+              <button type="button" className="modal-close" onClick={closeModals} aria-label="Close">×</button>
             </div>
             <div className="form-grid">
               <div className="form-group full-span">
-                <label>Enter the 6‑character join code</label>
+                <label htmlFor="join-code">Enter the 6-character join code</label>
                 <input
+                  id="join-code"
                   type="text"
                   value={joinCode}
+                  maxLength={6}
                   onChange={(e) => {
                     setJoinCode(e.target.value.toUpperCase());
                     setError("");
                   }}
-                  placeholder="e.g., A1B2C3"
+                  placeholder="e.g., K7M2QX"
                   autoFocus
                 />
               </div>
               {error && <p className="form-error full-span">{error}</p>}
               <div className="modal-actions full-span">
-                <button className="secondary-button" onClick={() => setJoinModalOpen(false)}>
+                <button type="button" className="secondary-button" onClick={closeModals}>
                   Cancel
                 </button>
-                <button className="btn-create-task" style={{ width: "auto" }} onClick={handleJoinGroup}>
-                  Join Group
+                <button type="submit" className="btn-create-task" style={{ width: "auto" }} disabled={submitting}>
+                  {submitting ? "Joining..." : "Join group"}
                 </button>
               </div>
             </div>
-          </div>
+          </form>
         </div>
       )}
 
+      {confirmDialog}
       <Footer />
     </div>
   );
