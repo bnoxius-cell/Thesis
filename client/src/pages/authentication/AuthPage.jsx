@@ -5,24 +5,27 @@ import Footer from "../../components/layout/Footer";
 import "../../App.css";
 import { toast } from "react-toastify";
 import { useAuth } from "./AuthContext";
-import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from '@react-oauth/google';
 
 const SCHOOL_EMAIL_DOMAIN = "@student.fatima.edu.ph";
+const RESEND_COOLDOWN_SECONDS = 180;
+const OTP_LENGTH = 6;
 
+// Navigation to /dashboard is left to the route guard in App.jsx: it redirects as soon as
+// isLoggedin flips, and an extra navigate() here competed with it.
 const AuthPage = () => {
   const [authMode, setAuthMode] = useState('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  const [otp, setOtp] = useState(Array(6).fill(''));
+  const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(''));
   const inputRefs = useRef([]);
   const [resendTimer, setResendTimer] = useState(0);
 
-  const { backendUrl, login, register, googleLogin, setIsLoggedin, getUserData, userData, loading } = useAuth();
-  const navigate = useNavigate();
+  const { backendUrl, login, register, googleLogin, logout, setIsLoggedin, getUserData, userData, loading } = useAuth();
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -33,24 +36,44 @@ const AuthPage = () => {
     return () => clearInterval(interval);
   }, [resendTimer]);
 
-  // If user is already logged in, redirect to dashboard
+  // Returning with a signed-up-but-unverified session: go straight to the verify step.
+  // No code was sent on this visit, so Resend stays available. Runs once, after the
+  // initial auth check, so it doesn't fight the login/register handlers below.
+  const initialCheckDone = useRef(false);
   useEffect(() => {
-    if (!loading && userData?.isAccountVerified === true) {
-      navigate('/dashboard');
-    } else if (!loading && userData?.isAccountVerified === false) {
-      setAuthMode('verify');
-      setResendTimer(180);
-    }
-  }, [loading, userData, navigate]);
+    if (loading || initialCheckDone.current) return;
+    initialCheckDone.current = true;
+    if (userData?.isAccountVerified === false) setAuthMode('verify');
+  }, [loading, userData]);
+
+  const startVerifyStep = (otpSent) => {
+    setOtp(Array(OTP_LENGTH).fill(''));
+    setAuthMode('verify');
+    // Only lock Resend if a code actually went out; otherwise the user needs it right away.
+    setResendTimer(otpSent ? RESEND_COOLDOWN_SECONDS : 0);
+  };
 
   // OTP handlers
-  const handleOtpChange = (e, index) => {
-    const value = e.target.value;
-    if (value && /[^0-9]/.test(value)) return;
+  const fillOtp = (digits, startIndex) => {
     const newOtp = [...otp];
-    newOtp[index] = value.slice(-1);
+    for (let i = 0; i < digits.length && startIndex + i < OTP_LENGTH; i++) {
+      newOtp[startIndex + i] = digits[i];
+    }
     setOtp(newOtp);
-    if (value && index < 5) inputRefs.current[index + 1].focus();
+    inputRefs.current[Math.min(startIndex + digits.length, OTP_LENGTH - 1)]?.focus();
+  };
+
+  const handleOtpChange = (e, index) => {
+    const digits = e.target.value.replace(/\D/g, '');
+    // More than one digit at once means the browser autofilled the whole code.
+    if (digits.length > 1) {
+      fillOtp(digits.slice(0, OTP_LENGTH), digits.length >= OTP_LENGTH ? 0 : index);
+      return;
+    }
+    const newOtp = [...otp];
+    newOtp[index] = digits;
+    setOtp(newOtp);
+    if (digits && index < OTP_LENGTH - 1) inputRefs.current[index + 1].focus();
   };
 
   const handleOtpKeyDown = (e, index) => {
@@ -59,52 +82,66 @@ const AuthPage = () => {
     }
   };
 
-  const handleOtpPaste = (e) => {
+  const handleOtpPaste = (e, index) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').slice(0, 6);
-    if (!/^\d+$/.test(pastedData)) return;
-    const newOtp = [...otp];
-    for (let i = 0; i < pastedData.length; i++) newOtp[i] = pastedData[i];
-    setOtp(newOtp);
-    const focusIndex = Math.min(pastedData.length, 5);
-    if (inputRefs.current[focusIndex]) inputRefs.current[focusIndex].focus();
+    // Codes copied from an email often carry spaces or a trailing newline.
+    const digits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
+    if (!digits) return;
+    // A full code always fills from the first box, whichever box it was pasted into.
+    fillOtp(digits, digits.length === OTP_LENGTH ? 0 : index);
   };
 
   const onVerifySubmit = async (e) => {
     e.preventDefault();
     const otpCode = otp.join('');
-    if (otpCode.length !== 6) {
-      toast.error('Please enter a 6-digit OTP.');
+    if (otpCode.length !== OTP_LENGTH) {
+      toast.error('Please enter the full 6-digit code.');
       return;
     }
+    setBusy(true);
     try {
       const { data } = await axios.post(`${backendUrl}/api/auth/verify-email`, { otp: otpCode }, { withCredentials: true });
       if (data.success) {
         toast.success(data.message);
-        setIsLoggedin(true);
         await getUserData();
-        navigate('/dashboard');
+        setIsLoggedin(true);
       } else {
         toast.error(data.message);
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Verification failed');
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleResendOtp = async () => {
-    if (resendTimer > 0) return;
+    if (resendTimer > 0 || busy) return;
+    setBusy(true);
     try {
       const { data } = await axios.post(`${backendUrl}/api/auth/send-verify-otp`, {}, { withCredentials: true });
       if (data.success) {
-        toast.success('Verification code resent.');
-        setResendTimer(180);
+        toast.success('We sent you a new code.');
+        setOtp(Array(OTP_LENGTH).fill(''));
+        setResendTimer(RESEND_COOLDOWN_SECONDS);
       } else {
         toast.error(data.message);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to resend OTP');
+      toast.error(error.response?.data?.message || 'Failed to resend the code');
+    } finally {
+      setBusy(false);
     }
+  };
+
+  // Drops the unverified session cookie too; otherwise a reload lands right back on the verify step.
+  const handleBackToLogin = async () => {
+    setBusy(true);
+    await logout({ silent: true });
+    setBusy(false);
+    setOtp(Array(OTP_LENGTH).fill(''));
+    setResendTimer(0);
+    setAuthMode('login');
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
@@ -112,39 +149,28 @@ const AuthPage = () => {
       toast.error('Google Login Failed');
       return;
     }
-    // On success the route guard in App.jsx redirects to /dashboard once isLoggedin flips,
-    // so no extra navigate() here (it caused competing redirects).
     await googleLogin(credentialResponse.credential);
   };
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
-    // Validate school email domain
-    if (!email.endsWith(SCHOOL_EMAIL_DOMAIN)) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail.endsWith(SCHOOL_EMAIL_DOMAIN)) {
       toast.error(`Only ${SCHOOL_EMAIL_DOMAIN} emails are allowed.`);
       return;
     }
 
-    if (authMode === 'login') {
-      const success = await login(email, password, rememberMe);
-      if (success) {
-        // After login, the context will have userData; check verification
-        if (userData?.isAccountVerified === false) {
-          // Not verified – OTP already sent in the login API, just switch mode
-          setAuthMode('verify');
-          setResendTimer(180);
-          toast.info('Please verify your email to continue.');
-        } else {
-          navigate('/dashboard');
-        }
-      }
-    } else if (authMode === 'register') {
-      const result = await register(name, email, password);
+    setBusy(true);
+    try {
+      const result = authMode === 'login'
+        ? await login(normalizedEmail, password, rememberMe)
+        : await register(name.trim(), normalizedEmail, password);
+
       if (result.success && result.needsVerification) {
-        setAuthMode('verify');
-        setResendTimer(180);
-        toast.info('Check your email for the verification code.');
+        startVerifyStep(result.otpSent);
       }
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -171,8 +197,8 @@ const AuthPage = () => {
             <span className="eyebrow">Student workload system</span>
             <h1>Plan personal tasks and group work from one dashboard.</h1>
             <p>
-              Sign in with your Fatima student email to create tasks, prepare group sharing,
-              and keep the first demo loop clear for the panel.
+              Sign in with your Fatima student email to plan your tasks, share group work
+              with classmates, and keep your week manageable.
             </p>
             <div className="auth-preview">
               <span>School email login</span>
@@ -194,7 +220,7 @@ const AuthPage = () => {
                   ? 'Use your school account to open your dashboard.'
                   : authMode === 'register'
                   ? 'Create the profile used by the task and group modules.'
-                  : 'We sent a 6‑digit verification code. Enter it below to continue.'}
+                  : `Enter the 6-digit code we emailed to ${userData?.email || 'your school email'}. It's valid for 20 minutes.`}
               </p>
             </div>
 
@@ -205,24 +231,31 @@ const AuthPage = () => {
                     <input
                       key={index}
                       type="text"
+                      inputMode="numeric"
+                      autoComplete={index === 0 ? 'one-time-code' : 'off'}
+                      aria-label={`Digit ${index + 1} of ${OTP_LENGTH}`}
                       maxLength="1"
                       value={digit}
                       onChange={(e) => handleOtpChange(e, index)}
                       onKeyDown={(e) => handleOtpKeyDown(e, index)}
-                      onPaste={index === 0 ? handleOtpPaste : undefined}
+                      onPaste={(e) => handleOtpPaste(e, index)}
+                      // Selecting on focus lets a typed digit replace the one already there.
+                      onFocus={(e) => e.target.select()}
                       ref={(el) => (inputRefs.current[index] = el)}
                       className="otp-input"
                       required
                     />
                   ))}
                 </div>
-                <button type="submit" className="primary-button">Verify Email</button>
+                <button type="submit" className="primary-button" disabled={busy}>
+                  {busy ? 'Checking...' : 'Verify Email'}
+                </button>
                 <button
                   type="button"
                   onClick={handleResendOtp}
                   className="ghost-button"
                   style={{ marginTop: '10px' }}
-                  disabled={resendTimer > 0}
+                  disabled={resendTimer > 0 || busy}
                 >
                   {resendTimer > 0 ? `Resend Code in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend Code'}
                 </button>
@@ -236,6 +269,7 @@ const AuthPage = () => {
                       onChange={e => setName(e.target.value)}
                       value={name}
                       type="text"
+                      autoComplete="name"
                       placeholder="Juan Dela Cruz"
                       required
                     />
@@ -247,6 +281,9 @@ const AuthPage = () => {
                     onChange={e => setEmail(e.target.value)}
                     value={email}
                     type="email"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     placeholder={`name${SCHOOL_EMAIL_DOMAIN}`}
                     required
                   />
@@ -257,7 +294,9 @@ const AuthPage = () => {
                     onChange={e => setPassword(e.target.value)}
                     value={password}
                     type="password"
-                    placeholder="••••••••"
+                    autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+                    minLength={authMode === 'register' ? 8 : undefined}
+                    placeholder={authMode === 'register' ? 'At least 8 characters' : '••••••••'}
                     required
                   />
                 </label>
@@ -275,8 +314,10 @@ const AuthPage = () => {
                     </label>
                   </div>
                 )}
-                <button type="submit" className="primary-button">
-                  {authMode === 'login' ? 'Sign In' : 'Create Account'}
+                <button type="submit" className="primary-button" disabled={busy}>
+                  {busy
+                    ? (authMode === 'login' ? 'Signing in...' : 'Creating account...')
+                    : (authMode === 'login' ? 'Sign In' : 'Create Account')}
                 </button>
               </form>
             )}
@@ -300,7 +341,7 @@ const AuthPage = () => {
 
             <div className="auth-actions">
               {authMode === 'verify' ? (
-                <button type="button" onClick={() => setAuthMode('login')} className="secondary-button">
+                <button type="button" onClick={handleBackToLogin} className="secondary-button" disabled={busy}>
                   Back to login
                 </button>
               ) : (
@@ -308,6 +349,7 @@ const AuthPage = () => {
                   type="button"
                   onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
                   className="secondary-button"
+                  disabled={busy}
                 >
                   {authMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
                 </button>

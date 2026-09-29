@@ -33,6 +33,7 @@ describe('email verification flow', () => {
     const registerAndAuthenticate = async () => {
         const agent = request.agent(app);
         await agent.post('/api/auth/register').send(validRegisterPayload());
+        vi.clearAllMocks(); // signup already emailed one code; count only what each test triggers
         return agent;
     };
 
@@ -99,6 +100,28 @@ describe('email verification flow', () => {
 
         expect(res.body.success).toBe(false);
         expect(res.body.message).toMatch(/already verified/i);
+    });
+
+    test('reports a failure when the code email cannot be sent', async () => {
+        const agent = await registerAndAuthenticate();
+        sendVerifyEmailOtp.mockRejectedValueOnce(new Error('Connection timeout'));
+
+        const res = await agent.post('/api/auth/send-verify-otp').send({});
+
+        expect(res.body.success).toBe(false);
+        expect(res.body.message).toMatch(/couldn't send/i);
+    });
+
+    test('verification still succeeds when the welcome email fails', async () => {
+        const agent = await registerAndAuthenticate();
+        sendWelcomeEmail.mockRejectedValueOnce(new Error('Connection timeout'));
+        const user = await userModel.findOne({ email: 'test.student@student.fatima.edu.ph' });
+
+        const res = await agent.post('/api/auth/verify-email').send({ otp: user.verifyEmailOtp });
+
+        expect(res.body.success).toBe(true);
+        const verifiedUser = await userModel.findById(user._id);
+        expect(verifiedUser.isAccountVerified).toBe(true);
     });
 });
 

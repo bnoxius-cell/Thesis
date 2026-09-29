@@ -9,14 +9,20 @@ import Friends from './pages/Friends';
 import Groups from './pages/Groups';
 import Notifications from './pages/Notifications';
 import AuthPage from './pages/authentication/AuthPage';
-import { ThemeProvider } from './context/ThemeContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { ToastContainer } from 'react-toastify';
 import './App.css';
 import { useAuth } from './pages/authentication/AuthContext';
-                        
+
 const AppContent = () => {
-  const { isLoggedin } = useAuth();       
+  const { isLoggedin } = useAuth();
+  const { theme } = useTheme();
 
   return (
+    <>
+    {/* Every toast() call in the app renders here. Without it, errors like a wrong
+        password or an invalid code failed silently. */}
+    <ToastContainer position="top-right" autoClose={4000} newestOnTop theme={theme} />
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         <Route path="/" element={isLoggedin ? <Navigate to="/dashboard" replace /> : <AuthPage />} />
@@ -33,6 +39,7 @@ const AppContent = () => {
       
       </Routes>
     </Router>
+    </>
   );
 };
 

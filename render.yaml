@@ -18,6 +18,10 @@ services:
         sync: false
       - key: SENDER_EMAIL
         sync: false
+      # Free Render services can't reach SMTP ports, so mail goes out through
+      # Brevo's HTTPS API when this is set (Brevo > SMTP & API > API Keys).
+      - key: BREVO_API_KEY
+        sync: false
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
