@@ -3,7 +3,7 @@ import userAuth from '../middleware/userAuth.js';
 import {
     createSchedule, getSchedules, getSchedule, updateSchedule, deleteSchedule,
     addEntry, updateEntry, deleteEntry,
-    getHolidays, setHolidayOverride,
+    getHolidays, getWeekOverview, setHolidayOverride,
     shareWithFriend, removeCollaborator, updateShareCode, joinByCode, duplicateSchedule,
 } from '../controllers/scheduleController.js';
 
@@ -13,6 +13,7 @@ scheduleRouter.post('/', userAuth, createSchedule);
 scheduleRouter.get('/', userAuth, getSchedules);
 // Fixed paths go before the /:scheduleId routes so they aren't read as an id.
 scheduleRouter.get('/holidays', userAuth, getHolidays);
+scheduleRouter.get('/week', userAuth, getWeekOverview);
 scheduleRouter.post('/join', userAuth, joinByCode);
 
 scheduleRouter.get('/:scheduleId', userAuth, getSchedule);

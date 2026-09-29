@@ -9,6 +9,9 @@ import TaskBoard from "../components/TaskBoard";
 import PSSSurveyModal from "../components/PSSSurveyModal";
 import WHOSurveyModal from "../components/WHOSurveyModal";
 import CheckInBanner from "../components/CheckInBanner";
+import { AlertTriangle, Eye, Lightbulb, Sparkles, CalendarDays, MapPin } from "lucide-react";
+import { toISODate, formatTime } from "../utils/scheduleUtils";
+import { buildWeek, computeWorkload, getTaskMetrics } from "../utils/workload";
 import "../App.css";
 
 // New accounts get a quiet first day: no survey nudge fires until this much
@@ -42,180 +45,14 @@ const BAND_SEVERITY = {
 // Words first, numbers second. How the workload band actually feels,
 // not just what it measures.
 const WELLBEING_MESSAGE = {
-  "Light Workload": "Today's looking manageable. You're in a good spot.",
+  "Light Workload": "This week is looking manageable. You're in a good spot.",
   "Moderate Workload": "You've got a fair amount going on, but it's steady.",
   "Heavy Workload": "Your plate is fuller than usual, so it's worth pacing yourself this week.",
   "Critical Overload": "This is a lot right now. Be gentle with yourself, and lean on a friend if you need to.",
 };
 
-function differenceInDays(dateString) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(dateString);
-  target.setHours(0, 0, 0, 0);
-  return Math.round((target - today) / 86400000);
-}
-
-function getTaskMetrics(task) {
-  const daysLeft = differenceInDays(task.dueDate);
-  const urgencyBoost =
-    daysLeft < 0 ? 10 : daysLeft === 0 ? 8 : daysLeft <= 2 ? 6 : daysLeft <= 5 ? 3 : 1;
-  const workload = Number(task.hours) * 1.4 + Number(task.difficulty) * 2 + Number(task.importance) * 1.8 + urgencyBoost;
-  let status = "On Track";
-  if (daysLeft < 0) status = "Overdue";
-  else if (daysLeft <= 1) status = "Critical";
-  else if (daysLeft <= 3) status = "Upcoming";
-  return { daysLeft, workload, status };
-}
-
-function buildSchedule(tasks, profile) {
-  const days = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date();
-    date.setDate(date.getDate() + index);
-    return {
-      key: date.toISOString().split("T")[0],
-      label: date.toLocaleDateString("en-US", { weekday: "short" }),
-      dateLabel: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      load: 0,
-      items: [],
-    };
-  });
-
-  const capacity = Math.max(Number(profile.studyHoursPerDay) || 0, 1);
-  const sortedTasks = [...tasks].sort((a, b) => getTaskMetrics(b).workload - getTaskMetrics(a).workload);
-
-  sortedTasks.forEach((task) => {
-    let remainingHours = Number(task.hours);
-    const { daysLeft } = getTaskMetrics(task);
-    const maxSpread = Math.min(Math.max(daysLeft, 0), days.length - 1);
-    for (let dayIndex = 0; dayIndex <= maxSpread && remainingHours > 0; dayIndex += 1) {
-      const day = days[dayIndex];
-      const available = Math.max(capacity - day.load, 0.5);
-      const chunk = Math.min(remainingHours, Math.max(available, remainingHours / (maxSpread + 1 - dayIndex)));
-      day.load += chunk;
-      day.items.push({ title: task.title, course: task.course, hours: Number(chunk.toFixed(1)) });
-      remainingHours -= chunk;
-    }
-    if (remainingHours > 0) {
-      const lastDay = days[Math.max(0, Math.min(maxSpread, days.length - 1))];
-      lastDay.load += remainingHours;
-      lastDay.items.push({ title: task.title, course: task.course, hours: Number(remainingHours.toFixed(1)) });
-    }
-  });
-  return days.map((day) => ({ ...day, load: Number(day.load.toFixed(1)), capacity }));
-}
-
-// New workload algorithm with WHO-5 and goal modifier
-function computeWorkloadInsights(tasks, profile, schedule, pssScore, whoScore, isExamWeek) {
-  const totalTaskHours = tasks.reduce((sum, t) => sum + (Number(t.hours) || 0), 0);
-  const dailyCapacity = Math.max(Number(profile.studyHoursPerDay) || 0, 1);
-  const availableStudyHours = dailyCapacity * 7;
-
-  // If there are no tasks and both surveys have never been taken, workload is 0
-  const hasTasks = tasks.length > 0;
-  const hasSurveyData = (pssScore !== null && pssScore !== undefined) || (whoScore !== null && whoScore !== undefined);
-  
-  if (!hasTasks && !hasSurveyData) {
-    return {
-      workloadScore: 0,
-      band: "Light Workload",
-      suggestions: ["Add your first task to start tracking your workload."],
-      T: 0,
-      P: 0,
-      W: 0,
-      I: 0,
-      D: 0,
-      G: 0,
-      E: 0,
-      totalTaskHours: 0,
-      availableStudyHours,
-      importantCount: 0,
-      difficultCount: 0,
-      isNewUser: true,
-    };
-  }
-
-  // Use defaults only if surveys exist but scores are missing (fallback)
-  const stressScore = (pssScore !== null && pssScore !== undefined) ? pssScore : 20;
-  const wellbeingScore = (whoScore !== null && whoScore !== undefined) ? whoScore : 50;
-
-  // 1. Time Pressure Score T (0-100)
-  const T = Math.min(100, (totalTaskHours / availableStudyHours) * 100);
-
-  // 2. PSS-10 Stress Score P (0-100)
-  const P = Math.min(100, (stressScore / 40) * 100);
-
-  // 3. WHO-5 Well-being Risk Score W (0-100)
-  const W = Math.min(100, Math.max(0, 100 - wellbeingScore));
-
-  // 4. Important Task Ratio I (0-100)
-  const importantTasks = tasks.filter(t => (t.importance || 3) >= 4).length;
-  const I = tasks.length ? (importantTasks / tasks.length) * 100 : 0;
-
-  // 5. Difficult Task Ratio D (0-100)
-  const difficultTasks = tasks.filter(t => (t.difficulty || 3) >= 4).length;
-  const D = tasks.length ? (difficultTasks / tasks.length) * 100 : 0;
-
-  // 6. Well-being Goal Modifier G
-  let G = 0;
-  if (profile.wellbeingGoal === "catch-up") G = -10;
-  else if (profile.wellbeingGoal === "high-performance") G = 10;
-
-  // 7. Exam Week Modifier E
-  const E = isExamWeek ? 15 : 0;
-
-  // Final Score
-  let rawScore = T * 0.30 + P * 0.20 + W * 0.20 + I * 0.15 + D * 0.10 + G + E;
-  const workloadScore = Math.min(100, Math.max(0, Math.round(rawScore)));
-
-  // Workload band and interpretation
-  let band = "Moderate Workload";
-  if (workloadScore <= 30) band = "Light Workload";
-  else if (workloadScore <= 60) band = "Moderate Workload";
-  else if (workloadScore <= 80) band = "Heavy Workload";
-  else band = "Critical Overload";
-
-  // Dynamic suggestions (same as before)
-  const suggestions = [];
-  if (T > 70) suggestions.push("Your task hours exceed available study time. Consider reducing workload or extending deadlines.");
-  else if (T > 40) suggestions.push("Your schedule is fairly full. Protect your study blocks and avoid last‑minute additions.");
-  else if (hasTasks) suggestions.push("Your time load is manageable. Keep tracking to stay ahead.");
-  else suggestions.push("No tasks yet – add tasks to see your workload forecast.");
-
-  if (P > 60) suggestions.push("Your stress level is high. Take a break and consider using the wellbeing resources.");
-  else if (P > 30) suggestions.push("Moderate stress detected. Short breaks and prioritising tasks can help.");
-
-  if (W > 70) suggestions.push("Your well-being is very low. Prioritise rest and mental health. Consider talking to a counsellor.");
-  else if (W > 50) suggestions.push("Your well-being is reduced. Lighten your schedule and focus on self‑care.");
-
-  if (I > 50) suggestions.push("Half of your tasks are high priority. Focus on the most urgent ones first.");
-  if (D > 50) suggestions.push("Many tasks are difficult. Break them into smaller steps and ask for help if needed.");
-
-  if (isExamWeek) suggestions.push("Exam week is active – reduce non‑essential tasks and focus on revision.");
-
-  if (G === -10) suggestions.push("You are in recovery mode – the system has reduced your workload target.");
-  if (G === 10) suggestions.push("You are aiming for high performance – the system has increased workload tolerance.");
-
-  if (suggestions.length === 0) suggestions.push("Keep up the good pace. Review your schedule weekly for better balance.");
-
-  return {
-    workloadScore,
-    band,
-    suggestions,
-    T,
-    P,
-    W,
-    I,
-    D,
-    G,
-    E,
-    totalTaskHours,
-    availableStudyHours,
-    importantCount: importantTasks,
-    difficultCount: difficultTasks,
-    isNewUser: false,
-  };
-}
+const LEVEL_WORD = { low: "Light", moderate: "Steady", high: "Heavy" };
+const TIP_ICON = { alert: AlertTriangle, watch: Eye, info: Lightbulb, good: Sparkles };
 
 const Dashboard = () => {
   const { backendUrl, isLoggedin } = useAuth();
@@ -226,6 +63,9 @@ const Dashboard = () => {
     wellbeingGoal: "steady",
   });
   const [tasks, setTasks] = useState([]);
+  // The next seven days of the user's timetable, from /api/schedules/week. Stays null
+  // if the request fails, which the workload treats the same as having no timetable.
+  const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [importCode, setImportCode] = useState("");
   const [importingTask, setImportingTask] = useState(false);
@@ -328,12 +168,36 @@ const Dashboard = () => {
     }
   };
 
+  const fetchOverview = async () => {
+    try {
+      const { data } = await axios.get(`${backendUrl}/api/schedules/week`, {
+        params: { start: toISODate(new Date()) },
+        withCredentials: true,
+      });
+      if (data.success) setOverview(data);
+    } catch (err) {
+      console.error("Failed to fetch schedule overview", err);
+    }
+  };
+
   useEffect(() => {
     if (isLoggedin) {
-      Promise.all([fetchProfile(), fetchTasks()]).finally(() => setLoading(false));
+      Promise.all([fetchProfile(), fetchTasks(), fetchOverview()]).finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
+  }, [isLoggedin]);
+
+  // Coming back from the Schedule page (or another tab) should show the new timetable.
+  useEffect(() => {
+    if (!isLoggedin) return undefined;
+    const refresh = () => { if (!document.hidden) fetchOverview(); };
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
   }, [isLoggedin]);
 
   // Task handlers
@@ -399,9 +263,11 @@ const Dashboard = () => {
 
   const activeTasks = tasks.filter(task => !task.isCompleted);
   const enrichedTasks = activeTasks.map(task => ({ ...task, ...getTaskMetrics(task) })).sort((a,b) => b.workload - a.workload);
-  const schedule = buildSchedule(enrichedTasks, profile);
-  const workloadInsights = computeWorkloadInsights(activeTasks, profile, schedule, pssScore, whoScore, isExamWeek);
+  const hasSchedule = Boolean(overview?.scheduleCount && overview?.entryCount);
+  const week = buildWeek(activeTasks, profile, overview);
+  const workloadInsights = computeWorkload({ tasks: activeTasks, profile, days: week, pssScore, whoScore, isExamWeek, hasSchedule });
   const todayTasks = enrichedTasks.filter(t => t.daysLeft <= 1).slice(0, 5);
+  const today = week[0];
   const firstName = profile.studentName?.split(" ")[0];
 
   return (
@@ -431,15 +297,18 @@ const Dashboard = () => {
             <div className="hero-copy">
               <span className="panel-kicker">Getting started</span>
               <h2>Add your first task</h2>
-              <p>StressCare turns your deadlines into a realistic weekly plan and a gentle read on how you're doing, once there's something to work with.</p>
-              <Link to="/create-task" className="primary-button">+ Add your first task</Link>
+              <p>StressCare turns your deadlines and your class schedule into a realistic weekly plan and a gentle read on how you're doing, once there's something to work with.</p>
+              <div className="welcome-actions">
+                <Link to="/create-task" className="primary-button">+ Add your first task</Link>
+                <Link to="/schedule" className="ghost-button"><CalendarDays size={16} aria-hidden="true" /> Add your class schedule</Link>
+              </div>
               <p className="welcome-hint">Feel free to look around first. Nothing here needs to happen right away.</p>
             </div>
             <aside className="hero-panel welcome-panel">
               <h2>What you'll see here</h2>
               <ul className="hero-list">
-                <li>What's due today, in one place</li>
-                <li>A weekly plan that adjusts to your pace</li>
+                <li>What's on today: classes, activities and deadlines</li>
+                <li>A weekly plan that works around your timetable</li>
                 <li>A gentle read on how you're doing, in words rather than just numbers</li>
               </ul>
             </aside>
@@ -448,30 +317,75 @@ const Dashboard = () => {
           <section className="grid today-grid">
             <section className="panel">
               <div className="panel-heading"><div><span className="panel-kicker">Today</span><h2>What's in front of you</h2></div></div>
-              {todayTasks.length ? (
-                <ul className="today-list">
-                  {todayTasks.map((task) => (
-                    <li key={task._id} className="today-item">
-                      <span className={`today-dot ${task.status.toLowerCase().replace(/\s+/g, "-")}`} aria-hidden="true" />
+
+              {today.holiday && (
+                <p className="today-holiday"><CalendarDays size={16} aria-hidden="true" /> {today.holiday}. Classes that skip holidays are off today.</p>
+              )}
+
+              {today.entries.length > 0 && (
+                <ul className="today-list today-classes" aria-label="Classes and activities today">
+                  {today.entries.map((entry, i) => (
+                    <li key={`${entry.title}-${entry.startTime}-${i}`} className="today-item">
+                      <span className={`today-dot ${entry.kind === "activity" ? "activity" : "class"}`} aria-hidden="true" />
                       <div>
-                        <strong>{task.title}</strong>
-                        <span className="today-meta">{task.course} · {task.daysLeft < 0 ? "overdue" : task.daysLeft === 0 ? "due today" : "due tomorrow"}</span>
+                        <strong>{entry.title}</strong>
+                        <span className="today-meta">
+                          {formatTime(entry.startTime)} to {formatTime(entry.endTime)}
+                          {entry.location && <> · <MapPin size={12} aria-hidden="true" /> {entry.location}</>}
+                        </span>
                       </div>
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <p className="today-empty">Nothing due today or tomorrow. A good day to get ahead, or just breathe.</p>
               )}
-              <Link to="/create-task" className="ghost-button today-add">+ Add a task</Link>
+
+              {todayTasks.length > 0 ? (
+                <>
+                  {today.entries.length > 0 && <h3 className="today-subhead">Due soon</h3>}
+                  <ul className="today-list">
+                    {todayTasks.map((task) => (
+                      <li key={task._id} className="today-item">
+                        <span className={`today-dot ${task.status.toLowerCase().replace(/\s+/g, "-")}`} aria-hidden="true" />
+                        <div>
+                          <strong>{task.title}</strong>
+                          <span className="today-meta">{task.course} · {task.daysLeft < 0 ? "overdue" : task.daysLeft === 0 ? "due today" : "due tomorrow"}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : today.entries.length === 0 && (
+                <p className="today-empty">
+                  {today.holiday ? "A day off, and nothing due. Enjoy it." : "Nothing on today and nothing due tomorrow. A good day to get ahead, or just breathe."}
+                </p>
+              )}
+
+              <div className="today-actions">
+                <Link to="/create-task" className="ghost-button today-add">+ Add a task</Link>
+                <Link to="/schedule" className="ghost-button today-add"><CalendarDays size={16} aria-hidden="true" /> {hasSchedule ? "View schedule" : "Add your class schedule"}</Link>
+              </div>
             </section>
 
             <aside className="hero-panel">
               <h2>How you're doing</h2>
               <div className={`stress-ring ${BAND_SEVERITY[workloadInsights.band]}`}>
-                <div className="stress-ring-inner"><strong>{workloadInsights.band}</strong></div>
+                <div className="stress-ring-inner">
+                  <strong>{workloadInsights.band}</strong>
+                  <span className="stress-ring-score">{workloadInsights.workloadScore} / 100</span>
+                </div>
               </div>
               <p>{WELLBEING_MESSAGE[workloadInsights.band]}</p>
+
+              <ul className="driver-list" aria-label="What's shaping your workload">
+                {workloadInsights.parts.map((part) => (
+                  <li key={part.key} className={`driver driver-${part.level}`}>
+                    <span className="driver-label">{part.label}</span>
+                    <span className="driver-word">{LEVEL_WORD[part.level]}</span>
+                    <span className="driver-track" aria-hidden="true"><span className="driver-fill" style={{ width: `${Math.max(part.value, 4)}%` }} /></span>
+                  </li>
+                ))}
+              </ul>
+
               {!(pssScore !== null || whoScore !== null) && (
                 <p className="welcome-hint">This gets more personal once you take a check-in.</p>
               )}
@@ -481,8 +395,27 @@ const Dashboard = () => {
 
         {!workloadInsights.isNewUser && (
           <section className="grid analytics-grid">
-            <section className="panel"><div className="panel-heading"><div><span className="panel-kicker">This week</span><h2>A lighter look at your week</h2></div></div><WorkloadChart schedule={schedule} /></section>
-            <section className="panel insights-panel"><div className="panel-heading"><div><span className="panel-kicker">Guidance</span><h2>Where to focus</h2></div></div><div className="insight-stack">{workloadInsights.suggestions.map((s, i) => (<article className="insight-card" key={i}><span className="insight-dot" /><p>{s}</p></article>))}</div></section>
+            <section className="panel">
+              <div className="panel-heading"><div><span className="panel-kicker">This week</span><h2>How your week adds up</h2></div></div>
+              <WorkloadChart schedule={week} hasSchedule={hasSchedule} />
+            </section>
+            <section className="panel insights-panel">
+              <div className="panel-heading"><div><span className="panel-kicker">Guidance</span><h2>Where to focus</h2></div></div>
+              <div className="insight-stack">
+                {workloadInsights.tips.map((tip) => {
+                  const Icon = TIP_ICON[tip.tone];
+                  return (
+                    <article className={`insight-card tone-${tip.tone}`} key={tip.title}>
+                      <span className="insight-icon" aria-hidden="true"><Icon size={16} /></span>
+                      <div>
+                        <strong>{tip.title}</strong>
+                        <p>{tip.text}</p>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
           </section>
         )}
 
@@ -493,7 +426,7 @@ const Dashboard = () => {
             <button type="submit" className="secondary-button" disabled={importingTask}>{importingTask ? "Importing..." : "Import Task"}</button>
           </form>
           {taskMessage && <p className="task-message">{taskMessage}</p>}
-          <TaskBoard tasks={enrichedTasks} schedule={schedule} onDeleteTask={handleDeleteTask} onEditTask={updateTask} onMarkDone={markTaskDone} />
+          <TaskBoard tasks={enrichedTasks} schedule={week} onDeleteTask={handleDeleteTask} onEditTask={updateTask} onMarkDone={markTaskDone} />
         </section>
       </main>
       <Footer />

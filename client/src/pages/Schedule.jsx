@@ -85,8 +85,9 @@ export default function Schedule() {
 
   const api = `${backendUrl}/api/schedules`;
   const role = schedule?.role;
-  const canEdit = role === "owner" || role === "editor";
+  // Sharing is view-only: friends copy a schedule to save typing, they don't co-edit it.
   const isOwner = role === "owner";
+  const canEdit = isOwner;
 
   // ---- List --------------------------------------------------------------
 
@@ -357,9 +358,8 @@ export default function Schedule() {
                   </span>
                   <h1>{schedule.title}</h1>
                   {!canEdit && (
-                    <p className="sched-hint">You can view this schedule but not change it. Make a copy to edit your own version.</p>
+                    <p className="sched-hint">This is a view of {schedule.owner?.name || "your friend"}'s schedule. Copy it to skip the typing, then change whatever differs for you.</p>
                   )}
-                  {role === "editor" && <p className="sched-hint">You can edit this schedule. Changes show up for everyone.</p>}
                 </div>
 
                 <div className="sched-actions">
@@ -378,8 +378,8 @@ export default function Schedule() {
                       <Share2 size={18} aria-hidden="true" /> Share
                     </button>
                   )}
-                  <button type="button" className="secondary-button" onClick={duplicate}>
-                    <Copy size={18} aria-hidden="true" /> {canEdit ? "Duplicate" : "Make a copy"}
+                  <button type="button" className={canEdit ? "secondary-button" : "primary-button"} onClick={duplicate}>
+                    <Copy size={18} aria-hidden="true" /> {canEdit ? "Duplicate" : "Copy to my schedules"}
                   </button>
                   {isOwner ? (
                     <button type="button" className="remove-friend-btn" onClick={() => setConfirm({ kind: "delete" })}>
@@ -396,6 +396,20 @@ export default function Schedule() {
                   <span className="sched-field-label">Look</span>
                   <ThemePicker value={schedule.theme} disabled={!canEdit} onChange={(theme) => updateSettings({ theme })} />
                 </div>
+
+                {isOwner && (
+                  <label className="sched-check sched-workload-toggle">
+                    <input
+                      type="checkbox"
+                      checked={schedule.countInWorkload !== false}
+                      onChange={(e) => updateSettings({ countInWorkload: e.target.checked })}
+                    />
+                    <span>
+                      Count this in my dashboard workload
+                      <small>Your classes and activities take up study time, so the dashboard plans around them. Turn it off for old or spare timetables.</small>
+                    </span>
+                  </label>
+                )}
               </section>
 
               <WeekView
@@ -481,7 +495,7 @@ export default function Schedule() {
             <h1>Your class schedule</h1>
             <p>
               Build a timetable with your classes and everything else you do. Holidays fill in on their own,
-              and you can share it with friends or make it look like yours.
+              your dashboard plans your study time around it, and friends can copy it instead of typing theirs from scratch.
             </p>
           </div>
           <aside className="hero-panel">
@@ -490,7 +504,8 @@ export default function Schedule() {
               <li>Add classes, activities, and one-off events</li>
               <li>Attach a picture to any subject</li>
               <li>Edit holidays or mark your own days off</li>
-              <li>Share with friends, and pick a theme</li>
+              <li>Share it so classmates can copy it in one tap</li>
+              <li>Pick a theme that suits light or dark mode</li>
             </ul>
           </aside>
         </section>
@@ -531,7 +546,7 @@ export default function Schedule() {
                 <div className="group-header">
                   <h3>{s.title}</h3>
                   <span className="owner-badge">
-                    {s.role === "owner" ? "Yours" : s.role === "editor" ? "Can edit" : "View only"}
+                    {s.role === "owner" ? "Yours" : "Shared with you"}
                   </span>
                 </div>
                 <p className="group-desc">
