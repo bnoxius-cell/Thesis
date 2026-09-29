@@ -448,10 +448,15 @@ describe('week overview for the dashboard', () => {
         // Bob only views it, so it is not his week.
         expect((await week(bob)).body.scheduleCount).toBe(0);
 
+        // The main schedule cannot be switched off. An extra can.
         await alice.put(`/api/schedules/${schedule._id}`).send({ countInWorkload: false });
-        const off = await week(alice);
-        expect(off.body.scheduleCount).toBe(0);
-        expect(off.body.days[0].busyHours).toBe(0);
+        expect((await week(alice)).body.scheduleCount).toBe(1);
+
+        const extra = (await alice.post('/api/schedules').send({ title: 'Gym' })).body.schedule;
+        await alice.post(`/api/schedules/${extra._id}/entries`).send(entryPayload({ days: [2] }));
+        expect((await week(alice)).body.scheduleCount).toBe(2);
+        await alice.put(`/api/schedules/${extra._id}`).send({ countInWorkload: false });
+        expect((await week(alice)).body.scheduleCount).toBe(1);
     });
 
     test('the same class in two of the owner schedules is counted once', async () => {

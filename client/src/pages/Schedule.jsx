@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Plus, Link2, ArrowLeft, Share2, Copy, Trash2, LogOut, CalendarDays } from "lucide-react";
+import { Plus, Link2, ArrowLeft, Share2, Trash2, LogOut, CalendarDays, Star, Download, X } from "lucide-react";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -61,6 +61,10 @@ export default function Schedule() {
   const [importSource, setImportSource] = useState(null); // { shareCode } while the import dialog is open
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Schedules shared with you can be dismissed, which just removes your view of them.
+  const [dismissing, setDismissing] = useState(null);
+  // The owner's main schedule, only loaded while looking at one of their extras, to flag overlaps.
+  const [mainInfo, setMainInfo] = useState(null); // { forId, entries }
 
   // Both are tied to the id they belong to, so switching schedules never shows the
   // previous one (or its error) while the next loads.
@@ -90,6 +94,15 @@ export default function Schedule() {
   // Sharing is view-only: friends copy a schedule to save typing, they don't co-edit it.
   const isOwner = role === "owner";
   const canEdit = isOwner;
+
+  // A friend's share notification links here. It opens the "add to my schedule" preview
+  // right away, and nothing is added unless the person confirms.
+  const shareParam = searchParams.get("share");
+  useEffect(() => {
+    if (!shareParam) return;
+    setImportSource({ scheduleId: shareParam });
+    setSearchParams({}, { replace: true });
+  }, [shareParam, setSearchParams]);
 
   // ---- List --------------------------------------------------------------
 
@@ -143,6 +156,18 @@ export default function Schedule() {
     const id = setInterval(() => { if (!document.hidden) fetchDetail({ quiet: true }); }, SCHEDULE_REFRESH_MS);
     return () => clearInterval(id);
   }, [openId, fetchDetail]);
+
+  const scheduleId = schedule?._id;
+  const needsMain = Boolean(schedule && schedule.role === "owner" && !schedule.isMain);
+  useEffect(() => {
+    if (!needsMain) return undefined;
+    let cancelled = false;
+    axios.get(`${api}/main`, { withCredentials: true })
+      .then(({ data }) => { if (!cancelled && data.success && data.schedule) setMainInfo({ forId: scheduleId, entries: data.schedule.entries }); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [needsMain, scheduleId, api]);
+  const mainEntries = needsMain && mainInfo?.forId === scheduleId ? mainInfo.entries : [];
 
   // Holidays: fetch every year the visible week touches, once per country and year.
   const country = schedule?.country;
@@ -223,17 +248,26 @@ export default function Schedule() {
     if (message) toast.error(message);
   };
 
-  const duplicate = async () => {
+  const makeMain = async () => {
+    const message = await mutate(() => axios.put(`${api}/${openId}`, { isMain: true }, { withCredentials: true }));
+    if (message) toast.error(message);
+    else toast.success("This is now your main schedule. Your dashboard plans around it.");
+  };
+
+  const dismissShared = async (shared) => {
+    setDismissing(shared._id);
     try {
-      const { data } = await axios.post(`${api}/${openId}/duplicate`, {}, { withCredentials: true });
+      const { data } = await axios.delete(`${api}/${shared._id}/share/${user._id}`, { withCredentials: true });
       if (data.success) {
-        toast.success("Copied. This one is all yours to edit.");
-        setSearchParams({ s: data.schedule._id });
+        setSchedules((list) => list.filter((x) => x._id !== shared._id));
+        toast.success("Dismissed. They can share it with you again.");
       } else {
         toast.error(data.message);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Couldn't make a copy.");
+      toast.error(err.response?.data?.message || "Couldn't dismiss that.");
+    } finally {
+      setDismissing(null);
     }
   };
 
@@ -285,7 +319,7 @@ export default function Schedule() {
       if (data.success) {
         setNewTitle("");
         closeForms();
-        toast.success("Schedule created. Add your first class.");
+        toast.success(data.schedule.isMain ? "Your main schedule is ready. Add your first class." : "Extra schedule created.");
         setSearchParams({ s: data.schedule._id });
       } else {
         setFormError(data.message);
@@ -309,6 +343,10 @@ export default function Schedule() {
   };
 
   // ---- Render ------------------------------------------------------------
+
+  const mainSchedule = schedules.find((x) => x.role === "owner" && x.isMain);
+  const extras = schedules.filter((x) => x.role === "owner" && !x.isMain);
+  const sharedWithMe = schedules.filter((x) => x.role !== "owner");
 
   const markInfo = markDate && schedule && {
     holiday: (() => {
@@ -345,11 +383,14 @@ export default function Schedule() {
                 <div className="sched-top-title">
                   <span className="panel-kicker">
                     <CalendarDays size={16} aria-hidden="true" />
-                    {isOwner ? "Your schedule" : `Shared by ${schedule.owner?.name || "a friend"}`}
+                    {isOwner ? (schedule.isMain ? "Your main schedule" : "Extra schedule") : `Shared by ${schedule.owner?.name || "a friend"}`}
                   </span>
                   <h1>{schedule.title}</h1>
                   {!canEdit && (
-                    <p className="sched-hint">This is a view of {schedule.owner?.name || "your friend"}'s schedule. Copy it to skip the typing, then change whatever differs for you.</p>
+                    <p className="sched-hint">This is a view of {schedule.owner?.name || "your friend"}'s schedule, and you can't change it. Add it to your own if it helps, then edit your copy however you like.</p>
+                  )}
+                  {isOwner && !schedule.isMain && (
+                    <p className="sched-hint">An extra schedule sits on top of your main one. Anything that overlaps a class or exam in your main schedule is flagged.</p>
                   )}
                 </div>
 
@@ -359,8 +400,14 @@ export default function Schedule() {
                       <button type="button" className="primary-button" onClick={() => setEntryModal({ kind: "class" })}>
                         <Plus size={18} aria-hidden="true" /> Add class
                       </button>
+                      <button type="button" className="secondary-button" onClick={() => setEntryModal({ kind: "exam" })}>
+                        <Plus size={18} aria-hidden="true" /> Add exam
+                      </button>
                       <button type="button" className="secondary-button" onClick={() => setEntryModal({ kind: "activity" })}>
                         <Plus size={18} aria-hidden="true" /> Add activity
+                      </button>
+                      <button type="button" className="secondary-button" onClick={() => setEntryModal({ kind: "event" })}>
+                        <Plus size={18} aria-hidden="true" /> Add event
                       </button>
                     </>
                   )}
@@ -369,9 +416,16 @@ export default function Schedule() {
                       <Share2 size={18} aria-hidden="true" /> Share
                     </button>
                   )}
-                  <button type="button" className={canEdit ? "secondary-button" : "primary-button"} onClick={duplicate}>
-                    <Copy size={18} aria-hidden="true" /> {canEdit ? "Duplicate" : "Copy to my schedules"}
-                  </button>
+                  {!canEdit && (
+                    <button type="button" className="primary-button" onClick={() => setImportSource({ scheduleId: schedule._id })}>
+                      <Download size={18} aria-hidden="true" /> Add to my schedule
+                    </button>
+                  )}
+                  {isOwner && !schedule.isMain && (
+                    <button type="button" className="secondary-button" onClick={makeMain}>
+                      <Star size={18} aria-hidden="true" /> Make this my main
+                    </button>
+                  )}
                   {isOwner ? (
                     <button type="button" className="remove-friend-btn" onClick={() => setConfirm({ kind: "delete" })}>
                       <Trash2 size={16} aria-hidden="true" /> Delete
@@ -388,7 +442,10 @@ export default function Schedule() {
                   <ThemePicker value={schedule.theme} disabled={!canEdit} onChange={(theme) => updateSettings({ theme })} />
                 </div>
 
-                {isOwner && (
+                {isOwner && schedule.isMain && (
+                  <p className="sched-hint sched-workload-toggle">Your main schedule always counts toward your dashboard workload. Exams you add here become study time on the dashboard.</p>
+                )}
+                {isOwner && !schedule.isMain && (
                   <label className="sched-check sched-workload-toggle">
                     <input
                       type="checkbox"
@@ -397,7 +454,7 @@ export default function Schedule() {
                     />
                     <span>
                       Count this in my dashboard workload
-                      <small>Your classes and activities take up study time, so the dashboard plans around them. Turn it off for old or spare timetables.</small>
+                      <small>Time in this schedule is taken off your study time, next to your main one. Turn it off if it should not affect your plan.</small>
                     </span>
                   </label>
                 )}
@@ -414,6 +471,7 @@ export default function Schedule() {
                 onAddEntry={(date) => setEntryModal({ kind: "class", date })}
                 onOpenEntry={(entry) => setEntryModal({ entry, kind: entry.kind })}
                 onMarkDay={setMarkDate}
+                mainEntries={mainEntries}
               />
 
               <HolidayPanel
@@ -459,6 +517,13 @@ export default function Schedule() {
             onClose={() => setShareOpen(false)}
           />
         )}
+        {importSource && (
+          <ScheduleImportDialog
+            source={importSource}
+            onClose={() => setImportSource(null)}
+            onImported={(added) => { setImportSource(null); setSearchParams({ s: added._id }); }}
+          />
+        )}
         <ConfirmDialog
           open={Boolean(confirm)}
           tone="danger"
@@ -468,7 +533,7 @@ export default function Schedule() {
           onConfirm={handleConfirm}
           onCancel={() => setConfirm(null)}
         >
-          {confirm?.kind === "delete" && <p>"{schedule?.title}" will be removed for you and everyone you shared it with. This can't be undone.</p>}
+          {confirm?.kind === "delete" && <p>"{schedule?.title}" will be removed for you and everyone you shared it with. Copies people already added to their own schedules stay theirs. This can't be undone.</p>}
           {confirm?.kind === "leave" && <p>You'll lose access to "{schedule?.title}". The owner can share it with you again.</p>}
           {confirm?.kind === "entry" && <p>"{confirm.entry.title}" will be removed from the schedule.</p>}
         </ConfirmDialog>
@@ -485,14 +550,16 @@ export default function Schedule() {
             <span className="eyebrow">Plan your week</span>
             <h1>Your class schedule</h1>
             <p>
-              Build a timetable with your classes and everything else you do. Holidays fill in on their own,
-              your dashboard plans your study time around it, and classmates can copy it with a code or from a group chat instead of typing theirs from scratch.
+              One main schedule holds your classes and exams, and your dashboard plans your study time around it.
+              Add extra schedules for anything else (gym, gaming, a side gig) and they get checked against the main one.
+              Classmates can copy yours from a code, a friend share or a group chat instead of typing theirs from scratch.
             </p>
           </div>
           <aside className="hero-panel">
             <h2>What you can do</h2>
             <ul className="hero-list">
-              <li>Add classes, activities, and one-off events</li>
+              <li>Add classes, exams, activities and events</li>
+              <li>Exams turn into study time on your dashboard</li>
               <li>Attach a picture to any subject</li>
               <li>Edit holidays or mark your own days off</li>
               <li>Share it so classmates can copy it in one tap</li>
@@ -503,7 +570,7 @@ export default function Schedule() {
 
         <div className="groups-actions">
           <button className="primary-button" onClick={() => { setFormError(""); setCreateOpen(true); }}>
-            <Plus size={18} aria-hidden="true" /> New schedule
+            <Plus size={18} aria-hidden="true" /> {mainSchedule ? "New extra schedule" : "Create my schedule"}
           </button>
           <button className="secondary-button" onClick={() => { setFormError(""); setJoinOpen(true); }}>
             <Link2 size={18} aria-hidden="true" /> Add with a code
@@ -519,35 +586,94 @@ export default function Schedule() {
             <p className="schedule-empty">Couldn't load your schedules.</p>
             <button type="button" className="secondary-button" onClick={() => { setLoading(true); fetchList(); }}>Try again</button>
           </div>
-        ) : schedules.length === 0 ? (
-          <div className="panel" style={{ textAlign: "center" }}>
-            <p className="schedule-empty">No schedules yet. Create your first one, or add a classmate's with a code.</p>
-          </div>
         ) : (
-          <div className="groups-grid">
-            {schedules.map((s) => (
-              <button
-                key={s._id}
-                type="button"
-                className="group-card sched-card"
-                data-sched-theme={s.theme}
-                onClick={() => setSearchParams({ s: s._id })}
-              >
-                <span className="sched-card-band" aria-hidden="true" />
-                <div className="group-header">
-                  <h3>{s.title}</h3>
-                  <span className="owner-badge">
-                    {s.role === "owner" ? "Yours" : "Shared with you"}
-                  </span>
+          <>
+            <section className="sched-section">
+              <h2 className="sched-section-title">Main schedule</h2>
+              {mainSchedule ? (
+                <button
+                  type="button"
+                  className="group-card sched-card sched-main-card"
+                  data-sched-theme={mainSchedule.theme}
+                  onClick={() => setSearchParams({ s: mainSchedule._id })}
+                >
+                  <span className="sched-card-band" aria-hidden="true" />
+                  <div className="group-header">
+                    <h3>{mainSchedule.title}</h3>
+                    <span className="owner-badge">Main</span>
+                  </div>
+                  <p className="group-desc">
+                    {mainSchedule.entryCount} {mainSchedule.entryCount === 1 ? "entry" : "entries"}
+                    {mainSchedule.collaboratorCount > 0 && ` · shared with ${mainSchedule.collaboratorCount}`}
+                    {" · "}Your dashboard and workload are based on this one.
+                  </p>
+                </button>
+              ) : (
+                <div className="panel" style={{ textAlign: "center" }}>
+                  <p className="schedule-empty">
+                    You don't have a main schedule yet. Create it with your classes and exams, or add a classmate's with a code.
+                    Your dashboard plans around this one.
+                  </p>
                 </div>
-                <p className="group-desc">
-                  {s.entryCount} {s.entryCount === 1 ? "entry" : "entries"}
-                  {s.role !== "owner" && s.owner?._id !== user?._id && ` · by ${s.owner?.name}`}
-                  {s.role === "owner" && s.collaboratorCount > 0 && ` · shared with ${s.collaboratorCount}`}
-                </p>
-              </button>
-            ))}
-          </div>
+              )}
+            </section>
+
+            {extras.length > 0 && (
+              <section className="sched-section">
+                <h2 className="sched-section-title">Extra schedules</h2>
+                <div className="groups-grid">
+                  {extras.map((s) => (
+                    <button
+                      key={s._id}
+                      type="button"
+                      className="group-card sched-card"
+                      data-sched-theme={s.theme}
+                      onClick={() => setSearchParams({ s: s._id })}
+                    >
+                      <span className="sched-card-band" aria-hidden="true" />
+                      <div className="group-header">
+                        <h3>{s.title}</h3>
+                        <span className="owner-badge">{s.countInWorkload ? "Counts" : "Not counted"}</span>
+                      </div>
+                      <p className="group-desc">
+                        {s.entryCount} {s.entryCount === 1 ? "entry" : "entries"}
+                        {s.collaboratorCount > 0 && ` · shared with ${s.collaboratorCount}`}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {sharedWithMe.length > 0 && (
+              <section className="sched-section">
+                <h2 className="sched-section-title">Shared with you</h2>
+                <p className="sched-hint">Friends shared these. They're view-only, and adding one to your schedule is your call.</p>
+                <div className="groups-grid">
+                  {sharedWithMe.map((s) => (
+                    <div key={s._id} className="group-card sched-card sched-shared-card" data-sched-theme={s.theme}>
+                      <span className="sched-card-band" aria-hidden="true" />
+                      <div className="group-header">
+                        <h3>{s.title}</h3>
+                      </div>
+                      <p className="group-desc">
+                        {s.entryCount} {s.entryCount === 1 ? "entry" : "entries"} · by {s.owner?.name}
+                      </p>
+                      <div className="sched-shared-actions">
+                        <button type="button" className="primary-button small" onClick={() => setImportSource({ scheduleId: s._id })}>
+                          <Download size={15} aria-hidden="true" /> Add to my schedule
+                        </button>
+                        <button type="button" className="secondary-button small" onClick={() => setSearchParams({ s: s._id })}>View</button>
+                        <button type="button" className="ghost-button small" onClick={() => dismissShared(s)} disabled={dismissing === s._id}>
+                          <X size={15} aria-hidden="true" /> Dismiss
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
         )}
       </main>
       <Footer />
@@ -564,7 +690,7 @@ export default function Schedule() {
         <div className="modal-overlay" onClick={closeForms}>
           <form className="modal-content sched-modal" onClick={(e) => e.stopPropagation()} onSubmit={handleCreate}>
             <div className="modal-header">
-              <h2>New schedule</h2>
+              <h2>{mainSchedule ? "New extra schedule" : "Create your main schedule"}</h2>
               <button type="button" className="modal-close" onClick={closeForms} aria-label="Close">×</button>
             </div>
             <div className="form-grid">
@@ -576,7 +702,7 @@ export default function Schedule() {
                   value={newTitle}
                   maxLength={80}
                   onChange={(e) => { setNewTitle(e.target.value); setFormError(""); }}
-                  placeholder="e.g., 1st Semester, Finals week"
+                  placeholder={mainSchedule ? "e.g., Gym, Gaming, Part-time job" : "e.g., 1st Semester"}
                   autoFocus
                 />
               </div>

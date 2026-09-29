@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "./authentication/AuthContext";
 import axios from "axios";
+import { toast } from "react-toastify";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import WorkloadChart from "../components/WorkloadChart";
@@ -10,9 +11,10 @@ import PSSSurveyModal from "../components/PSSSurveyModal";
 import WHOSurveyModal from "../components/WHOSurveyModal";
 import CheckInBanner from "../components/CheckInBanner";
 import TaskImportDialog from "../components/TaskImportDialog";
-import { AlertTriangle, Eye, Lightbulb, Sparkles, CalendarDays, MapPin, CircleCheck, Download, Plus } from "lucide-react";
-import { toISODate, formatTime } from "../utils/scheduleUtils";
-import { buildWeek, computeWorkload, getTaskMetrics, surveyStatus, PSS_VALID_DAYS, WHO_VALID_DAYS } from "../utils/workload";
+import { AlertTriangle, Eye, Lightbulb, Sparkles, CalendarDays, MapPin, CircleCheck, Download, Plus, CalendarClock } from "lucide-react";
+import { toISODate, formatTime, fromISODate } from "../utils/scheduleUtils";
+import { buildWeek, computeWorkload, getTaskMetrics, surveyStatus, examsToTasks, examPressure, PSS_VALID_DAYS, WHO_VALID_DAYS } from "../utils/workload";
+import { suggestMoves, isStrained } from "../utils/suggestions";
 import { buildFocus } from "../utils/todayFocus";
 import useCountUp from "../utils/useCountUp";
 import "../App.css";
@@ -45,7 +47,8 @@ function summarizeDay(day, focus) {
   else if (total) bits.push("classes are done for today");
   const due = focus.dueSoon.length;
   if (due) bits.push(`${due} ${due === 1 ? "task" : "tasks"} due soon`);
-  return bits.length ? `${date}. ${bits.join(" and ")}.` : `${date}. Nothing pressing today.`;
+  const sentence = bits.join(" and ");
+  return bits.length ? `${date}. ${sentence.charAt(0).toUpperCase()}${sentence.slice(1)}.` : `${date}. Nothing pressing today.`;
 }
 
 function getGreeting() {
@@ -87,9 +90,9 @@ function EntryList({ entries, label, live = false }) {
     <ul className="today-list today-classes" aria-label={label}>
       {entries.map((entry, i) => (
         <li key={`${entry.title}-${entry.startTime}-${i}`} className={`today-item${live ? " is-live" : ""}`}>
-          <span className={`today-dot ${entry.kind === "activity" ? "activity" : "class"}`} aria-hidden="true" />
+          <span className={`today-dot ${entry.kind || "class"}`} aria-hidden="true" />
           <div>
-            <strong>{entry.title}{live && <span className="today-now-pill">Now</span>}</strong>
+            <strong>{entry.title}{live && <span className="today-now-pill">Now</span>}{entry.kind === "exam" && <span className="today-exam-pill">Exam</span>}{entry.kind === "event" && <span className="today-event-pill">Event</span>}</strong>
             <span className="today-meta">
               {formatTime(entry.startTime)} to {formatTime(entry.endTime)}
               {entry.location && <> · <MapPin size={12} aria-hidden="true" /> {entry.location}</>}
@@ -102,6 +105,71 @@ function EntryList({ entries, label, live = false }) {
 }
 
 const TIP_ICON = { alert: AlertTriangle, watch: Eye, info: Lightbulb, good: Sparkles };
+
+const shortDate = (iso) => fromISODate(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+
+// Ideas for lightening a week that does not fit. Each one is a due date the student could move,
+// worked out from the week's plan. Nothing changes until they tap the button. "Not now" hides an
+// idea until tomorrow.
+function SuggestionsPanel({ userId, tasks, fixedTasks, profile, overview, strained, now, onApply }) {
+  const storageKey = `dismissedMoves:${userId || "anonymous"}`;
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+      return Object.fromEntries(Object.entries(saved).filter(([, until]) => until > Date.now()));
+    } catch {
+      return {};
+    }
+  });
+
+  // The inputs are rebuilt on every render, so key the memo on their values (and the minute).
+  const inputsKey = JSON.stringify([
+    tasks.map((t) => [t._id, t.dueDate, t.hours, t.importance, t.difficulty]), fixedTasks, profile, overview, strained, Math.floor(now / 60000),
+  ]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const suggestions = useMemo(() => suggestMoves({ tasks, fixedTasks, profile, overview, strained, now }), [inputsKey]);
+  const visible = suggestions.filter((sug) => !dismissed[`${sug.taskId}:${sug.toDate}`]);
+  if (visible.length === 0) return null;
+
+  const dismiss = (sug) => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const next = { ...dismissed, [`${sug.taskId}:${sug.toDate}`]: tomorrow.getTime() };
+    setDismissed(next);
+    try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* private mode */ }
+  };
+
+  return (
+    <section className="panel suggestions-panel">
+      <div className="panel-heading">
+        <div>
+          <span className="panel-kicker">Smart suggestions</span>
+          <h2>{strained ? "Let's make this week lighter" : "This week doesn't quite fit"}</h2>
+        </div>
+      </div>
+      <ul className="suggestion-list">
+        {visible.map((sug) => (
+          <li key={`${sug.taskId}:${sug.toDate}`} className="suggestion">
+            <CalendarClock size={20} aria-hidden="true" />
+            <div className="suggestion-body">
+              <strong>Move "{sug.title}" to {shortDate(sug.toDate)}</strong>
+              <span className="suggestion-dates">
+                {sug.course} · now due {shortDate(sug.fromDate)}, {sug.shift} {sug.shift === 1 ? "day" : "days"} later
+              </span>
+              <p>{sug.why}</p>
+              <div className="suggestion-actions">
+                <button type="button" className="primary-button small" onClick={() => onApply(sug)}>Move it</button>
+                <button type="button" className="ghost-button small" onClick={() => dismiss(sug)}>Not now</button>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <p className="suggestion-note">Only move a deadline you can really change. If a teacher set it, ask them first.</p>
+    </section>
+  );
+}
 
 const Dashboard = () => {
   const { backendUrl, isLoggedin } = useAuth();
@@ -277,6 +345,23 @@ const Dashboard = () => {
 
   const markTaskDone = async (taskId) => await updateTask(taskId, { isCompleted: true });
 
+  // Moves a due date the student agreed to, and offers an undo since it changes their plan.
+  const applySuggestion = async (sug) => {
+    await updateTask(sug.taskId, { dueDate: sug.toDate });
+    toast.info(({ closeToast }) => (
+      <div>
+        Moved "{sug.title}" to {shortDate(sug.toDate)}.{" "}
+        <button
+          type="button"
+          className="toast-undo"
+          onClick={() => { updateTask(sug.taskId, { dueDate: sug.fromDate }); closeToast(); }}
+        >
+          Undo
+        </button>
+      </div>
+    ));
+  };
+
   // A code opens a preview (details, whether you already have it, what else is due that
   // day) instead of adding straight away.
   const importTaskByCode = (code) => {
@@ -313,14 +398,21 @@ const Dashboard = () => {
   const activeTasks = tasks.filter(task => !task.isCompleted);
   const enrichedTasks = activeTasks.map(task => ({ ...task, ...getTaskMetrics(task, now) })).sort((a,b) => b.workload - a.workload);
   const hasSchedule = Boolean(overview?.scheduleCount && overview?.entryCount);
-  const week = buildWeek(activeTasks, profile, overview, now);
+  // Exams in the schedule turn into study work due on the exam date, so the week, the score and
+  // the guidance all plan around them. They stay out of the task list.
+  const exams = overview?.upcomingExams || [];
+  const examTasks = examsToTasks(exams);
+  const plannedTasks = [...activeTasks, ...examTasks];
+  const week = buildWeek(plannedTasks, profile, overview, now);
   // A check-in older than its window no longer describes the student, so it stays out of the score.
   const pss = surveyStatus(pssScore, pssLast, PSS_VALID_DAYS, now);
   const who = surveyStatus(whoScore, whoLast, WHO_VALID_DAYS, now);
   const workloadInsights = computeWorkload({
-    tasks: activeTasks, profile, days: week, pssScore: pss.score, whoScore: who.score, isExamWeek, hasSchedule,
-    pssStatus: pss.status, whoStatus: who.status, pssAgeDays: pss.ageDays, whoAgeDays: who.ageDays, now,
+    tasks: plannedTasks, profile, days: week, pssScore: pss.score, whoScore: who.score, isExamWeek, hasSchedule,
+    pssStatus: pss.status, whoStatus: who.status, pssAgeDays: pss.ageDays, whoAgeDays: who.ageDays, now, exams,
   });
+  const nextExam = examPressure(exams, now).next;
+  const strained = isStrained({ band: workloadInsights.band, pssScore: pss.score, whoScore: who.score });
   const today = week[0];
   const focus = buildFocus({ today, tomorrow: week[1], tasks: enrichedTasks, now });
   const hasFreshCheckIn = pss.score !== null || who.score !== null;
@@ -377,6 +469,12 @@ const Dashboard = () => {
 
               {today.holiday && (
                 <p className="today-holiday"><CalendarDays size={16} aria-hidden="true" /> {today.holiday}. Classes that skip holidays are off today.</p>
+              )}
+
+              {nextExam && nextExam.daysLeft > 0 && (
+                <p className="today-exam-note">
+                  <CalendarDays size={16} aria-hidden="true" /> Next exam: <strong>{nextExam.title}</strong>{`, ${shortDate(nextExam.date)} at ${formatTime(nextExam.startTime)}`}
+                </p>
               )}
 
               {focus.happeningNow.length > 0 && <EntryList entries={focus.happeningNow} label="Happening now" live />}
@@ -521,6 +619,19 @@ const Dashboard = () => {
               </div>
             </section>
           </section>
+        )}
+
+        {!workloadInsights.isNewUser && (
+          <SuggestionsPanel
+            userId={surveyUserId}
+            tasks={activeTasks}
+            fixedTasks={examTasks}
+            profile={profile}
+            overview={overview}
+            strained={strained}
+            now={now}
+            onApply={applySuggestion}
+          />
         )}
 
         <section className="panel">

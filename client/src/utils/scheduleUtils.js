@@ -131,7 +131,12 @@ export const ENTRY_ICONS = {
 };
 
 // The fallback when nobody picked an icon or a picture.
-export const defaultIconFor = (kind) => (kind === "activity" ? "sparkles" : "book-open");
+export const defaultIconFor = (kind) => (
+  kind === "activity" ? "sparkles" : kind === "exam" ? "pen-tool" : kind === "event" ? "star" : "book-open"
+);
+
+// What each kind of entry is called in forms and tags.
+export const KIND_LABELS = { class: "Class", activity: "Activity", exam: "Exam", event: "Event" };
 
 export const ENTRY_COLORS = [
   "#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e", "#14b8a6",
