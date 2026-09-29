@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { AlertTriangle, Check, Pencil, X } from "lucide-react";
 import { useAuth } from "../../pages/authentication/AuthContext";
-import { WEEKDAYS, formatTime, formatLongDate } from "../../utils/scheduleUtils";
+import { WEEKDAYS, formatTime, formatLongDate, KIND_LABELS } from "../../utils/scheduleUtils";
 import { analyzeEntry } from "../../utils/scheduleConflicts";
 
 const dayLabel = (entry) =>
@@ -17,7 +17,7 @@ const when = (entry) => `${dayLabel(entry)}, ${formatTime(entry.startTime)} to $
 // their own. It shows what's inside, points out what clashes with the week they already
 // have, and lets them skip or retime entries before anything is added.
 //
-//   source     { shareCode } or { groupId, messageId }
+//   source     { shareCode }, { groupId, messageId } or { scheduleId } (a friend shared it with you)
 //   onImported called with the schedule the entries landed in
 export default function ScheduleImportDialog({ source, onClose, onImported }) {
   const { backendUrl } = useAuth();
@@ -40,6 +40,9 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
         if (!data.success) return setError(data.message || "Couldn't open that schedule.");
         setPreview(data);
         setTitle(data.source.title);
+        // Copies go into the main schedule by default, since that is what the dashboard plans around.
+        const main = data.schedules.find((s) => s.isMain);
+        setTarget(main ? main._id : "new");
         // Classes the person already has would only be doubled, so those start unticked.
         const start = {};
         data.entries.forEach((entry) => {
@@ -85,7 +88,7 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
       const { data } = await axios.post(`${backendUrl}/api/schedules/import`, {
         ...source,
         selections,
-        ...(target === "new" ? { title } : { targetScheduleId: target }),
+        ...(target === "new" ? { newSchedule: true, title } : { targetScheduleId: target }),
       }, { withCredentials: true });
       if (data.success) {
         toast.success(`Added ${data.added} ${data.added === 1 ? "entry" : "entries"} to "${data.schedule.title}".`);
@@ -123,7 +126,7 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
           <>
             <p className="imp-lead">
               {preview.source.ownerName ? `${preview.source.ownerName}'s` : "A shared"} schedule has {preview.entries.length}{" "}
-              {preview.entries.length === 1 ? "entry" : "entries"}. Pick the ones you want. Your copy is yours to edit, and changing it never touches theirs.
+              {preview.entries.length === 1 ? "entry" : "entries"}. Pick the ones you want. Adding is up to you. Your copy is yours to edit, and changing it never touches theirs.
             </p>
             {preview.source.alreadyAdded && (
               <p className="sched-notice">You've already added this schedule once. Adding it again makes more entries.</p>
@@ -149,7 +152,7 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
                     <label className="imp-pick">
                       <input type="checkbox" checked={Boolean(include[id])} onChange={() => toggle(id)} />
                       <span className="imp-main">
-                        <strong>{entry.title}</strong>
+                        <strong>{entry.title}{entry.kind && entry.kind !== "class" && <span className={`imp-kind kind-${entry.kind}`}>{KIND_LABELS[entry.kind]}</span>}</strong>
                         <span className="imp-when">{when(entry)}</span>
                         {entry.location && <span className="imp-when">{entry.location}</span>}
                       </span>
@@ -215,8 +218,8 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
               <label>
                 Add to
                 <select value={target} onChange={(e) => setTarget(e.target.value)}>
-                  <option value="new">A new schedule</option>
-                  {preview.schedules.map((s) => <option key={s._id} value={s._id}>{s.title}</option>)}
+                  {preview.schedules.map((s) => <option key={s._id} value={s._id}>{s.isMain ? `My main schedule (${s.title})` : `Extra: ${s.title}`}</option>)}
+                  <option value="new">{preview.schedules.length ? "A new extra schedule" : "A new schedule (becomes my main)"}</option>
                 </select>
               </label>
               {target === "new" && (

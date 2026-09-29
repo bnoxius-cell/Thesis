@@ -96,3 +96,28 @@ export const buildWeekOverview = (schedules, startIso, dayCount = 7) => {
     }
     return days;
 };
+
+// Exams (one-off entries of kind "exam") from `startIso` for the next `dayCount` days, across the
+// given schedules. The same exam copied into two schedules is listed once.
+export const findUpcomingExams = (schedules, startIso, dayCount) => {
+    const endIso = addDaysIso(startIso, dayCount);
+    const seen = new Set();
+    const exams = [];
+    for (const schedule of schedules) {
+        for (const entry of schedule.entries) {
+            if (entry.kind !== 'exam' || !entry.date || entry.date < startIso || entry.date > endIso) continue;
+            const key = `${entry.title}|${entry.date}|${entry.startTime}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            exams.push({
+                title: entry.title,
+                date: entry.date,
+                startTime: entry.startTime,
+                endTime: entry.endTime,
+                location: entry.location || '',
+                prepHours: entry.prepHours ?? 0,
+            });
+        }
+    }
+    return exams.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+};

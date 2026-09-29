@@ -27,6 +27,7 @@ function EntryCard({ entry, suspended, clash, canEdit, onOpen }) {
           <span className="sched-entry-meta"><MapPin size={12} aria-hidden="true" /> {entry.location}</span>
         )}
         {entry.notes && <span className="sched-entry-meta">{entry.notes}</span>}
+        {entry.kind === "exam" && <span className="sched-tag is-exam">Exam{entry.prepHours > 0 ? ` · ${entry.prepHours}h study` : ""}</span>}
         {suspended && <span className="sched-tag">No class today</span>}
         {clash && !suspended && <span className="sched-tag is-clash">Overlaps {clash.join(", ")}</span>}
       </span>
@@ -44,6 +45,7 @@ function EntryCard({ entry, suspended, clash, canEdit, onOpen }) {
 // days into a single list, so nothing ever needs sideways scrolling.
 export default function WeekView({
   weekStart, entries, overrides, publicByDate, canEdit, onShiftWeek, onToday, onAddEntry, onOpenEntry, onMarkDay,
+  mainEntries = [],
 }) {
   const todayIso = toISODate(new Date());
   const days = WEEKDAYS.map((_, i) => addDays(weekStart, i));
@@ -72,7 +74,12 @@ export default function WeekView({
             .sort((a, b) => a.startTime.localeCompare(b.startTime));
           const label = day.toLocaleDateString(undefined, { weekday: "short" });
           // Entries on a day off don't clash, so only look at the ones that actually run.
-          const clashes = overlapsOnDay(dayEntries.filter((e) => !(holiday && e.skipOnHoliday)));
+          // An extra schedule is also checked against the main one, so a gaming session that
+          // lands on a class gets flagged.
+          const mainToday = mainEntries
+            .filter((e) => entryOccursOn(e, iso) && !(holiday && e.skipOnHoliday))
+            .map((e) => ({ ...e, _id: `main:${e._id}`, title: `${e.title} (main)` }));
+          const clashes = overlapsOnDay([...dayEntries.filter((e) => !(holiday && e.skipOnHoliday)), ...mainToday]);
           return (
             <div key={iso} className={`sched-day ${iso === todayIso ? "is-today" : ""} ${holiday ? "is-holiday" : ""}`}>
               <header className="sched-day-head">

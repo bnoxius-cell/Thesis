@@ -5327,3 +5327,149 @@ html {
   background: #f3efe1;
   color: var(--sage-deep);
 }
+
+/* ==========================================================================
+   MAIN SCHEDULE, EXAMS, SUGGESTIONS
+   ========================================================================== */
+.sched-section {
+  margin-top: 1.5rem;
+}
+.sched-section-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+.sched-main-card {
+  width: 100%;
+  max-width: 560px;
+  text-align: left;
+}
+.sched-shared-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0.75rem;
+}
+.sched-shared-card {
+  cursor: default;
+}
+
+/* Exams and events */
+.sched-entry.kind-exam {
+  --ec: var(--entry-color, var(--ochre));
+  border-style: dashed;
+}
+.sched-entry.kind-event {
+  --ec: var(--entry-color, var(--s-accent-2));
+}
+.sched-tag.is-exam {
+  background: var(--ochre-soft);
+  color: var(--text-primary);
+}
+.imp-kind {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--ochre-soft);
+  color: var(--text-primary);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.today-dot.exam {
+  background: var(--ochre);
+}
+.today-dot.event {
+  background: var(--sage);
+}
+.today-exam-pill,
+.today-event-pill {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+  background: var(--ochre-soft);
+  color: var(--text-primary);
+}
+.today-event-pill {
+  background: var(--sage-soft);
+}
+.today-exam-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--ochre-soft);
+  color: var(--text-primary);
+  font-size: 0.92rem;
+}
+
+/* Smart suggestions */
+.suggestion-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.suggestion {
+  display: flex;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--border-light);
+  background: var(--task-card-bg);
+}
+.suggestion > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--sage);
+}
+.suggestion-body {
+  min-width: 0;
+}
+.suggestion-body strong {
+  display: block;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.suggestion-dates {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+.suggestion-body p {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.suggestion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.suggestion-note {
+  margin: 14px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+.toast-undo {
+  margin-left: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sage);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}

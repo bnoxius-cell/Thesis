@@ -76,6 +76,36 @@ export function surveyStatus(score, lastSubmission, validDays, now = new Date())
     : { status: "stale", score: null, ageDays };
 }
 
+// Exams from the schedule become study work due on the exam date, so they take room in the
+// week like any task: hours from the day the student picked, hard and important. An exam with
+// no study hours set aside adds no work (the exam itself still takes its time slot).
+export function examsToTasks(exams = []) {
+  return exams
+    .filter((e) => Number(e.prepHours) > 0)
+    .map((e) => ({
+      _id: `exam:${e.date}:${e.title}`,
+      title: `Prepare for ${e.title}`,
+      course: "Exam",
+      dueDate: e.date,
+      hours: Number(e.prepHours),
+      difficulty: 4,
+      importance: 5,
+      isExam: true,
+    }));
+}
+
+// Exam pressure in points: a near exam (or two in a week) matters more than one further off.
+const EXAM_WINDOW = 7;
+export function examPressure(exams = [], now = new Date()) {
+  const soon = exams
+    .map((e) => ({ ...e, daysLeft: differenceInDays(e.date, now) }))
+    .filter((e) => e.daysLeft >= 0 && e.daysLeft <= EXAM_WINDOW)
+    .sort((a, b) => a.daysLeft - b.daysLeft);
+  if (!soon.length) return { points: 0, soon, next: null };
+  const points = soon.length >= 2 || soon[0].daysLeft <= 2 ? 15 : 8;
+  return { points, soon, next: soon[0] };
+}
+
 // Per-task numbers used by the task cards (progress bar, status pill).
 export function getTaskMetrics(task, now = new Date()) {
   const daysLeft = differenceInDays(task.dueDate, now);
@@ -173,7 +203,7 @@ const level = (value) => (value < 34 ? "low" : value < 67 ? "moderate" : "high")
 // ("fresh" | "stale" | "never") and the ages only feed the tips.
 export function computeWorkload({
   tasks, profile, days, pssScore, whoScore, isExamWeek = false, hasSchedule = false,
-  pssStatus, whoStatus, pssAgeDays = null, whoAgeDays = null, now = new Date(),
+  pssStatus, whoStatus, pssAgeDays = null, whoAgeDays = null, now = new Date(), exams = [],
 }) {
   const hasTasks = tasks.length > 0;
   const hasPss = pssScore !== null && pssScore !== undefined;
@@ -226,7 +256,8 @@ export function computeWorkload({
 
   // Adjustments that shift the score directly, in points.
   const goal = profile.wellbeingGoal === "catch-up" ? -10 : profile.wellbeingGoal === "high-performance" ? 10 : 0;
-  const exam = isExamWeek ? 15 : 0;
+  const examInfo = examPressure(exams, now);
+  const exam = examInfo.points || (isExamWeek ? 15 : 0);
   const overduePoints = Math.min(10, overdue * 3);
 
   const workloadScore = Math.round(clamp(base + goal + exam + overduePoints, 0, 100));
@@ -243,7 +274,7 @@ export function computeWorkload({
     .map(([key, label]) => ({ key, label, value: Math.round(values[key]), level: level(values[key]) }));
 
   const tips = buildTips({
-    tasks, profile, days, values, overdue, workloadScore, hasSchedule, isExamWeek, goal, studyHours, capacityHours, now,
+    tasks, profile, days, values, overdue, workloadScore, hasSchedule, isExamWeek, goal, studyHours, capacityHours, now, examInfo,
     pssScore: hasPss ? pssScore : null,
     whoScore: hasWho ? whoScore : null,
     pssStatus: pssStatus || (hasPss ? "fresh" : "never"),
@@ -311,7 +342,7 @@ function findGap(days, now) {
 }
 
 function buildTips({
-  tasks, days, values, overdue, workloadScore, hasSchedule, isExamWeek, goal, studyHours, capacityHours, now,
+  tasks, days, values, overdue, workloadScore, hasSchedule, isExamWeek, goal, studyHours, capacityHours, now, examInfo,
   pssScore, whoScore, pssStatus, whoStatus, pssAgeDays, whoAgeDays,
 }) {
   const tips = [];
@@ -463,7 +494,22 @@ function buildTips({
   }
 
   // ---- Modes ----
-  if (isExamWeek) {
+  if (examInfo.next) {
+    const { next, soon } = examInfo;
+    const prep = Number(next.prepHours) > 0
+      ? `About ${next.prepHours}h of study is set aside for it, so spread that over the days before instead of the night before.`
+      : "Plan your revision across the days before, not the night before.";
+    if (soon.length >= 2) {
+      add("alert", `${soon.length} exams this week`,
+        `${soon.map((e) => e.title).join(", ")}. Pause the non-essentials, keep your sleep steady and take the nearest one first.`);
+    } else if (next.daysLeft === 0) {
+      add("alert", `Exam today: ${next.title}`, "Eat, keep the morning light and go in rested. What you know by now is what you know.");
+    } else if (next.daysLeft === 1) {
+      add("alert", `Exam tomorrow: ${next.title}`, "Do a light review, then stop early and get a proper night of sleep. Pack what you need tonight.");
+    } else {
+      add("watch", `Exam ${dueText(next.daysLeft)}: ${next.title}`, `${prep}${struggling ? " Take breaks, you'll remember more." : ""}`);
+    }
+  } else if (isExamWeek) {
     add("watch", "Exam week", "Pause the non-essentials and put your energy into revision and sleep.");
   }
   if (goal < 0) add("info", "Recovery mode", "Your goal is catching up, so the score is a little gentler and the tips favour rest.");

@@ -1,15 +1,17 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
-import scheduleModel, { SCHEDULE_THEMES, MAX_ENTRIES, MAX_IMAGE_LENGTH } from '../models/scheduleModel.js';
+import scheduleModel, { SCHEDULE_THEMES, MAX_ENTRIES, MAX_IMAGE_LENGTH, MAX_OWNED_SCHEDULES, ENTRY_KINDS } from '../models/scheduleModel.js';
 import Friend from '../models/Friend.js';
 import { notify } from '../utils/notify.js';
 import userModel from '../models/userModel.js';
 import { fetchPublicHolidays } from '../utils/holidays.js';
-import { buildWeekOverview, addDaysIso } from '../utils/weekOverview.js';
+import { buildWeekOverview, addDaysIso, findUpcomingExams } from '../utils/weekOverview.js';
 import groupModel from '../models/groupMode.js';
 import groupMessageModel from '../models/groupMessageModel.js';
 
-const MAX_OWNED_SCHEDULES = 20;
+// How far ahead the dashboard looks for exams to plan study time around.
+const EXAM_LOOKAHEAD_DAYS = 30;
+const DEFAULT_PREP_HOURS = 4;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
@@ -74,6 +76,19 @@ const loadSchedule = async (req, res, need) => {
     return { schedule, role };
 };
 
+// Everyone with schedules has exactly one main. Accounts from before that rule may have several
+// and none marked, so the oldest one is promoted the first time it matters.
+const ensureMainSchedule = async (userId) => {
+    const owned = await scheduleModel.find({ owner: userId }).select('isMain createdAt').sort({ createdAt: 1 });
+    if (!owned.length) return null;
+    const mains = owned.filter((s) => s.isMain);
+    if (mains.length === 1) return mains[0]._id;
+    const keep = mains[0] || owned[0];
+    await scheduleModel.updateMany({ owner: userId, _id: { $ne: keep._id } }, { isMain: false });
+    await scheduleModel.updateOne({ _id: keep._id }, { isMain: true, countInWorkload: true });
+    return keep._id;
+};
+
 const PERSON_FIELDS = 'name avatar profileTag';
 
 const serialize = async (schedule, role) => {
@@ -100,6 +115,8 @@ const summarize = (schedule, role) => ({
     theme: schedule.theme,
     owner: schedule.owner,
     role,
+    isMain: Boolean(schedule.isMain),
+    countInWorkload: schedule.countInWorkload !== false,
     entryCount: schedule.entries.length,
     collaboratorCount: schedule.collaborators.length,
     updatedAt: schedule.updatedAt,
@@ -117,7 +134,8 @@ const cleanEntry = (body = {}) => {
     if (!title) return { error: 'A title is required.' };
     if (title.length > 80) return { error: 'The title is too long (80 characters max).' };
 
-    const kind = body.kind === 'activity' ? 'activity' : 'class';
+    const kind = ENTRY_KINDS.includes(body.kind) ? body.kind : 'class';
+    if (kind === 'exam' && !body.date) return { error: 'An exam needs a date.' };
 
     if (!TIME_RE.test(body.startTime || '') || !TIME_RE.test(body.endTime || '')) {
         return { error: 'Start and end times are required.' };
@@ -139,7 +157,14 @@ const cleanEntry = (body = {}) => {
         icon: '',
         image: '',
         skipOnHoliday: body.skipOnHoliday === undefined ? kind === 'class' : Boolean(body.skipOnHoliday),
+        prepHours: 0,
     };
+
+    if (kind === 'exam') {
+        const prep = body.prepHours === undefined || body.prepHours === '' ? DEFAULT_PREP_HOURS : Number(body.prepHours);
+        if (!Number.isFinite(prep) || prep < 0 || prep > 40) return { error: 'Study hours for an exam can be 0 to 40.' };
+        entry.prepHours = Math.round(prep * 2) / 2;
+    }
 
     if (body.date) {
         if (!isRealDate(body.date)) return { error: 'That date is not valid.' };
@@ -186,13 +211,17 @@ export const createSchedule = async (req, res) => {
         const country = req.body.country ? String(req.body.country).toUpperCase() : undefined;
         if (country && !/^[A-Z]{2}$/.test(country)) return fail(res, 400, 'Unknown country code.');
 
-        if (await scheduleModel.countDocuments({ owner: req.userId }) >= MAX_OWNED_SCHEDULES) {
-            return fail(res, 400, `You can have up to ${MAX_OWNED_SCHEDULES} schedules.`);
+        await ensureMainSchedule(req.userId);
+        const ownedCount = await scheduleModel.countDocuments({ owner: req.userId });
+        if (ownedCount >= MAX_OWNED_SCHEDULES) {
+            return fail(res, 400, `You can have a main schedule and up to ${MAX_OWNED_SCHEDULES - 1} extra ones.`);
         }
 
+        // The first schedule is the main one. Anything after that is an extra.
         const schedule = await scheduleModel.create({
             title,
             owner: req.userId,
+            isMain: ownedCount === 0,
             ...(req.body.theme && { theme: req.body.theme }),
             ...(country && { country }),
         });
@@ -204,6 +233,7 @@ export const createSchedule = async (req, res) => {
 
 export const getSchedules = async (req, res) => {
     try {
+        await ensureMainSchedule(req.userId);
         const schedules = await scheduleModel
             .find({ $or: [{ owner: req.userId }, { 'collaborators.user': req.userId }] })
             .populate('owner', PERSON_FIELDS)
@@ -212,6 +242,19 @@ export const getSchedules = async (req, res) => {
             success: true,
             schedules: schedules.map((s) => summarize(s, roleOf(s, req.userId))),
         });
+    } catch (error) {
+        fail(res, 500, error.message);
+    }
+};
+
+// GET /api/schedules/main: the caller's main schedule in full, or null when they have none yet.
+// Extras use it to point out entries that overlap the main one.
+export const getMainSchedule = async (req, res) => {
+    try {
+        const id = await ensureMainSchedule(req.userId);
+        if (!id) return res.json({ success: true, schedule: null });
+        const schedule = await scheduleModel.findById(id);
+        res.json({ success: true, schedule: await serialize(schedule, 'owner') });
     } catch (error) {
         fail(res, 500, error.message);
     }
@@ -232,7 +275,7 @@ export const updateSchedule = async (req, res) => {
         const loaded = await loadSchedule(req, res, 'edit');
         if (!loaded) return;
         const { schedule, role } = loaded;
-        const { title, theme, country, countInWorkload } = req.body;
+        const { title, theme, country, countInWorkload, isMain } = req.body;
 
         if (title !== undefined) {
             const trimmed = String(title).trim();
@@ -249,7 +292,14 @@ export const updateSchedule = async (req, res) => {
             if (!/^[A-Z]{2}$/.test(code)) return fail(res, 400, 'Unknown country code.');
             schedule.country = code;
         }
-        if (countInWorkload !== undefined) schedule.countInWorkload = Boolean(countInWorkload);
+        // The main schedule always counts. The toggle is only for extras.
+        if (countInWorkload !== undefined && !schedule.isMain) schedule.countInWorkload = Boolean(countInWorkload);
+        if (isMain === true && !schedule.isMain) {
+            // Only one main at a time: the old one becomes an extra.
+            await scheduleModel.updateMany({ owner: req.userId, _id: { $ne: schedule._id } }, { isMain: false });
+            schedule.isMain = true;
+            schedule.countInWorkload = true;
+        }
         await schedule.save();
         res.json({ success: true, schedule: await serialize(schedule, role) });
     } catch (error) {
@@ -261,6 +311,9 @@ export const deleteSchedule = async (req, res) => {
     try {
         const loaded = await loadSchedule(req, res, 'owner');
         if (!loaded) return;
+        if (loaded.schedule.isMain && await scheduleModel.exists({ owner: req.userId, _id: { $ne: loaded.schedule._id } })) {
+            return fail(res, 400, 'This is your main schedule. Make another one your main first, then delete this one.');
+        }
         await loaded.schedule.deleteOne();
         res.json({ success: true, message: 'Schedule deleted' });
     } catch (error) {
@@ -375,13 +428,37 @@ export const setHolidayOverride = async (req, res) => {
 
 const PLAIN_ENTRY_FIELDS = [
     'title', 'kind', 'days', 'date', 'startDate', 'endDate', 'startTime', 'endTime',
-    'location', 'notes', 'color', 'icon', 'skipOnHoliday',
+    'location', 'notes', 'color', 'icon', 'skipOnHoliday', 'prepHours',
 ];
 
 // Loads whatever the request points at: a share code, or a schedule message in one of the
 // caller's groups. Sends the error itself and returns null when the caller should stop.
 const loadImportSource = async (req, res) => {
-    const { shareCode, groupId, messageId } = req.body;
+    const { shareCode, groupId, messageId, scheduleId } = req.body;
+
+    // A schedule a friend shared with the caller directly. They can look and copy, nothing more.
+    if (scheduleId) {
+        if (!mongoose.Types.ObjectId.isValid(scheduleId)) {
+            fail(res, 404, 'That shared schedule is no longer available.');
+            return null;
+        }
+        const shared = await scheduleModel.findById(scheduleId).populate('owner', 'name');
+        const role = shared && roleOf(shared, req.userId);
+        if (!shared || !role) {
+            fail(res, 404, 'That shared schedule is no longer available.');
+            return null;
+        }
+        if (role === 'owner') {
+            fail(res, 400, 'That is your own schedule.');
+            return null;
+        }
+        const plain = shared.toObject();
+        return {
+            token: `schedule:${shared._id}`,
+            title: plain.title, ownerName: plain.owner?.name || '', theme: plain.theme, country: plain.country,
+            entries: plain.entries,
+        };
+    }
 
     if (messageId) {
         if (!mongoose.Types.ObjectId.isValid(groupId) || !mongoose.Types.ObjectId.isValid(messageId)) {
@@ -428,7 +505,10 @@ const loadImportSource = async (req, res) => {
     };
 };
 
-const ownedForImport = (userId) => scheduleModel.find({ owner: userId }).select('title entries countInWorkload importedFrom').lean();
+const ownedForImport = async (userId) => {
+    await ensureMainSchedule(userId);
+    return scheduleModel.find({ owner: userId }).select('title entries countInWorkload isMain importedFrom').sort({ isMain: -1, createdAt: 1 }).lean();
+};
 
 // POST /api/schedules/preview  { shareCode } or { groupId, messageId }
 // What is in the schedule, plus the caller's own entries so the client can point out clashes
@@ -451,13 +531,13 @@ export const previewImport = async (req, res) => {
             })),
             // Only the schedules that count toward the caller's week can clash with it.
             existing: owned
-                .filter((s) => s.countInWorkload !== false)
+                .filter((s) => s.isMain || s.countInWorkload !== false)
                 .flatMap((s) => s.entries.map((entry) => ({
                     scheduleId: s._id,
                     scheduleTitle: s.title,
                     entry: _pick(entry, ['_id', ...PLAIN_ENTRY_FIELDS]),
                 }))),
-            schedules: owned.map((s) => ({ _id: s._id, title: s.title, entryCount: s.entries.length })),
+            schedules: owned.map((s) => ({ _id: s._id, title: s.title, isMain: Boolean(s.isMain), entryCount: s.entries.length })),
         });
     } catch (error) {
         fail(res, 500, error.message);
@@ -466,7 +546,7 @@ export const previewImport = async (req, res) => {
 
 const _pick = (obj, keys) => Object.fromEntries(keys.filter((k) => obj[k] !== undefined).map((k) => [k, obj[k]]));
 
-const EDITABLE_ON_IMPORT = ['title', 'startTime', 'endTime', 'days', 'date', 'startDate', 'endDate', 'location', 'notes'];
+const EDITABLE_ON_IMPORT = ['title', 'startTime', 'endTime', 'days', 'date', 'startDate', 'endDate', 'location', 'notes', 'prepHours'];
 
 // POST /api/schedules/import
 //   { shareCode | groupId + messageId,
@@ -498,17 +578,26 @@ export const importSchedule = async (req, res) => {
             cleaned.push(entry);
         }
 
+        // By default the entries go into the caller's main schedule. They can pick one of their
+        // extras, or ask for a new extra (newSchedule). With no schedule at all, the copy becomes the main one.
+        await ensureMainSchedule(req.userId);
         let schedule;
         if (req.body.targetScheduleId) {
             if (!mongoose.Types.ObjectId.isValid(req.body.targetScheduleId)) return fail(res, 404, 'Schedule not found');
             schedule = await scheduleModel.findOne({ _id: req.body.targetScheduleId, owner: req.userId });
             if (!schedule) return fail(res, 404, 'Schedule not found');
         } else {
-            if (await scheduleModel.countDocuments({ owner: req.userId }) >= MAX_OWNED_SCHEDULES) {
-                return fail(res, 400, `You can have up to ${MAX_OWNED_SCHEDULES} schedules.`);
+            const main = req.body.newSchedule ? null : await scheduleModel.findOne({ owner: req.userId, isMain: true });
+            if (main) {
+                schedule = main;
+            } else {
+                const ownedCount = await scheduleModel.countDocuments({ owner: req.userId });
+                if (ownedCount >= MAX_OWNED_SCHEDULES) {
+                    return fail(res, 400, `You can have a main schedule and up to ${MAX_OWNED_SCHEDULES - 1} extra ones.`);
+                }
+                const title = String(req.body.title || source.title || 'Shared schedule').trim().slice(0, 80) || 'Shared schedule';
+                schedule = new scheduleModel({ title, owner: req.userId, isMain: ownedCount === 0, theme: source.theme, country: source.country });
             }
-            const title = String(req.body.title || source.title || 'Shared schedule').trim().slice(0, 80) || 'Shared schedule';
-            schedule = new scheduleModel({ title, owner: req.userId, theme: source.theme, country: source.country });
         }
 
         if (schedule.entries.length + cleaned.length > MAX_ENTRIES) {
@@ -534,8 +623,10 @@ export const getWeekOverview = async (req, res) => {
         const dayCount = 7;
         const end = addDaysIso(start, dayCount - 1);
 
+        // The main schedule always counts. Extras count unless the student turned them off.
+        await ensureMainSchedule(req.userId);
         const schedules = await scheduleModel
-            .find({ owner: req.userId, countInWorkload: { $ne: false } })
+            .find({ owner: req.userId, $or: [{ isMain: true }, { countInWorkload: { $ne: false } }] })
             .lean();
 
         // One holiday lookup per country and year the week touches. A failed lookup
@@ -565,6 +656,8 @@ export const getWeekOverview = async (req, res) => {
             scheduleCount: schedules.length,
             entryCount: schedules.reduce((n, s) => n + s.entries.length, 0),
             days: buildWeekOverview(schedules, start, dayCount),
+            // Exams coming up over the next month, so the dashboard can plan study time for them.
+            upcomingExams: findUpcomingExams(schedules, start, EXAM_LOOKAHEAD_DAYS),
         });
     } catch (error) {
         fail(res, 500, error.message);
@@ -597,8 +690,8 @@ export const shareWithFriend = async (req, res) => {
                 sender: req.userId,
                 type: 'schedule_share',
                 title: 'Schedule shared with you',
-                message: `${sender?.name || 'A friend'} shared the schedule "${schedule.title}" with you.`,
-                link: '/schedule',
+                message: `${sender?.name || 'A friend'} shared the schedule "${schedule.title}" with you. Open it to add it to yours, or just ignore it.`,
+                link: `/schedule?share=${schedule._id}`,
             });
         }
         await schedule.save();
@@ -680,11 +773,14 @@ export const duplicateSchedule = async (req, res) => {
         if (!loaded) return;
         const { schedule } = loaded;
 
-        if (await scheduleModel.countDocuments({ owner: req.userId }) >= MAX_OWNED_SCHEDULES) {
-            return fail(res, 400, `You can have up to ${MAX_OWNED_SCHEDULES} schedules.`);
+        await ensureMainSchedule(req.userId);
+        const ownedCount = await scheduleModel.countDocuments({ owner: req.userId });
+        if (ownedCount >= MAX_OWNED_SCHEDULES) {
+            return fail(res, 400, `You can have a main schedule and up to ${MAX_OWNED_SCHEDULES - 1} extra ones.`);
         }
         const source = schedule.toObject();
         const copy = await scheduleModel.create({
+            isMain: ownedCount === 0,
             title: `${source.title} (copy)`.slice(0, 80),
             owner: req.userId,
             theme: source.theme,

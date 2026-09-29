@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { ImagePlus, X } from "lucide-react";
 import {
-  WEEKDAYS, ENTRY_ICONS, ENTRY_COLORS, defaultIconFor, compressImage, toISODate,
+  WEEKDAYS, ENTRY_ICONS, ENTRY_COLORS, defaultIconFor, compressImage, toISODate, KIND_LABELS,
 } from "../../utils/scheduleUtils";
 
 const blankForm = (kind, date) => ({
@@ -20,6 +20,7 @@ const blankForm = (kind, date) => ({
   icon: "",
   image: "",
   skipOnHoliday: kind === "class",
+  prepHours: 4,
 });
 
 const formFromEntry = (entry) => ({
@@ -64,13 +65,22 @@ export default function EntryModal({ entry, kind = "class", date, onSave, onDele
   const handleKind = (nextKind) => {
     // Classes usually pause on holidays and activities usually don't, so follow the
     // kind until the user has made their own choice by editing.
-    set({ kind: nextKind, skipOnHoliday: nextKind === "class" });
+    // An exam is one day only, and is the one kind that carries study hours.
+    set({
+      kind: nextKind,
+      skipOnHoliday: nextKind === "class",
+      ...(nextKind === "exam" && { repeat: "once", date: form.date || toISODate(new Date()) }),
+    });
   };
 
   const submit = async (e) => {
     e.preventDefault();
     if (!form.title.trim()) return setError("Give it a title.");
     if (form.repeat === "weekly" && form.days.length === 0) return setError("Pick at least one day.");
+    if (form.kind === "exam" && !form.date) return setError("Pick the exam date.");
+    if (form.kind === "exam" && (form.prepHours === "" || Number(form.prepHours) < 0 || Number(form.prepHours) > 40)) {
+      return setError("Study hours can be 0 to 40.");
+    }
     if (form.endTime <= form.startTime) return setError("The end time has to be after the start time.");
 
     const payload = {
@@ -84,6 +94,7 @@ export default function EntryModal({ entry, kind = "class", date, onSave, onDele
       icon: form.icon,
       image: form.image,
       skipOnHoliday: form.skipOnHoliday,
+      ...(form.kind === "exam" && { prepHours: Number(form.prepHours) }),
       ...(form.repeat === "once"
         ? { date: form.date, days: [] }
         : { days: form.days, startDate: form.startDate, endDate: form.endDate }),
@@ -100,7 +111,7 @@ export default function EntryModal({ entry, kind = "class", date, onSave, onDele
     <div className="modal-overlay" onClick={saving ? undefined : onClose}>
       <form className="modal-content sched-modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <div className="modal-header">
-          <h2>{entry ? "Edit entry" : "Add to schedule"}</h2>
+          <h2>{entry ? `Edit ${KIND_LABELS[form.kind].toLowerCase()}` : `Add ${KIND_LABELS[form.kind] === "Event" ? "an event" : KIND_LABELS[form.kind] === "Exam" ? "an exam" : `a ${KIND_LABELS[form.kind].toLowerCase()}`}`}</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button>
         </div>
 
@@ -113,18 +124,24 @@ export default function EntryModal({ entry, kind = "class", date, onSave, onDele
               <button type="button" className={form.kind === "activity" ? "active" : ""} onClick={() => handleKind("activity")}>
                 Activity
               </button>
+              <button type="button" className={form.kind === "exam" ? "active" : ""} onClick={() => handleKind("exam")}>
+                Exam
+              </button>
+              <button type="button" className={form.kind === "event" ? "active" : ""} onClick={() => handleKind("event")}>
+                Event
+              </button>
             </div>
           </div>
 
           <div className="form-group full-span">
-            <label htmlFor="entry-title">{form.kind === "class" ? "Subject *" : "Activity *"}</label>
+            <label htmlFor="entry-title">{{ class: "Subject *", activity: "Activity *", exam: "Exam *", event: "Event *" }[form.kind]}</label>
             <input
               id="entry-title"
               type="text"
               value={form.title}
               maxLength={80}
               onChange={(e) => set({ title: e.target.value })}
-              placeholder={form.kind === "class" ? "e.g., Data Structures" : "e.g., Gym, Org meeting, Study block"}
+              placeholder={{ class: "e.g., Data Structures", activity: "e.g., Gym, Org meeting, Study block", exam: "e.g., Calculus midterm", event: "e.g., Org fair, Thesis defense" }[form.kind]}
               autoFocus
             />
           </div>
@@ -138,6 +155,7 @@ export default function EntryModal({ entry, kind = "class", date, onSave, onDele
             <input id="entry-end" type="time" value={form.endTime} onChange={(e) => set({ endTime: e.target.value })} />
           </div>
 
+          {form.kind !== "exam" && (
           <div className="form-group full-span">
             <div className="sched-segment" role="group" aria-label="Repeats">
               <button type="button" className={form.repeat === "weekly" ? "active" : ""} onClick={() => set({ repeat: "weekly", days: form.days.length ? form.days : [1, 3] })}>
@@ -148,6 +166,15 @@ export default function EntryModal({ entry, kind = "class", date, onSave, onDele
               </button>
             </div>
           </div>
+          )}
+
+          {form.kind === "exam" && (
+            <div className="form-group full-span">
+              <label htmlFor="entry-prep">Study hours to set aside</label>
+              <input id="entry-prep" type="number" min="0" max="40" step="0.5" value={form.prepHours} onChange={(e) => set({ prepHours: e.target.value })} />
+              <p className="sched-hint">Your dashboard adds this as study work due on the exam day and plans the days before around it. Use 0 to skip it.</p>
+            </div>
+          )}
 
           {form.repeat === "weekly" ? (
             <>
