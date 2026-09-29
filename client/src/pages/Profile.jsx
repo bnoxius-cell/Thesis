@@ -51,6 +51,11 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
     studentName: "",
     program: "BS Information Technology",
     studyHoursPerDay: 4,
+    sleepHours: 8,
+    hasRegularSleepSchedule: true,
+    usualSleepStart: "23:00",
+    usualWakeTime: "07:00",
+    travelMinutesPerDay: 0,
     wellbeingGoal: "steady",
     bio: "",
   });
@@ -67,6 +72,11 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
             studentName: userData.name || "",
             program: userData.program || "BS Information Technology",
             studyHoursPerDay: userData.studyHoursPerDay || 4,
+            sleepHours: userData.sleepHours ?? 8,
+            hasRegularSleepSchedule: userData.hasRegularSleepSchedule !== false,
+            usualSleepStart: userData.usualSleepStart || "23:00",
+            usualWakeTime: userData.usualWakeTime || "07:00",
+            travelMinutesPerDay: userData.travelMinutesPerDay ?? 0,
             wellbeingGoal: userData.wellbeingGoal || "steady",
             bio: userData.bio || "",
           };
@@ -328,6 +338,27 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
               />
             </label>
 
+            <label>
+              Sleep hours per day
+              <input type="number" min="6" max="12" step="0.5" value={isEditing ? editForm.sleepHours : profile.sleepHours} onChange={(e) => handleEditChange("sleepHours", Number(e.target.value))} disabled={!isEditing} />
+              <small className="field-hint">Planning allows a 6 hour minimum on especially heavy weeks.</small>
+            </label>
+
+            <label>
+              Travel time on school days (minutes)
+              <input type="number" min="0" max="240" step="5" value={isEditing ? editForm.travelMinutesPerDay : profile.travelMinutesPerDay} onChange={(e) => handleEditChange("travelMinutesPerDay", Number(e.target.value))} disabled={!isEditing} />
+              <small className="field-hint">Reserved for travel when planning study time; it is not added to your timetable.</small>
+            </label>
+
+            <label className="full-span sched-check">
+              <input type="checkbox" checked={isEditing ? editForm.hasRegularSleepSchedule : profile.hasRegularSleepSchedule} onChange={(e) => handleEditChange("hasRegularSleepSchedule", e.target.checked)} disabled={!isEditing} />
+              I have a regular sleep schedule
+            </label>
+            {(isEditing ? editForm.hasRegularSleepSchedule : profile.hasRegularSleepSchedule) && <>
+              <label>Usual bedtime<input type="time" value={isEditing ? editForm.usualSleepStart : profile.usualSleepStart} onChange={(e) => handleEditChange("usualSleepStart", e.target.value)} disabled={!isEditing} /></label>
+              <label>Usual wake time<input type="time" value={isEditing ? editForm.usualWakeTime : profile.usualWakeTime} onChange={(e) => handleEditChange("usualWakeTime", e.target.value)} disabled={!isEditing} /></label>
+            </>}
+
             <label className="full-span">
               About you
               <textarea
@@ -375,10 +406,10 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
                 </div>
                 <div className={`survey-score${pss.status === "stale" ? " is-stale" : ""}`}>
                   <div className="survey-score-value">
-                    {pssScore === null ? "No result" : `${pssScore} / 40`}
+                    {pss.status === "stale" ? "Expired" : pssScore === null ? "No result" : `${pssScore} / 40`}
                   </div>
                   <div className="survey-score-label">
-                    {pssScore === null ? "Take the survey to personalize your score" : getStressLevel(pssScore)}
+                    {pss.status === "stale" ? "Retake to refresh" : pssScore === null ? "Take the survey to personalize your score" : getStressLevel(pssScore)}
                   </div>
                 </div>
               </div>
@@ -402,10 +433,10 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
                 </div>
                 <div className={`survey-score${who.status === "stale" ? " is-stale" : ""}`}>
                   <div className="survey-score-value">
-                    {whoScore === null ? "No result" : `${whoScore} / 100`}
+                    {who.status === "stale" ? "Expired" : whoScore === null ? "No result" : `${whoScore} / 100`}
                   </div>
                   <div className="survey-score-label">
-                    {whoScore === null ? "Take the survey to personalize your score" : getWellbeingInterpretation(whoScore)}
+                    {who.status === "stale" ? "Retake to refresh" : whoScore === null ? "Take the survey to personalize your score" : getWellbeingInterpretation(whoScore)}
                   </div>
                 </div>
               </div>

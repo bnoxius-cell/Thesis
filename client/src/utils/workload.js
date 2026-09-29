@@ -128,9 +128,11 @@ const MAX_CAPACITY_FACTOR = 1.25;
 // Hours a day can really hold for study. Scales the student's own figure by how much
 // free time the day has compared with a typical one, and never exceeds what is left
 // after classes, activities and the rest buffer.
-export const studyCapacity = (studyHoursPerDay, busyHours) => {
-  const free = USABLE_HOURS - busyHours - REST_BUFFER;
-  const typicalFree = USABLE_HOURS - TYPICAL_COMMITMENT - REST_BUFFER;
+export const studyCapacity = (studyHoursPerDay, busyHours, sleepHours = 8, travelHours = 0) => {
+  const awakeHours = 24 - clamp(Number(sleepHours) || 8, 6, 12) - 2;
+  const usableHours = Math.min(USABLE_HOURS, awakeHours);
+  const free = usableHours - busyHours - travelHours - REST_BUFFER;
+  const typicalFree = usableHours - TYPICAL_COMMITMENT - REST_BUFFER;
   const factor = clamp(free / typicalFree, 0, MAX_CAPACITY_FACTOR);
   return round1(Math.max(0, Math.min(studyHoursPerDay * factor, free)));
 };
@@ -140,6 +142,7 @@ export const studyCapacity = (studyHoursPerDay, busyHours) => {
 // overview (or null when there is no timetable).
 export function buildWeek(tasks, profile, overview, now = new Date()) {
   const base = Math.max(Number(profile.studyHoursPerDay) || 0, 1);
+  const travelHours = Math.max(0, Math.min(Number(profile.travelMinutesPerDay) || 0, 240)) / 60;
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const byDate = new Map((overview?.days || []).map((d) => [d.date, d]));
   // Without a timetable we know nothing about the day, so trust the student's figure.
@@ -159,7 +162,9 @@ export function buildWeek(tasks, profile, overview, now = new Date()) {
       classHours: o?.classHours ?? 0,
       activityHours: o?.activityHours ?? 0,
       busyHours,
-      capacity: timetableKnown ? studyCapacity(base, busyHours) : base,
+      capacity: timetableKnown
+        ? studyCapacity(base, busyHours, profile.sleepHours, travelHours)
+        : Math.max(0, Math.min(base, 24 - clamp(Number(profile.sleepHours) || 8, 6, 12) - 2 - REST_BUFFER - travelHours)),
       load: 0,
       items: [],
     };

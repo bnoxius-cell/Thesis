@@ -29,6 +29,11 @@ export const getUserData = async (req, res) => {
                 bio: user.bio,
                 program: user.program,
                 studyHoursPerDay: user.studyHoursPerDay,
+                sleepHours: user.sleepHours,
+                hasRegularSleepSchedule: user.hasRegularSleepSchedule,
+                usualSleepStart: user.usualSleepStart,
+                usualWakeTime: user.usualWakeTime,
+                travelMinutesPerDay: user.travelMinutesPerDay,
                 wellbeingGoal: user.wellbeingGoal,
                 friends: user.friends,
                 lastPSSSubmission: user.lastPSSSubmission,
@@ -49,7 +54,7 @@ export const getUserData = async (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const userId = req.userId;
-        const { studentName, program, studyHoursPerDay, wellbeingGoal, bio } = req.body;
+        const { studentName, program, studyHoursPerDay, sleepHours, hasRegularSleepSchedule, usualSleepStart, usualWakeTime, travelMinutesPerDay, wellbeingGoal, bio } = req.body;
 
         const updateFields = {};
         if (bio !== undefined) {
@@ -61,6 +66,11 @@ export const updateProfile = async (req, res) => {
         if (studentName !== undefined) updateFields.name = studentName;
         if (program !== undefined) updateFields.program = program;
         if (studyHoursPerDay !== undefined) updateFields.studyHoursPerDay = studyHoursPerDay;
+        if (sleepHours !== undefined) updateFields.sleepHours = sleepHours;
+        if (hasRegularSleepSchedule !== undefined) updateFields.hasRegularSleepSchedule = Boolean(hasRegularSleepSchedule);
+        if (usualSleepStart !== undefined) updateFields.usualSleepStart = usualSleepStart;
+        if (usualWakeTime !== undefined) updateFields.usualWakeTime = usualWakeTime;
+        if (travelMinutesPerDay !== undefined) updateFields.travelMinutesPerDay = travelMinutesPerDay;
         if (wellbeingGoal !== undefined) updateFields.wellbeingGoal = wellbeingGoal;
 
         const updatedUser = await userModel.findByIdAndUpdate(
@@ -81,6 +91,11 @@ export const updateProfile = async (req, res) => {
                 bio: updatedUser.bio,
                 program: updatedUser.program,
                 studyHoursPerDay: updatedUser.studyHoursPerDay,
+                sleepHours: updatedUser.sleepHours,
+                hasRegularSleepSchedule: updatedUser.hasRegularSleepSchedule,
+                usualSleepStart: updatedUser.usualSleepStart,
+                usualWakeTime: updatedUser.usualWakeTime,
+                travelMinutesPerDay: updatedUser.travelMinutesPerDay,
                 wellbeingGoal: updatedUser.wellbeingGoal,
             }
         });

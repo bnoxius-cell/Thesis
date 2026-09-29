@@ -177,6 +177,11 @@ const Dashboard = () => {
     studentName: "",
     program: "BS Information Technology",
     studyHoursPerDay: 4,
+    sleepHours: 8,
+    hasRegularSleepSchedule: true,
+    usualSleepStart: "23:00",
+    usualWakeTime: "07:00",
+    travelMinutesPerDay: 0,
     wellbeingGoal: "steady",
   });
   const [tasks, setTasks] = useState([]);
@@ -231,6 +236,11 @@ const Dashboard = () => {
           studentName: u.name || "",
           program: u.program || "BS Information Technology",
           studyHoursPerDay: u.studyHoursPerDay || 4,
+          sleepHours: u.sleepHours ?? 8,
+          hasRegularSleepSchedule: u.hasRegularSleepSchedule !== false,
+          usualSleepStart: u.usualSleepStart || "23:00",
+          usualWakeTime: u.usualWakeTime || "07:00",
+          travelMinutesPerDay: u.travelMinutesPerDay ?? 0,
           wellbeingGoal: u.wellbeingGoal || "steady",
         }));
         setPssScore(u.latestPSSScore ?? null);
