@@ -60,81 +60,83 @@
 }
 
 .dark-theme {
-  /* Dark theme — warm charcoal, not cold slate */
-  --paper: #23251e;
-  --paper-raised: #2c2e25;
-  --ink: #f1eede;
-  --ink-soft: #b7b6a4;
-  --sage: #8fac8f;
-  --sage-deep: #2c4736;
-  --sage-soft: #3a4536;
-  --ochre: #e0aa5c;
-  --ochre-soft: #3c331f;
-  --clay: #e08a6f;
-  --clay-soft: #402c25;
-  --mist: rgba(241, 238, 222, 0.06);
+  /* Dark theme: original slate + red palette. The newer token names are kept
+     (so redesigned components still resolve) but mapped to the old colors. */
+  --paper: #1e293b;
+  --paper-raised: #334155;
+  --ink: #f8fafc;
+  --ink-soft: #94a3b8;
+  --sage: #f87171;
+  --sage-deep: #0f172a;
+  --sage-soft: #334155;
+  --ochre: #f87171;
+  --ochre-soft: #78350f;
+  --clay: #f87171;
+  --clay-soft: #7f1d1d;
+  --mist: rgba(255, 255, 255, 0.06);
 
-  --bg-app: var(--paper);
-  --text-primary: var(--ink);
-  --text-secondary: var(--ink-soft);
-  --border-light: rgba(241, 238, 222, 0.08);
-  --card-bg: var(--paper-raised);
-  --hero-bg: linear-gradient(165deg, #2c2e25, var(--paper));
-  --auth-card-bg: var(--paper-raised);
-  --panel-bg: var(--paper-raised);
-  --input-bg: #1c1e18;
-  --input-border: #454738;
-  --task-card-bg: var(--paper-raised);
-  --schedule-item-bg: #33352a;
-  --metric-card-bg: var(--paper-raised);
-  --insight-card-bg: var(--ochre-soft);
-  --btn-secondary-bg: var(--paper-raised);
-  --btn-secondary-border: rgba(143, 172, 143, 0.3);
-  --btn-ghost-bg: rgba(143, 172, 143, 0.1);
-  --hero-panel-bg: var(--sage-deep);
-  --hero-panel-text: #f1eede;
-  --chart-track-bg: linear-gradient(180deg, rgba(44, 46, 37, 0.7), var(--sage-deep));
-  --status-pill-critical-bg: var(--clay-soft);
-  --status-pill-upcoming-bg: var(--ochre-soft);
-  --status-pill-overdue-bg: #111309;
-  --card-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.4);
+  --bg-app: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border-light: rgba(255, 255, 255, 0.04);
+  --card-bg: #334155;
+  --hero-bg: radial-gradient(circle at top left, rgba(239, 68, 68, 0.12), transparent 36%),
+             linear-gradient(135deg, #334155, #1e293b);
+  --auth-card-bg: #334155;
+  --panel-bg: #334155;
+  --input-bg: #0f172a;
+  --input-border: #475569;
+  --task-card-bg: #334155;
+  --schedule-item-bg: #334155;
+  --metric-card-bg: #334155;
+  --insight-card-bg: #0f172a;
+  --btn-secondary-bg: #1e293b;
+  --btn-secondary-border: rgba(255, 255, 255, 0.2);
+  --btn-ghost-bg: rgba(255, 255, 255, 0.08);
+  --hero-panel-bg: #0f172a;
+  --hero-panel-text: #e2e8f0;
+  --chart-track-bg: linear-gradient(180deg, rgba(30, 41, 59, 0.7), #0f172a);
+  --status-pill-critical-bg: #7f1d1d;
+  --status-pill-upcoming-bg: #78350f;
+  --status-pill-overdue-bg: #111827;
+  --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
 
   /* Header & sidepanel (dark) */
-  --header-bg: var(--paper-raised);
-  --header-text: var(--sage);
-  --header-border: rgba(241, 238, 222, 0.06);
-  --user-info-color: var(--ink-soft);
-  --logout-btn-color: var(--ink-soft);
-  --logout-btn-bg: var(--paper-raised);
-  --logout-btn-border: rgba(241, 238, 222, 0.14);
-  --logout-btn-hover-color: var(--clay);
-  --logout-btn-hover-bg: var(--clay-soft);
-  --logout-btn-hover-border: rgba(224, 138, 111, 0.4);
-  --menu-item-color: var(--ink-soft);
-  --menu-item-hover-bg: var(--sage-soft);
-  --menu-item-hover-color: var(--ink);
+  --header-bg: #0f172a;
+  --header-text: #f87171;
+  --header-border: rgba(255, 255, 255, 0.03);
+  --user-info-color: #cbd5e1;
+  --logout-btn-color: #f87171;
+  --logout-btn-bg: #1e293b;
+  --logout-btn-border: rgba(248, 113, 113, 0.3);
+  --logout-btn-hover-color: #fca5a5;
+  --logout-btn-hover-bg: #334155;
+  --logout-btn-hover-border: rgba(248, 113, 113, 0.5);
+  --menu-item-color: #cbd5e1;
+  --menu-item-hover-bg: #334155;
+  --menu-item-hover-color: #ffffff;
 
   /* Friends button dark adjustments (extremely subtle) */
   .friend-request-button:hover .friend-button-content::before {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.008));
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.005));
   }
   .friend-request-button::after {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(255, 255, 255, 0.01);
   }
   .friend-badge {
-    color: var(--ochre);
+    color: #f87171;
   }
   .friend-request-button:hover .friend-badge {
-    color: #edc07e;
+    color: #fca5a5;
   }
   .friend-title {
-    color: var(--ink);
+    color: #e2e8f0;
   }
   .friend-request-button:hover .friend-title {
-    color: #fff;
+    color: white;
   }
   .friend-icon svg {
-    color: var(--ochre);
+    color: #f87171;
   }
 }
 
