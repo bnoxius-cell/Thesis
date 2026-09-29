@@ -11,12 +11,13 @@ import Schedule from './pages/Schedule';
 import Notifications from './pages/Notifications';
 import AuthPage from './pages/authentication/AuthPage';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { ToastContainer } from 'react-toastify';
 import './App.css';
 import { useAuth } from './pages/authentication/AuthContext';
 
 const AppContent = () => {
-  const { isLoggedin } = useAuth();
+  const { isLoggedin, userData } = useAuth();
   const { theme } = useTheme();
 
   return (
@@ -25,6 +26,7 @@ const AppContent = () => {
         password or an invalid code failed silently. */}
     <ToastContainer position="top-right" autoClose={4000} newestOnTop theme={theme} />
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <NotificationProvider key={userData?._id || 'guest'}>
       <Routes>
         <Route path="/" element={isLoggedin ? <Navigate to="/dashboard" replace /> : <AuthPage />} />
         <Route path="/dashboard" element={isLoggedin ? <Dashboard /> : <Navigate to="/" replace />} />
@@ -40,6 +42,7 @@ const AppContent = () => {
         <Route path="*" element={<Navigate to="/" replace />} />
       
       </Routes>
+      </NotificationProvider>
     </Router>
     </>
   );

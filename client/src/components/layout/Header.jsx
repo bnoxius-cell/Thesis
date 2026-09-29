@@ -3,9 +3,11 @@ import { useAuth } from "../../pages/authentication/AuthContext";
 import { LogOut, UserCircle, User, Plus, Info, Settings, Users, UserCheck, Bell, LayoutDashboard, Menu, CalendarDays } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import Logo from '../../assets/logo.svg'; // Assuming you create this file
+import { useNotifications } from '../../context/NotificationContext';
 
 export default function Header() {
   const { user, logout, isLoggedin } = useAuth();
+  const { unreadCount } = useNotifications();
   const location = useLocation();
   const [expanded, setExpanded] = useState(false);
   const closeDrawer = () => setExpanded(false);
@@ -63,6 +65,9 @@ export default function Header() {
             </Link>
             <Link to="/notifications" className={`sidepanel-link ${location.pathname === '/notifications' ? 'active' : ''}`} onClick={closeDrawer}>
               <Bell size={18} /> <span>Notifications</span>
+              {unreadCount > 0 && (
+                <span className="nav-badge" aria-label={`${unreadCount} unread`}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
             </Link>
             <Link to="/about" className={`sidepanel-link ${location.pathname === '/about' ? 'active' : ''}`} onClick={closeDrawer}>
               <Info size={18} /> <span>About</span>
