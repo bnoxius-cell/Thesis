@@ -9,6 +9,12 @@ const groupSchema = new mongoose.Schema({
         type: String, 
         default: '' 
     },
+    joinCode: {
+        type: String,
+        unique: true,
+        sparse: true,
+        uppercase: true
+    },
     admin: { 
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'user', 
