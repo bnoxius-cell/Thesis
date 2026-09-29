@@ -31,13 +31,22 @@ describe('POST /api/auth/register', () => {
         expect(res.body.message).toMatch(/all fields must be filled/i);
     });
 
-    test('rejects a non-Fatima-student email', async () => {
+    test('rejects a malformed email', async () => {
         const res = await request(app)
             .post('/api/auth/register')
-            .send(validRegisterPayload({ email: 'test.student@gmail.com' }));
+            .send(validRegisterPayload({ email: 'not-an-email' }));
 
         expect(res.body.success).toBe(false);
-        expect(res.body.message).toMatch(/fatima student email/i);
+        expect(res.body.message).toMatch(/valid email/i);
+    });
+
+    test('accepts a non-Fatima email', async () => {
+        const res = await request(app)
+            .post('/api/auth/register')
+            .send(validRegisterPayload({ email: 'someone@gmail.com' }));
+
+        expect(res.body.success).toBe(true);
+        expect(await userModel.findOne({ email: 'someone@gmail.com' })).not.toBeNull();
     });
 
     test('rejects a password shorter than 8 characters', async () => {
