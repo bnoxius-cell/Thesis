@@ -8,11 +8,16 @@ import taskRouter from './routes/taskRoutes.js';
 import friendRouter from './routes/friendRoutes.js';
 import groupRouter from './routes/groupRoutes.js';
 import notificationRouter from './routes/notificationRoutes.js';
+import scheduleRouter from './routes/scheduleRoutes.js';
 
 // Express app wiring only — no DB connection, no app.listen(). Kept separate from
 // server.js so tests can import the app directly (via supertest) without booting
 // a real server or touching the real database. server.js is the actual entry point.
 const app = express();
+// Schedule entries can carry a small inline picture, which needs more headroom than
+// the 100kb default. Registered first so the body is parsed once, with this limit;
+// every other route keeps the default.
+app.use('/api/schedules', express.json({ limit: '300kb' }));
 app.use(express.json());
 
 // In dev, Vite auto-bumps to 5174/5175/... whenever something is already holding 5173
@@ -45,5 +50,6 @@ app.use('/api/tasks', taskRouter);
 app.use('/api/friends', friendRouter);
 app.use('/api/groups', groupRouter);
 app.use('/api/notifications', notificationRouter);
+app.use('/api/schedules', scheduleRouter);
 
 export default app;
