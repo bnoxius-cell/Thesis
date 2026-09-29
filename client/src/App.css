@@ -3,138 +3,142 @@
    ========================================================================== */
 
 :root {
-  /* ---- Core palette: a warm, grounded wellbeing tone, not a SaaS-alert red ---- */
-  --paper: #f1efe3;         /* base background — warm, sage-cast neutral */
-  --paper-raised: #fbfaf3;  /* cards / surfaces that sit above the page */
-  --ink: #2a2e26;           /* body text — warm near-black, green undertone */
-  --ink-soft: #5c6156;      /* secondary text */
-  --sage: #4c6350;          /* primary brand — calm, grounded, everyday actions */
-  --sage-deep: #33453a;     /* the one bold, filled moment on a page */
-  --sage-soft: #dde4d8;     /* subtle sage fills */
-  --ochre: #c98a2c;         /* warm accent — peer / human touches (friends, sharing) */
-  --ochre-soft: #f1e3c2;
-  --clay: #b1543c;          /* reserved for genuine urgency only */
-  --clay-soft: #f0dbd2;
-  --mist: rgba(42, 46, 38, 0.08);
+  /* Light theme: original slate + red palette. The newer token names are kept
+     (so redesigned components still resolve) but mapped to the old colors. */
+  --paper: #f8fafc;
+  --paper-raised: #ffffff;
+  --ink: #0f172a;
+  --ink-soft: #475569;
+  --sage: #dc2626;
+  --sage-deep: #14213d;
+  --sage-soft: #f1f5f9;
+  --ochre: #dc2626;
+  --ochre-soft: #fef3c7;
+  --clay: #b91c1c;
+  --clay-soft: #fee2e2;
+  --mist: rgba(0, 0, 0, 0.06);
 
   /* Light theme (default) */
-  --bg-app: var(--paper);
-  --text-primary: var(--ink);
-  --text-secondary: var(--ink-soft);
-  --border-light: rgba(42, 46, 38, 0.12);
-  --card-bg: var(--paper-raised);
-  --hero-bg: linear-gradient(165deg, #f8f6ec, var(--paper));
-  --auth-card-bg: var(--paper-raised);
-  --panel-bg: var(--paper-raised);
-  --input-bg: #fbfaf3;
-  --input-border: #dbd6c3;
-  --task-card-bg: var(--paper-raised);
-  --schedule-item-bg: #ebe8d9;
-  --metric-card-bg: var(--paper-raised);
-  --insight-card-bg: var(--ochre-soft);
-  --btn-secondary-bg: var(--paper-raised);
-  --btn-secondary-border: rgba(76, 99, 80, 0.28);
-  --btn-ghost-bg: rgba(76, 99, 80, 0.1);
-  --hero-panel-bg: var(--sage-deep);
-  --hero-panel-text: #f3efe1;
-  --chart-track-bg: linear-gradient(180deg, rgba(251, 250, 243, 0.7), var(--sage-soft));
-  --status-pill-critical-bg: var(--clay-soft);
-  --status-pill-upcoming-bg: var(--ochre-soft);
-  --status-pill-overdue-bg: var(--ink);
-  --card-shadow: 0 2px 10px -4px rgba(42, 46, 38, 0.12);
+  --bg-app: #f8fafc;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --border-light: rgba(0, 0, 0, 0.06);
+  --card-bg: #ffffff;
+  --hero-bg: radial-gradient(circle at top left, rgba(239, 68, 68, 0.08), transparent 36%),
+             linear-gradient(135deg, #ffffff, #fafafa);
+  --auth-card-bg: #ffffff;
+  --panel-bg: #ffffff;
+  --input-bg: #f8fafc;
+  --input-border: #dbe4f0;
+  --task-card-bg: #ffffff;
+  --schedule-item-bg: #f8fafc;
+  --metric-card-bg: #ffffff;
+  --insight-card-bg: #fff7ed;
+  --btn-secondary-bg: #fff;
+  --btn-secondary-border: rgba(220, 38, 38, 0.25);
+  --btn-ghost-bg: rgba(220, 38, 38, 0.08);
+  --hero-panel-bg: #14213d;
+  --hero-panel-text: #fff;
+  --chart-track-bg: linear-gradient(180deg, rgba(248, 250, 252, 0.7), #eef2ff);
+  --status-pill-critical-bg: #fee2e2;
+  --status-pill-upcoming-bg: #fef3c7;
+  --status-pill-overdue-bg: #1f2937;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.025);
 
   /* Header & sidepanel (light) */
-  --header-bg: var(--paper-raised);
-  --header-text: var(--sage-deep);
-  --header-border: rgba(42, 46, 38, 0.08);
-  --user-info-color: var(--ink-soft);
-  --logout-btn-color: var(--ink-soft);
-  --logout-btn-bg: var(--paper-raised);
-  --logout-btn-border: rgba(42, 46, 38, 0.14);
-  --logout-btn-hover-color: var(--clay);
-  --logout-btn-hover-bg: var(--clay-soft);
-  --logout-btn-hover-border: rgba(177, 84, 60, 0.3);
-  --menu-item-color: var(--ink-soft);
-  --menu-item-hover-bg: var(--sage-soft);
-  --menu-item-hover-color: var(--sage-deep);
+  --header-bg: #ffffff;
+  --header-text: #991b1b;
+  --header-border: rgba(0, 0, 0, 0.04);
+  --user-info-color: #334155;
+  --logout-btn-color: #991b1b;
+  --logout-btn-bg: #fff;
+  --logout-btn-border: rgba(185, 28, 28, 0.18);
+  --logout-btn-hover-color: #b91c1c;
+  --logout-btn-hover-bg: #fff1f2;
+  --logout-btn-hover-border: rgba(185, 28, 28, 0.35);
+  --menu-item-color: #334155;
+  --menu-item-hover-bg: #f1f5f9;
+  --menu-item-hover-color: #0f172a;
 }
 
 .dark-theme {
-  /* Dark theme — warm charcoal, not cold slate */
-  --paper: #23251e;
-  --paper-raised: #2c2e25;
-  --ink: #f1eede;
-  --ink-soft: #b7b6a4;
-  --sage: #8fac8f;
-  --sage-deep: #2c4736;
-  --sage-soft: #3a4536;
-  --ochre: #e0aa5c;
-  --ochre-soft: #3c331f;
-  --clay: #e08a6f;
-  --clay-soft: #402c25;
-  --mist: rgba(241, 238, 222, 0.06);
+  /* Dark theme: original slate + red palette. The newer token names are kept
+     (so redesigned components still resolve) but mapped to the old colors. */
+  --paper: #1e293b;
+  --paper-raised: #334155;
+  --ink: #f8fafc;
+  --ink-soft: #94a3b8;
+  --sage: #f87171;
+  --sage-deep: #0f172a;
+  --sage-soft: #334155;
+  --ochre: #f87171;
+  --ochre-soft: #78350f;
+  --clay: #f87171;
+  --clay-soft: #7f1d1d;
+  --mist: rgba(255, 255, 255, 0.06);
 
-  --bg-app: var(--paper);
-  --text-primary: var(--ink);
-  --text-secondary: var(--ink-soft);
-  --border-light: rgba(241, 238, 222, 0.08);
-  --card-bg: var(--paper-raised);
-  --hero-bg: linear-gradient(165deg, #2c2e25, var(--paper));
-  --auth-card-bg: var(--paper-raised);
-  --panel-bg: var(--paper-raised);
-  --input-bg: #1c1e18;
-  --input-border: #454738;
-  --task-card-bg: var(--paper-raised);
-  --schedule-item-bg: #33352a;
-  --metric-card-bg: var(--paper-raised);
-  --insight-card-bg: var(--ochre-soft);
-  --btn-secondary-bg: var(--paper-raised);
-  --btn-secondary-border: rgba(143, 172, 143, 0.3);
-  --btn-ghost-bg: rgba(143, 172, 143, 0.1);
-  --hero-panel-bg: var(--sage-deep);
-  --hero-panel-text: #f1eede;
-  --chart-track-bg: linear-gradient(180deg, rgba(44, 46, 37, 0.7), var(--sage-deep));
-  --status-pill-critical-bg: var(--clay-soft);
-  --status-pill-upcoming-bg: var(--ochre-soft);
-  --status-pill-overdue-bg: #111309;
-  --card-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.4);
+  --bg-app: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border-light: rgba(255, 255, 255, 0.04);
+  --card-bg: #334155;
+  --hero-bg: radial-gradient(circle at top left, rgba(239, 68, 68, 0.12), transparent 36%),
+             linear-gradient(135deg, #334155, #1e293b);
+  --auth-card-bg: #334155;
+  --panel-bg: #334155;
+  --input-bg: #0f172a;
+  --input-border: #475569;
+  --task-card-bg: #334155;
+  --schedule-item-bg: #334155;
+  --metric-card-bg: #334155;
+  --insight-card-bg: #0f172a;
+  --btn-secondary-bg: #1e293b;
+  --btn-secondary-border: rgba(255, 255, 255, 0.2);
+  --btn-ghost-bg: rgba(255, 255, 255, 0.08);
+  --hero-panel-bg: #0f172a;
+  --hero-panel-text: #e2e8f0;
+  --chart-track-bg: linear-gradient(180deg, rgba(30, 41, 59, 0.7), #0f172a);
+  --status-pill-critical-bg: #7f1d1d;
+  --status-pill-upcoming-bg: #78350f;
+  --status-pill-overdue-bg: #111827;
+  --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
 
   /* Header & sidepanel (dark) */
-  --header-bg: var(--paper-raised);
-  --header-text: var(--sage);
-  --header-border: rgba(241, 238, 222, 0.06);
-  --user-info-color: var(--ink-soft);
-  --logout-btn-color: var(--ink-soft);
-  --logout-btn-bg: var(--paper-raised);
-  --logout-btn-border: rgba(241, 238, 222, 0.14);
-  --logout-btn-hover-color: var(--clay);
-  --logout-btn-hover-bg: var(--clay-soft);
-  --logout-btn-hover-border: rgba(224, 138, 111, 0.4);
-  --menu-item-color: var(--ink-soft);
-  --menu-item-hover-bg: var(--sage-soft);
-  --menu-item-hover-color: var(--ink);
+  --header-bg: #0f172a;
+  --header-text: #f87171;
+  --header-border: rgba(255, 255, 255, 0.03);
+  --user-info-color: #cbd5e1;
+  --logout-btn-color: #f87171;
+  --logout-btn-bg: #1e293b;
+  --logout-btn-border: rgba(248, 113, 113, 0.3);
+  --logout-btn-hover-color: #fca5a5;
+  --logout-btn-hover-bg: #334155;
+  --logout-btn-hover-border: rgba(248, 113, 113, 0.5);
+  --menu-item-color: #cbd5e1;
+  --menu-item-hover-bg: #334155;
+  --menu-item-hover-color: #ffffff;
 
   /* Friends button dark adjustments (extremely subtle) */
   .friend-request-button:hover .friend-button-content::before {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.008));
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.005));
   }
   .friend-request-button::after {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(255, 255, 255, 0.01);
   }
   .friend-badge {
-    color: var(--ochre);
+    color: #f87171;
   }
   .friend-request-button:hover .friend-badge {
-    color: #edc07e;
+    color: #fca5a5;
   }
   .friend-title {
-    color: var(--ink);
+    color: #e2e8f0;
   }
   .friend-request-button:hover .friend-title {
-    color: #fff;
+    color: white;
   }
   .friend-icon svg {
-    color: var(--ochre);
+    color: #f87171;
   }
 }
 
