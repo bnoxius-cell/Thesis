@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import Header from "../../components/layout/Header";
 import Footer from "../../components/layout/Footer";
 import { useAuth } from "../authentication/AuthContext";
-import { TERMS, PRIVACY, LEGAL_UPDATED, SUPPORT_EMAIL } from "./legalContent";
+import { TERMS, PRIVACY, LEGAL_UPDATED, SUPPORT_EMAILS } from "./legalContent";
 import "../../App.css";
 
 const DOCS = {
@@ -15,7 +15,7 @@ function Block({ block }) {
   if (block.p) return <p>{block.p}</p>;
   if (block.ul) return <ul>{block.ul.map((item) => <li key={item}>{item}</li>)}</ul>;
   if (block.mail) {
-    return <p>{block.mail} <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.</p>;
+    return <p>{block.mail}{" "}{SUPPORT_EMAILS.map((e, i) => (<span key={e}>{i > 0 && " or "}<a href={`mailto:${e}`}>{e}</a></span>))}.</p>;
   }
   return null;
 }
