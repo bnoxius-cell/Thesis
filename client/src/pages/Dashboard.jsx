@@ -10,9 +10,10 @@ import PSSSurveyModal from "../components/PSSSurveyModal";
 import WHOSurveyModal from "../components/WHOSurveyModal";
 import CheckInBanner from "../components/CheckInBanner";
 import TaskImportDialog from "../components/TaskImportDialog";
-import { AlertTriangle, Eye, Lightbulb, Sparkles, CalendarDays, MapPin } from "lucide-react";
+import { AlertTriangle, Eye, Lightbulb, Sparkles, CalendarDays, MapPin, CircleCheck, Download, Plus } from "lucide-react";
 import { toISODate, formatTime } from "../utils/scheduleUtils";
-import { buildWeek, computeWorkload, getTaskMetrics } from "../utils/workload";
+import { buildWeek, computeWorkload, getTaskMetrics, surveyStatus, PSS_VALID_DAYS, WHO_VALID_DAYS } from "../utils/workload";
+import { buildFocus } from "../utils/todayFocus";
 import useCountUp from "../utils/useCountUp";
 import "../App.css";
 
@@ -32,14 +33,18 @@ function CountUp({ value }) {
   return useCountUp(value);
 }
 
-// "Tuesday, Sep 29. 3 classes today and 2 tasks due soon."
-function summarizeDay(day, dueCount) {
+// "Tuesday, Sep 29. 2 classes left today and 2 tasks due soon."
+function summarizeDay(day, focus) {
   const date = new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
-  const classes = day.entries.filter((e) => e.kind === "class").length;
+  const isClass = (e) => e.kind === "class";
+  const left = [...focus.happeningNow, ...focus.laterToday].filter(isClass).length;
+  const total = day.entries.filter(isClass).length;
   const bits = [];
   if (day.holiday) bits.push(`a day off for ${day.holiday}`);
-  else if (classes) bits.push(`${classes} ${classes === 1 ? "class" : "classes"} today`);
-  if (dueCount) bits.push(`${dueCount} ${dueCount === 1 ? "task" : "tasks"} due soon`);
+  else if (left) bits.push(`${left} ${left === 1 ? "class" : "classes"} ${left === total ? "today" : "left today"}`);
+  else if (total) bits.push("classes are done for today");
+  const due = focus.dueSoon.length;
+  if (due) bits.push(`${due} ${due === 1 ? "task" : "tasks"} due soon`);
   return bits.length ? `${date}. ${bits.join(" and ")}.` : `${date}. Nothing pressing today.`;
 }
 
@@ -69,6 +74,33 @@ const WELLBEING_MESSAGE = {
 };
 
 const LEVEL_WORD = { low: "Light", moderate: "Steady", high: "Heavy" };
+// Shown when nothing is on and nothing is due, worded for the time of day.
+const QUIET_MESSAGE = {
+  morning: "A clear morning. A good time to get ahead on something, or just to breathe.",
+  afternoon: "Nothing on and nothing due. Enjoy the breathing room.",
+  evening: "Nothing left for today. You can switch off.",
+  night: "Nothing left for today. Time to rest.",
+};
+
+function EntryList({ entries, label, live = false }) {
+  return (
+    <ul className="today-list today-classes" aria-label={label}>
+      {entries.map((entry, i) => (
+        <li key={`${entry.title}-${entry.startTime}-${i}`} className={`today-item${live ? " is-live" : ""}`}>
+          <span className={`today-dot ${entry.kind === "activity" ? "activity" : "class"}`} aria-hidden="true" />
+          <div>
+            <strong>{entry.title}{live && <span className="today-now-pill">Now</span>}</strong>
+            <span className="today-meta">
+              {formatTime(entry.startTime)} to {formatTime(entry.endTime)}
+              {entry.location && <> · <MapPin size={12} aria-hidden="true" /> {entry.location}</>}
+            </span>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 const TIP_ICON = { alert: AlertTriangle, watch: Eye, info: Lightbulb, good: Sparkles };
 
 const Dashboard = () => {
@@ -98,6 +130,10 @@ const Dashboard = () => {
   const [surveyUserId, setSurveyUserId] = useState("");
   const [pssScore, setPssScore] = useState(null);
   const [whoScore, setWhoScore] = useState(null);
+  const [pssLast, setPssLast] = useState(null);
+  const [whoLast, setWhoLast] = useState(null);
+  // Ticks each minute so the Today panel moves on as classes start and finish.
+  const [now, setNow] = useState(() => new Date());
   const [isExamWeek] = useState(false);
 
   // Reminder helpers
@@ -131,6 +167,8 @@ const Dashboard = () => {
         }));
         setPssScore(u.latestPSSScore ?? null);
         setWhoScore(u.latestWHOScore ?? null);
+        setPssLast(u.lastPSSSubmission || null);
+        setWhoLast(u.lastWHOSubmission || null);
         setPssNeverTaken(!u.lastPSSSubmission);
         setWhoNeverTaken(!u.lastWHOSubmission);
         // For exam week, you would read from profile later
@@ -153,7 +191,7 @@ const Dashboard = () => {
             const last = new Date(u.lastPSSSubmission);
             last.setHours(0, 0, 0, 0);
             const daysSince = (now - last) / (1000 * 60 * 60 * 24);
-            if (daysSince >= 30) nextPssDue = true;
+            if (daysSince >= PSS_VALID_DAYS) nextPssDue = true;
           }
         }
 
@@ -164,7 +202,7 @@ const Dashboard = () => {
             const last = new Date(u.lastWHOSubmission);
             last.setHours(0, 0, 0, 0);
             const daysSince = (now - last) / (1000 * 60 * 60 * 24);
-            if (daysSince >= 14) nextWhoDue = true;
+            if (daysSince >= WHO_VALID_DAYS) nextWhoDue = true;
           }
         }
 
@@ -217,6 +255,11 @@ const Dashboard = () => {
     };
   }, [isLoggedin]);
 
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
   // Task handlers
   const handleDeleteTask = async (taskId) => {
     try {
@@ -268,12 +311,20 @@ const Dashboard = () => {
   if (loading) return <div className="app app-layout"><Header /><main className="dashboard"><div className="panel" style={{ textAlign: "center" }}><p>Loading dashboard...</p></div></main><Footer /></div>;
 
   const activeTasks = tasks.filter(task => !task.isCompleted);
-  const enrichedTasks = activeTasks.map(task => ({ ...task, ...getTaskMetrics(task) })).sort((a,b) => b.workload - a.workload);
+  const enrichedTasks = activeTasks.map(task => ({ ...task, ...getTaskMetrics(task, now) })).sort((a,b) => b.workload - a.workload);
   const hasSchedule = Boolean(overview?.scheduleCount && overview?.entryCount);
-  const week = buildWeek(activeTasks, profile, overview);
-  const workloadInsights = computeWorkload({ tasks: activeTasks, profile, days: week, pssScore, whoScore, isExamWeek, hasSchedule });
-  const todayTasks = enrichedTasks.filter(t => t.daysLeft <= 1).slice(0, 5);
+  const week = buildWeek(activeTasks, profile, overview, now);
+  // A check-in older than its window no longer describes the student, so it stays out of the score.
+  const pss = surveyStatus(pssScore, pssLast, PSS_VALID_DAYS, now);
+  const who = surveyStatus(whoScore, whoLast, WHO_VALID_DAYS, now);
+  const workloadInsights = computeWorkload({
+    tasks: activeTasks, profile, days: week, pssScore: pss.score, whoScore: who.score, isExamWeek, hasSchedule,
+    pssStatus: pss.status, whoStatus: who.status, pssAgeDays: pss.ageDays, whoAgeDays: who.ageDays, now,
+  });
   const today = week[0];
+  const focus = buildFocus({ today, tomorrow: week[1], tasks: enrichedTasks, now });
+  const hasFreshCheckIn = pss.score !== null || who.score !== null;
+  const showTodayEntries = focus.happeningNow.length + focus.laterToday.length > 0;
   const firstName = profile.studentName?.split(" ")[0];
 
   return (
@@ -295,7 +346,7 @@ const Dashboard = () => {
 
         <section className="greeting" id="dashboard">
           <h1>{getGreeting()}{firstName ? `, ${firstName}` : ""}.</h1>
-          <p>{workloadInsights.isNewUser ? "Here's your space. Let's get it set up." : summarizeDay(today, todayTasks.length)}</p>
+          <p>{workloadInsights.isNewUser ? "Here's your space. Let's get it set up." : summarizeDay(today, focus)}</p>
         </section>
 
         {workloadInsights.isNewUser ? (
@@ -322,34 +373,30 @@ const Dashboard = () => {
         ) : (
           <section className="grid today-grid">
             <section className="panel">
-              <div className="panel-heading"><div><span className="panel-kicker">Today</span><h2>What's in front of you</h2></div></div>
+              <div className="panel-heading"><div><span className="panel-kicker">{focus.kicker}</span><h2>{focus.heading}</h2></div></div>
 
               {today.holiday && (
                 <p className="today-holiday"><CalendarDays size={16} aria-hidden="true" /> {today.holiday}. Classes that skip holidays are off today.</p>
               )}
 
-              {today.entries.length > 0 && (
-                <ul className="today-list today-classes" aria-label="Classes and activities today">
-                  {today.entries.map((entry, i) => (
-                    <li key={`${entry.title}-${entry.startTime}-${i}`} className="today-item">
-                      <span className={`today-dot ${entry.kind === "activity" ? "activity" : "class"}`} aria-hidden="true" />
-                      <div>
-                        <strong>{entry.title}</strong>
-                        <span className="today-meta">
-                          {formatTime(entry.startTime)} to {formatTime(entry.endTime)}
-                          {entry.location && <> · <MapPin size={12} aria-hidden="true" /> {entry.location}</>}
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+              {focus.happeningNow.length > 0 && <EntryList entries={focus.happeningNow} label="Happening now" live />}
+
+              {focus.laterToday.length > 0 && (
+                <>
+                  {focus.happeningNow.length > 0 && <h3 className="today-subhead">Later today</h3>}
+                  <EntryList entries={focus.laterToday} label="Later today" />
+                </>
               )}
 
-              {todayTasks.length > 0 ? (
+              {focus.finishedCount > 0 && (
+                <p className="today-finished">{focus.finishedCount} finished earlier today</p>
+              )}
+
+              {focus.dueSoon.length > 0 && (
                 <>
-                  {today.entries.length > 0 && <h3 className="today-subhead">Due soon</h3>}
+                  {(showTodayEntries || focus.finishedCount > 0) && <h3 className="today-subhead">Due soon</h3>}
                   <ul className="today-list">
-                    {todayTasks.map((task) => (
+                    {focus.dueSoon.map((task) => (
                       <li key={task._id} className="today-item">
                         <span className={`today-dot ${task.status.toLowerCase().replace(/\s+/g, "-")}`} aria-hidden="true" />
                         <div>
@@ -360,16 +407,67 @@ const Dashboard = () => {
                     ))}
                   </ul>
                 </>
-              ) : today.entries.length === 0 && (
-                <p className="today-empty">
-                  {today.holiday ? "A day off, and nothing due. Enjoy it." : "Nothing on today and nothing due tomorrow. A good day to get ahead, or just breathe."}
-                </p>
               )}
 
-              <div className="today-actions">
-                <Link to="/create-task" className="ghost-button today-add">+ Add a task</Link>
-                <Link to="/schedule" className="ghost-button today-add"><CalendarDays size={16} aria-hidden="true" /> {hasSchedule ? "View schedule" : "Add your class schedule"}</Link>
-              </div>
+              {focus.caughtUp ? (
+                <div className="caught-up">
+                  <CircleCheck size={22} aria-hidden="true" />
+                  <div>
+                    <strong>You're all caught up</strong>
+                    <p>No open tasks right now. Enjoy it, or use the time to plan ahead.</p>
+                    <div className="caught-up-actions">
+                      <Link to="/create-task" className="ghost-button today-add"><Plus size={16} aria-hidden="true" /> Add a task</Link>
+                      <button
+                        type="button"
+                        className="ghost-button today-add"
+                        onClick={() => {
+                          const input = document.getElementById("task-import-code");
+                          input?.scrollIntoView({ behavior: "smooth", block: "center" });
+                          input?.focus({ preventScroll: true });
+                        }}
+                      >
+                        <Download size={16} aria-hidden="true" /> Import a shared task
+                      </button>
+                      <Link to="/schedule" className="ghost-button today-add"><CalendarDays size={16} aria-hidden="true" /> {hasSchedule ? "View schedule" : "Add your class schedule"}</Link>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {focus.dueSoon.length === 0 && focus.nextTask && (
+                    <p className="today-next">
+                      Nothing due right now. Next up is <strong>{focus.nextTask.title}</strong>, due in {focus.nextTask.daysLeft} days.
+                    </p>
+                  )}
+                  {focus.dueSoon.length === 0 && !showTodayEntries && focus.finishedCount === 0 && (
+                    <p className="today-empty">{today.holiday ? "A day off, and nothing due. Enjoy it." : QUIET_MESSAGE[focus.phase]}</p>
+                  )}
+                </>
+              )}
+
+              {focus.tomorrow && (
+                <>
+                  <h3 className="today-subhead">Tomorrow</h3>
+                  {focus.tomorrow.holiday && (
+                    <p className="today-holiday"><CalendarDays size={16} aria-hidden="true" /> {focus.tomorrow.holiday}. A day off.</p>
+                  )}
+                  {focus.tomorrow.entries.length > 0 ? (
+                    <>
+                      <EntryList entries={focus.tomorrow.entries} label="Tomorrow" />
+                      {focus.tomorrow.moreEntries > 0 && <p className="today-finished">and {focus.tomorrow.moreEntries} more</p>}
+                    </>
+                  ) : !focus.tomorrow.holiday && (
+                    <p className="today-finished">Nothing scheduled tomorrow.</p>
+                  )}
+                </>
+              )}
+
+              {!focus.caughtUp && (
+                <div className="today-actions">
+                  <Link to="/create-task" className="ghost-button today-add">+ Add a task</Link>
+                  <Link to="/schedule" className="ghost-button today-add"><CalendarDays size={16} aria-hidden="true" /> {hasSchedule ? "View schedule" : "Add your class schedule"}</Link>
+                </div>
+              )}
             </section>
 
             <aside className="hero-panel">
@@ -392,8 +490,8 @@ const Dashboard = () => {
                 ))}
               </ul>
 
-              {!(pssScore !== null || whoScore !== null) && (
-                <p className="welcome-hint">This gets more personal once you take a check-in.</p>
+              {!hasFreshCheckIn && (
+                <p className="welcome-hint">{pss.status === "stale" || who.status === "stale" ? "Your last check-in is out of date, so it isn't counted. Retake it to make this more personal." : "This gets more personal once you take a check-in."}</p>
               )}
             </aside>
           </section>
@@ -428,7 +526,7 @@ const Dashboard = () => {
         <section className="panel">
           <div className="panel-heading"><div><span className="panel-kicker">All tasks</span><h2>Everything on your plate</h2></div></div>
           <form className="task-import-form" onSubmit={importTask}>
-            <input type="text" inputMode="numeric" maxLength="6" value={importCode} onChange={(e) => handleImportCodeChange(e.target.value)} onPaste={handleImportCodePaste} placeholder="6-digit task tag" />
+            <input id="task-import-code" type="text" inputMode="numeric" maxLength="6" value={importCode} onChange={(e) => handleImportCodeChange(e.target.value)} onPaste={handleImportCodePaste} placeholder="6-digit task tag" />
             <button type="submit" className="secondary-button">Import Task</button>
           </form>
           {taskMessage && <p className="task-message">{taskMessage}</p>}

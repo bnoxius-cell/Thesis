@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Friend from '../models/Friend.js';
 import userModel from '../models/userModel.js';
 import { notify } from '../utils/notify.js';
@@ -24,11 +25,15 @@ export const getFriends = async (req, res) => {
 export const sendFriendRequest = async (req, res) => {
     try {
         const senderId = req.userId;
-        const { profileTag } = req.body;
+        // A request goes to a profile tag typed in by hand, or to a user id when it comes
+        // from someone's profile (for example a groupmate).
+        const { profileTag, userId } = req.body;
 
-        const receiver = await userModel.findOne({ profileTag });
+        const receiver = userId
+            ? (mongoose.Types.ObjectId.isValid(userId) ? await userModel.findById(userId) : null)
+            : await userModel.findOne({ profileTag });
         if (!receiver) {
-            return res.status(404).json({ success: false, message: 'User not found with this tag.' });
+            return res.status(404).json({ success: false, message: userId ? 'User not found.' : 'User not found with this tag.' });
         }
         if (receiver._id.toString() === senderId) {
             return res.status(400).json({ success: false, message: 'You cannot add yourself as a friend.' });

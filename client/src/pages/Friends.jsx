@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "./authentication/AuthContext";
 import axios from "axios";
+import UserAvatar from "../components/UserAvatar";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import "../App.css";
@@ -193,11 +195,12 @@ export default function Friends() {
             <div className="friends-grid">
               {pendingRequests.map((req) => (
                 <div key={req._id} className="friend-card">
-                  <div className="friend-card-info">
+                  <UserAvatar name={req.user.name} src={req.user.avatar} size={48} />
+                  <Link to={`/profile/${req.user._id}`} className="friend-card-info">
                     <strong>{req.user.name}</strong>
                     <span className="friend-id">Tag: {req.user.profileTag}</span>
                     <small>{req.user.email}</small>
-                  </div>
+                  </Link>
                   <button className="primary-button small" onClick={() => acceptRequest(req._id)}>Accept</button>
                 </div>
               ))}
@@ -221,12 +224,13 @@ export default function Friends() {
             <div className="friends-grid">
               {friends.map((friend) => (
                 <div key={friend._id} className="friend-card">
-                  <div className="friend-card-info">
+                  <UserAvatar name={friend.name} src={friend.avatar} size={48} />
+                  <Link to={`/profile/${friend._id}`} className="friend-card-info" aria-label={`View ${friend.name}'s profile`}>
                     <strong>{friend.name}</strong>
                     <span className="friend-id">Tag: {friend.profileTag}</span>
                     <small>{friend.email}</small>
-                  </div>
-                  <button className="icon-btn remove-friend-btn" onClick={() => removeFriend(friend._id)}>✕</button>
+                  </Link>
+                  <button className="icon-btn remove-friend-btn" onClick={() => removeFriend(friend._id)} aria-label={`Remove ${friend.name}`}>✕</button>
                 </div>
               ))}
             </div>

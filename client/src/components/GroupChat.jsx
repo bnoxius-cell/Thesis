@@ -4,11 +4,14 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import {
   ArrowLeft, Send, Smile, ClipboardList, Check, Copy, Users, Clock, BookOpen,
-  LogOut, Trash2, ArrowDown, MessageSquare, X, Gauge, CalendarDays,
+  LogOut, Trash2, ArrowDown, MessageSquare, X, Gauge, CalendarDays, Settings, ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "../pages/authentication/AuthContext";
 import TaskImportDialog from "./TaskImportDialog";
 import ScheduleImportDialog from "./schedule/ScheduleImportDialog";
+import UserAvatar from "./UserAvatar";
+import MemberDialog from "./group/MemberDialog";
+import GroupSettingsDialog from "./group/GroupSettingsDialog";
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_LENGTH = 1000;
@@ -28,14 +31,6 @@ const formatDay = (iso) => {
 };
 
 const formatDue = (iso) => new Date(iso).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
-
-function Avatar({ name, src }) {
-  const [broken, setBroken] = useState(false);
-  if (src && !broken) {
-    return <img className="chat-avatar" src={src} alt="" referrerPolicy="no-referrer" onError={() => setBroken(true)} />;
-  }
-  return <span className="chat-avatar chat-avatar-fallback" aria-hidden="true">{(name || "?").trim().charAt(0).toUpperCase()}</span>;
-}
 
 function TaskCard({ message, onAdd }) {
   const { task, addedByMe } = message;
@@ -99,10 +94,12 @@ function ScheduleCard({ message, onAdd, addedId }) {
   );
 }
 
-export default function GroupChat({ group, onBack, onLeave, onDelete }) {
+export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpdated }) {
   const { backendUrl, user } = useAuth();
   const myId = user?._id;
   const isOwner = group.admin?._id === myId;
+  const isAdmin = isOwner || (group.admins || []).includes(myId);
+  const roleOf = (id) => (group.admin?._id === id ? "Owner" : (group.admins || []).includes(id) ? "Admin" : null);
 
   const [messages, setMessages] = useState([]);
   const [status, setStatus] = useState("loading"); // loading | ready | error
@@ -112,6 +109,8 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
   const [infoOpen, setInfoOpen] = useState(false);
   const [unseen, setUnseen] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [memberOpen, setMemberOpen] = useState(null); // member id
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [shareOpen, setShareOpen] = useState(null); // null | "task" | "schedule"
   const [myTasks, setMyTasks] = useState(null); // null = loading
@@ -229,7 +228,8 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
         toast.error(data.message || "Couldn't send that message.");
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Couldn't send that message.");
+      const message = err.response?.data?.message || "Couldn't send that message.";
+      (err.response?.data?.code === "family_filter" ? toast.warn : toast.error)(message);
     } finally {
       setSending(false);
       inputRef.current?.focus();
@@ -296,7 +296,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
         toast.error(data.message || "Couldn't share that schedule.");
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Couldn't share that schedule.");
+      (err.response?.data?.code === "family_filter" ? toast.warn : toast.error)(err.response?.data?.message || "Couldn't share that schedule.");
     } finally {
       setSharingId(null);
     }
@@ -316,7 +316,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
         toast.error(data.message || "Couldn't share that task.");
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Couldn't share that task.");
+      (err.response?.data?.code === "family_filter" ? toast.warn : toast.error)(err.response?.data?.message || "Couldn't share that task.");
     } finally {
       setSharingId(null);
     }
@@ -340,6 +340,8 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
       toast.info(`Join code: ${group.joinCode}`);
     }
   };
+
+  const isCurrentMember = (id) => Boolean(id) && group.members.some((m) => m._id === id);
 
   // Flatten messages into day dividers + message rows, marking which rows start
   // a new run from the same sender (those get the avatar and name).
@@ -368,9 +370,13 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
         <button type="button" className="chat-icon-btn" onClick={onBack} aria-label="Back to groups">
           <ArrowLeft size={18} />
         </button>
+        <UserAvatar name={group.name} src={group.icon} size={38} square />
         <div className="chat-topbar-title">
           <h2>{group.name}</h2>
-          <span>{group.members.length} {group.members.length === 1 ? "member" : "members"}</span>
+          <span>
+            {group.members.length} {group.members.length === 1 ? "member" : "members"}
+            {group.familyFriendly && <em className="family-badge"><ShieldCheck size={12} aria-hidden="true" /> Family-friendly</em>}
+          </span>
         </div>
         <button
           type="button"
@@ -410,13 +416,24 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
                 <div key={row.key} className={`chat-row${continued ? " is-continued" : ""}${mine ? " is-mine" : ""}`}>
                   {continued ? (
                     <span className="chat-time-gutter">{formatTime(message.createdAt)}</span>
+                  ) : isCurrentMember(message.sender?._id) ? (
+                    <button type="button" className="chat-avatar-btn" onClick={() => setMemberOpen(message.sender._id)} aria-label={`View ${message.sender.name}`}>
+                      <UserAvatar name={message.sender?.name} src={message.sender?.avatar} size={36} />
+                    </button>
                   ) : (
-                    <Avatar name={message.sender?.name} src={message.sender?.avatar} />
+                    <UserAvatar name={message.sender?.name} src={message.sender?.avatar} size={36} />
                   )}
                   <div className="chat-content">
                     {!continued && (
                       <div className="chat-meta">
-                        <strong>{message.sender?.name || "Former member"}</strong>
+                        {isCurrentMember(message.sender?._id) ? (
+                          <button type="button" className="chat-name-btn" onClick={() => setMemberOpen(message.sender._id)}>
+                            {message.sender.name}
+                          </button>
+                        ) : (
+                          <strong>{message.sender?.name || "Former member"}</strong>
+                        )}
+                        {roleOf(message.sender?._id) && <span className={`role-pill role-${roleOf(message.sender._id).toLowerCase()}`}>{roleOf(message.sender._id)}</span>}
                         <time dateTime={message.createdAt}>{formatTime(message.createdAt)}</time>
                       </div>
                     )}
@@ -476,6 +493,11 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
               placeholder={`Message ${group.name}`}
               aria-label="Write a message"
             />
+            {group.familyFriendly && (
+              <span className="chat-filter-hint" title="Messages with swearing or explicit words are blocked in this group">
+                <ShieldCheck size={14} aria-hidden="true" /> Family-friendly
+              </span>
+            )}
             {draft.length > MAX_LENGTH * 0.8 && (
               <span className="chat-counter">{draft.length}/{MAX_LENGTH}</span>
             )}
@@ -500,14 +522,21 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
             <ul className="chat-members">
               {group.members.map((member) => (
                 <li key={member._id}>
-                  <Avatar name={member.name} src={member.avatar} />
-                  <span>{member.name}{member._id === myId ? " (you)" : ""}</span>
-                  {member._id === group.admin?._id && <em>Owner</em>}
+                  <button type="button" className="chat-member-btn" onClick={() => setMemberOpen(member._id)}>
+                    <UserAvatar name={member.name} src={member.avatar} size={28} />
+                    <span>{member.name}{member._id === myId ? " (you)" : ""}</span>
+                    {roleOf(member._id) && <em>{roleOf(member._id)}</em>}
+                  </button>
                 </li>
               ))}
             </ul>
           </div>
           <div className="chat-side-actions">
+            {isAdmin && (
+              <button type="button" className="chat-settings-btn" onClick={() => setSettingsOpen(true)}>
+                <Settings size={15} /> Group settings
+              </button>
+            )}
             {isOwner ? (
               <button type="button" className="chat-danger-btn" onClick={onDelete}>
                 <Trash2 size={15} /> Delete group
@@ -581,6 +610,19 @@ export default function GroupChat({ group, onBack, onLeave, onDelete }) {
             )}
           </div>
         </div>
+      )}
+
+      {memberOpen && group.members.some((m) => m._id === memberOpen) && (
+        <MemberDialog
+          group={group}
+          member={group.members.find((m) => m._id === memberOpen)}
+          onClose={() => setMemberOpen(null)}
+          onGroupUpdated={onGroupUpdated}
+        />
+      )}
+
+      {settingsOpen && (
+        <GroupSettingsDialog group={group} onClose={() => setSettingsOpen(false)} onGroupUpdated={onGroupUpdated} />
       )}
 
       {pendingTask && (
