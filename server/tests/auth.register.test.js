@@ -1,12 +1,26 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, test, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
 import app from '../app.js';
 import userModel from '../models/userModel.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
 
+// Signup and login now email a verification code. Mock the whole module so tests
+// never touch SMTP / the Brevo API and never depend on server/.env existing.
+vi.mock('../utils/emailService.js', () => ({
+    sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
+    sendVerifyEmailOtp: vi.fn().mockResolvedValue(undefined),
+    sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
+    sendPasswordResetSuccessEmail: vi.fn().mockResolvedValue(undefined),
+}));
+
+import { sendVerifyEmailOtp } from '../utils/emailService.js';
+
 beforeAll(connectTestDB);
-beforeEach(clearTestDB);
+beforeEach(async () => {
+    await clearTestDB();
+    vi.clearAllMocks();
+});
 afterAll(closeTestDB);
 
 describe('POST /api/auth/register', () => {
@@ -78,5 +92,32 @@ describe('POST /api/auth/register', () => {
 
         expect(res.body.success).toBe(false);
         expect(res.body.message).toMatch(/already registered with google/i);
+    });
+
+    test('emails a verification code on signup and tells the client to verify', async () => {
+        const res = await request(app).post('/api/auth/register').send(validRegisterPayload());
+
+        expect(res.body.success).toBe(true);
+        expect(res.body.needsVerification).toBe(true);
+        expect(res.body.otpSent).toBe(true);
+
+        const saved = await userModel.findOne({ email: 'test.student@student.fatima.edu.ph' });
+        expect(saved.verifyEmailOtp).toMatch(/^\d{6}$/);
+        expect(sendVerifyEmailOtp).toHaveBeenCalledTimes(1);
+        expect(sendVerifyEmailOtp).toHaveBeenCalledWith('test.student@student.fatima.edu.ph', saved.verifyEmailOtp);
+    });
+
+    test('still creates the account when the verification email fails to send', async () => {
+        sendVerifyEmailOtp.mockRejectedValueOnce(new Error('Connection timeout'));
+
+        const res = await request(app).post('/api/auth/register').send(validRegisterPayload());
+
+        expect(res.body.success).toBe(true);
+        expect(res.body.needsVerification).toBe(true);
+        expect(res.body.otpSent).toBe(false);
+        expect(res.headers['set-cookie']?.[0]).toMatch(/^token=/); // so Resend Code still works
+
+        const saved = await userModel.findOne({ email: 'test.student@student.fatima.edu.ph' });
+        expect(saved).not.toBeNull();
     });
 });

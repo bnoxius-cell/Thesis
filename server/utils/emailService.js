@@ -29,6 +29,41 @@ const baseHtmlTemplate = (content) => `
 </html>
 `;
 
+// --- DELIVERY ---
+// Render's free tier blocks outbound SMTP (ports 25/465/587), so on the deployed server
+// mail goes through Brevo's HTTPS API instead. Without BREVO_API_KEY (e.g. local dev)
+// it falls back to the Brevo SMTP relay configured in config/nodemailer.js.
+const sendMail = async ({ fromName, to, subject, html }) => {
+    if (process.env.BREVO_API_KEY) {
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+                'api-key': process.env.BREVO_API_KEY,
+                'content-type': 'application/json',
+                accept: 'application/json',
+            },
+            body: JSON.stringify({
+                sender: { name: fromName, email: process.env.SENDER_EMAIL },
+                to: [{ email: to }],
+                subject,
+                htmlContent: html,
+            }),
+            signal: AbortSignal.timeout(15000),
+        });
+        if (!response.ok) {
+            throw new Error(`Brevo API responded ${response.status}: ${await response.text()}`);
+        }
+        return;
+    }
+
+    await transporter.sendMail({
+        from: `"${fromName}" <${process.env.SENDER_EMAIL}>`,
+        to,
+        subject,
+        html,
+    });
+};
+
 // --- EMAIL CONTROLLERS ---
 
 export const sendWelcomeEmail = async (email) => {
@@ -42,12 +77,7 @@ export const sendWelcomeEmail = async (email) => {
         </p>
     `;
 
-    await transporter.sendMail({
-        from: `"Stress Care" <${process.env.SENDER_EMAIL}>`,
-        to: email,
-        subject: 'Welcome to Stress Care',
-        html: baseHtmlTemplate(content)
-    });
+    await sendMail({ fromName: 'Stress Care', to: email, subject: 'Welcome to Stress Care', html: baseHtmlTemplate(content) });
 };
 
 export const sendVerifyEmailOtp= async (email, otp) => {
@@ -66,12 +96,7 @@ export const sendVerifyEmailOtp= async (email, otp) => {
         </p>
     `;
 
-    await transporter.sendMail({
-        from: `"Stress Care Support" <${process.env.SENDER_EMAIL}>`,
-        to: email,
-        subject: 'Verify your email address',
-        html: baseHtmlTemplate(content)
-    });
+    await sendMail({ fromName: 'Stress Care Support', to: email, subject: 'Verify your email address', html: baseHtmlTemplate(content) });
 };
 
 export const sendPasswordResetEmail = async (email, otp) => {
@@ -90,12 +115,7 @@ export const sendPasswordResetEmail = async (email, otp) => {
         </p>
     `;
 
-    await transporter.sendMail({
-        from: `"Stress Care Security" <${process.env.SENDER_EMAIL}>`,
-        to: email,
-        subject: 'Password reset request',
-        html: baseHtmlTemplate(content)
-    });
+    await sendMail({ fromName: 'Stress Care Security', to: email, subject: 'Password reset request', html: baseHtmlTemplate(content) });
 };
 
 export const sendPasswordResetSuccessEmail = async (email) => {
@@ -109,10 +129,5 @@ export const sendPasswordResetSuccessEmail = async (email) => {
         </p>
     `;
 
-    await transporter.sendMail({
-        from: `"Stress Care Security" <${process.env.SENDER_EMAIL}>`,
-        to: email,
-        subject: 'Password successfully updated',
-        html: baseHtmlTemplate(content)
-    });
+    await sendMail({ fromName: 'Stress Care Security', to: email, subject: 'Password successfully updated', html: baseHtmlTemplate(content) });
 };

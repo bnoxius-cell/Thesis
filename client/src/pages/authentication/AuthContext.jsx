@@ -56,36 +56,40 @@ export const AppContextProvider = (props) => {
     }
   };
 
-  // Standard email/password login
+  // Standard email/password login. An unverified account still gets a session cookie
+  // (the verify endpoints need it), plus a fresh code by email, but isn't logged in yet.
   const login = async (email, password, rememberMe = false) => {
     try {
       const { data } = await axios.post(backendUrl + '/api/auth/login', { email, password, rememberMe });
-      if (data.success) {
-        await getAuthState({ silent: true }); // re‑fetch user & login status
-        toast.success("Logged in successfully");
-        return true;
-      } else {
-        toast.error(data.message);
-        return false;
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || error.message);
-      return false;
-    }
-  };
-
-  // Standard email/password registration
-  const register = async (name, email, password) => {
-    try {
-      const { data } = await axios.post(backendUrl + '/api/auth/register', { name, email, password });
-      if (data.success) {
-        // After registration, the backend sends an OTP – we don't automatically log in yet
-        toast.success("Registration successful! Please verify your email.");
-        return { success: true, needsVerification: true };
-      } else {
+      if (!data.success) {
         toast.error(data.message);
         return { success: false };
       }
+      await getAuthState({ silent: true }); // re‑fetch user & login status
+      if (data.needsVerification) {
+        (data.otpSent ? toast.info : toast.warn)(data.message);
+        return { success: true, needsVerification: true, otpSent: data.otpSent };
+      }
+      toast.success("Logged in successfully");
+      return { success: true };
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message);
+      return { success: false };
+    }
+  };
+
+  // Standard email/password registration. The backend emails a verification code;
+  // the account isn't logged in until that code is entered.
+  const register = async (name, email, password) => {
+    try {
+      const { data } = await axios.post(backendUrl + '/api/auth/register', { name, email, password });
+      if (!data.success) {
+        toast.error(data.message);
+        return { success: false };
+      }
+      await getAuthState({ silent: true }); // picks up the new (unverified) user for the verify step
+      (data.otpSent ? toast.success : toast.warn)(data.message);
+      return { success: true, needsVerification: true, otpSent: data.otpSent };
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
       return { success: false };
@@ -110,14 +114,15 @@ export const AppContextProvider = (props) => {
     }
   };
 
-  // Logout
-  const logout = async () => {
+  // Logout. `silent` skips the toast, for dropping an unverified session behind the scenes.
+  // (Header passes the click event as the argument; it has no `silent`, so that still toasts.)
+  const logout = async ({ silent = false } = {}) => {
     try {
       const { data } = await axios.post(backendUrl + '/api/auth/logout');
       if (data.success) {
         setIsLoggedin(false);
         setUserData(null);
-        toast.success("Logged out successfully");
+        if (!silent) toast.success("Logged out successfully");
       } else {
         toast.error(data.message);
       }

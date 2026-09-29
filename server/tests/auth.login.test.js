@@ -1,20 +1,35 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, test, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
 import bcrypt from 'bcryptjs';
 import app from '../app.js';
 import userModel from '../models/userModel.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 
+// Signup and login now email a verification code. Mock the whole module so tests
+// never touch SMTP / the Brevo API and never depend on server/.env existing.
+vi.mock('../utils/emailService.js', () => ({
+    sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
+    sendVerifyEmailOtp: vi.fn().mockResolvedValue(undefined),
+    sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
+    sendPasswordResetSuccessEmail: vi.fn().mockResolvedValue(undefined),
+}));
+
+import { sendVerifyEmailOtp } from '../utils/emailService.js';
+
 beforeAll(connectTestDB);
-beforeEach(clearTestDB);
+beforeEach(async () => {
+    await clearTestDB();
+    vi.clearAllMocks();
+});
 afterAll(closeTestDB);
 
-const createLocalUser = async (password = 'Password123') => {
+const createLocalUser = async (password = 'Password123', { isAccountVerified = true } = {}) => {
     const hashed = await bcrypt.hash(password, 10);
     return userModel.create({
         name: 'Test Student',
         email: 'test.student@student.fatima.edu.ph',
         password: hashed,
+        isAccountVerified,
     });
 };
 
@@ -77,6 +92,38 @@ describe('POST /api/auth/login', () => {
 
         expect(res.body.success).toBe(true);
         expect(res.headers['set-cookie']?.[0]).toMatch(/^token=/);
+        expect(res.body.needsVerification).toBeUndefined();
+        expect(sendVerifyEmailOtp).not.toHaveBeenCalled();
+    });
+
+    test('an unverified account gets a fresh code on login and is told to verify', async () => {
+        await createLocalUser('Password123', { isAccountVerified: false });
+
+        const res = await request(app)
+            .post('/api/auth/login')
+            .send({ email: 'test.student@student.fatima.edu.ph', password: 'Password123' });
+
+        expect(res.body.success).toBe(true);
+        expect(res.body.needsVerification).toBe(true);
+        expect(res.body.otpSent).toBe(true);
+        expect(res.headers['set-cookie']?.[0]).toMatch(/^token=/);
+
+        const user = await userModel.findOne({ email: 'test.student@student.fatima.edu.ph' });
+        expect(user.verifyEmailOtp).toMatch(/^\d{6}$/);
+        expect(sendVerifyEmailOtp).toHaveBeenCalledWith('test.student@student.fatima.edu.ph', user.verifyEmailOtp);
+    });
+
+    test('an unverified login still succeeds when the code email fails, flagged as not sent', async () => {
+        await createLocalUser('Password123', { isAccountVerified: false });
+        sendVerifyEmailOtp.mockRejectedValueOnce(new Error('Connection timeout'));
+
+        const res = await request(app)
+            .post('/api/auth/login')
+            .send({ email: 'test.student@student.fatima.edu.ph', password: 'Password123' });
+
+        expect(res.body.success).toBe(true);
+        expect(res.body.needsVerification).toBe(true);
+        expect(res.body.otpSent).toBe(false);
     });
 
     test('login is case-insensitive on email', async () => {

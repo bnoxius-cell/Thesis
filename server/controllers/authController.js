@@ -15,6 +15,22 @@ const findUserByEmail = (email) => {
     return userModel.findOne({ email: new RegExp(`^${escaped}$`, 'i') });
 };
 
+// Generates a fresh verification code, saves it, and emails it. Returns whether the email
+// actually went out, so a mail failure doesn't undo an otherwise successful signup or login.
+const issueVerifyOtp = async (user) => {
+    user.verifyEmailOtp = generateOtp();
+    user.verifyEmailOtpExpireAt = Date.now() + 20 * 60 * 1000; // 20 min otp expiry
+    await user.save();
+
+    try {
+        await sendVerifyEmailOtp(user.email, user.verifyEmailOtp);
+        return true;
+    } catch (error) {
+        console.error('Failed to send verification email:', error.message);
+        return false;
+    }
+};
+
 export const register = async (req, res) => {
     const { name, password } = req.body;
     const email = req.body.email ? normalizeEmail(req.body.email) : req.body.email;
@@ -53,7 +69,16 @@ export const register = async (req, res) => {
             maxAge: 12 * 60 * 60 * 1000
         });
 
-        return res.json({ success: true, message: "Register successful. Please check your email to verify your account" });
+        const otpSent = await issueVerifyOtp(user);
+
+        return res.json({
+            success: true,
+            needsVerification: true,
+            otpSent,
+            message: otpSent
+                ? "Account created. We've emailed you a 6-digit code to verify it."
+                : "Account created, but we couldn't send the verification email. Tap Resend Code to try again."
+        });
     } catch (error) {
         return res.json({ success: false, message: error.message});
     }
@@ -95,6 +120,20 @@ export const login = async (req, res) => {
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
             maxAge: cookieAge
         })
+
+        // The cookie is still needed here: verify-email and send-verify-otp identify the user by it.
+        if (!user.isAccountVerified) {
+            const otpSent = await issueVerifyOtp(user);
+            return res.json({
+                success: true,
+                needsVerification: true,
+                otpSent,
+                message: otpSent
+                    ? "Please verify your email first. We've sent you a new 6-digit code."
+                    : "Please verify your email first. We couldn't send a code just now, so tap Resend Code to try again."
+            });
+        }
+
         return res.json({success: true, message: 'Login successful'})
     } catch (error) {
         return res.json({ success: false, message: error.message });
@@ -193,12 +232,10 @@ export const sendVerifyOtp = async (req, res) => {
             return res.json({success: false, message: 'Email is already verified.'});
         }
 
-        const otp = generateOtp();
-        user.verifyEmailOtp = otp;
-        user.verifyEmailOtpExpireAt = Date.now() + 20 * 60 * 1000; // 20 min otp expiry
-        await user.save();
-
-        await sendVerifyEmailOtp(user.email, otp);
+        const otpSent = await issueVerifyOtp(user);
+        if (!otpSent) {
+            return res.json({ success: false, message: "We couldn't send the email just now. Please try again in a minute." });
+        }
 
         return res.json({ success: true, message: 'OTP sent successfully.' })
 
@@ -234,7 +271,13 @@ export const verifyEmail = async (req, res) => {
         user.verifyEmailOtpExpireAt = 0;
         await user.save();
 
-        await sendWelcomeEmail(user.email);
+        // The account is already verified at this point, so a failed welcome email
+        // shouldn't turn the response into an error.
+        try {
+            await sendWelcomeEmail(user.email);
+        } catch (error) {
+            console.error('Failed to send welcome email:', error.message);
+        }
 
         return res.json({ success: true, message: 'Email verified successfully.' });
 

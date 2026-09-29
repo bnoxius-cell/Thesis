@@ -1,8 +1,16 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, test, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
 import app from '../app.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
+
+// Signup emails a verification code; keep these tests off SMTP / the Brevo API.
+vi.mock('../utils/emailService.js', () => ({
+    sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
+    sendVerifyEmailOtp: vi.fn().mockResolvedValue(undefined),
+    sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
+    sendPasswordResetSuccessEmail: vi.fn().mockResolvedValue(undefined),
+}));
 
 beforeAll(connectTestDB);
 beforeEach(clearTestDB);
