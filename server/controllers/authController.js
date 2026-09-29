@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import userModel from '../models/userModel.js';
 import { sendPasswordResetEmail, sendPasswordResetSuccessEmail, sendVerifyEmailOtp, sendWelcomeEmail } from '../utils/emailService.js';
 import { generateOtp } from '../utils/generateOtp.js';
-import { validateLoginFields, validateRegisterFields, validateResetPasswordFields, validateVerifyEmailFields, validateEmail } from '../utils/validators.js';
+import { validateLoginFields, validateRegisterFields, validateResetPasswordFields, validateVerifyEmailFields, validateSchoolEmail } from '../utils/validators.js';
 import { verifyGoogleIdToken } from '../utils/googleAuth.js';
 
 const normalizeEmail = (email) => String(email).trim().toLowerCase();
@@ -157,8 +157,8 @@ export const googleLogin = async (req, res) => {
             return res.json({ success: false, message: "Your Google account email is not verified." });
         }
 
-        if (!validateEmail(email)) {
-            return res.json({ success: false, message: "Please use your Fatima student email (@student.fatima.edu.ph)." });
+        if (!validateSchoolEmail(email)) {
+            return res.json({ success: false, message: "Google sign-in is only for Fatima student accounts. Please use your Fatima student email (@student.fatima.edu.ph)." });
         }
 
         let user = await findUserByEmail(email);

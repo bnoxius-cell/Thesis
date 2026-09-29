@@ -1,5 +1,11 @@
+// Any well-formed email. Used for StressCare accounts made with email + password.
 export const validateEmail = (email) => {
-    // Standard email regex pattern
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email.trim().toLowerCase());
+};
+
+// Fatima student address. Only Google sign-in requires this.
+export const validateSchoolEmail = (email) => {
     const re = /^[^\s@]+@student\.fatima\.edu\.ph$/i;
     return re.test(email.trim().toLowerCase());
 };
@@ -10,7 +16,7 @@ export const validateRegisterFields = (name, email, password) => {
     }
 
     if (!validateEmail(email)) {
-        return { isValid: false, message: "Invalid email. Please use your Fatima student email (e.g., john.doe@student.fatima.edu.ph)." };
+        return { isValid: false, message: "Please enter a valid email address." };
     }
 
     if (password.length < 8) {

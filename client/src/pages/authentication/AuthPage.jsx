@@ -6,8 +6,9 @@ import "../../App.css";
 import { toast } from "react-toastify";
 import { useAuth } from "./AuthContext";
 import { GoogleLogin } from '@react-oauth/google';
+import { Eye, EyeOff } from 'lucide-react';
 
-const SCHOOL_EMAIL_DOMAIN = "@student.fatima.edu.ph";
+const SCHOOL_EMAIL_DOMAIN = "student.fatima.edu.ph";
 const RESEND_COOLDOWN_SECONDS = 180;
 const OTP_LENGTH = 6;
 
@@ -18,6 +19,7 @@ const AuthPage = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -155,11 +157,6 @@ const AuthPage = () => {
   const onSubmitHandler = async (e) => {
     e.preventDefault();
     const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail.endsWith(SCHOOL_EMAIL_DOMAIN)) {
-      toast.error(`Only ${SCHOOL_EMAIL_DOMAIN} emails are allowed.`);
-      return;
-    }
-
     setBusy(true);
     try {
       const result = authMode === 'login'
@@ -197,11 +194,11 @@ const AuthPage = () => {
             <span className="eyebrow">Student workload system</span>
             <h1>Plan personal tasks and group work from one dashboard.</h1>
             <p>
-              Sign in with your Fatima student email to plan your tasks, share group work
+              Make a StressCare account with any email to plan your tasks, share group work
               with classmates, and keep your week manageable.
             </p>
             <div className="auth-preview">
-              <span>School email login</span>
+              <span>Email or Google sign-in</span>
               <span>Personal task board</span>
               <span>Group-ready workflow</span>
             </div>
@@ -217,10 +214,10 @@ const AuthPage = () => {
               </h2>
               <p>
                 {authMode === 'login'
-                  ? 'Use your school account to open your dashboard.'
+                  ? 'Sign in with your email, or continue with a Fatima Google account.'
                   : authMode === 'register'
-                  ? 'Create the profile used by the task and group modules.'
-                  : `Enter the 6-digit code we emailed to ${userData?.email || 'your school email'}. It's valid for 20 minutes.`}
+                  ? 'Sign up with any email. Google sign-up is for Fatima student accounts only.'
+                  : `Enter the 6-digit code we emailed to ${userData?.email || 'your email'}. It's valid for 20 minutes.`}
               </p>
             </div>
 
@@ -284,21 +281,32 @@ const AuthPage = () => {
                     autoComplete="email"
                     autoCapitalize="none"
                     spellCheck={false}
-                    placeholder={`name${SCHOOL_EMAIL_DOMAIN}`}
+                    placeholder="you@example.com"
                     required
                   />
                 </label>
                 <label>
                   Password
-                  <input
-                    onChange={e => setPassword(e.target.value)}
-                    value={password}
-                    type="password"
-                    autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
-                    minLength={authMode === 'register' ? 8 : undefined}
-                    placeholder={authMode === 'register' ? 'At least 8 characters' : '••••••••'}
-                    required
-                  />
+                  <div className="password-field">
+                    <input
+                      onChange={e => setPassword(e.target.value)}
+                      value={password}
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+                      minLength={authMode === 'register' ? 8 : undefined}
+                      placeholder={authMode === 'register' ? 'At least 8 characters' : '••••••••'}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(v => !v)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      aria-pressed={showPassword}
+                    >
+                      {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                    </button>
+                  </div>
                 </label>
                 {authMode === 'login' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -334,7 +342,7 @@ const AuthPage = () => {
                   onError={() => toast.error('Google Login Failed')}
                   text={authMode === 'login' ? 'signin_with' : 'signup_with'}
                   shape="rectangular"
-                  hosted_domain="student.fatima.edu.ph"
+                  hosted_domain={SCHOOL_EMAIL_DOMAIN}
                 />
               </div>
             )}
