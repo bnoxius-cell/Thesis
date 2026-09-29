@@ -4,7 +4,11 @@
 // sees the consent prompt again.
 
 export const LEGAL_UPDATED = "September 30, 2026";
-export const SUPPORT_EMAIL = "support@student.fatima.edu.ph";
+export const SUPPORT_EMAILS = [
+  "tkishore1434val@student.fatima.edu.ph",
+  "amreniva0131val@student.fatima.edu.ph",
+];
+export const SUPPORT_EMAIL = SUPPORT_EMAILS[0];
 
 // Blocks: { p } a paragraph, { ul } a bullet list, { mail } a paragraph ending in the support address.
 export const TERMS = {

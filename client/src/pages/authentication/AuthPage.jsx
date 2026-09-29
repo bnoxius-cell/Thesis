@@ -8,6 +8,8 @@ import { useAuth } from "./AuthContext";
 import { GoogleLogin } from '@react-oauth/google';
 import { Eye, EyeOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTheme } from '../../context/ThemeContext';
+import { SUPPORT_EMAILS } from '../legal/legalContent';
 
 const SCHOOL_EMAIL_DOMAIN = "student.fatima.edu.ph";
 const RESEND_COOLDOWN_SECONDS = 180;
@@ -16,6 +18,7 @@ const OTP_LENGTH = 6;
 // Navigation to /dashboard is left to the route guard in App.jsx: it redirects as soon as
 // isLoggedin flips, and an extra navigate() here competed with it.
 const AuthPage = () => {
+  const { theme } = useTheme();
   const [authMode, setAuthMode] = useState('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -358,6 +361,7 @@ const AuthPage = () => {
                   text={authMode === 'login' ? 'signin_with' : 'signup_with'}
                   shape="rectangular"
                   hosted_domain={SCHOOL_EMAIL_DOMAIN}
+                  theme={theme === 'dark' ? 'filled_black' : 'outline'}
                 />
                 <p className="auth-legal-note">
                   New to StressCare? Signing in with Google means you agree to our{' '}
@@ -383,6 +387,12 @@ const AuthPage = () => {
                 </button>
               )}
             </div>
+            <p className="auth-support-note">
+              Need help? Email{' '}
+              {SUPPORT_EMAILS.map((e, i) => (
+                <span key={e}>{i > 0 && ' or '}<a href={`mailto:${e}`}>{e}</a></span>
+              ))}
+            </p>
           </div>
         </section>
       </main>

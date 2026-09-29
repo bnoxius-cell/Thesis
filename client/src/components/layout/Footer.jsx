@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Github, Mail } from 'lucide-react';
 import Logo from '../../assets/logo.svg';
+import { SUPPORT_EMAILS } from '../../pages/legal/legalContent';
 import './Footer.css';
 
 export default function Footer() {
@@ -17,7 +18,7 @@ export default function Footer() {
           </p>
           <div className="site-footer-socials">
             <a href="https://github.com/bnoxius-cell/Thesis" target="_blank" rel="noreferrer" aria-label="GitHub"><Github size={20} /></a>
-            <a href="mailto:support@student.fatima.edu.ph" aria-label="Email Support"><Mail size={20} /></a>
+            <a href={`mailto:${SUPPORT_EMAILS.join(',')}`} aria-label="Email Support"><Mail size={20} /></a>
           </div>
         </div>
         
@@ -33,7 +34,10 @@ export default function Footer() {
             <h4>Resources</h4>
             <Link to="/about">About Us</Link>
             <Link to="/notifications">Alerts</Link>
-            <a href="mailto:support@student.fatima.edu.ph">Contact Support</a>
+            <h4 className="site-footer-subhead">Support</h4>
+            {SUPPORT_EMAILS.map((e) => (
+              <a key={e} href={`mailto:${e}`} className="site-footer-email">{e}</a>
+            ))}
           </div>
           <div className="site-footer-column">
             <h4>Legal</h4>
