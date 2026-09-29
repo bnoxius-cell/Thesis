@@ -191,8 +191,21 @@ export const getTaskByTag = async (req, res) => {
         const template = await findShareTemplateByTag(shareTag);
         if (!template) return res.status(404).json({ success: false, message: 'Task code not found.' });
 
+        // Two things worth knowing before adding it: do you already have it, and how
+        // crowded is that day (open tasks due within a day either side).
+        const due = new Date(template.dueDate);
+        const from = new Date(due); from.setDate(from.getDate() - 1); from.setHours(0, 0, 0, 0);
+        const to = new Date(due); to.setDate(to.getDate() + 1); to.setHours(23, 59, 59, 999);
+        const [alreadyAdded, nearby] = await Promise.all([
+            taskModel.exists({ owner: req.userId, shareTag }),
+            taskModel.find({ owner: req.userId, isCompleted: false, dueDate: { $gte: from, $lte: to } })
+                .select('title course dueDate hours').sort({ dueDate: 1 }).limit(6).lean(),
+        ]);
+
         res.json({
             success: true,
+            alreadyAdded: Boolean(alreadyAdded),
+            nearby,
             task: {
                 shareTag: template.shareTag,
                 title: template.title,
@@ -250,6 +263,11 @@ export const importTaskByTag = async (req, res) => {
 
         const template = await findShareTemplateByTag(shareTag);
         if (!template) return res.status(404).json({ success: false, message: 'Task code not found.' });
+
+        // Adding the same shared task twice just doubles the workload, so say so instead.
+        if (await taskModel.exists({ owner: req.userId, shareTag: template.shareTag })) {
+            return res.status(409).json({ success: false, message: 'You already have this task.' });
+        }
 
         const importedTask = new taskModel({
             ...getSharePayloadFromTask(template),

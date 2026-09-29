@@ -2,6 +2,7 @@ import { describe, test, expect, vi, beforeAll, afterAll, beforeEach } from 'vit
 import request from 'supertest';
 import app from '../app.js';
 import userModel from '../models/userModel.js';
+import { LEGAL_VERSION } from '../utils/legal.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
 
@@ -29,6 +30,24 @@ describe('POST /api/auth/register', () => {
 
         expect(res.body.success).toBe(false);
         expect(res.body.message).toMatch(/all fields must be filled/i);
+    });
+
+    test('requires agreeing to the terms and privacy policy', async () => {
+        const res = await request(app)
+            .post('/api/auth/register')
+            .send(validRegisterPayload({ acceptedTerms: false }));
+
+        expect(res.body.success).toBe(false);
+        expect(res.body.message).toMatch(/terms of service and privacy policy/i);
+        expect(await userModel.countDocuments()).toBe(0);
+    });
+
+    test('records which version of the terms was accepted', async () => {
+        await request(app).post('/api/auth/register').send(validRegisterPayload());
+
+        const saved = await userModel.findOne({ email: 'test.student@student.fatima.edu.ph' });
+        expect(saved.termsVersion).toBe(LEGAL_VERSION);
+        expect(saved.termsAcceptedAt).toBeInstanceOf(Date);
     });
 
     test('rejects a malformed email', async () => {

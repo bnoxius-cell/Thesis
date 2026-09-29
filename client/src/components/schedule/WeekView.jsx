@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, CalendarOff, Plus, MapPin } from "lucide-rea
 import {
   WEEKDAYS, ENTRY_ICONS, addDays, toISODate, entryOccursOn, formatTime, defaultIconFor, resolveHoliday,
 } from "../../utils/scheduleUtils";
+import { overlapsOnDay } from "../../utils/scheduleConflicts";
 
 const rangeLabel = (start) => {
   const end = addDays(start, 6);
@@ -11,7 +12,7 @@ const rangeLabel = (start) => {
   return `${startText} to ${endText}, ${end.getFullYear()}`;
 };
 
-function EntryCard({ entry, suspended, canEdit, onOpen }) {
+function EntryCard({ entry, suspended, clash, canEdit, onOpen }) {
   const Icon = ENTRY_ICONS[entry.icon] || ENTRY_ICONS[defaultIconFor(entry.kind)];
   const style = entry.color ? { "--entry-color": entry.color } : undefined;
   const body = (
@@ -27,6 +28,7 @@ function EntryCard({ entry, suspended, canEdit, onOpen }) {
         )}
         {entry.notes && <span className="sched-entry-meta">{entry.notes}</span>}
         {suspended && <span className="sched-tag">No class today</span>}
+        {clash && !suspended && <span className="sched-tag is-clash">Overlaps {clash.join(", ")}</span>}
       </span>
     </>
   );
@@ -69,6 +71,8 @@ export default function WeekView({
             .filter((e) => entryOccursOn(e, iso))
             .sort((a, b) => a.startTime.localeCompare(b.startTime));
           const label = day.toLocaleDateString(undefined, { weekday: "short" });
+          // Entries on a day off don't clash, so only look at the ones that actually run.
+          const clashes = overlapsOnDay(dayEntries.filter((e) => !(holiday && e.skipOnHoliday)));
           return (
             <div key={iso} className={`sched-day ${iso === todayIso ? "is-today" : ""} ${holiday ? "is-holiday" : ""}`}>
               <header className="sched-day-head">
@@ -101,6 +105,7 @@ export default function WeekView({
                       key={entry._id}
                       entry={entry}
                       suspended={Boolean(holiday) && entry.skipOnHoliday}
+                      clash={clashes.get(entry._id)}
                       canEdit={canEdit}
                       onOpen={onOpenEntry}
                     />

@@ -10,6 +10,8 @@ import Groups from './pages/Groups';
 import Schedule from './pages/Schedule';
 import Notifications from './pages/Notifications';
 import AuthPage from './pages/authentication/AuthPage';
+import LegalPage from './pages/legal/LegalPage';
+import TermsGate from './components/TermsGate';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ToastContainer } from 'react-toastify';
@@ -27,6 +29,7 @@ const AppContent = () => {
     <ToastContainer position="top-right" autoClose={4000} newestOnTop theme={theme} />
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <NotificationProvider key={userData?._id || 'guest'}>
+      <TermsGate />
       <Routes>
         <Route path="/" element={isLoggedin ? <Navigate to="/dashboard" replace /> : <AuthPage />} />
         <Route path="/dashboard" element={isLoggedin ? <Dashboard /> : <Navigate to="/" replace />} />
@@ -34,6 +37,8 @@ const AppContent = () => {
         <Route path="/profile/:uid" element={isLoggedin ? <Profile /> : <Navigate to="/" replace />} />
         <Route path="/create-task" element={isLoggedin ? <TaskCreation /> : <Navigate to="/" replace />} />
         <Route path="/about" element={<About />} />
+        <Route path="/terms-of-service" element={<LegalPage kind="terms" />} />
+        <Route path="/privacy-policy" element={<LegalPage kind="privacy" />} />
         <Route path="/settings" element={isLoggedin ? <Settings /> : <Navigate to="/" replace />} />
         <Route path="/friends" element={isLoggedin ? <Friends /> : <Navigate to="/" replace />} />
         <Route path="/schedule" element={isLoggedin ? <Schedule /> : <Navigate to="/" replace />} />

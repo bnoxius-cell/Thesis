@@ -1,4 +1,5 @@
 import userModel from '../models/userModel.js';
+import { LEGAL_VERSION } from '../utils/legal.js';
 
 export const getUserData = async (req, res) => {
     try {
@@ -30,6 +31,8 @@ export const getUserData = async (req, res) => {
                 latestWHOScore: user.lastWHOSubmission ? user.latestWHOScore : null,
                 // ✅ Added profileTag
                 profileTag: user.profileTag,
+                termsVersion: user.termsVersion,
+                currentLegalVersion: LEGAL_VERSION,
             }
         });
     } catch (error) {
@@ -71,5 +74,21 @@ export const updateProfile = async (req, res) => {
         });
     } catch (error) {
         return res.json({ success: false, message: error.message });
+    }
+};
+
+// POST /api/user/accept-terms
+// Records agreement to the current Terms of Service and Privacy Policy.
+export const acceptTerms = async (req, res) => {
+    try {
+        const user = await userModel.findByIdAndUpdate(
+            req.userId,
+            { termsVersion: LEGAL_VERSION, termsAcceptedAt: new Date() },
+            { returnDocument: 'after' }
+        );
+        if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+        res.json({ success: true, termsVersion: user.termsVersion });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 };

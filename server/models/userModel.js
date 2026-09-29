@@ -23,6 +23,9 @@ const userSchema = new mongoose.Schema({
     lastWHOSubmission: { type: Date, default: null },
     latestWHOScore: { type: Number, default: null },
     profileTag: { type: String, unique: true, sparse: true, default: null },
+    // Which version of the Terms and Privacy Policy this user agreed to, and when.
+    termsVersion: { type: String, default: '' },
+    termsAcceptedAt: { type: Date, default: null },
     // What this user wants to hear about. Everything is on by default. groupOverrides
     // tune it per group: 'all' follows the toggles, 'tasks' only lets shared tasks
     // through, 'muted' silences the group completely.

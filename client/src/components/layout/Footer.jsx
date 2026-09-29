@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Github, Twitter, Linkedin, Mail } from 'lucide-react';
+import { Github, Mail } from 'lucide-react';
 import Logo from '../../assets/logo.svg';
 import './Footer.css';
 
@@ -16,9 +16,7 @@ export default function Footer() {
             Plan tasks early, spread the pressure, and protect your energy.
           </p>
           <div className="site-footer-socials">
-            <a href="#" aria-label="Twitter"><Twitter size={20} /></a>
-            <a href="#" aria-label="LinkedIn"><Linkedin size={20} /></a>
-            <a href="#" aria-label="GitHub"><Github size={20} /></a>
+            <a href="https://github.com/bnoxius-cell/Thesis" target="_blank" rel="noreferrer" aria-label="GitHub"><Github size={20} /></a>
             <a href="mailto:support@student.fatima.edu.ph" aria-label="Email Support"><Mail size={20} /></a>
           </div>
         </div>
@@ -34,7 +32,6 @@ export default function Footer() {
           <div className="site-footer-column">
             <h4>Resources</h4>
             <Link to="/about">About Us</Link>
-            <Link to="/faq">FAQ</Link>
             <Link to="/notifications">Alerts</Link>
             <a href="mailto:support@student.fatima.edu.ph">Contact Support</a>
           </div>
@@ -42,7 +39,6 @@ export default function Footer() {
             <h4>Legal</h4>
             <Link to="/privacy-policy">Privacy Policy</Link>
             <Link to="/terms-of-service">Terms of Service</Link>
-            <Link to="/cookie-policy">Cookie Policy</Link>
           </div>
         </div>
       </div>

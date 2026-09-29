@@ -81,9 +81,9 @@ export const AppContextProvider = (props) => {
 
   // Standard email/password registration. The backend emails a verification code;
   // the account isn't logged in until that code is entered.
-  const register = async (name, email, password) => {
+  const register = async (name, email, password, acceptedTerms) => {
     try {
-      const { data } = await axios.post(backendUrl + '/api/auth/register', { name, email, password });
+      const { data } = await axios.post(backendUrl + '/api/auth/register', { name, email, password, acceptedTerms });
       if (!data.success) {
         toast.error(data.message);
         return { success: false };

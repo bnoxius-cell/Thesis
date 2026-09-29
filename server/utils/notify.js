@@ -11,6 +11,7 @@ const PREF_BY_TYPE = {
     task_reminder: 'taskReminders',
     group_message: 'groupMessages',
     group_task: 'groupTasks',
+    group_schedule: 'groupTasks',
     group_member: 'groupMembers',
     group_invite: 'groupMembers',
 };
@@ -23,7 +24,7 @@ export const allowsNotification = (prefs, type, groupId) => {
     if (groupId) {
         const override = prefs?.groupOverrides?.find((o) => o.group.toString() === groupId.toString());
         if (override?.level === 'muted') return false;
-        if (override?.level === 'tasks' && type !== 'group_task') return false;
+        if (override?.level === 'tasks' && type !== 'group_task' && type !== 'group_schedule') return false;
     }
     return true;
 };

@@ -6,6 +6,8 @@ import { notify } from '../utils/notify.js';
 import userModel from '../models/userModel.js';
 import { fetchPublicHolidays } from '../utils/holidays.js';
 import { buildWeekOverview, addDaysIso } from '../utils/weekOverview.js';
+import groupModel from '../models/groupMode.js';
+import groupMessageModel from '../models/groupMessageModel.js';
 
 const MAX_OWNED_SCHEDULES = 20;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -361,6 +363,162 @@ export const setHolidayOverride = async (req, res) => {
         }
         await schedule.save();
         res.json({ success: true, schedule: await serialize(schedule, role) });
+    } catch (error) {
+        fail(res, 500, error.message);
+    }
+};
+
+// ---- Copying someone else's schedule ----------------------------------------------
+// Works like sharing a task: the person copies a share code (or taps a schedule a
+// groupmate posted in chat), sees what is in it and what clashes with their own week,
+// and adds it to a schedule of their own. Nothing is shared live, the copy is theirs.
+
+const PLAIN_ENTRY_FIELDS = [
+    'title', 'kind', 'days', 'date', 'startDate', 'endDate', 'startTime', 'endTime',
+    'location', 'notes', 'color', 'icon', 'skipOnHoliday',
+];
+
+// Loads whatever the request points at: a share code, or a schedule message in one of the
+// caller's groups. Sends the error itself and returns null when the caller should stop.
+const loadImportSource = async (req, res) => {
+    const { shareCode, groupId, messageId } = req.body;
+
+    if (messageId) {
+        if (!mongoose.Types.ObjectId.isValid(groupId) || !mongoose.Types.ObjectId.isValid(messageId)) {
+            fail(res, 404, 'That shared schedule is no longer available.');
+            return null;
+        }
+        const group = await groupModel.findById(groupId);
+        if (!group || !group.members.some((m) => m.toString() === req.userId)) {
+            fail(res, 403, 'You are not a member of this group');
+            return null;
+        }
+        const message = await groupMessageModel.findOne({ _id: messageId, group: groupId, type: 'schedule' });
+        if (!message?.schedule) {
+            fail(res, 404, 'That shared schedule is no longer available.');
+            return null;
+        }
+        const snap = message.schedule.toObject();
+        return {
+            token: `message:${message._id}`,
+            title: snap.title, ownerName: snap.ownerName, theme: snap.theme, country: snap.country,
+            entries: snap.entries.map((e) => ({ ...e, image: '' })),
+        };
+    }
+
+    const code = String(shareCode || '').trim().toUpperCase();
+    if (!code) {
+        fail(res, 400, 'Please enter a share code.');
+        return null;
+    }
+    const schedule = await scheduleModel.findOne({ shareCode: code }).populate('owner', 'name');
+    if (!schedule) {
+        fail(res, 404, 'No schedule found with that code.');
+        return null;
+    }
+    if (schedule.owner._id.toString() === req.userId) {
+        fail(res, 400, 'That is your own schedule.');
+        return null;
+    }
+    const plain = schedule.toObject();
+    return {
+        token: `schedule:${schedule._id}`,
+        title: plain.title, ownerName: plain.owner?.name || '', theme: plain.theme, country: plain.country,
+        entries: plain.entries,
+    };
+};
+
+const ownedForImport = (userId) => scheduleModel.find({ owner: userId }).select('title entries countInWorkload importedFrom').lean();
+
+// POST /api/schedules/preview  { shareCode } or { groupId, messageId }
+// What is in the schedule, plus the caller's own entries so the client can point out clashes
+// (and re-check them live as the person edits a time before adding).
+export const previewImport = async (req, res) => {
+    try {
+        const source = await loadImportSource(req, res);
+        if (!source) return;
+
+        const owned = await ownedForImport(req.userId);
+        res.json({
+            success: true,
+            source: {
+                title: source.title, ownerName: source.ownerName, theme: source.theme, country: source.country,
+                alreadyAdded: owned.some((s) => (s.importedFrom || []).includes(source.token)),
+            },
+            entries: source.entries.map((e) => ({
+                ..._pick(e, ['_id', ...PLAIN_ENTRY_FIELDS]),
+                hasImage: Boolean(e.image),
+            })),
+            // Only the schedules that count toward the caller's week can clash with it.
+            existing: owned
+                .filter((s) => s.countInWorkload !== false)
+                .flatMap((s) => s.entries.map((entry) => ({
+                    scheduleId: s._id,
+                    scheduleTitle: s.title,
+                    entry: _pick(entry, ['_id', ...PLAIN_ENTRY_FIELDS]),
+                }))),
+            schedules: owned.map((s) => ({ _id: s._id, title: s.title, entryCount: s.entries.length })),
+        });
+    } catch (error) {
+        fail(res, 500, error.message);
+    }
+};
+
+const _pick = (obj, keys) => Object.fromEntries(keys.filter((k) => obj[k] !== undefined).map((k) => [k, obj[k]]));
+
+const EDITABLE_ON_IMPORT = ['title', 'startTime', 'endTime', 'days', 'date', 'startDate', 'endDate', 'location', 'notes'];
+
+// POST /api/schedules/import
+//   { shareCode | groupId + messageId,
+//     selections: [{ id, edits? }],     which entries to copy, with any changes made in the preview
+//     targetScheduleId?,                add into one of the caller's schedules, or
+//     title? }                          leave the target out to make a new schedule
+export const importSchedule = async (req, res) => {
+    try {
+        const source = await loadImportSource(req, res);
+        if (!source) return;
+
+        const selections = Array.isArray(req.body.selections) ? req.body.selections : [];
+        if (!selections.length) return fail(res, 400, 'Pick at least one entry to add.');
+
+        const byId = new Map(source.entries.map((e) => [String(e._id), e]));
+        const cleaned = [];
+        for (const selection of selections) {
+            const original = byId.get(String(selection?.id));
+            if (!original) return fail(res, 400, 'One of those entries is no longer in the shared schedule.');
+            const merged = { ...original };
+            for (const key of EDITABLE_ON_IMPORT) {
+                if (selection.edits?.[key] !== undefined) merged[key] = selection.edits[key];
+            }
+            // Switching a one-off into a weekly entry (or back) is a full swap of its timing.
+            if (selection.edits?.date) merged.days = [];
+            if (selection.edits?.days?.length && selection.edits.date === undefined) merged.date = '';
+            const { entry, error } = cleanEntry(merged);
+            if (error) return fail(res, 400, `${original.title}: ${error}`);
+            cleaned.push(entry);
+        }
+
+        let schedule;
+        if (req.body.targetScheduleId) {
+            if (!mongoose.Types.ObjectId.isValid(req.body.targetScheduleId)) return fail(res, 404, 'Schedule not found');
+            schedule = await scheduleModel.findOne({ _id: req.body.targetScheduleId, owner: req.userId });
+            if (!schedule) return fail(res, 404, 'Schedule not found');
+        } else {
+            if (await scheduleModel.countDocuments({ owner: req.userId }) >= MAX_OWNED_SCHEDULES) {
+                return fail(res, 400, `You can have up to ${MAX_OWNED_SCHEDULES} schedules.`);
+            }
+            const title = String(req.body.title || source.title || 'Shared schedule').trim().slice(0, 80) || 'Shared schedule';
+            schedule = new scheduleModel({ title, owner: req.userId, theme: source.theme, country: source.country });
+        }
+
+        if (schedule.entries.length + cleaned.length > MAX_ENTRIES) {
+            return fail(res, 400, `A schedule can hold up to ${MAX_ENTRIES} entries. Pick fewer, or add to a different schedule.`);
+        }
+        cleaned.forEach((entry) => schedule.entries.push(entry));
+        if (!schedule.importedFrom.includes(source.token)) schedule.importedFrom.push(source.token);
+        await schedule.save();
+
+        res.status(201).json({ success: true, added: cleaned.length, schedule: await serialize(schedule, 'owner') });
     } catch (error) {
         fail(res, 500, error.message);
     }

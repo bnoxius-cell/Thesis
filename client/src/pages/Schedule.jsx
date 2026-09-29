@@ -11,6 +11,7 @@ import HolidayPanel from "../components/schedule/HolidayPanel";
 import EntryModal from "../components/schedule/EntryModal";
 import DayMarkModal from "../components/schedule/DayMarkModal";
 import ShareModal from "../components/schedule/ShareModal";
+import ScheduleImportDialog from "../components/schedule/ScheduleImportDialog";
 import { useAuth } from "./authentication/AuthContext";
 import {
   SCHEDULE_THEMES, COUNTRY_CODES, countryName, startOfWeek, addDays,
@@ -57,6 +58,7 @@ export default function Schedule() {
   const [newTheme, setNewTheme] = useState("classic");
   const [newCountry, setNewCountry] = useState("PH");
   const [joinCode, setJoinCode] = useState("");
+  const [importSource, setImportSource] = useState(null); // { shareCode } while the import dialog is open
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -295,26 +297,15 @@ export default function Schedule() {
     }
   };
 
-  const handleJoin = async (e) => {
+  // A code opens a preview of the schedule first. Nothing is added until the person
+  // has seen what's inside and what clashes with their own week.
+  const handleJoin = (e) => {
     e.preventDefault();
     const shareCode = joinCode.trim().toUpperCase();
     if (!shareCode) return setFormError("Please enter a share code.");
-    setSubmitting(true);
-    try {
-      const { data } = await axios.post(`${api}/join`, { shareCode }, { withCredentials: true });
-      if (data.success) {
-        setJoinCode("");
-        closeForms();
-        toast.success("You've joined the schedule.");
-        setSearchParams({ s: data.schedule._id });
-      } else {
-        setFormError(data.message);
-      }
-    } catch (err) {
-      setFormError(err.response?.status === 404 ? "No schedule found with that code." : (err.response?.data?.message || "Couldn't join."));
-    } finally {
-      setSubmitting(false);
-    }
+    setJoinCode("");
+    closeForms();
+    setImportSource({ shareCode });
   };
 
   // ---- Render ------------------------------------------------------------
@@ -495,7 +486,7 @@ export default function Schedule() {
             <h1>Your class schedule</h1>
             <p>
               Build a timetable with your classes and everything else you do. Holidays fill in on their own,
-              your dashboard plans your study time around it, and friends can copy it instead of typing theirs from scratch.
+              your dashboard plans your study time around it, and classmates can copy it with a code or from a group chat instead of typing theirs from scratch.
             </p>
           </div>
           <aside className="hero-panel">
@@ -515,7 +506,7 @@ export default function Schedule() {
             <Plus size={18} aria-hidden="true" /> New schedule
           </button>
           <button className="secondary-button" onClick={() => { setFormError(""); setJoinOpen(true); }}>
-            <Link2 size={18} aria-hidden="true" /> Join with a code
+            <Link2 size={18} aria-hidden="true" /> Add with a code
           </button>
         </div>
 
@@ -530,7 +521,7 @@ export default function Schedule() {
           </div>
         ) : schedules.length === 0 ? (
           <div className="panel" style={{ textAlign: "center" }}>
-            <p className="schedule-empty">No schedules yet. Create your first one, or join a friend's with a code.</p>
+            <p className="schedule-empty">No schedules yet. Create your first one, or add a classmate's with a code.</p>
           </div>
         ) : (
           <div className="groups-grid">
@@ -560,6 +551,14 @@ export default function Schedule() {
         )}
       </main>
       <Footer />
+
+      {importSource && (
+        <ScheduleImportDialog
+          source={importSource}
+          onClose={() => setImportSource(null)}
+          onImported={(added) => { setImportSource(null); setSearchParams({ s: added._id }); }}
+        />
+      )}
 
       {createOpen && (
         <div className="modal-overlay" onClick={closeForms}>
@@ -605,11 +604,12 @@ export default function Schedule() {
         <div className="modal-overlay" onClick={closeForms}>
           <form className="modal-content sched-modal sched-modal-narrow" onClick={(e) => e.stopPropagation()} onSubmit={handleJoin}>
             <div className="modal-header">
-              <h2>Join with a code</h2>
+              <h2>Add with a code</h2>
               <button type="button" className="modal-close" onClick={closeForms} aria-label="Close">×</button>
             </div>
             <div className="form-group">
               <label htmlFor="schedule-code">Share code</label>
+              <p className="sched-hint">Ask a classmate for their code, or tap a schedule they posted in a group. You'll see what's in it before anything is added.</p>
               <input
                 id="schedule-code"
                 type="text"
@@ -624,7 +624,7 @@ export default function Schedule() {
             {formError && <p className="form-error" role="alert">{formError}</p>}
             <div className="modal-actions sched-modal-actions">
               <button type="button" className="secondary-button" onClick={closeForms}>Cancel</button>
-              <button type="submit" className="primary-button" disabled={submitting}>{submitting ? "Joining..." : "Join"}</button>
+              <button type="submit" className="primary-button" disabled={submitting}>Continue</button>
             </div>
           </form>
         </div>

@@ -3,7 +3,7 @@ import userAuth from '../middleware/userAuth.js';
 import {
     createSchedule, getSchedules, getSchedule, updateSchedule, deleteSchedule,
     addEntry, updateEntry, deleteEntry,
-    getHolidays, getWeekOverview, setHolidayOverride,
+    getHolidays, getWeekOverview, previewImport, importSchedule, setHolidayOverride,
     shareWithFriend, removeCollaborator, updateShareCode, joinByCode, duplicateSchedule,
 } from '../controllers/scheduleController.js';
 
@@ -15,6 +15,8 @@ scheduleRouter.get('/', userAuth, getSchedules);
 scheduleRouter.get('/holidays', userAuth, getHolidays);
 scheduleRouter.get('/week', userAuth, getWeekOverview);
 scheduleRouter.post('/join', userAuth, joinByCode);
+scheduleRouter.post('/preview', userAuth, previewImport);
+scheduleRouter.post('/import', userAuth, importSchedule);
 
 scheduleRouter.get('/:scheduleId', userAuth, getSchedule);
 scheduleRouter.put('/:scheduleId', userAuth, updateSchedule);

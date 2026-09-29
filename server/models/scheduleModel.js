@@ -6,7 +6,7 @@ export const MAX_ENTRIES = 80;
 // comfortably under Mongo's 16MB document limit. The client shrinks pictures well below it.
 export const MAX_IMAGE_LENGTH = 100 * 1024;
 
-const entrySchema = new mongoose.Schema({
+export const entrySchema = new mongoose.Schema({
     title: { type: String, required: true, trim: true, maxlength: 80 },
     kind: { type: String, enum: ['class', 'activity'], default: 'class' },
     // Recurring entries use `days` (0 = Sunday ... 6 = Saturday, same as Date#getDay).
@@ -52,6 +52,9 @@ const scheduleSchema = new mongoose.Schema({
     shareRole: { type: String, enum: ['viewer', 'editor'], default: 'viewer' },
     // Whether the dashboard counts this timetable when it works out the week's workload.
     countInWorkload: { type: Boolean, default: true },
+    // Where copied entries came from ('schedule:<id>' for a share code, 'message:<id>' for a
+    // group chat share), so the chat can show "already added" instead of offering it again.
+    importedFrom: { type: [String], default: [] },
 }, { timestamps: true });
 
 export default mongoose.models.schedule || mongoose.model('schedule', scheduleSchema);

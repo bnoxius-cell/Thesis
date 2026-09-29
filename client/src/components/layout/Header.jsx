@@ -45,36 +45,47 @@ export default function Header() {
 
         <nav className="sidepanel-nav">
           <div className="sidepanel-menu">
-            <Link to="/dashboard" className={`sidepanel-link ${location.pathname === '/dashboard' ? 'active' : ''}`} onClick={closeDrawer}>
-              <LayoutDashboard size={18} /> <span>Dashboard</span>
-            </Link>
-            <Link to={user?._id ? `/profile/${user._id}` : '/profile'} className={`sidepanel-link ${location.pathname.startsWith('/profile') ? 'active' : ''}`} onClick={closeDrawer}>
-              <User size={18} /> <span>Profile</span>
-            </Link>
-            <Link to="/create-task" className={`sidepanel-link ${location.pathname === '/create-task' ? 'active' : ''}`} onClick={closeDrawer}>
-              <Plus size={18} /> <span>Create Task</span>
-            </Link>
-            <Link to="/schedule" className={`sidepanel-link ${location.pathname === '/schedule' ? 'active' : ''}`} onClick={closeDrawer}>
-              <CalendarDays size={18} /> <span>Schedule</span>
-            </Link>
-            <Link to="/groups" className={`sidepanel-link ${location.pathname === '/groups' ? 'active' : ''}`} onClick={closeDrawer}>
-              <Users size={18} /> <span>Groups</span>
-            </Link>
-            <Link to="/friends" className={`sidepanel-link ${location.pathname === '/friends' ? 'active' : ''}`} onClick={closeDrawer}>
-              <UserCheck size={18} /> <span>Friends</span>
-            </Link>
-            <Link to="/notifications" className={`sidepanel-link ${location.pathname === '/notifications' ? 'active' : ''}`} onClick={closeDrawer}>
-              <Bell size={18} /> <span>Notifications</span>
-              {unreadCount > 0 && (
-                <span className="nav-badge" aria-label={`${unreadCount} unread`}>{unreadCount > 99 ? '99+' : unreadCount}</span>
-              )}
-            </Link>
-            <Link to="/about" className={`sidepanel-link ${location.pathname === '/about' ? 'active' : ''}`} onClick={closeDrawer}>
-              <Info size={18} /> <span>About</span>
-            </Link>
-            <Link to="/settings" className={`sidepanel-link ${location.pathname === '/settings' ? 'active' : ''}`} onClick={closeDrawer}>
-              <Settings size={18} /> <span>Settings</span>
-            </Link>
+            <div className="sidepanel-group" role="group" aria-label="Plan">
+              <span className="sidepanel-group-label" aria-hidden="true">Plan</span>
+              <Link to="/dashboard" className={`sidepanel-link ${location.pathname === '/dashboard' ? 'active' : ''}`} onClick={closeDrawer}>
+                <LayoutDashboard size={18} /> <span>Dashboard</span>
+              </Link>
+              <Link to="/create-task" className={`sidepanel-link ${location.pathname === '/create-task' ? 'active' : ''}`} onClick={closeDrawer}>
+                <Plus size={18} /> <span>Create Task</span>
+              </Link>
+              <Link to="/schedule" className={`sidepanel-link ${location.pathname === '/schedule' ? 'active' : ''}`} onClick={closeDrawer}>
+                <CalendarDays size={18} /> <span>Schedule</span>
+              </Link>
+            </div>
+
+            <div className="sidepanel-group" role="group" aria-label="Together">
+              <span className="sidepanel-group-label" aria-hidden="true">Together</span>
+              <Link to="/groups" className={`sidepanel-link ${location.pathname === '/groups' ? 'active' : ''}`} onClick={closeDrawer}>
+                <Users size={18} /> <span>Groups</span>
+              </Link>
+              <Link to="/friends" className={`sidepanel-link ${location.pathname === '/friends' ? 'active' : ''}`} onClick={closeDrawer}>
+                <UserCheck size={18} /> <span>Friends</span>
+              </Link>
+              <Link to="/notifications" className={`sidepanel-link ${location.pathname === '/notifications' ? 'active' : ''}`} onClick={closeDrawer}>
+                <Bell size={18} /> <span>Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="nav-badge" aria-label={`${unreadCount} unread`}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+                )}
+              </Link>
+            </div>
+
+            <div className="sidepanel-group" role="group" aria-label="You">
+              <span className="sidepanel-group-label" aria-hidden="true">You</span>
+              <Link to={user?._id ? `/profile/${user._id}` : '/profile'} className={`sidepanel-link ${location.pathname.startsWith('/profile') ? 'active' : ''}`} onClick={closeDrawer}>
+                <User size={18} /> <span>Profile</span>
+              </Link>
+              <Link to="/settings" className={`sidepanel-link ${location.pathname === '/settings' ? 'active' : ''}`} onClick={closeDrawer}>
+                <Settings size={18} /> <span>Settings</span>
+              </Link>
+              <Link to="/about" className={`sidepanel-link ${location.pathname === '/about' ? 'active' : ''}`} onClick={closeDrawer}>
+                <Info size={18} /> <span>About</span>
+              </Link>
+            </div>
           </div>
 
           <div className="sidepanel-footer">

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Copy, RefreshCw, X } from "lucide-react";
+import { Copy, RefreshCw, X, Send } from "lucide-react";
 
 // Owner-only. Two ways in: pick friends directly, or turn on a code anyone can enter.
 // Sharing is view-only. It exists so classmates can copy a timetable instead of
@@ -12,6 +12,8 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
   const [friendsLoaded, setFriendsLoaded] = useState(false);
   const [pickedFriend, setPickedFriend] = useState("");
   const [busy, setBusy] = useState(false);
+  const [groups, setGroups] = useState([]);
+  const [pickedGroup, setPickedGroup] = useState("");
 
   const base = `${backendUrl}/api/schedules/${schedule._id}`;
   const collaboratorIds = new Set(schedule.collaborators.map((c) => c.user._id));
@@ -23,6 +25,14 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
       .then(({ data }) => { if (!cancelled && data.success) setFriends(data.friends); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setFriendsLoaded(true); });
+    return () => { cancelled = true; };
+  }, [backendUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+    axios.get(`${backendUrl}/api/groups`, { withCredentials: true })
+      .then(({ data }) => { if (!cancelled && data.success) setGroups(data.groups); })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [backendUrl]);
 
@@ -60,6 +70,17 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
 
   const updateCode = (body, message) =>
     run(() => axios.put(`${base}/share-code`, body, { withCredentials: true }), message);
+
+  // Posts a snapshot into a group chat. Members tap it to add a copy to their own schedules.
+  const postToGroup = async () => {
+    if (!pickedGroup) return;
+    const name = groups.find((g) => g._id === pickedGroup)?.name || "the group";
+    const ok = await run(
+      () => axios.post(`${backendUrl}/api/groups/${pickedGroup}/messages`, { scheduleId: schedule._id }, { withCredentials: true }),
+      `Posted in ${name}.`
+    );
+    if (ok) setPickedGroup("");
+  };
 
   const copyCode = async () => {
     try {
@@ -111,6 +132,26 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
         </section>
 
         <section className="sched-share-section">
+          <h3>Group chat</h3>
+          {groups.length === 0 ? (
+            <p className="sched-hint">Join or create a group to post your schedule there.</p>
+          ) : (
+            <>
+              <p className="sched-hint">Post it in a group. Anyone in the group can tap it and add a copy to their own schedules, and they'll see any clashes with theirs.</p>
+              <div className="sched-share-add">
+                <select value={pickedGroup} onChange={(e) => setPickedGroup(e.target.value)} aria-label="Choose a group">
+                  <option value="">Choose a group</option>
+                  {groups.map((g) => <option key={g._id} value={g._id}>{g.name}</option>)}
+                </select>
+                <button type="button" className="primary-button" onClick={postToGroup} disabled={busy || !pickedGroup}>
+                  <Send size={16} aria-hidden="true" /> Post
+                </button>
+              </div>
+            </>
+          )}
+        </section>
+
+        <section className="sched-share-section">
           <h3>Share code</h3>
           {schedule.shareCode ? (
             <>
@@ -121,7 +162,7 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
                   <RefreshCw size={16} aria-hidden="true" />
                 </button>
               </div>
-              <p className="sched-hint">Anyone with the code can view this schedule and copy it into their own.</p>
+              <p className="sched-hint">Anyone with the code can look inside and add a copy to their own schedules.</p>
               <div className="sched-share-add">
                 <button type="button" className="secondary-button" onClick={() => updateCode({ enabled: false }, "Code turned off.")} disabled={busy}>
                   Turn off
@@ -130,7 +171,7 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
             </>
           ) : (
             <>
-              <p className="sched-hint">Anyone you give the code to can view this schedule and copy it. They enter it under "Join with a code".</p>
+              <p className="sched-hint">Anyone you give the code to can view this schedule and copy it. They enter it under "Add with a code" and choose what to keep.</p>
               <button type="button" className="secondary-button" onClick={() => updateCode({ enabled: true }, "Code created.")} disabled={busy}>
                 Create a code
               </button>
