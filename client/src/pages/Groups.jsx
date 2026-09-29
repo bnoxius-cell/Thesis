@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Plus, Link2, MessageSquare } from "lucide-react";
+import { Plus, Link2, MessageSquare, ShieldCheck } from "lucide-react";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import GroupChat from "../components/GroupChat";
 import ConfirmDialog from "../components/ConfirmDialog";
+import UserAvatar from "../components/UserAvatar";
+import PictureField from "../components/PictureField";
 import { useAuth } from "./authentication/AuthContext";
 import "../App.css";
 
@@ -26,6 +28,8 @@ export default function Groups() {
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDesc, setNewGroupDesc] = useState("");
+  const [newGroupIcon, setNewGroupIcon] = useState("");
+  const [newGroupFamily, setNewGroupFamily] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -80,12 +84,14 @@ export default function Groups() {
     try {
       const { data } = await axios.post(
         `${backendUrl}/api/groups`,
-        { name, description: newGroupDesc.trim() },
+        { name, description: newGroupDesc.trim(), icon: newGroupIcon, familyFriendly: newGroupFamily },
         { withCredentials: true }
       );
       if (data.success) {
         setNewGroupName("");
         setNewGroupDesc("");
+        setNewGroupIcon("");
+        setNewGroupFamily(false);
         closeModals();
         await fetchGroups();
         toast.success("Group created. Share the join code with your classmates.");
@@ -154,6 +160,9 @@ export default function Groups() {
   };
 
   const isOwner = (group) => group.admin?._id === myId;
+  const isAdmin = (group) => isOwner(group) || (group.admins || []).includes(myId);
+  // Roles and settings come back from the server already updated, so drop them into the list.
+  const handleGroupUpdated = (updated) => setGroups((prev) => prev.map((g) => (g._id === updated._id ? updated : g)));
   const openGroup = groups.find((g) => g._id === openGroupId);
 
   const confirmDialog = (
@@ -191,6 +200,7 @@ export default function Groups() {
               onBack={closeChat}
               onLeave={() => setConfirm({ kind: "leave", group: openGroup })}
               onDelete={() => setConfirm({ kind: "delete", group: openGroup })}
+              onGroupUpdated={handleGroupUpdated}
             />
           ) : (
             <div className="panel" style={{ textAlign: "center" }}>
@@ -263,8 +273,11 @@ export default function Groups() {
             {groups.map((group) => (
               <div key={group._id} className="group-card">
                 <div className="group-header">
+                  <UserAvatar name={group.name} src={group.icon} size={44} square />
                   <h3>{group.name}</h3>
                   {isOwner(group) && <span className="owner-badge">Owner</span>}
+                  {!isOwner(group) && isAdmin(group) && <span className="owner-badge admin-badge">Admin</span>}
+                  {group.familyFriendly && <span className="family-badge"><ShieldCheck size={12} aria-hidden="true" /> Family-friendly</span>}
                 </div>
                 {group.description && <p className="group-desc">{group.description}</p>}
                 <div className="group-code">
@@ -275,7 +288,10 @@ export default function Groups() {
                   <ul className="members-list">
                     {group.members.map((member) => (
                       <li key={member._id}>
-                        {member.name} {member._id === myId && "(you)"}
+                        <Link to={`/profile/${member._id}`} className="member-chip">
+                          <UserAvatar name={member.name} src={member.avatar} size={22} />
+                          {member.name} {member._id === myId && "(you)"}
+                        </Link>
                       </li>
                     ))}
                   </ul>
@@ -332,6 +348,17 @@ export default function Groups() {
                   placeholder="What's this group for?"
                 />
               </div>
+              <div className="form-group full-span">
+                <span className="field-label">Group icon (optional)</span>
+                <PictureField value={newGroupIcon} onChange={setNewGroupIcon} name={newGroupName} square size={64} chooseLabel="Choose an image" />
+              </div>
+              <label className="switch-row full-span">
+                <input type="checkbox" checked={newGroupFamily} onChange={(e) => setNewGroupFamily(e.target.checked)} />
+                <span>
+                  <strong><ShieldCheck size={15} aria-hidden="true" /> Family-friendly chat</strong>
+                  <small>Blocks messages with swearing or explicit words. Admins can change this later.</small>
+                </span>
+              </label>
               {error && <p className="form-error full-span">{error}</p>}
               <div className="modal-actions full-span">
                 <button type="button" className="secondary-button" onClick={closeModals}>

@@ -2,10 +2,14 @@ import { useAuth } from "./authentication/AuthContext";
 import { useState, useEffect } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import axios from "axios";
+import { toast } from "react-toastify";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import PSSSurveyModal from "../components/PSSSurveyModal";
 import WHOSurveyModal from "../components/WHOSurveyModal";
+import PictureField from "../components/PictureField";
+import PublicProfile from "./PublicProfile";
+import { surveyStatus, PSS_VALID_DAYS, WHO_VALID_DAYS } from "../utils/workload";
 import "../App.css";
 
 // Helper to get optimized Google avatar URL
@@ -14,19 +18,20 @@ const getOptimizedAvatarUrl = (avatar) => {
   return avatar.replace('s96-c', 's150-c');
 };
 
-// Fallback: initials avatar
-const getInitialsAvatar = (name) => {
-  if (!name) return "https://ui-avatars.com/api/?name=U&background=dc2626&color=fff&size=150&rounded=true&bold=true";
-  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase();
-  return `https://ui-avatars.com/api/?name=${initials}&background=dc2626&color=fff&size=150&rounded=true&bold=true`;
-};
-
+// Your own profile at /profile/:yourId, someone else's (a friend or groupmate) at any other id.
 export default function Profile() {
-  const { user, backendUrl } = useAuth();
+  const { user } = useAuth();
+  const { uid } = useParams();
+  if (uid && user?._id && uid !== "undefined" && uid !== user._id) return <PublicProfile uid={uid} />;
+  return <OwnProfile />;
+}
+
+function OwnProfile() {
+  const { user, backendUrl, getUserData } = useAuth();
   const { uid } = useParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [imgError, setImgError] = useState(false);
+  const [savingPicture, setSavingPicture] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
@@ -47,6 +52,7 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
     program: "BS Information Technology",
     studyHoursPerDay: 4,
     wellbeingGoal: "steady",
+    bio: "",
   });
 
   const [editForm, setEditForm] = useState({ ...profile });
@@ -57,18 +63,15 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
         const { data } = await axios.get(`${backendUrl}/api/user/data`, { withCredentials: true });
         if (data.success && data.userData) {
           const userData = data.userData;
-          setProfile({
+          const loaded = {
             studentName: userData.name || "",
             program: userData.program || "BS Information Technology",
             studyHoursPerDay: userData.studyHoursPerDay || 4,
             wellbeingGoal: userData.wellbeingGoal || "steady",
-          });
-          setEditForm({
-            studentName: userData.name || "",
-            program: userData.program || "BS Information Technology",
-            studyHoursPerDay: userData.studyHoursPerDay || 4,
-            wellbeingGoal: userData.wellbeingGoal || "steady",
-          });
+            bio: userData.bio || "",
+          };
+          setProfile(loaded);
+          setEditForm(loaded);
           setPssScore(userData.latestPSSScore ?? null);
           setWhoScore(userData.latestWHOScore ?? null);
           setLastPSSSubmission(userData.lastPSSSubmission ?? null);
@@ -101,6 +104,24 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
       console.error("Error saving profile", err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // A new photo is saved straight away, so it doesn't wait for "Save Changes" on the form.
+  const handlePictureChange = async (avatar) => {
+    setSavingPicture(true);
+    try {
+      const { data } = await axios.put(`${backendUrl}/api/user/avatar`, { avatar }, { withCredentials: true });
+      if (data.success) {
+        await getUserData();
+        toast.success(avatar ? "Profile picture updated." : "Profile picture removed.");
+      } else {
+        toast.error(data.message || "Couldn't save that picture.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Couldn't save that picture.");
+    } finally {
+      setSavingPicture(false);
     }
   };
 
@@ -149,14 +170,6 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
     return <Navigate to={`/profile/${user._id}`} replace />;
   }
 
-  let avatarSrc = getInitialsAvatar(user.name);
-  if (user.avatar && !imgError) {
-    const optimized = getOptimizedAvatarUrl(user.avatar);
-    if (optimized) avatarSrc = optimized;
-  }
-
-  const handleImageError = () => setImgError(true);
-
   if (loading) {
     return (
       <div className="app app-layout">
@@ -172,6 +185,12 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
   }
 
   // Helper to get stress level from PSS score
+  const pss = surveyStatus(pssScore, lastPSSSubmission, PSS_VALID_DAYS);
+  const who = surveyStatus(whoScore, lastWHOSubmission, WHO_VALID_DAYS);
+  const staleNote = (status) => (status.status === "stale"
+    ? `Taken ${status.ageDays} days ago. It's out of date, so it isn't counted in your workload until you retake it.`
+    : null);
+
   const getStressLevel = (score) => {
     if (score <= 13) return "Low Stress";
     if (score <= 26) return "Moderate Stress";
@@ -232,12 +251,14 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
             <h2>Account Info</h2>
             <div className="profile-container">
               <div className="profile-image">
-                <img
-                  src={avatarSrc}
-                  alt="Profile"
-                  onError={handleImageError}
-                  referrerPolicy="no-referrer"
-                  className="profile-avatar"
+                <PictureField
+                  key={user.avatar || "none"}
+                  value={getOptimizedAvatarUrl(user.avatar) || ""}
+                  onChange={handlePictureChange}
+                  name={user.name}
+                  size={112}
+                  disabled={savingPicture}
+                  chooseLabel="Add a photo"
                 />
               </div>
               <div className="profile-info">
@@ -308,6 +329,20 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
             </label>
 
             <label className="full-span">
+              About you
+              <textarea
+                className="bio-input"
+                rows={3}
+                maxLength={200}
+                placeholder="A line or two other students will see on your profile"
+                value={isEditing ? editForm.bio : profile.bio}
+                onChange={(e) => handleEditChange("bio", e.target.value)}
+                disabled={!isEditing}
+              />
+              {isEditing && <small className="field-hint">{editForm.bio.length}/200</small>}
+            </label>
+
+            <label className="full-span">
               Wellbeing goal
               <select
                 value={isEditing ? editForm.wellbeingGoal : profile.wellbeingGoal}
@@ -338,7 +373,7 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
                   <h3>📊 Perceived Stress Scale (PSS-10)</h3>
                   <p>Your stress level over the last month</p>
                 </div>
-                <div className="survey-score">
+                <div className={`survey-score${pss.status === "stale" ? " is-stale" : ""}`}>
                   <div className="survey-score-value">
                     {pssScore === null ? "No result" : `${pssScore} / 40`}
                   </div>
@@ -347,6 +382,7 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
                   </div>
                 </div>
               </div>
+              {staleNote(pss) && <p className="survey-stale-note">{staleNote(pss)}</p>}
               <div className="survey-card-actions">
                 <button
                   className="secondary-button small"
@@ -364,7 +400,7 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
                   <h3>💚 WHO-5 Well-Being Index</h3>
                   <p>Your emotional well-being over the last two weeks</p>
                 </div>
-                <div className="survey-score">
+                <div className={`survey-score${who.status === "stale" ? " is-stale" : ""}`}>
                   <div className="survey-score-value">
                     {whoScore === null ? "No result" : `${whoScore} / 100`}
                   </div>
@@ -373,6 +409,7 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
                   </div>
                 </div>
               </div>
+              {staleNote(who) && <p className="survey-stale-note">{staleNote(who)}</p>}
               <div className="survey-card-actions">
                 <button
                   className="secondary-button small"

@@ -7,6 +7,8 @@ import scheduleModel from '../models/scheduleModel.js';
 import userModel from '../models/userModel.js';
 import { notify } from '../utils/notify.js';
 import { ensureShareTemplateForTask } from './taskController.js';
+import { containsProfanity } from '../utils/familyFilter.js';
+import { isValidPicture } from '../utils/images.js';
 
 const MAX_MESSAGE_LENGTH = 1000;
 const INITIAL_MESSAGE_LIMIT = 50;
@@ -28,7 +30,28 @@ const createUniqueJoinCode = async () => {
     throw new Error('Unable to generate a unique join code.');
 };
 
-const isMember = (group, userId) => group.members.some((member) => member.toString() === userId);
+const MAX_NAME_LENGTH = 60;
+const MAX_DESCRIPTION_LENGTH = 140;
+
+const sameId = (a, b) => String(a) === String(b);
+const isMember = (group, userId) => group.members.some((member) => sameId(member, userId));
+// The owner is always an admin. Other admins are the ones the owner promoted.
+const isOwner = (group, userId) => sameId(group.admin, userId);
+const isAdmin = (group, userId) => isOwner(group, userId) || (group.admins || []).some((a) => sameId(a, userId));
+
+// Same shape getGroups returns, so the client can drop an updated group straight into its list.
+const populateGroup = (query) => query.populate('admin', 'name avatar').populate('members', 'name avatar');
+
+// Every piece of text a message would put in front of the group, for the family-friendly filter.
+const textsToCheck = (messageData) => {
+    const texts = [messageData.text];
+    if (messageData.task) texts.push(messageData.task.title, messageData.task.course, messageData.task.description);
+    if (messageData.schedule) {
+        texts.push(messageData.schedule.title);
+        (messageData.schedule.entries || []).forEach((e) => texts.push(e.title, e.location));
+    }
+    return texts;
+};
 
 // Loads the group and confirms the caller belongs to it. Sends the error response
 // itself and returns null when the caller should stop.
@@ -80,9 +103,17 @@ export const createGroup = async (req, res) => {
         const description = req.body.description?.trim() || '';
         if (!name) return res.json({ success: false, message: 'Group name is required.' });
 
+        if (name.length > MAX_NAME_LENGTH || description.length > MAX_DESCRIPTION_LENGTH) {
+            return res.json({ success: false, message: 'That name or description is too long.' });
+        }
+        const icon = req.body.icon ?? '';
+        if (!isValidPicture(icon)) return res.json({ success: false, message: 'That group picture is too large or not an image.' });
+
         const newGroup = new groupModel({
             name,
             description,
+            icon,
+            familyFriendly: req.body.familyFriendly === true,
             joinCode: await createUniqueJoinCode(),
             admin: req.userId,
             members: [req.userId]
@@ -98,8 +129,8 @@ export const createGroup = async (req, res) => {
 export const getGroups = async (req, res) => {
     try {
         const groups = await groupModel.find({ members: req.userId })
-            .populate('admin', 'name email avatar')
-            .populate('members', 'name email avatar');
+            .populate('admin', 'name avatar')
+            .populate('members', 'name avatar');
 
         // Groups made before join codes existed get one the first time they're listed.
         await Promise.all(groups.filter((group) => !group.joinCode).map(async (group) => {
@@ -157,6 +188,7 @@ export const leaveGroup = async (req, res) => {
             return res.json({ success: false, message: 'Admin cannot leave the group. Delete it instead.' });
         }
         group.members = group.members.filter(member => member.toString() !== req.userId);
+        group.admins = group.admins.filter(member => member.toString() !== req.userId);
         await group.save();
 
         // Only the admin hears about it, so a big group doesn't ping everyone.
@@ -194,6 +226,131 @@ export const deleteGroup = async (req, res) => {
         res.json({ success: true, message: 'Group deleted successfully' });
     } catch (error) {
         res.json({ success: false, message: error.message });
+    }
+};
+
+// PATCH /:groupId  body: any of { name, description, icon, familyFriendly }. Owner and admins.
+export const updateGroup = async (req, res) => {
+    try {
+        const group = await loadGroupForMember(req, res);
+        if (!group) return;
+        if (!isAdmin(group, req.userId)) {
+            return res.status(403).json({ success: false, message: 'Only group admins can change the group.' });
+        }
+
+        const { name, description, icon, familyFriendly } = req.body;
+        if (name !== undefined) {
+            const trimmed = String(name).trim();
+            if (!trimmed) return res.status(400).json({ success: false, message: 'Group name is required.' });
+            if (trimmed.length > MAX_NAME_LENGTH) return res.status(400).json({ success: false, message: 'That name is too long.' });
+            group.name = trimmed;
+        }
+        if (description !== undefined) {
+            const trimmed = String(description).trim();
+            if (trimmed.length > MAX_DESCRIPTION_LENGTH) return res.status(400).json({ success: false, message: 'That description is too long.' });
+            group.description = trimmed;
+        }
+        if (icon !== undefined) {
+            if (!isValidPicture(icon)) return res.status(400).json({ success: false, message: 'That group picture is too large or not an image.' });
+            group.icon = icon;
+        }
+        if (familyFriendly !== undefined) group.familyFriendly = familyFriendly === true;
+
+        await group.save();
+        res.json({ success: true, group: await populateGroup(groupModel.findById(group._id)) });
+    } catch (error) {
+        console.error('Update group error:', error);
+        res.status(500).json({ success: false, message: 'Could not update the group.' });
+    }
+};
+
+// POST /:groupId/admins  body: { userId }. Owner only. Promotes a member to admin.
+export const addAdmin = async (req, res) => {
+    try {
+        const group = await loadGroupForMember(req, res);
+        if (!group) return;
+        if (!isOwner(group, req.userId)) {
+            return res.status(403).json({ success: false, message: 'Only the group owner can make someone an admin.' });
+        }
+        const { userId } = req.body;
+        if (!userId || !isMember(group, userId)) {
+            return res.status(404).json({ success: false, message: 'That person is not in this group.' });
+        }
+        if (!isAdmin(group, userId)) {
+            group.admins.push(userId);
+            await group.save();
+            const owner = await userModel.findById(req.userId).select('name');
+            await notify({
+                recipients: [userId],
+                sender: req.userId,
+                type: 'group_member',
+                title: group.name,
+                message: `${owner?.name || 'The owner'} made you an admin.`,
+                link: `/groups?g=${group._id}`,
+                group: group._id,
+            });
+        }
+        res.json({ success: true, group: await populateGroup(groupModel.findById(group._id)) });
+    } catch (error) {
+        console.error('Add admin error:', error);
+        res.status(500).json({ success: false, message: 'Could not change that role.' });
+    }
+};
+
+// DELETE /:groupId/admins/:userId  Owner only. Back to a regular member.
+export const removeAdmin = async (req, res) => {
+    try {
+        const group = await loadGroupForMember(req, res);
+        if (!group) return;
+        if (!isOwner(group, req.userId)) {
+            return res.status(403).json({ success: false, message: 'Only the group owner can remove an admin.' });
+        }
+        group.admins = group.admins.filter((a) => !sameId(a, req.params.userId));
+        await group.save();
+        res.json({ success: true, group: await populateGroup(groupModel.findById(group._id)) });
+    } catch (error) {
+        console.error('Remove admin error:', error);
+        res.status(500).json({ success: false, message: 'Could not change that role.' });
+    }
+};
+
+// DELETE /:groupId/members/:userId  Owner and admins. Admins can only remove regular members.
+export const removeMember = async (req, res) => {
+    try {
+        const group = await loadGroupForMember(req, res);
+        if (!group) return;
+        const { userId } = req.params;
+
+        if (!isAdmin(group, req.userId)) {
+            return res.status(403).json({ success: false, message: 'Only group admins can remove members.' });
+        }
+        if (!isMember(group, userId)) {
+            return res.status(404).json({ success: false, message: 'That person is not in this group.' });
+        }
+        if (isOwner(group, userId)) {
+            return res.status(403).json({ success: false, message: "The owner can't be removed." });
+        }
+        if (isAdmin(group, userId) && !isOwner(group, req.userId)) {
+            return res.status(403).json({ success: false, message: 'Only the owner can remove another admin.' });
+        }
+
+        group.members = group.members.filter((m) => !sameId(m, userId));
+        group.admins = group.admins.filter((a) => !sameId(a, userId));
+        await group.save();
+
+        await notify({
+            recipients: [userId],
+            sender: req.userId,
+            type: 'group_member',
+            title: group.name,
+            message: 'You were removed from the group.',
+            link: '/groups',
+            group: group._id,
+        });
+        res.json({ success: true, group: await populateGroup(groupModel.findById(group._id)) });
+    } catch (error) {
+        console.error('Remove member error:', error);
+        res.status(500).json({ success: false, message: 'Could not remove that member.' });
     }
 };
 
@@ -280,6 +437,14 @@ export const sendMessage = async (req, res) => {
             };
         } else if (!text) {
             return res.status(400).json({ success: false, message: "Message can't be empty." });
+        }
+
+        if (group.familyFriendly && textsToCheck(messageData).some(containsProfanity)) {
+            return res.status(400).json({
+                success: false,
+                code: 'family_filter',
+                message: 'This group is set to family-friendly, so that message was not sent. Try rewording it.',
+            });
         }
 
         const message = await groupMessageModel.create(messageData);

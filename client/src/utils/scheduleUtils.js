@@ -152,23 +152,33 @@ const loadImage = (file) => new Promise((resolve, reject) => {
   img.src = url;
 });
 
+// Profile photos and group icons show up next to every message and in every member list,
+// so they get a much smaller budget than a timetable picture: a cropped 128px square.
+export const AVATAR_PICTURE = { side: 128, maxChars: 20 * 1024, square: true };
+
 // Shrinks a picked photo to a small JPEG data URL that fits in the database.
-export const compressImage = async (file) => {
+// `square` crops the middle of the photo to a square first.
+export const compressImage = async (file, { side = MAX_PICTURE_SIDE, maxChars = MAX_PICTURE_CHARS, square = false } = {}) => {
   if (!file.type.startsWith("image/")) throw new Error("Please choose an image file.");
   const img = await loadImage(file);
-  const scale = Math.min(1, MAX_PICTURE_SIDE / Math.max(img.width, img.height));
+  const cropSide = Math.min(img.width, img.height);
+  const sx = square ? (img.width - cropSide) / 2 : 0;
+  const sy = square ? (img.height - cropSide) / 2 : 0;
+  const sw = square ? cropSide : img.width;
+  const sh = square ? cropSide : img.height;
+  const scale = Math.min(1, side / Math.max(sw, sh));
   const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(img.width * scale));
-  canvas.height = Math.max(1, Math.round(img.height * scale));
+  canvas.width = Math.max(1, Math.round(sw * scale));
+  canvas.height = Math.max(1, Math.round(sh * scale));
   const ctx = canvas.getContext("2d");
   // JPEG has no transparency, so a transparent PNG would otherwise turn black.
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
   for (let quality = 0.8; quality >= 0.4; quality -= 0.1) {
     const dataUrl = canvas.toDataURL("image/jpeg", quality);
-    if (dataUrl.length <= MAX_PICTURE_CHARS) return dataUrl;
+    if (dataUrl.length <= maxChars) return dataUrl;
   }
   throw new Error("That picture is too detailed to shrink enough. Try a different one.");
 };
