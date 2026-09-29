@@ -1,5 +1,6 @@
 import Friend from '../models/Friend.js';
 import userModel from '../models/userModel.js';
+import { notify } from '../utils/notify.js';
 
 // Get friends list (accepted only)
 export const getFriends = async (req, res) => {
@@ -54,6 +55,16 @@ export const sendFriendRequest = async (req, res) => {
             status: 'pending',
         });
         await newFriend.save();
+
+        const sender = await userModel.findById(senderId).select('name');
+        await notify({
+            recipients: [receiver._id],
+            sender: senderId,
+            type: 'friend_request',
+            title: 'New friend request',
+            message: `${sender?.name || 'Someone'} wants to be your friend.`,
+            link: '/friends',
+        });
         res.json({ success: true, message: 'Friend request sent.' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -72,6 +83,16 @@ export const acceptFriendRequest = async (req, res) => {
         }
         friendRequest.status = 'accepted';
         await friendRequest.save();
+
+        const accepter = await userModel.findById(userId).select('name');
+        await notify({
+            recipients: [friendRequest.user],
+            sender: userId,
+            type: 'friend_accepted',
+            title: 'Friend request accepted',
+            message: `${accepter?.name || 'Someone'} accepted your friend request.`,
+            link: '/friends',
+        });
         res.json({ success: true, message: 'Friend request accepted.' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

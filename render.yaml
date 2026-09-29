@@ -22,6 +22,13 @@ services:
       # Brevo's HTTPS API when this is set (Brevo > SMTP & API > API Keys).
       - key: BREVO_API_KEY
         sync: false
+      # Web Push (phone/PC notifications). Copy the same three values from server/.env.
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT

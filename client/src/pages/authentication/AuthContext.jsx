@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { detachPush } from "../../utils/pushClient";
 
 export const AppContext = createContext();
 
@@ -118,6 +119,8 @@ export const AppContextProvider = (props) => {
   // (Header passes the click event as the argument; it has no `silent`, so that still toasts.)
   const logout = async ({ silent = false } = {}) => {
     try {
+      // Needs the session cookie, so it has to happen before the logout request.
+      await detachPush(backendUrl);
       const { data } = await axios.post(backendUrl + '/api/auth/logout');
       if (data.success) {
         setIsLoggedin(false);

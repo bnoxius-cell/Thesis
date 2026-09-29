@@ -23,6 +23,26 @@ const userSchema = new mongoose.Schema({
     lastWHOSubmission: { type: Date, default: null },
     latestWHOScore: { type: Number, default: null },
     profileTag: { type: String, unique: true, sparse: true, default: null },
+    // What this user wants to hear about. Everything is on by default. groupOverrides
+    // tune it per group: 'all' follows the toggles, 'tasks' only lets shared tasks
+    // through, 'muted' silences the group completely.
+    notificationPrefs: {
+        taskReminders: { type: Boolean, default: true },
+        reminderLeadHours: { type: Number, enum: [3, 24, 48], default: 24 },
+        friendActivity: { type: Boolean, default: true },
+        scheduleShares: { type: Boolean, default: true },
+        groupMessages: { type: Boolean, default: true },
+        groupTasks: { type: Boolean, default: true },
+        groupMembers: { type: Boolean, default: true },
+        groupOverrides: {
+            type: [{
+                _id: false,
+                group: { type: mongoose.Schema.Types.ObjectId, ref: 'group', required: true },
+                level: { type: String, enum: ['all', 'tasks', 'muted'], default: 'all' },
+            }],
+            default: [],
+        },
+    },
 }, { timestamps: true });
 
 function generateProfileTag() {

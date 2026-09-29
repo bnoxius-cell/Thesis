@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import { useTheme } from "../context/ThemeContext";
@@ -21,7 +22,7 @@ export default function Settings() {
             <ul className="hero-list">
               <li>Theme switcher</li>
               <li>Data management (coming soon)</li>
-              <li>Notification preferences (coming soon)</li>
+              <li><Link to="/notifications#notification-settings">Notification preferences</Link></li>
             </ul>
           </aside>
         </section>

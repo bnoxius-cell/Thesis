@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import groupModel from '../models/groupMode.js';
 import groupMessageModel from '../models/groupMessageModel.js';
 import taskModel from '../models/taskModel.js';
+import userModel from '../models/userModel.js';
+import { notify } from '../utils/notify.js';
 import { ensureShareTemplateForTask } from './taskController.js';
 
 const MAX_MESSAGE_LENGTH = 1000;
@@ -121,6 +123,17 @@ export const joinGroup = async (req, res) => {
 
         group.members.push(req.userId);
         await group.save();
+
+        const joiner = await userModel.findById(req.userId).select('name');
+        await notify({
+            recipients: group.members.filter((m) => m.toString() !== req.userId),
+            sender: req.userId,
+            type: 'group_member',
+            title: group.name,
+            message: `${joiner?.name || 'Someone'} joined the group.`,
+            link: `/groups?g=${group._id}`,
+            group: group._id,
+        });
         res.json({ success: true, message: 'Joined group successfully', group });
     } catch (error) {
         res.json({ success: false, message: error.message });
@@ -136,6 +149,18 @@ export const leaveGroup = async (req, res) => {
         }
         group.members = group.members.filter(member => member.toString() !== req.userId);
         await group.save();
+
+        // Only the admin hears about it, so a big group doesn't ping everyone.
+        const leaver = await userModel.findById(req.userId).select('name');
+        await notify({
+            recipients: [group.admin],
+            sender: req.userId,
+            type: 'group_member',
+            title: group.name,
+            message: `${leaver?.name || 'Someone'} left the group.`,
+            link: `/groups?g=${group._id}`,
+            group: group._id,
+        });
         res.json({ success: true, message: 'Left group successfully' });
     } catch (error) {
         res.json({ success: false, message: error.message });
@@ -147,6 +172,16 @@ export const deleteGroup = async (req, res) => {
         const group = await groupModel.findOneAndDelete({ _id: req.params.groupId, admin: req.userId });
         if (!group) return res.json({ success: false, message: 'Group not found or unauthorized' });
         await groupMessageModel.deleteMany({ group: group._id });
+
+        await notify({
+            recipients: group.members,
+            sender: req.userId,
+            type: 'group_member',
+            title: group.name,
+            message: 'The group was deleted by its admin.',
+            link: '/groups',
+            group: group._id,
+        });
         res.json({ success: true, message: 'Group deleted successfully' });
     } catch (error) {
         res.json({ success: false, message: error.message });
@@ -221,6 +256,23 @@ export const sendMessage = async (req, res) => {
         const message = await groupMessageModel.create(messageData);
         await message.populate('sender', 'name avatar');
         const [serialized] = await serializeMessages([message], req.userId);
+
+        const senderName = message.sender?.name || 'Someone';
+        const isTask = message.type === 'task';
+        const preview = text.length > 90 ? `${text.slice(0, 90)}...` : text;
+        await notify({
+            recipients: group.members,
+            sender: req.userId,
+            type: isTask ? 'group_task' : 'group_message',
+            title: group.name,
+            message: isTask
+                ? `${senderName} shared a task: ${message.task.title}`
+                : `${senderName}: ${preview}`,
+            link: `/groups?g=${group._id}`,
+            group: group._id,
+            // Chat folds into one unread entry per group. A shared task always stands alone.
+            collapse: !isTask,
+        });
 
         res.json({ success: true, message: serialized });
     } catch (error) {

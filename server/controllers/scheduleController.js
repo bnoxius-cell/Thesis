@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import mongoose from 'mongoose';
 import scheduleModel, { SCHEDULE_THEMES, MAX_ENTRIES, MAX_IMAGE_LENGTH } from '../models/scheduleModel.js';
 import Friend from '../models/Friend.js';
-import notificationModel from '../models/notificationModel.js';
+import { notify } from '../utils/notify.js';
 import userModel from '../models/userModel.js';
 import { fetchPublicHolidays } from '../utils/holidays.js';
 
@@ -386,11 +386,13 @@ export const shareWithFriend = async (req, res) => {
         } else {
             schedule.collaborators.push({ user: userId, role });
             const sender = await userModel.findById(req.userId).select('name');
-            await notificationModel.create({
-                recipient: userId,
+            await notify({
+                recipients: [userId],
                 sender: req.userId,
                 type: 'schedule_share',
+                title: 'Schedule shared with you',
                 message: `${sender?.name || 'A friend'} shared the schedule "${schedule.title}" with you.`,
+                link: '/schedule',
             });
         }
         await schedule.save();
