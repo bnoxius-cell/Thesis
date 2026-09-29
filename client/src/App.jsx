@@ -7,6 +7,7 @@ import About from './pages/About';
 import Settings from './pages/Settings';
 import Friends from './pages/Friends';
 import Groups from './pages/Groups';
+import Schedule from './pages/Schedule';
 import Notifications from './pages/Notifications';
 import AuthPage from './pages/authentication/AuthPage';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -33,6 +34,7 @@ const AppContent = () => {
         <Route path="/about" element={<About />} />
         <Route path="/settings" element={isLoggedin ? <Settings /> : <Navigate to="/" replace />} />
         <Route path="/friends" element={isLoggedin ? <Friends /> : <Navigate to="/" replace />} />
+        <Route path="/schedule" element={isLoggedin ? <Schedule /> : <Navigate to="/" replace />} />
         <Route path="/groups" element={isLoggedin ? <Groups /> : <Navigate to="/" replace />} />
         <Route path="/notifications" element={isLoggedin ? <Notifications /> : <Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />

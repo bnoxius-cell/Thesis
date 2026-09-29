@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from "../../pages/authentication/AuthContext";
-import { LogOut, UserCircle, User, Plus, Info, Settings, Users, UserCheck, Bell, LayoutDashboard, Menu } from 'lucide-react';
+import { LogOut, UserCircle, User, Plus, Info, Settings, Users, UserCheck, Bell, LayoutDashboard, Menu, CalendarDays } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import Logo from '../../assets/logo.svg'; // Assuming you create this file
 
@@ -51,6 +51,9 @@ export default function Header() {
             </Link>
             <Link to="/create-task" className={`sidepanel-link ${location.pathname === '/create-task' ? 'active' : ''}`} onClick={closeDrawer}>
               <Plus size={18} /> <span>Create Task</span>
+            </Link>
+            <Link to="/schedule" className={`sidepanel-link ${location.pathname === '/schedule' ? 'active' : ''}`} onClick={closeDrawer}>
+              <CalendarDays size={18} /> <span>Schedule</span>
             </Link>
             <Link to="/groups" className={`sidepanel-link ${location.pathname === '/groups' ? 'active' : ''}`} onClick={closeDrawer}>
               <Users size={18} /> <span>Groups</span>
