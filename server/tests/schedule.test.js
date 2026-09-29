@@ -3,6 +3,7 @@ import request from 'supertest';
 import app from '../app.js';
 import userModel from '../models/userModel.js';
 import Friend from '../models/Friend.js';
+import scheduleModel from '../models/scheduleModel.js';
 import notificationModel from '../models/notificationModel.js';
 import { fetchPublicHolidays } from '../utils/holidays.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
@@ -79,7 +80,7 @@ describe('creating and listing schedules', () => {
 
     test('lists owned and shared schedules with the right role', async () => {
         const { alice, bob, bobId, schedule } = await setup();
-        await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: bobId, role: 'editor' });
+        await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: bobId });
 
         const aliceList = await alice.get('/api/schedules');
         const bobList = await bob.get('/api/schedules');
@@ -87,7 +88,7 @@ describe('creating and listing schedules', () => {
         expect(aliceList.body.schedules).toHaveLength(1);
         expect(aliceList.body.schedules[0].role).toBe('owner');
         expect(bobList.body.schedules).toHaveLength(1);
-        expect(bobList.body.schedules[0].role).toBe('editor');
+        expect(bobList.body.schedules[0].role).toBe('viewer');
         expect(bobList.body.schedules[0].entries).toBeUndefined();
     });
 });
@@ -221,7 +222,7 @@ describe('sharing and permissions', () => {
 
     test('a viewer can read but not edit, and cannot manage sharing', async () => {
         const { alice, bob, bobId, schedule } = await setup();
-        await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: bobId, role: 'viewer' });
+        await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: bobId });
 
         const read = await bob.get(`/api/schedules/${schedule._id}`);
         expect(read.body.schedule.role).toBe('viewer');
@@ -235,27 +236,32 @@ describe('sharing and permissions', () => {
         expect((await bob.delete(`/api/schedules/${schedule._id}`)).status).toBe(403);
     });
 
-    test('an editor can change entries and theme but not delete the schedule', async () => {
+    test('sharing is view-only even if an editor role is asked for', async () => {
         const { alice, bob, bobId, schedule } = await setup();
-        await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: bobId, role: 'editor' });
+        const shared = await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: bobId, role: 'editor' });
+        expect(shared.body.schedule.collaborators[0].role).toBe('viewer');
 
-        const added = await bob.post(`/api/schedules/${schedule._id}/entries`).send(entryPayload());
-        expect(added.status).toBe(201);
-        const themed = await bob.put(`/api/schedules/${schedule._id}`).send({ theme: 'cute' });
-        expect(themed.body.schedule.theme).toBe('cute');
+        expect((await bob.post(`/api/schedules/${schedule._id}/entries`).send(entryPayload())).status).toBe(403);
+        expect((await bob.put(`/api/schedules/${schedule._id}`).send({ theme: 'cute' })).status).toBe(403);
+    });
 
-        expect((await bob.delete(`/api/schedules/${schedule._id}`)).status).toBe(403);
-        expect((await alice.get(`/api/schedules/${schedule._id}`)).body.schedule.entries).toHaveLength(1);
+    test('an older editor share is treated as view-only', async () => {
+        const { bob, bobId, schedule } = await setup();
+        await scheduleModel.updateOne({ _id: schedule._id }, { $push: { collaborators: { user: bobId, role: 'editor' } } });
+
+        const read = await bob.get(`/api/schedules/${schedule._id}`);
+        expect(read.body.schedule.role).toBe('viewer');
+        expect((await bob.post(`/api/schedules/${schedule._id}/entries`).send(entryPayload())).status).toBe(403);
     });
 
     test('sharing only works with friends and notifies them', async () => {
         const { alice, aliceId, bobId, schedule } = await setup();
         const carolId = await idOf('carol@student.fatima.edu.ph');
 
-        const stranger = await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: carolId, role: 'viewer' });
+        const stranger = await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: carolId });
         expect(stranger.status).toBe(403);
 
-        const shared = await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: bobId, role: 'viewer' });
+        const shared = await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: bobId });
         expect(shared.body.schedule.collaborators).toHaveLength(1);
 
         const note = await notificationModel.findOne({ recipient: bobId });
@@ -263,14 +269,13 @@ describe('sharing and permissions', () => {
         expect(note.sender.toString()).toBe(aliceId);
     });
 
-    test('re-sharing changes the role instead of duplicating the person', async () => {
+    test('re-sharing does not duplicate the person or notify twice', async () => {
         const { alice, bobId, schedule } = await setup();
         const url = `/api/schedules/${schedule._id}/share`;
-        await alice.post(url).send({ userId: bobId, role: 'viewer' });
-        const res = await alice.post(url).send({ userId: bobId, role: 'editor' });
+        await alice.post(url).send({ userId: bobId });
+        const res = await alice.post(url).send({ userId: bobId });
 
         expect(res.body.schedule.collaborators).toHaveLength(1);
-        expect(res.body.schedule.collaborators[0].role).toBe('editor');
         expect(await notificationModel.countDocuments({ recipient: bobId })).toBe(1);
     });
 
@@ -278,19 +283,19 @@ describe('sharing and permissions', () => {
         const { alice, bob, bobId, schedule } = await setup();
         const share = `/api/schedules/${schedule._id}/share`;
 
-        await alice.post(share).send({ userId: bobId, role: 'viewer' });
+        await alice.post(share).send({ userId: bobId });
         const removed = await alice.delete(`${share}/${bobId}`);
         expect(removed.body.schedule.collaborators).toHaveLength(0);
         expect((await bob.get(`/api/schedules/${schedule._id}`)).status).toBe(403);
 
-        await alice.post(share).send({ userId: bobId, role: 'viewer' });
+        await alice.post(share).send({ userId: bobId });
         expect((await bob.delete(`${share}/${bobId}`)).body.success).toBe(true);
         expect((await bob.get(`/api/schedules/${schedule._id}`)).status).toBe(403);
     });
 
     test('a collaborator cannot remove somebody else', async () => {
         const { alice, bob, bobId, aliceId, schedule } = await setup();
-        await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: bobId, role: 'editor' });
+        await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: bobId });
 
         const res = await bob.delete(`/api/schedules/${schedule._id}/share/${aliceId}`);
         expect(res.status).toBe(403);
@@ -298,7 +303,7 @@ describe('sharing and permissions', () => {
 });
 
 describe('share codes', () => {
-    test('a code lets anyone join with the chosen role, and can be turned off', async () => {
+    test('a code lets anyone join as a viewer, and can be turned off', async () => {
         const { alice, carol, schedule } = await setup();
         const url = `/api/schedules/${schedule._id}/share-code`;
 
@@ -307,8 +312,8 @@ describe('share codes', () => {
         expect(code).toMatch(/^[A-Z2-9]{6}$/);
 
         const joined = await carol.post('/api/schedules/join').send({ shareCode: code.toLowerCase() });
-        expect(joined.body.schedule.role).toBe('editor');
-        expect((await carol.post(`/api/schedules/${schedule._id}/entries`).send(entryPayload())).status).toBe(201);
+        expect(joined.body.schedule.role).toBe('viewer');
+        expect((await carol.post(`/api/schedules/${schedule._id}/entries`).send(entryPayload())).status).toBe(403);
 
         await alice.put(url).send({ enabled: false });
         const after = await carol.post('/api/schedules/join').send({ shareCode: code });
@@ -340,7 +345,7 @@ describe('duplicating and deleting', () => {
         const { alice, bob, bobId, schedule } = await setup();
         await alice.post(`/api/schedules/${schedule._id}/entries`).send(entryPayload());
         await alice.put(`/api/schedules/${schedule._id}/holidays`).send({ date: '2026-11-02', state: 'holiday', name: 'Day off' });
-        await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: bobId, role: 'viewer' });
+        await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: bobId });
 
         const copy = await bob.post(`/api/schedules/${schedule._id}/duplicate`);
 
@@ -369,5 +374,95 @@ describe('duplicating and deleting', () => {
     test('an unknown id is a 404, not a crash', async () => {
         const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
         expect((await alice.get('/api/schedules/not-an-id')).status).toBe(404);
+    });
+});
+
+describe('week overview for the dashboard', () => {
+    const week = (agent, start = '2026-11-02') => agent.get(`/api/schedules/week?start=${start}`);
+
+    test('needs a valid start date', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        expect((await week(alice, 'nope')).status).toBe(400);
+    });
+
+    test('is empty for someone with no schedules', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const res = await week(alice);
+        expect(res.body.scheduleCount).toBe(0);
+        expect(res.body.days).toHaveLength(7);
+        expect(res.body.days.every((d) => d.busyHours === 0)).toBe(true);
+    });
+
+    test('adds up class and activity hours per day, counting overlaps once', async () => {
+        fetchPublicHolidays.mockResolvedValue([]);
+        const { alice, schedule } = await setup();
+        const post = (body) => alice.post(`/api/schedules/${schedule._id}/entries`).send(body);
+        await post(entryPayload({ days: [1], startTime: '09:00', endTime: '11:00' }));
+        await post(entryPayload({ title: 'Overlap', days: [1], startTime: '10:00', endTime: '12:00' }));
+        await post(entryPayload({ title: 'Gym', kind: 'activity', days: [1], startTime: '17:00', endTime: '18:30' }));
+
+        // 2026-11-02 is a Monday.
+        const res = await week(alice);
+        const monday = res.body.days[0];
+        expect(monday.classHours).toBe(3);
+        expect(monday.activityHours).toBe(1.5);
+        expect(monday.busyHours).toBe(4.5);
+        expect(monday.entries.map((e) => e.title)).toEqual(['Data Structures', 'Overlap', 'Gym']);
+        expect(res.body.days[1].busyHours).toBe(0);
+    });
+
+    test('a holiday skips classes marked to skip but keeps other entries', async () => {
+        fetchPublicHolidays.mockResolvedValue([{ date: '2026-11-02', name: 'Break Day' }]);
+        const { alice, schedule } = await setup();
+        const post = (body) => alice.post(`/api/schedules/${schedule._id}/entries`).send(body);
+        await post(entryPayload({ days: [1], startTime: '09:00', endTime: '11:00' }));
+        await post(entryPayload({ title: 'Choir', kind: 'activity', days: [1], startTime: '15:00', endTime: '16:00', skipOnHoliday: false }));
+
+        const monday = (await week(alice)).body.days[0];
+        expect(monday.holiday).toBe('Break Day');
+        expect(monday.classHours).toBe(0);
+        expect(monday.activityHours).toBe(1);
+
+        // Marking it as a normal workday brings the class back.
+        await alice.put(`/api/schedules/${schedule._id}/holidays`).send({ date: '2026-11-02', state: 'workday' });
+        const again = (await week(alice)).body.days[0];
+        expect(again.holiday).toBeNull();
+        expect(again.classHours).toBe(2);
+    });
+
+    test('still works when the holiday service is down', async () => {
+        fetchPublicHolidays.mockRejectedValue(new Error('down'));
+        const { alice, schedule } = await setup();
+        await alice.post(`/api/schedules/${schedule._id}/entries`).send(entryPayload({ days: [1] }));
+        const res = await week(alice);
+        expect(res.status).toBe(200);
+        expect(res.body.days[0].classHours).toBe(1.5);
+    });
+
+    test('ignores schedules that are switched off and schedules owned by others', async () => {
+        fetchPublicHolidays.mockResolvedValue([]);
+        const { alice, bob, bobId, schedule } = await setup();
+        await alice.post(`/api/schedules/${schedule._id}/entries`).send(entryPayload({ days: [1] }));
+        await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: bobId });
+
+        // Bob only views it, so it is not his week.
+        expect((await week(bob)).body.scheduleCount).toBe(0);
+
+        await alice.put(`/api/schedules/${schedule._id}`).send({ countInWorkload: false });
+        const off = await week(alice);
+        expect(off.body.scheduleCount).toBe(0);
+        expect(off.body.days[0].busyHours).toBe(0);
+    });
+
+    test('the same class in two of the owner schedules is counted once', async () => {
+        fetchPublicHolidays.mockResolvedValue([]);
+        const { alice, schedule } = await setup();
+        await alice.post(`/api/schedules/${schedule._id}/entries`).send(entryPayload({ days: [1] }));
+        await alice.post(`/api/schedules/${schedule._id}/duplicate`);
+
+        const res = await week(alice);
+        expect(res.body.scheduleCount).toBe(2);
+        expect(res.body.days[0].classHours).toBe(1.5);
+        expect(res.body.days[0].entries).toHaveLength(1);
     });
 });

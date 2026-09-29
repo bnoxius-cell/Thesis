@@ -45,6 +45,13 @@
   --status-pill-overdue-bg: #1f2937;
   --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.025);
 
+  /* Dashboard workload: tasks, classes/activities, and the guidance tones */
+  --chart-task: #0f766e;
+  --chart-busy: #94a3b8;
+  --tone-watch-fg: #92400e;
+  --tone-good-bg: #ccfbf1;
+  --tone-good-fg: #0f766e;
+
   /* Header & sidepanel (light) */
   --header-bg: #ffffff;
   --header-text: #991b1b;
@@ -102,6 +109,12 @@
   --status-pill-upcoming-bg: #78350f;
   --status-pill-overdue-bg: #111827;
   --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+
+  --chart-task: #2dd4bf;
+  --chart-busy: #64748b;
+  --tone-watch-fg: #fcd34d;
+  --tone-good-bg: #134e4a;
+  --tone-good-fg: #5eead4;
 
   /* Header & sidepanel (dark) */
   --header-bg: #0f172a;
@@ -516,6 +529,12 @@ h1, h2, h3,
 .auth-card-header p,
 .insight-card p,
 .task-card p,
+.schedule-busy {
+  display: block;
+  margin: 2px 0 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
 .schedule-empty,
 .hero-list,
 .metric-card p {
@@ -850,14 +869,66 @@ h1, h2, h3,
 .today-dot.upcoming {
   background: var(--ochre);
 }
+.today-dot.class {
+  background: var(--chart-busy);
+}
+.today-dot.activity {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--chart-busy);
+}
+.today-classes {
+  margin-bottom: 18px;
+}
+.today-subhead {
+  margin: 0 0 12px;
+  font-family: "Karla", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.today-meta svg {
+  vertical-align: -1px;
+}
+.today-holiday {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--ochre-soft);
+  color: var(--text-primary);
+  font-size: 0.92rem;
+}
 .today-empty {
   color: var(--text-secondary);
   line-height: 1.6;
 }
-.today-add {
-  display: inline-flex;
+.today-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-top: 18px;
+}
+.today-add,
+.welcome-actions .ghost-button {
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   text-decoration: none;
+}
+.welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.welcome-actions .primary-button {
+  margin-top: 0;
 }
 
 /* "How you're doing" — a calm badge, not a percentage meter */
@@ -889,6 +960,44 @@ h1, h2, h3,
   line-height: 1.25;
   color: inherit;
 }
+.stress-ring-score {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+.driver-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.driver {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px 10px;
+  font-size: 0.88rem;
+}
+.driver-word {
+  opacity: 0.8;
+}
+.driver-track {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+.driver-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #5eead4;
+  transition: width 0.4s ease;
+}
+.driver-moderate .driver-fill { background: #fbbf24; }
+.driver-high .driver-fill { background: #f87171; }
 
 .grid {
   display: grid;
@@ -1052,6 +1161,7 @@ input[type="range"] {
   color: var(--text-secondary);
 }
 .chart-bar-track {
+  position: relative;
   width: 100%;
   height: 180px;
   display: flex;
@@ -1061,15 +1171,40 @@ input[type="range"] {
   border-radius: 20px;
   background: var(--chart-track-bg);
 }
+.chart-stack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
 .chart-bar {
   width: 100%;
-  border-radius: 18px 18px 8px 8px;
-  /* Healthy day = calm sage, not alarm red */
-  background: linear-gradient(180deg, var(--sage), var(--sage-deep));
+  min-height: 4px;
+  border-radius: 6px;
+  /* A day that fits is calm teal. Only tasks that don't fit earn the warning color. */
+  background: var(--chart-task);
 }
 .chart-bar.overloaded {
-  /* Only an overloaded day earns the warning color */
-  background: linear-gradient(180deg, #d38a6f, var(--clay));
+  background: var(--clay);
+}
+.chart-bar.chart-busy {
+  background: var(--chart-busy);
+}
+.chart-capacity {
+  position: absolute;
+  left: -6px;
+  right: -6px;
+  height: 0;
+  border-top: 2px dashed var(--text-secondary);
+  opacity: 0.8;
+  pointer-events: none;
+}
+.chart-column.is-holiday .chart-date {
+  color: var(--tone-watch-fg);
+  font-weight: 700;
 }
 .chart-legend {
   display: flex;
@@ -1083,11 +1218,22 @@ input[type="range"] {
   height: 12px;
   display: inline-block;
   border-radius: 999px;
-  background: var(--sage);
+  background: var(--chart-task);
   margin-right: 8px;
 }
 .legend-swatch.overload {
   background: var(--clay);
+}
+.legend-swatch.busy {
+  background: var(--chart-busy);
+}
+.legend-tick {
+  width: 16px;
+  height: 0;
+  display: inline-block;
+  border-top: 2px dashed var(--text-secondary);
+  margin-right: 8px;
+  vertical-align: middle;
 }
 
 /* ==========================================================================
@@ -1114,6 +1260,29 @@ input[type="range"] {
   margin-top: 7px;
   flex-shrink: 0;
 }
+.insight-card strong {
+  display: block;
+  color: var(--text-primary);
+}
+.insight-card p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.insight-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--sage-soft);
+  color: var(--text-secondary);
+}
+.insight-card.tone-alert .insight-icon { background: var(--clay-soft); color: var(--clay); }
+.insight-card.tone-watch .insight-icon { background: var(--ochre-soft); color: var(--tone-watch-fg); }
+.insight-card.tone-good .insight-icon { background: var(--tone-good-bg); color: var(--tone-good-fg); }
 
 /* ==========================================================================
    TASK BOARD (Dashboard)
@@ -3279,9 +3448,14 @@ input[type="range"] {
 
 /* ==========================================================================
    SCHEDULE PAGE
-   Each schedule theme is just a set of --s-* variables on [data-sched-theme].
-   "classic" maps to the app's own tokens, so it follows light/dark mode. The
-   other themes are self-contained palettes.
+   Each schedule theme is a set of --s-* variables on [data-sched-theme], with a
+   light palette and a dark one (the .dark-theme block right after it). "classic"
+   maps to the app tokens, so it follows light/dark mode on its own.
+
+   --s-accent       fills and borders (buttons, today outline, swatches)
+   --s-accent-text  the accent used as text on a surface (needs more contrast)
+   --s-on-accent    text placed on an --s-accent fill
+   --s-rule         the ruled lines of the notebook theme
    ========================================================================== */
 [data-sched-theme] {
   --s-surface: var(--panel-bg);
@@ -3292,82 +3466,192 @@ input[type="range"] {
   --s-muted: var(--text-secondary);
   --s-line: var(--border-light);
   --s-accent: var(--sage);
+  --s-accent-text: var(--sage);
+  --s-on-accent: #ffffff;
   --s-accent-2: #64748b;
   --s-holiday-bg: var(--ochre-soft);
   --s-holiday-ink: var(--text-primary);
+  --s-rule: #dbe6f6;
   --s-radius: 16px;
   --s-border-style: solid;
 }
+/* The app borders are almost invisible on purpose, but a timetable needs to see its cells. */
+.dark-theme [data-sched-theme] {
+  --s-on-accent: #1c1917;
+  --s-line: rgba(255, 255, 255, 0.14);
+  --s-rule: rgba(255, 255, 255, 0.07);
+}
+[data-sched-theme="classic"] {
+  --s-line: color-mix(in srgb, var(--text-secondary) 28%, transparent);
+}
+
+.dark-theme [data-sched-theme="classic"] {
+  --s-muted: #cbd5e1;
+  --s-accent-text: #fca5a5;
+}
+
 [data-sched-theme="cute"] {
   --s-surface: linear-gradient(180deg, #fff1f7, #f6efff);
   --s-day: #fffafd;
   --s-card: #ffffff;
   --s-input: #ffffff;
   --s-ink: #5b3a52;
-  --s-muted: #9b7a90;
+  --s-muted: #85607a;
   --s-line: #f7bcd6;
   --s-accent: #f472b6;
+  --s-accent-text: #be185d;
+  --s-on-accent: #4a1d3a;
   --s-accent-2: #a78bfa;
   --s-holiday-bg: #ffe3ef;
   --s-holiday-ink: #a02f66;
   --s-radius: 24px;
   --s-border-style: dashed;
 }
+.dark-theme [data-sched-theme="cute"] {
+  --s-surface: linear-gradient(180deg, #3a2140, #2b2345);
+  --s-day: #43284d;
+  --s-card: #4d2f59;
+  --s-input: #2b1a33;
+  --s-ink: #ffe4f1;
+  --s-muted: #dcb0cb;
+  --s-line: #7a3f66;
+  --s-accent: #f472b6;
+  --s-accent-text: #f9a8d4;
+  --s-on-accent: #3b1230;
+  --s-accent-2: #c4b5fd;
+  --s-holiday-bg: #6b2a51;
+  --s-holiday-ink: #ffd1e6;
+}
+
 [data-sched-theme="ocean"] {
   --s-surface: #f2fbfe;
   --s-day: #ffffff;
   --s-card: #ffffff;
   --s-input: #ffffff;
   --s-ink: #0c4a5e;
-  --s-muted: #4b8397;
+  --s-muted: #3f7489;
   --s-line: #bfe6f2;
   --s-accent: #0ea5e9;
+  --s-accent-text: #0369a1;
+  --s-on-accent: #04283a;
   --s-accent-2: #14b8a6;
   --s-holiday-bg: #d6f4f8;
   --s-holiday-ink: #0b5a6e;
   --s-radius: 14px;
 }
+.dark-theme [data-sched-theme="ocean"] {
+  --s-surface: #0b2530;
+  --s-day: #0f3140;
+  --s-card: #123a4b;
+  --s-input: #08202a;
+  --s-ink: #d5f3fb;
+  --s-muted: #93c9da;
+  --s-line: #1f5a70;
+  --s-accent: #38bdf8;
+  --s-accent-text: #7dd3fc;
+  --s-on-accent: #04283a;
+  --s-accent-2: #2dd4bf;
+  --s-holiday-bg: #0f4a55;
+  --s-holiday-ink: #c9f4f8;
+}
+
 [data-sched-theme="matcha"] {
   --s-surface: #f8fbec;
   --s-day: #fdfff5;
   --s-card: #ffffff;
   --s-input: #ffffff;
   --s-ink: #33401a;
-  --s-muted: #6f7f49;
+  --s-muted: #5d6c38;
   --s-line: #d5e3ac;
   --s-accent: #65a30d;
+  --s-accent-text: #4d7c0f;
+  --s-on-accent: #1a2e05;
   --s-accent-2: #ca8a04;
   --s-holiday-bg: #eef5cf;
   --s-holiday-ink: #4a5c1d;
   --s-radius: 14px;
 }
+.dark-theme [data-sched-theme="matcha"] {
+  --s-surface: #1f2610;
+  --s-day: #283016;
+  --s-card: #303a1b;
+  --s-input: #171d0b;
+  --s-ink: #ecf5d0;
+  --s-muted: #b9c988;
+  --s-line: #4b6024;
+  --s-accent: #a3e635;
+  --s-accent-text: #bef264;
+  --s-on-accent: #1a2e05;
+  --s-accent-2: #facc15;
+  --s-holiday-bg: #3d4a1c;
+  --s-holiday-ink: #e6f2b8;
+}
+
 [data-sched-theme="notebook"] {
   --s-surface: #fffdf5;
   --s-day: #fffdf5;
   --s-card: #ffffff;
   --s-input: #ffffff;
   --s-ink: #2b2b3a;
-  --s-muted: #7a7a8c;
+  --s-muted: #6b6b7e;
   --s-line: #d9d4c0;
   --s-accent: #2563eb;
+  --s-accent-text: #1d4ed8;
+  --s-on-accent: #ffffff;
   --s-accent-2: #dc2626;
   --s-holiday-bg: #fdecc8;
   --s-holiday-ink: #7a4b00;
+  --s-rule: #dbe6f6;
   --s-radius: 6px;
 }
+.dark-theme [data-sched-theme="notebook"] {
+  --s-surface: #24232b;
+  --s-day: #2b2a33;
+  --s-card: #33323d;
+  --s-input: #1d1c23;
+  --s-ink: #ecebf3;
+  --s-muted: #aeadc0;
+  --s-line: #4f4e63;
+  --s-accent: #60a5fa;
+  --s-accent-text: #93c5fd;
+  --s-on-accent: #0b1b33;
+  --s-accent-2: #f87171;
+  --s-holiday-bg: #4a3b12;
+  --s-holiday-ink: #fde3a1;
+  --s-rule: rgba(255, 255, 255, 0.06);
+}
+
+/* Midnight follows the mode: a soft lavender by day, deep indigo at night. */
 [data-sched-theme="midnight"] {
+  --s-surface: #f1efff;
+  --s-day: #ffffff;
+  --s-card: #ffffff;
+  --s-input: #ffffff;
+  --s-ink: #2a2650;
+  --s-muted: #625da0;
+  --s-line: #d2cdfa;
+  --s-accent: #6366f1;
+  --s-accent-text: #4338ca;
+  --s-on-accent: #ffffff;
+  --s-accent-2: #db2777;
+  --s-holiday-bg: #f1dcf7;
+  --s-holiday-ink: #7a1f5c;
+  --s-radius: 14px;
+}
+.dark-theme [data-sched-theme="midnight"] {
   --s-surface: #1e1b3a;
   --s-day: #2a2650;
   --s-card: #322e5e;
   --s-input: #161431;
   --s-ink: #ece9ff;
-  --s-muted: #a8a3d6;
-  --s-line: #3d3870;
+  --s-muted: #b0abdc;
+  --s-line: #4a4485;
   --s-accent: #818cf8;
+  --s-accent-text: #a5b4fc;
+  --s-on-accent: #16133a;
   --s-accent-2: #f472b6;
   --s-holiday-bg: #4a2f5e;
   --s-holiday-ink: #ffd6ec;
-  --s-radius: 14px;
 }
 
 .sched {
@@ -3382,7 +3666,7 @@ input[type="range"] {
   border-style: var(--s-border-style);
   border-radius: var(--s-radius);
 }
-.sched .panel-kicker { color: var(--s-accent); }
+.sched .panel-kicker { color: var(--s-accent-text); }
 .sched h1,
 .sched h2,
 .sched h3 { color: var(--s-ink); }
@@ -3395,11 +3679,11 @@ input[type="range"] {
 }
 .sched .secondary-button {
   background: var(--s-card);
-  color: var(--s-accent);
+  color: var(--s-accent-text);
   border-color: var(--s-line);
 }
 .sched .secondary-button:hover { background: var(--s-day); }
-.sched .primary-button { background: var(--s-accent); color: #fff; box-shadow: none; }
+.sched .primary-button { background: var(--s-accent); color: var(--s-on-accent); box-shadow: none; }
 .sched .remove-friend-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; }
 
 /* Small shared bits (also used inside the modals, which sit outside .sched) */
@@ -3452,7 +3736,7 @@ input[type="range"] {
   flex-shrink: 0;
 }
 .sched-icon-button:hover:not(:disabled) {
-  color: var(--s-accent, var(--sage));
+  color: var(--s-accent-text, var(--sage));
   border-color: var(--s-accent, var(--sage));
 }
 .sched-icon-button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -3573,7 +3857,7 @@ input[type="range"] {
 }
 .sched-day-name { display: block; font-family: "Fraunces", serif; font-weight: 700; font-size: 1rem; color: var(--s-ink); }
 .sched-day-date { display: block; font-size: 0.8rem; color: var(--s-muted); }
-.sched-day.is-today .sched-day-name { color: var(--s-accent); }
+.sched-day.is-today .sched-day-name { color: var(--s-accent-text); }
 .sched-day-tools { display: flex; gap: 6px; }
 .sched-holiday-banner {
   padding: 6px 12px;
@@ -3632,7 +3916,7 @@ button.sched-entry:hover { transform: translateY(-1px); box-shadow: var(--card-s
 [data-sched-theme="cute"] .sched-thumb { border-radius: 50%; }
 [data-sched-theme="cute"] button.sched-entry:hover { transform: translateY(-1px) rotate(-1deg); }
 [data-sched-theme="notebook"] .sched-day-body {
-  background-image: repeating-linear-gradient(transparent, transparent 27px, #dbe6f6 28px);
+  background-image: repeating-linear-gradient(transparent, transparent 27px, var(--s-rule) 28px);
 }
 [data-sched-theme="notebook"] .sched-thumb { border-radius: 4px; }
 
@@ -3731,6 +4015,10 @@ button.sched-entry:hover { transform: translateY(-1px); box-shadow: var(--card-s
 .sched-picture-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .sched-check { flex-direction: row; align-items: center; gap: 10px; font-weight: 500; }
 .sched-check input { width: 18px; height: 18px; padding: 0; accent-color: var(--sage); }
+.sched-workload-toggle { align-items: flex-start; font-weight: 600; color: var(--s-ink); }
+.sched-workload-toggle input { margin-top: 2px; flex-shrink: 0; accent-color: var(--s-accent); }
+.sched-workload-toggle small { display: block; margin-top: 2px; font-weight: 400; font-size: 0.82rem; color: var(--s-muted); }
+.sched-person-role { font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; }
 
 /* Share modal */
 .sched-share-section { display: grid; gap: 12px; margin-bottom: 24px; }

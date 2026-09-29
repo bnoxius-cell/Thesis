@@ -5,6 +5,7 @@ import Friend from '../models/Friend.js';
 import { notify } from '../utils/notify.js';
 import userModel from '../models/userModel.js';
 import { fetchPublicHolidays } from '../utils/holidays.js';
+import { buildWeekOverview, addDaysIso } from '../utils/weekOverview.js';
 
 const MAX_OWNED_SCHEDULES = 20;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -33,13 +34,14 @@ const fail = (res, status, message) => res.status(status).json({ success: false,
 const roleOf = (schedule, userId) => {
     // `owner` is a populated document in list results and a bare id everywhere else.
     if ((schedule.owner._id ?? schedule.owner).toString() === userId) return 'owner';
-    const collab = schedule.collaborators.find((c) => c.user.toString() === userId);
-    return collab ? collab.role : null;
+    // Sharing is for saving people typing (they copy it), not for co-editing, so
+    // everyone but the owner is a viewer. Older 'editor' shares are treated the same way.
+    return schedule.collaborators.some((c) => c.user.toString() === userId) ? 'viewer' : null;
 };
 
 const CAN = {
-    view: ['owner', 'editor', 'viewer'],
-    edit: ['owner', 'editor'],
+    view: ['owner', 'viewer'],
+    edit: ['owner'],
     owner: ['owner'],
 };
 
@@ -79,6 +81,7 @@ const serialize = async (schedule, role) => {
     ]);
     const plain = schedule.toObject();
     plain.role = role;
+    plain.collaborators = plain.collaborators.map((c) => ({ ...c, role: 'viewer' }));
     // Only the owner manages sharing, so nobody else needs to see the code.
     if (role !== 'owner') {
         delete plain.shareCode;
@@ -227,7 +230,7 @@ export const updateSchedule = async (req, res) => {
         const loaded = await loadSchedule(req, res, 'edit');
         if (!loaded) return;
         const { schedule, role } = loaded;
-        const { title, theme, country } = req.body;
+        const { title, theme, country, countInWorkload } = req.body;
 
         if (title !== undefined) {
             const trimmed = String(title).trim();
@@ -244,6 +247,7 @@ export const updateSchedule = async (req, res) => {
             if (!/^[A-Z]{2}$/.test(code)) return fail(res, 400, 'Unknown country code.');
             schedule.country = code;
         }
+        if (countInWorkload !== undefined) schedule.countInWorkload = Boolean(countInWorkload);
         await schedule.save();
         res.json({ success: true, schedule: await serialize(schedule, role) });
     } catch (error) {
@@ -362,29 +366,73 @@ export const setHolidayOverride = async (req, res) => {
     }
 };
 
+// GET /api/schedules/week?start=YYYY-MM-DD
+// The next seven days of the caller's own timetables (the ones marked to count), with
+// holidays applied. The dashboard uses this to see how much time is already taken.
+export const getWeekOverview = async (req, res) => {
+    try {
+        const start = String(req.query.start || '');
+        if (!isRealDate(start)) return fail(res, 400, 'Pick a valid start date.');
+        const dayCount = 7;
+        const end = addDaysIso(start, dayCount - 1);
+
+        const schedules = await scheduleModel
+            .find({ owner: req.userId, countInWorkload: { $ne: false } })
+            .lean();
+
+        // One holiday lookup per country and year the week touches. A failed lookup
+        // only means public holidays are missing; the timetable itself still counts.
+        const wanted = new Set();
+        schedules.forEach((s) => {
+            [start, end].forEach((iso) => wanted.add(`${s.country}-${iso.slice(0, 4)}`));
+        });
+        const holidayMap = {};
+        await Promise.all([...wanted].map(async (key) => {
+            const [country, year] = key.split('-');
+            try {
+                holidayMap[key] = await fetchPublicHolidays(Number(year), country);
+            } catch {
+                holidayMap[key] = [];
+            }
+        }));
+        schedules.forEach((s) => {
+            s.publicByDate = {};
+            [start, end].forEach((iso) => {
+                (holidayMap[`${s.country}-${iso.slice(0, 4)}`] || []).forEach((h) => { s.publicByDate[h.date] = h.name; });
+            });
+        });
+
+        res.json({
+            success: true,
+            scheduleCount: schedules.length,
+            entryCount: schedules.reduce((n, s) => n + s.entries.length, 0),
+            days: buildWeekOverview(schedules, start, dayCount),
+        });
+    } catch (error) {
+        fail(res, 500, error.message);
+    }
+};
+
 const areFriends = async (a, b) => Boolean(await Friend.exists({
     status: 'accepted',
     $or: [{ user: a, friend: b }, { user: b, friend: a }],
 }));
 
-// POST /api/schedules/:scheduleId/share  { userId, role }
+// POST /api/schedules/:scheduleId/share  { userId }
 export const shareWithFriend = async (req, res) => {
     try {
         const loaded = await loadSchedule(req, res, 'owner');
         if (!loaded) return;
         const { schedule } = loaded;
-        const { userId, role } = req.body;
+        const { userId } = req.body;
 
-        if (!['viewer', 'editor'].includes(role)) return fail(res, 400, 'Choose view or edit access.');
         if (!mongoose.Types.ObjectId.isValid(userId)) return fail(res, 404, 'User not found');
         if (userId === req.userId) return fail(res, 400, 'This is already your schedule.');
         if (!(await areFriends(req.userId, userId))) return fail(res, 403, 'You can only share with your friends.');
 
         const existing = schedule.collaborators.find((c) => c.user.toString() === userId);
-        if (existing) {
-            existing.role = role;
-        } else {
-            schedule.collaborators.push({ user: userId, role });
+        if (!existing) {
+            schedule.collaborators.push({ user: userId, role: 'viewer' });
             const sender = await userModel.findById(req.userId).select('name');
             await notify({
                 recipients: [userId],
@@ -425,18 +473,15 @@ export const removeCollaborator = async (req, res) => {
     }
 };
 
-// PUT /api/schedules/:scheduleId/share-code  { enabled, role?, regenerate? }
+// PUT /api/schedules/:scheduleId/share-code  { enabled, regenerate? }
 export const updateShareCode = async (req, res) => {
     try {
         const loaded = await loadSchedule(req, res, 'owner');
         if (!loaded) return;
         const { schedule } = loaded;
-        const { enabled, role, regenerate } = req.body;
+        const { enabled, regenerate } = req.body;
 
-        if (role !== undefined) {
-            if (!['viewer', 'editor'].includes(role)) return fail(res, 400, 'Choose view or edit access.');
-            schedule.shareRole = role;
-        }
+        schedule.shareRole = 'viewer';
         if (enabled === false) {
             schedule.shareCode = undefined;
         } else if (enabled === true || regenerate) {
@@ -460,9 +505,9 @@ export const joinByCode = async (req, res) => {
 
         let role = roleOf(schedule, req.userId);
         if (!role) {
-            schedule.collaborators.push({ user: req.userId, role: schedule.shareRole });
+            schedule.collaborators.push({ user: req.userId, role: 'viewer' });
             await schedule.save();
-            role = schedule.shareRole;
+            role = 'viewer';
         }
         res.json({ success: true, schedule: await serialize(schedule, role) });
     } catch (error) {
@@ -488,6 +533,8 @@ export const duplicateSchedule = async (req, res) => {
             country: source.country,
             entries: source.entries.map(({ _id, ...rest }) => rest),
             holidayOverrides: source.holidayOverrides,
+            // A copy of someone else's timetable is usually the user's own week too.
+            countInWorkload: true,
         });
         res.status(201).json({ success: true, schedule: await serialize(copy, 'owner') });
     } catch (error) {

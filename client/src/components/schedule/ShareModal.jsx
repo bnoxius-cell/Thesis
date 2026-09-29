@@ -3,15 +3,14 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { Copy, RefreshCw, X } from "lucide-react";
 
-const ROLE_LABEL = { viewer: "Can view", editor: "Can edit" };
-
 // Owner-only. Two ways in: pick friends directly, or turn on a code anyone can enter.
+// Sharing is view-only. It exists so classmates can copy a timetable instead of
+// typing their own, so there are no edit permissions to hand out.
 // Each call returns the updated schedule, which is passed straight up to the page.
 export default function ShareModal({ schedule, backendUrl, onUpdated, onClose }) {
   const [friends, setFriends] = useState([]);
   const [friendsLoaded, setFriendsLoaded] = useState(false);
   const [pickedFriend, setPickedFriend] = useState("");
-  const [pickedRole, setPickedRole] = useState("viewer");
   const [busy, setBusy] = useState(false);
 
   const base = `${backendUrl}/api/schedules/${schedule._id}`;
@@ -50,14 +49,11 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
   const shareWithFriend = async () => {
     if (!pickedFriend) return;
     const ok = await run(
-      () => axios.post(`${base}/share`, { userId: pickedFriend, role: pickedRole }, { withCredentials: true }),
+      () => axios.post(`${base}/share`, { userId: pickedFriend }, { withCredentials: true }),
       "Shared. They'll see it under their schedules."
     );
     if (ok) setPickedFriend("");
   };
-
-  const changeRole = (userId, role) =>
-    run(() => axios.post(`${base}/share`, { userId, role }, { withCredentials: true }));
 
   const remove = (userId) =>
     run(() => axios.delete(`${base}/share/${userId}`, { withCredentials: true }), "Removed.");
@@ -84,6 +80,7 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
 
         <section className="sched-share-section">
           <h3>Friends</h3>
+          <p className="sched-hint">They can view your schedule and copy it, so nobody has to type theirs from scratch. They cannot change yours.</p>
           {friendsLoaded && friends.length === 0 ? (
             <p className="sched-hint">Add some friends first, or share with a code below.</p>
           ) : (
@@ -91,10 +88,6 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
               <select value={pickedFriend} onChange={(e) => setPickedFriend(e.target.value)} aria-label="Choose a friend" disabled={!friendsLoaded || available.length === 0}>
                 <option value="">{available.length === 0 && friendsLoaded ? "Everyone has access" : "Choose a friend"}</option>
                 {available.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
-              </select>
-              <select value={pickedRole} onChange={(e) => setPickedRole(e.target.value)} aria-label="Access level">
-                <option value="viewer">Can view</option>
-                <option value="editor">Can edit</option>
               </select>
               <button type="button" className="primary-button" onClick={shareWithFriend} disabled={busy || !pickedFriend}>
                 Share
@@ -104,13 +97,10 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
 
           {schedule.collaborators.length > 0 && (
             <ul className="sched-people">
-              {schedule.collaborators.map(({ user, role }) => (
+              {schedule.collaborators.map(({ user }) => (
                 <li key={user._id}>
                   <span className="sched-person-name">{user.name}</span>
-                  <select value={role} onChange={(e) => changeRole(user._id, e.target.value)} aria-label={`Access for ${user.name}`} disabled={busy}>
-                    <option value="viewer">{ROLE_LABEL.viewer}</option>
-                    <option value="editor">{ROLE_LABEL.editor}</option>
-                  </select>
+                  <span className="sched-person-role">Can copy</span>
                   <button type="button" className="sched-icon-button" onClick={() => remove(user._id)} aria-label={`Remove ${user.name}`} disabled={busy}>
                     <X size={16} aria-hidden="true" />
                   </button>
@@ -131,11 +121,8 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
                   <RefreshCw size={16} aria-hidden="true" />
                 </button>
               </div>
+              <p className="sched-hint">Anyone with the code can view this schedule and copy it into their own.</p>
               <div className="sched-share-add">
-                <select value={schedule.shareRole} onChange={(e) => updateCode({ role: e.target.value })} aria-label="Access for people with the code" disabled={busy}>
-                  <option value="viewer">Anyone with the code can view</option>
-                  <option value="editor">Anyone with the code can edit</option>
-                </select>
                 <button type="button" className="secondary-button" onClick={() => updateCode({ enabled: false }, "Code turned off.")} disabled={busy}>
                   Turn off
                 </button>
@@ -143,7 +130,7 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
             </>
           ) : (
             <>
-              <p className="sched-hint">Anyone you give the code to can open this schedule. They enter it under "Join with a code".</p>
+              <p className="sched-hint">Anyone you give the code to can view this schedule and copy it. They enter it under "Join with a code".</p>
               <button type="button" className="secondary-button" onClick={() => updateCode({ enabled: true }, "Code created.")} disabled={busy}>
                 Create a code
               </button>

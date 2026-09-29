@@ -181,9 +181,12 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask, o
                 <article className="schedule-day" key={day.key}>
                   <div className="schedule-day-head">
                     <strong>{day.label}</strong>
-                    <span>{day.load}h planned</span>
+                    <span>{day.load}h of {day.capacity}h</span>
                   </div>
-                  <p className="schedule-date-label">{day.dateLabel}</p>
+                  <p className="schedule-date-label">{day.holiday ? `${day.dateLabel} · ${day.holiday}` : day.dateLabel}</p>
+                  {day.busyHours > 0 && (
+                    <span className="schedule-busy">{day.busyHours}h of classes and activities</span>
+                  )}
                   <div className="schedule-items">
                     {day.items.length ? (
                       day.items.map((item, index) => (

@@ -33,6 +33,8 @@ const holidayOverrideSchema = new mongoose.Schema({
     name: { type: String, default: '', maxlength: 80 },
 }, { _id: false });
 
+// Sharing is view-only now (people copy what they need). 'editor' stays in the enum only
+// so older documents still validate; the controller treats it as 'viewer'.
 const collaboratorSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true },
     role: { type: String, enum: ['viewer', 'editor'], default: 'viewer' },
@@ -48,6 +50,8 @@ const scheduleSchema = new mongoose.Schema({
     collaborators: [collaboratorSchema],
     shareCode: { type: String, unique: true, sparse: true, uppercase: true },
     shareRole: { type: String, enum: ['viewer', 'editor'], default: 'viewer' },
+    // Whether the dashboard counts this timetable when it works out the week's workload.
+    countInWorkload: { type: Boolean, default: true },
 }, { timestamps: true });
 
 export default mongoose.models.schedule || mongoose.model('schedule', scheduleSchema);
