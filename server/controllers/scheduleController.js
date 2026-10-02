@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
-import scheduleModel, { SCHEDULE_THEMES, MAX_ENTRIES, MAX_IMAGE_LENGTH, MAX_OWNED_SCHEDULES, ENTRY_KINDS } from '../models/scheduleModel.js';
+import scheduleModel, { SCHEDULE_THEMES, MAX_ENTRIES, MAX_ACTIVITY, MAX_IMAGE_LENGTH, MAX_OWNED_SCHEDULES, ENTRY_KINDS } from '../models/scheduleModel.js';
 import Friend from '../models/Friend.js';
 import { notify } from '../utils/notify.js';
 import userModel from '../models/userModel.js';
@@ -38,16 +38,49 @@ const fail = (res, status, message) => res.status(status).json({ success: false,
 const roleOf = (schedule, userId) => {
     // `owner` is a populated document in list results and a bare id everywhere else.
     if ((schedule.owner._id ?? schedule.owner).toString() === userId) return 'owner';
-    // Sharing is for saving people typing (they copy it), not for co-editing, so
-    // everyone but the owner is a viewer. Older 'editor' shares are treated the same way.
-    return schedule.collaborators.some((c) => c.user.toString() === userId) ? 'viewer' : null;
+    const member = schedule.collaborators.find((c) => (c.user._id ?? c.user).toString() === userId);
+    return member ? (member.role === 'editor' ? 'editor' : 'viewer') : null;
 };
 
 const CAN = {
-    view: ['owner', 'viewer'],
-    edit: ['owner'],
+    view: ['owner', 'editor', 'viewer'],
+    // Editors change the entries and days off. Name, theme, country, main and sharing stay with the owner.
+    edit: ['owner', 'editor'],
     owner: ['owner'],
 };
+
+// A schedule is "live" once at least one person other than the owner can edit it. Only then
+// are changes logged and announced, so a plain copy-share stays quiet.
+const isLive = (schedule) => schedule.collaborators.some((c) => c.role === 'editor');
+
+const memberIds = (schedule) => [
+    (schedule.owner._id ?? schedule.owner).toString(),
+    ...schedule.collaborators.map((c) => (c.user._id ?? c.user).toString()),
+];
+
+// Logs a change on the schedule and tells everyone else on it. Call before `schedule.save()`.
+// Returns a function to run after the save (it sends the notifications), so a failed save
+// never announces something that didn't happen.
+const recordChange = async (schedule, actorId, summary) => {
+    if (!isLive(schedule)) return async () => {};
+    const actor = await userModel.findById(actorId).select('name');
+    const name = actor?.name || 'Someone';
+    schedule.activity.push({ user: actorId, userName: name, summary: summary.slice(0, 200) });
+    if (schedule.activity.length > MAX_ACTIVITY) schedule.activity.splice(0, schedule.activity.length - MAX_ACTIVITY);
+    return async () => {
+        await notify({
+            recipients: memberIds(schedule),
+            sender: actorId,
+            type: 'schedule_change',
+            title: `"${schedule.title}" was changed`,
+            message: `${name} ${summary}`,
+            link: `/schedule?s=${schedule._id}`,
+            collapseLink: true,
+        });
+    };
+};
+
+const describeEntry = (entry) => `"${entry.title}"`;
 
 // Loads the schedule and checks the caller's access level. Sends the error response
 // itself and returns null when the caller should stop.
@@ -91,32 +124,38 @@ const ensureMainSchedule = async (userId) => {
 
 const PERSON_FIELDS = 'name avatar profileTag';
 
-const serialize = async (schedule, role) => {
+const serialize = async (schedule, role, viewerId = '') => {
     await schedule.populate([
         { path: 'owner', select: PERSON_FIELDS },
         { path: 'collaborators.user', select: PERSON_FIELDS },
     ]);
     const plain = schedule.toObject();
     plain.role = role;
-    plain.collaborators = plain.collaborators.map((c) => ({ ...c, role: 'viewer' }));
+    plain.live = isLive(schedule);
     // Only the owner manages sharing, so nobody else needs to see the code.
     if (role !== 'owner') {
         delete plain.shareCode;
         delete plain.shareRole;
-        plain.collaborators = [];
+        // Members of a live schedule can see who else edits it. Plain viewers stay private.
+        plain.collaborators = plain.live ? plain.collaborators.filter((c) => c.role === 'editor') : [];
+        if (!plain.live) plain.activity = [];
+        plain.myCountInWorkload = schedule.collaborators.find((c) => (c.user._id ?? c.user).toString() === viewerId)?.countInWorkload === true;
     }
     return plain;
 };
 
 // Lighter than `serialize`: skips the (heavy) entries, for the list view.
-const summarize = (schedule, role) => ({
+const summarize = (schedule, role, userId = '') => ({
     _id: schedule._id,
     title: schedule.title,
     theme: schedule.theme,
     owner: schedule.owner,
     role,
     isMain: Boolean(schedule.isMain),
-    countInWorkload: schedule.countInWorkload !== false,
+    countInWorkload: role === 'owner'
+        ? schedule.countInWorkload !== false
+        : schedule.collaborators.find((c) => c.user.toString() === userId)?.countInWorkload === true,
+    live: isLive(schedule),
     entryCount: schedule.entries.length,
     collaboratorCount: schedule.collaborators.length,
     updatedAt: schedule.updatedAt,
@@ -240,7 +279,7 @@ export const getSchedules = async (req, res) => {
             .sort({ updatedAt: -1 });
         res.json({
             success: true,
-            schedules: schedules.map((s) => summarize(s, roleOf(s, req.userId))),
+            schedules: schedules.map((s) => summarize(s, roleOf(s, req.userId), req.userId)),
         });
     } catch (error) {
         fail(res, 500, error.message);
@@ -264,7 +303,7 @@ export const getSchedule = async (req, res) => {
     try {
         const loaded = await loadSchedule(req, res, 'view');
         if (!loaded) return;
-        res.json({ success: true, schedule: await serialize(loaded.schedule, loaded.role) });
+        res.json({ success: true, schedule: await serialize(loaded.schedule, loaded.role, req.userId) });
     } catch (error) {
         fail(res, 500, error.message);
     }
@@ -272,7 +311,7 @@ export const getSchedule = async (req, res) => {
 
 export const updateSchedule = async (req, res) => {
     try {
-        const loaded = await loadSchedule(req, res, 'edit');
+        const loaded = await loadSchedule(req, res, 'owner');
         if (!loaded) return;
         const { schedule, role } = loaded;
         const { title, theme, country, countInWorkload, isMain } = req.body;
@@ -314,7 +353,18 @@ export const deleteSchedule = async (req, res) => {
         if (loaded.schedule.isMain && await scheduleModel.exists({ owner: req.userId, _id: { $ne: loaded.schedule._id } })) {
             return fail(res, 400, 'This is your main schedule. Make another one your main first, then delete this one.');
         }
-        await loaded.schedule.deleteOne();
+        const { schedule } = loaded;
+        const others = schedule.collaborators.map((c) => c.user.toString());
+        const title = schedule.title;
+        const wasLive = isLive(schedule);
+        await schedule.deleteOne();
+        if (wasLive) {
+            const owner = await userModel.findById(req.userId).select('name');
+            await notify({
+                recipients: others, sender: req.userId, type: 'schedule_change',
+                title: 'A shared schedule was deleted', message: `${owner?.name || 'The owner'} deleted "${title}".`,
+            });
+        }
         res.json({ success: true, message: 'Schedule deleted' });
     } catch (error) {
         fail(res, 500, error.message);
@@ -333,8 +383,10 @@ export const addEntry = async (req, res) => {
             return fail(res, 400, `A schedule can hold up to ${MAX_ENTRIES} entries.`);
         }
         schedule.entries.push(entry);
+        const announce = await recordChange(schedule, req.userId, `added ${describeEntry(entry)}`);
         await schedule.save();
-        res.status(201).json({ success: true, schedule: await serialize(schedule, role) });
+        await announce();
+        res.status(201).json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
         fail(res, 500, error.message);
     }
@@ -351,9 +403,12 @@ export const updateEntry = async (req, res) => {
 
         const { entry, error } = cleanEntry(req.body);
         if (error) return fail(res, 400, error);
+        const renamed = existing.title !== entry.title ? ` (was "${existing.title}")` : '';
         existing.set(entry);
+        const announce = await recordChange(schedule, req.userId, `edited ${describeEntry(entry)}${renamed}`);
         await schedule.save();
-        res.json({ success: true, schedule: await serialize(schedule, role) });
+        await announce();
+        res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
         fail(res, 500, error.message);
     }
@@ -367,9 +422,12 @@ export const deleteEntry = async (req, res) => {
 
         const existing = schedule.entries.id(req.params.entryId);
         if (!existing) return fail(res, 404, 'Entry not found');
+        const removedTitle = existing.title;
         existing.deleteOne();
+        const announce = await recordChange(schedule, req.userId, `removed ${describeEntry({ title: removedTitle })}`);
         await schedule.save();
-        res.json({ success: true, schedule: await serialize(schedule, role) });
+        await announce();
+        res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
         fail(res, 500, error.message);
     }
@@ -414,8 +472,13 @@ export const setHolidayOverride = async (req, res) => {
             if (index === -1) schedule.holidayOverrides.push(override);
             else schedule.holidayOverrides.set(index, override);
         }
+        const announce = await recordChange(
+            schedule, req.userId,
+            state === null ? `reset the day off on ${date}` : state === 'holiday' ? `marked ${date} as a day off` : `marked ${date} as a normal day`,
+        );
         await schedule.save();
-        res.json({ success: true, schedule: await serialize(schedule, role) });
+        await announce();
+        res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
         fail(res, 500, error.message);
     }
@@ -502,6 +565,7 @@ const loadImportSource = async (req, res) => {
         token: `schedule:${schedule._id}`,
         title: plain.title, ownerName: plain.owner?.name || '', theme: plain.theme, country: plain.country,
         entries: plain.entries,
+        canJoinLive: plain.shareRole === 'editor',
     };
 };
 
@@ -524,6 +588,7 @@ export const previewImport = async (req, res) => {
             source: {
                 title: source.title, ownerName: source.ownerName, theme: source.theme, country: source.country,
                 alreadyAdded: owned.some((s) => (s.importedFrom || []).includes(source.token)),
+                canJoinLive: Boolean(source.canJoinLive),
             },
             entries: source.entries.map((e) => ({
                 ..._pick(e, ['_id', ...PLAIN_ENTRY_FIELDS]),
@@ -626,7 +691,13 @@ export const getWeekOverview = async (req, res) => {
         // The main schedule always counts. Extras count unless the student turned them off.
         await ensureMainSchedule(req.userId);
         const schedules = await scheduleModel
-            .find({ owner: req.userId, $or: [{ isMain: true }, { countInWorkload: { $ne: false } }] })
+            .find({
+                $or: [
+                    { owner: req.userId, $or: [{ isMain: true }, { countInWorkload: { $ne: false } }] },
+                    // Shared schedules the member chose to count (off unless they turn it on).
+                    { collaborators: { $elemMatch: { user: req.userId, countInWorkload: true } } },
+                ],
+            })
             .lean();
 
         // One holiday lookup per country and year the week touches. A failed lookup
@@ -681,17 +752,39 @@ export const shareWithFriend = async (req, res) => {
         if (userId === req.userId) return fail(res, 400, 'This is already your schedule.');
         if (!(await areFriends(req.userId, userId))) return fail(res, 403, 'You can only share with your friends.');
 
+        // 'editor' puts the friend on the live schedule. Anything else is the copy-only share.
+        const role = req.body.role === 'editor' ? 'editor' : 'viewer';
         const existing = schedule.collaborators.find((c) => c.user.toString() === userId);
+        const sender = await userModel.findById(req.userId).select('name');
+        const senderName = sender?.name || 'A friend';
         if (!existing) {
-            schedule.collaborators.push({ user: userId, role: 'viewer' });
-            const sender = await userModel.findById(req.userId).select('name');
-            await notify({
+            schedule.collaborators.push({ user: userId, role });
+            await notify(role === 'editor' ? {
+                recipients: [userId],
+                sender: req.userId,
+                type: 'schedule_share',
+                title: 'You can edit a shared schedule',
+                message: `${senderName} added you to the schedule "${schedule.title}". You can change it, and everyone on it is told when you do.`,
+                link: `/schedule?s=${schedule._id}`,
+            } : {
                 recipients: [userId],
                 sender: req.userId,
                 type: 'schedule_share',
                 title: 'Schedule shared with you',
-                message: `${sender?.name || 'A friend'} shared the schedule "${schedule.title}" with you. Open it to add it to yours, or just ignore it.`,
+                message: `${senderName} shared the schedule "${schedule.title}" with you. Open it to add it to yours, or just ignore it.`,
                 link: `/schedule?share=${schedule._id}`,
+            });
+        } else if (existing.role !== role) {
+            existing.role = role;
+            await notify({
+                recipients: [userId],
+                sender: req.userId,
+                type: 'schedule_share',
+                title: role === 'editor' ? 'You can now edit a schedule' : 'Your access changed',
+                message: role === 'editor'
+                    ? `${senderName} let you edit "${schedule.title}".`
+                    : `${senderName} changed your access to "${schedule.title}" to view only.`,
+                link: `/schedule?s=${schedule._id}`,
             });
         }
         await schedule.save();
@@ -713,8 +806,24 @@ export const removeCollaborator = async (req, res) => {
         const index = schedule.collaborators.findIndex((c) => c.user.toString() === userId);
         if (index === -1) return fail(res, 404, 'That person is not on this schedule');
 
+        const wasEditor = schedule.collaborators[index].role === 'editor';
         schedule.collaborators.splice(index, 1);
         await schedule.save();
+        if (wasEditor) {
+            const person = await userModel.findById(userId).select('name');
+            if (role === 'owner') {
+                await notify({
+                    recipients: [userId], sender: req.userId, type: 'schedule_share',
+                    title: 'Removed from a schedule', message: `You can no longer edit "${schedule.title}".`,
+                });
+            } else {
+                await notify({
+                    recipients: [schedule.owner], sender: userId, type: 'schedule_change',
+                    title: `"${schedule.title}" was changed`, message: `${person?.name || 'Someone'} left the schedule.`,
+                    link: `/schedule?s=${schedule._id}`,
+                });
+            }
+        }
         res.json({
             success: true,
             ...(role === 'owner' && { schedule: await serialize(schedule, 'owner') }),
@@ -732,7 +841,8 @@ export const updateShareCode = async (req, res) => {
         const { schedule } = loaded;
         const { enabled, regenerate } = req.body;
 
-        schedule.shareRole = 'viewer';
+        // 'editor' codes put whoever enters them on the live schedule. 'viewer' codes only let them copy it.
+        if (req.body.role !== undefined) schedule.shareRole = req.body.role === 'editor' ? 'editor' : 'viewer';
         if (enabled === false) {
             schedule.shareCode = undefined;
         } else if (enabled === true || regenerate) {
@@ -740,6 +850,23 @@ export const updateShareCode = async (req, res) => {
         }
         await schedule.save();
         res.json({ success: true, schedule: await serialize(schedule, 'owner') });
+    } catch (error) {
+        fail(res, 500, error.message);
+    }
+};
+
+// PUT /api/schedules/:scheduleId/membership  { countInWorkload }
+// A member decides whether this shared schedule counts toward their own dashboard workload.
+export const updateMembership = async (req, res) => {
+    try {
+        const loaded = await loadSchedule(req, res, 'view');
+        if (!loaded) return;
+        const { schedule, role } = loaded;
+        if (role === 'owner') return fail(res, 400, 'Use the schedule settings for your own schedule.');
+        const member = schedule.collaborators.find((c) => c.user.toString() === req.userId);
+        member.countInWorkload = Boolean(req.body.countInWorkload);
+        await schedule.save();
+        res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
         fail(res, 500, error.message);
     }
@@ -756,11 +883,18 @@ export const joinByCode = async (req, res) => {
 
         let role = roleOf(schedule, req.userId);
         if (!role) {
-            schedule.collaborators.push({ user: req.userId, role: 'viewer' });
+            role = schedule.shareRole === 'editor' ? 'editor' : 'viewer';
+            schedule.collaborators.push({ user: req.userId, role });
+            const person = await userModel.findById(req.userId).select('name');
+            await notify({
+                recipients: [schedule.owner], sender: req.userId, type: 'schedule_change',
+                title: `"${schedule.title}" was changed`,
+                message: `${person?.name || 'Someone'} joined with the share code${role === 'editor' ? ' and can edit it' : ''}.`,
+                link: `/schedule?s=${schedule._id}`, collapseLink: true,
+            });
             await schedule.save();
-            role = 'viewer';
         }
-        res.json({ success: true, schedule: await serialize(schedule, role) });
+        res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
         fail(res, 500, error.message);
     }

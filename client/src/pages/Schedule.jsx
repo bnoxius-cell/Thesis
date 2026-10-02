@@ -12,6 +12,7 @@ import EntryModal from "../components/schedule/EntryModal";
 import DayMarkModal from "../components/schedule/DayMarkModal";
 import ShareModal from "../components/schedule/ShareModal";
 import ScheduleImportDialog from "../components/schedule/ScheduleImportDialog";
+import ScheduleActivity from "../components/schedule/ScheduleActivity";
 import { useAuth } from "./authentication/AuthContext";
 import {
   SCHEDULE_THEMES, COUNTRY_CODES, countryName, startOfWeek, addDays,
@@ -91,9 +92,11 @@ export default function Schedule() {
 
   const api = `${backendUrl}/api/schedules`;
   const role = schedule?.role;
-  // Sharing is view-only: friends copy a schedule to save typing, they don't co-edit it.
+  // Viewers can only look and copy. Editors change the entries and days off for everybody on a
+  // shared schedule. Settings, sharing and deleting stay with the owner.
   const isOwner = role === "owner";
-  const canEdit = isOwner;
+  const isEditor = role === "editor";
+  const canEdit = isOwner || isEditor;
 
   // A friend's share notification links here. It opens the "add to my schedule" preview
   // right away, and nothing is added unless the person confirms.
@@ -229,6 +232,7 @@ export default function Schedule() {
     if (!message) {
       setEntryModal(null);
       toast.success(editing ? "Entry updated." : "Added to your schedule.");
+      if (schedule?.live) toast.info("Everyone on this schedule will be told.");
     }
     return message;
   };
@@ -245,6 +249,11 @@ export default function Schedule() {
 
   const updateSettings = async (patch) => {
     const message = await mutate(() => axios.put(`${api}/${openId}`, patch, { withCredentials: true }));
+    if (message) toast.error(message);
+  };
+
+  const toggleMyWorkload = async (checked) => {
+    const message = await mutate(() => axios.put(`${api}/${openId}/membership`, { countInWorkload: checked }, { withCredentials: true }));
     if (message) toast.error(message);
   };
 
@@ -384,9 +393,16 @@ export default function Schedule() {
                   <span className="panel-kicker">
                     <CalendarDays size={16} aria-hidden="true" />
                     {isOwner ? (schedule.isMain ? "Your main schedule" : "Extra schedule") : `Shared by ${schedule.owner?.name || "a friend"}`}
+                    {schedule.live && " · Shared and editable"}
                   </span>
                   <h1>{schedule.title}</h1>
-                  {!canEdit && (
+                  {isEditor && (
+                    <p className="sched-hint">You can edit this schedule with {schedule.owner?.name || "its owner"}. Changes show up for everyone on it, and they get told what you changed.</p>
+                  )}
+                  {isOwner && schedule.live && (
+                    <p className="sched-hint">Other people can edit this schedule. You'll be told when they change something, and the recent changes are listed below.</p>
+                  )}
+                  {role === "viewer" && (
                     <p className="sched-hint">This is a view of {schedule.owner?.name || "your friend"}'s schedule, and you can't change it. Add it to your own if it helps, then edit your copy however you like.</p>
                   )}
                   {isOwner && !schedule.isMain && (
@@ -416,8 +432,8 @@ export default function Schedule() {
                       <Share2 size={18} aria-hidden="true" /> Share
                     </button>
                   )}
-                  {!canEdit && (
-                    <button type="button" className="primary-button" onClick={() => setImportSource({ scheduleId: schedule._id })}>
+                  {!isOwner && (
+                    <button type="button" className={canEdit ? "secondary-button" : "primary-button"} onClick={() => setImportSource({ scheduleId: schedule._id })}>
                       <Download size={18} aria-hidden="true" /> Add to my schedule
                     </button>
                   )}
@@ -439,9 +455,18 @@ export default function Schedule() {
 
                 <div className="sched-look">
                   <span className="sched-field-label">Look</span>
-                  <ThemePicker value={schedule.theme} disabled={!canEdit} onChange={(theme) => updateSettings({ theme })} />
+                  <ThemePicker value={schedule.theme} disabled={!isOwner} onChange={(theme) => updateSettings({ theme })} />
                 </div>
 
+                {!isOwner && (
+                  <label className="sched-check sched-workload-toggle">
+                    <input type="checkbox" checked={Boolean(schedule.myCountInWorkload)} onChange={(e) => toggleMyWorkload(e.target.checked)} />
+                    <span>
+                      Count this in my dashboard workload
+                      <small>Use this if it is a class you actually attend. Its time is taken off your study time, and it follows any changes made to it.</small>
+                    </span>
+                  </label>
+                )}
                 {isOwner && schedule.isMain && (
                   <p className="sched-hint sched-workload-toggle">Your main schedule always counts toward your dashboard workload. Exams you add here become study time on the dashboard.</p>
                 )}
@@ -474,6 +499,8 @@ export default function Schedule() {
                 mainEntries={mainEntries}
               />
 
+              {schedule.live && <ScheduleActivity schedule={schedule} />}
+
               <HolidayPanel
                 year={panelYear}
                 country={schedule.country}
@@ -481,6 +508,7 @@ export default function Schedule() {
                 overrides={schedule.holidayOverrides}
                 holidayError={holidayError}
                 canEdit={canEdit}
+                canChangeCountry={isOwner}
                 onCountryChange={(c) => updateSettings({ country: c })}
                 onPickDate={setMarkDate}
               />
@@ -533,8 +561,8 @@ export default function Schedule() {
           onConfirm={handleConfirm}
           onCancel={() => setConfirm(null)}
         >
-          {confirm?.kind === "delete" && <p>"{schedule?.title}" will be removed for you and everyone you shared it with. Copies people already added to their own schedules stay theirs. This can't be undone.</p>}
-          {confirm?.kind === "leave" && <p>You'll lose access to "{schedule?.title}". The owner can share it with you again.</p>}
+          {confirm?.kind === "delete" && <p>"{schedule?.title}" will be removed for you and everyone you shared it with{schedule?.live && ", and they'll be told"}. Copies people already added to their own schedules stay theirs. This can't be undone.</p>}
+          {confirm?.kind === "leave" && <p>You'll lose access to "{schedule?.title}". The owner can share it with you again.{isEditor && " They'll be told you left."}</p>}
           {confirm?.kind === "entry" && <p>"{confirm.entry.title}" will be removed from the schedule.</p>}
         </ConfirmDialog>
       </div>
@@ -638,6 +666,7 @@ export default function Schedule() {
                       <p className="group-desc">
                         {s.entryCount} {s.entryCount === 1 ? "entry" : "entries"}
                         {s.collaboratorCount > 0 && ` · shared with ${s.collaboratorCount}`}
+                        {s.live && " · editable by others"}
                       </p>
                     </button>
                   ))}
@@ -648,13 +677,14 @@ export default function Schedule() {
             {sharedWithMe.length > 0 && (
               <section className="sched-section">
                 <h2 className="sched-section-title">Shared with you</h2>
-                <p className="sched-hint">Friends shared these. They're view-only, and adding one to your schedule is your call.</p>
+                <p className="sched-hint">Friends shared these. Some you can edit together, the rest are view-only. Adding one to your own schedule is your call.</p>
                 <div className="groups-grid">
                   {sharedWithMe.map((s) => (
                     <div key={s._id} className="group-card sched-card sched-shared-card" data-sched-theme={s.theme}>
                       <span className="sched-card-band" aria-hidden="true" />
                       <div className="group-header">
                         <h3>{s.title}</h3>
+                        {s.role === "editor" && <span className="owner-badge">You can edit</span>}
                       </div>
                       <p className="group-desc">
                         {s.entryCount} {s.entryCount === 1 ? "entry" : "entries"} · by {s.owner?.name}
@@ -663,7 +693,7 @@ export default function Schedule() {
                         <button type="button" className="primary-button small" onClick={() => setImportSource({ scheduleId: s._id })}>
                           <Download size={15} aria-hidden="true" /> Add to my schedule
                         </button>
-                        <button type="button" className="secondary-button small" onClick={() => setSearchParams({ s: s._id })}>View</button>
+                        <button type="button" className="secondary-button small" onClick={() => setSearchParams({ s: s._id })}>{s.role === "editor" ? "Open" : "View"}</button>
                         <button type="button" className="ghost-button small" onClick={() => dismissShared(s)} disabled={dismissing === s._id}>
                           <X size={15} aria-hidden="true" /> Dismiss
                         </button>

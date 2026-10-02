@@ -39,12 +39,23 @@ const holidayOverrideSchema = new mongoose.Schema({
     name: { type: String, default: '', maxlength: 80 },
 }, { _id: false });
 
-// Sharing is view-only now (people copy what they need). 'editor' stays in the enum only
-// so older documents still validate; the controller treats it as 'viewer'.
+// 'viewer' can look and copy. 'editor' changes the one shared schedule for everybody on it,
+// and every member is told what changed.
 const collaboratorSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true },
     role: { type: String, enum: ['viewer', 'editor'], default: 'viewer' },
+    // Whether this member's dashboard counts the shared schedule in their own workload.
+    countInWorkload: { type: Boolean, default: false },
 }, { _id: false });
+
+export const MAX_ACTIVITY = 40;
+// Who changed what, newest last. Capped so a busy class schedule can't grow the document.
+const activitySchema = new mongoose.Schema({
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
+    userName: { type: String, default: '' },
+    summary: { type: String, required: true, maxlength: 200 },
+    at: { type: Date, default: Date.now },
+});
 
 const scheduleSchema = new mongoose.Schema({
     title: { type: String, required: true, trim: true, maxlength: 80 },
@@ -54,6 +65,7 @@ const scheduleSchema = new mongoose.Schema({
     entries: [entrySchema],
     holidayOverrides: [holidayOverrideSchema],
     collaborators: [collaboratorSchema],
+    activity: [activitySchema],
     shareCode: { type: String, unique: true, sparse: true, uppercase: true },
     shareRole: { type: String, enum: ['viewer', 'editor'], default: 'viewer' },
     // The one schedule the whole app is based on. Every user with a schedule has exactly one.

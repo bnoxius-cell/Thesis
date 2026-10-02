@@ -10,6 +10,7 @@ export const NOTIFICATION_TYPES = [
     'group_member',
     'task_reminder',
     'schedule_share',
+    'schedule_change',
     'system',
 ];
 

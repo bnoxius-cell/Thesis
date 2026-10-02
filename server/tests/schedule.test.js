@@ -236,22 +236,13 @@ describe('sharing and permissions', () => {
         expect((await bob.delete(`/api/schedules/${schedule._id}`)).status).toBe(403);
     });
 
-    test('sharing is view-only even if an editor role is asked for', async () => {
+    test('a plain share stays view-only unless an editor role is asked for', async () => {
         const { alice, bob, bobId, schedule } = await setup();
-        const shared = await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: bobId, role: 'editor' });
+        const shared = await alice.post(`/api/schedules/${schedule._id}/share`).send({ userId: bobId });
         expect(shared.body.schedule.collaborators[0].role).toBe('viewer');
 
         expect((await bob.post(`/api/schedules/${schedule._id}/entries`).send(entryPayload())).status).toBe(403);
         expect((await bob.put(`/api/schedules/${schedule._id}`).send({ theme: 'cute' })).status).toBe(403);
-    });
-
-    test('an older editor share is treated as view-only', async () => {
-        const { bob, bobId, schedule } = await setup();
-        await scheduleModel.updateOne({ _id: schedule._id }, { $push: { collaborators: { user: bobId, role: 'editor' } } });
-
-        const read = await bob.get(`/api/schedules/${schedule._id}`);
-        expect(read.body.schedule.role).toBe('viewer');
-        expect((await bob.post(`/api/schedules/${schedule._id}/entries`).send(entryPayload())).status).toBe(403);
     });
 
     test('sharing only works with friends and notifies them', async () => {
@@ -307,7 +298,7 @@ describe('share codes', () => {
         const { alice, carol, schedule } = await setup();
         const url = `/api/schedules/${schedule._id}/share-code`;
 
-        const on = await alice.put(url).send({ enabled: true, role: 'editor' });
+        const on = await alice.put(url).send({ enabled: true });
         const code = on.body.schedule.shareCode;
         expect(code).toMatch(/^[A-Z2-9]{6}$/);
 

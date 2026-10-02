@@ -4,7 +4,7 @@ import {
     createSchedule, getSchedules, getMainSchedule, getSchedule, updateSchedule, deleteSchedule,
     addEntry, updateEntry, deleteEntry,
     getHolidays, getWeekOverview, previewImport, importSchedule, setHolidayOverride,
-    shareWithFriend, removeCollaborator, updateShareCode, joinByCode, duplicateSchedule,
+    shareWithFriend, removeCollaborator, updateMembership, updateShareCode, joinByCode, duplicateSchedule,
 } from '../controllers/scheduleController.js';
 
 const scheduleRouter = express.Router();
@@ -31,6 +31,7 @@ scheduleRouter.put('/:scheduleId/holidays', userAuth, setHolidayOverride);
 
 scheduleRouter.post('/:scheduleId/share', userAuth, shareWithFriend);
 scheduleRouter.delete('/:scheduleId/share/:userId', userAuth, removeCollaborator);
+scheduleRouter.put('/:scheduleId/membership', userAuth, updateMembership);
 scheduleRouter.put('/:scheduleId/share-code', userAuth, updateShareCode);
 scheduleRouter.post('/:scheduleId/duplicate', userAuth, duplicateSchedule);
 
