@@ -3,14 +3,15 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { Copy, RefreshCw, X, Send } from "lucide-react";
 
-// Owner-only. Two ways in: pick friends directly, or turn on a code anyone can enter.
-// Sharing is view-only. It exists so classmates can copy a timetable instead of
-// typing their own, so there are no edit permissions to hand out.
+// Owner-only. Friends and codes come in two levels: "can copy" (they look, and add a copy to
+// their own schedules) or "can edit" (they work on this same schedule, and everyone on it is
+// told what they change).
 // Each call returns the updated schedule, which is passed straight up to the page.
 export default function ShareModal({ schedule, backendUrl, onUpdated, onClose }) {
   const [friends, setFriends] = useState([]);
   const [friendsLoaded, setFriendsLoaded] = useState(false);
   const [pickedFriend, setPickedFriend] = useState("");
+  const [friendRole, setFriendRole] = useState("viewer");
   const [busy, setBusy] = useState(false);
   const [groups, setGroups] = useState([]);
   const [pickedGroup, setPickedGroup] = useState("");
@@ -59,11 +60,15 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
   const shareWithFriend = async () => {
     if (!pickedFriend) return;
     const ok = await run(
-      () => axios.post(`${base}/share`, { userId: pickedFriend }, { withCredentials: true }),
-      "Shared. They'll see it under their schedules."
+      () => axios.post(`${base}/share`, { userId: pickedFriend, role: friendRole }, { withCredentials: true }),
+      friendRole === "editor" ? "Added. They can edit it with you." : "Shared. They'll see it under their schedules."
     );
     if (ok) setPickedFriend("");
   };
+
+  const changeRole = (userId, role) =>
+    run(() => axios.post(`${base}/share`, { userId, role }, { withCredentials: true }),
+      role === "editor" ? "They can edit now." : "They can only copy it now.");
 
   const remove = (userId) =>
     run(() => axios.delete(`${base}/share/${userId}`, { withCredentials: true }), "Removed.");
@@ -101,7 +106,10 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
 
         <section className="sched-share-section">
           <h3>Friends</h3>
-          <p className="sched-hint">They can view your schedule and copy it, so nobody has to type theirs from scratch. They cannot change yours.</p>
+          <p className="sched-hint">
+            "Can copy" lets them look and add a copy to their own schedules. "Can edit" puts them on this very schedule, so a class
+            can keep one timetable together. Everyone on it is told what changes.
+          </p>
           {friendsLoaded && friends.length === 0 ? (
             <p className="sched-hint">Add some friends first, or share with a code below.</p>
           ) : (
@@ -109,6 +117,10 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
               <select value={pickedFriend} onChange={(e) => setPickedFriend(e.target.value)} aria-label="Choose a friend" disabled={!friendsLoaded || available.length === 0}>
                 <option value="">{available.length === 0 && friendsLoaded ? "Everyone has access" : "Choose a friend"}</option>
                 {available.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
+              </select>
+              <select className="sched-role-select" value={friendRole} onChange={(e) => setFriendRole(e.target.value)} aria-label="What they can do">
+                <option value="viewer">Can copy</option>
+                <option value="editor">Can edit</option>
               </select>
               <button type="button" className="primary-button" onClick={shareWithFriend} disabled={busy || !pickedFriend}>
                 Share
@@ -118,10 +130,13 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
 
           {schedule.collaborators.length > 0 && (
             <ul className="sched-people">
-              {schedule.collaborators.map(({ user }) => (
+              {schedule.collaborators.map(({ user, role }) => (
                 <li key={user._id}>
                   <span className="sched-person-name">{user.name}</span>
-                  <span className="sched-person-role">Can copy</span>
+                  <select className="sched-role-select" value={role} onChange={(e) => changeRole(user._id, e.target.value)} aria-label={`What ${user.name} can do`} disabled={busy}>
+                    <option value="viewer">Can copy</option>
+                    <option value="editor">Can edit</option>
+                  </select>
                   <button type="button" className="sched-icon-button" onClick={() => remove(user._id)} aria-label={`Remove ${user.name}`} disabled={busy}>
                     <X size={16} aria-hidden="true" />
                   </button>
@@ -162,8 +177,16 @@ export default function ShareModal({ schedule, backendUrl, onUpdated, onClose })
                   <RefreshCw size={16} aria-hidden="true" />
                 </button>
               </div>
-              <p className="sched-hint">Anyone with the code can look inside and add a copy to their own schedules.</p>
+              <p className="sched-hint">
+                {schedule.shareRole === "editor"
+                  ? "Anyone who enters the code can join this schedule and edit it with you. Only hand it to people you trust."
+                  : "Anyone with the code can look inside and add a copy to their own schedules."}
+              </p>
               <div className="sched-share-add">
+                <select className="sched-role-select" value={schedule.shareRole === "editor" ? "editor" : "viewer"} onChange={(e) => updateCode({ role: e.target.value }, e.target.value === "editor" ? "The code now lets people edit." : "The code now only lets people copy.")} aria-label="What the code allows" disabled={busy}>
+                  <option value="viewer">Can copy</option>
+                  <option value="editor">Can edit</option>
+                </select>
                 <button type="button" className="secondary-button" onClick={() => updateCode({ enabled: false }, "Code turned off.")} disabled={busy}>
                   Turn off
                 </button>

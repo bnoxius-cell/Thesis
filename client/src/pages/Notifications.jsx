@@ -19,6 +19,7 @@ const ICONS = {
   group_invite: Users,
   task_reminder: Clock,
   schedule_share: CalendarDays,
+  schedule_change: CalendarDays,
   system: Bell,
 };
 

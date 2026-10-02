@@ -5473,3 +5473,14 @@ html {
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* Shared schedule: who is on it and what changed */
+.sched-activity { display: grid; gap: 14px; }
+.sched-activity-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 16px; }
+.sched-activity-head h2 { margin: 2px 0 0; }
+.sched-activity-people { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.9rem; color: var(--text-secondary); }
+.sched-activity-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.sched-activity-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 16px; padding: 10px 0; border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.08)); overflow-wrap: anywhere; }
+.sched-activity-list li:first-child { border-top: 0; }
+.sched-activity-list time { font-size: 0.82rem; color: var(--text-secondary); white-space: nowrap; }
+.sched-role-select { width: auto; padding: 6px 8px; font-size: 0.9rem; }

@@ -5,7 +5,7 @@ import { COUNTRY_CODES, countryName, resolveHoliday, formatLongDate } from "../.
 // Every holiday in the given year, public and personal, with what the schedule
 // currently treats each as. Rows open the shared day editor.
 export default function HolidayPanel({
-  year, country, publicHolidays, overrides, holidayError, canEdit, onCountryChange, onPickDate,
+  year, country, publicHolidays, overrides, holidayError, canEdit, canChangeCountry = canEdit, onCountryChange, onPickDate,
 }) {
   const [newDate, setNewDate] = useState("");
 
@@ -26,7 +26,7 @@ export default function HolidayPanel({
           <span className="panel-kicker">Holidays in {year}</span>
           <h2 id="holiday-heading">Days off</h2>
         </div>
-        {canEdit ? (
+        {canChangeCountry ? (
           <label className="sched-country">
             <span>Country</span>
             <select value={country} onChange={(e) => onCountryChange(e.target.value)}>

@@ -77,6 +77,25 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
   });
   const patchEdit = (id, patch) => setEdits((e) => ({ ...e, [id]: { ...e[id], ...patch } }));
 
+  // For an editor code: join the owner's schedule itself instead of copying it.
+  const joinLive = async () => {
+    setBusy(true);
+    setSaveError("");
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/schedules/join`, { shareCode: source.shareCode }, { withCredentials: true });
+      if (data.success) {
+        toast.success(`You can now edit "${data.schedule.title}" with ${data.schedule.owner?.name || "the owner"}.`);
+        onImported(data.schedule);
+      } else {
+        setSaveError(data.message || "Couldn't join that schedule.");
+      }
+    } catch (err) {
+      setSaveError(err.response?.data?.message || "Couldn't join that schedule. Check your connection and try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const submit = async () => {
     setBusy(true);
     setSaveError("");
@@ -128,6 +147,16 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
               {preview.source.ownerName ? `${preview.source.ownerName}'s` : "A shared"} schedule has {preview.entries.length}{" "}
               {preview.entries.length === 1 ? "entry" : "entries"}. Pick the ones you want. Adding is up to you. Your copy is yours to edit, and changing it never touches theirs.
             </p>
+            {preview.source.canJoinLive && source.shareCode && (
+              <div className="imp-clash-bar" role="status">
+                <Check size={18} aria-hidden="true" />
+                <span>
+                  This code lets you edit the schedule together with {preview.source.ownerName || "its owner"}. Everyone on it is told
+                  when someone changes something. Or just add a copy below.
+                </span>
+                <button type="button" className="primary-button small" onClick={joinLive} disabled={busy}>Join and edit</button>
+              </div>
+            )}
             {preview.source.alreadyAdded && (
               <p className="sched-notice">You've already added this schedule once. Adding it again makes more entries.</p>
             )}

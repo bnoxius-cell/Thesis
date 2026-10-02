@@ -8,6 +8,7 @@ const PREF_BY_TYPE = {
     friend_request: 'friendActivity',
     friend_accepted: 'friendActivity',
     schedule_share: 'scheduleShares',
+    schedule_change: 'scheduleShares',
     task_reminder: 'taskReminders',
     group_message: 'groupMessages',
     group_task: 'groupTasks',
@@ -47,7 +48,7 @@ export const notify = async (options) => {
     }
 };
 
-const deliver = async ({ recipients, sender, type, title = '', message, link = '', group = null, dedupeKey, collapse = false }) => {
+const deliver = async ({ recipients, sender, type, title = '', message, link = '', group = null, dedupeKey, collapse = false, collapseLink = false }) => {
     const ids = [...new Set(recipients.map(String))].filter((id) => id !== String(sender || ''));
     if (!ids.length) return [];
 
@@ -65,6 +66,19 @@ const deliver = async ({ recipients, sender, type, title = '', message, link = '
                 if (doc) {
                     doc.count += 1;
                     doc.message = `${doc.count} new messages`;
+                    doc.title = title;
+                    doc.sender = sender;
+                    doc.activityAt = new Date();
+                    await doc.save();
+                }
+            }
+
+            // Edits to a shared schedule fold into one unread entry per schedule, newest change first.
+            if (collapseLink && link) {
+                doc = await notificationModel.findOne({ recipient, type, link, isRead: false });
+                if (doc) {
+                    doc.count += 1;
+                    doc.message = `${message} (${doc.count - 1} earlier ${doc.count === 2 ? 'change' : 'changes'} not seen yet)`;
                     doc.title = title;
                     doc.sender = sender;
                     doc.activityAt = new Date();
