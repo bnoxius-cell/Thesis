@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import userAuth from '../middleware/userAuth.js';
 import {
-    createReviewer, getReviewers, getReviewer, getReviewerStatus, updateReviewer, regenerateReviewer, deleteReviewer,
+    createReviewer, getReviewers, getReviewer, getReviewerStatus, updateReviewer, regenerateReviewer, requestTargeted, deleteReviewer,
     startSession, getSession, answerQuestion, finishSession, getProgress,
 } from '../controllers/reviewerController.js';
 
@@ -41,6 +41,7 @@ reviewerRouter.get('/:reviewerId', userAuth, getReviewer);
 reviewerRouter.get('/:reviewerId/status', userAuth, getReviewerStatus);
 reviewerRouter.patch('/:reviewerId', userAuth, updateReviewer);
 reviewerRouter.post('/:reviewerId/regenerate', userAuth, regenerateReviewer);
+reviewerRouter.post('/:reviewerId/targeted', userAuth, requestTargeted);
 reviewerRouter.delete('/:reviewerId', userAuth, deleteReviewer);
 reviewerRouter.get('/:reviewerId/progress', userAuth, getProgress);
 

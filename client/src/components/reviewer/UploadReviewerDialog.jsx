@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { FileUp, FileText, Info, X } from "lucide-react";
 import { useAuth } from "../../pages/authentication/AuthContext";
-import { QUESTION_COUNTS, DEFAULT_QUESTION_COUNT, MAX_PDF_MB, formatBytes, titleFromFileName, errorMessage } from "./reviewerUtils";
+import { QUESTION_COUNTS, DEFAULT_QUESTION_COUNT, MAX_PDF_MB, formatBytes, errorMessage } from "./reviewerUtils";
 
-// Pick a PDF, name it, choose how many questions, and send it off. The server reads the text
-// and starts writing the reviewer in the background, so this closes as soon as the upload lands.
+// Pick a PDF, name it (or leave that to the AI), choose how many questions, and send it off. The
+// server reads the text and starts writing the reviewer in the background, so this closes as
+// soon as the upload lands.
 //
 //   onCreated  called with the new reviewer (still "processing")
 export default function UploadReviewerDialog({ onClose, onCreated }) {
@@ -53,7 +54,6 @@ export default function UploadReviewerDialog({ onClose, onCreated }) {
       return;
     }
     setFile(picked);
-    if (!title.trim() || title === titleFromFileName(file?.name || "")) setTitle(titleFromFileName(picked.name));
   };
 
   const onDrop = (e) => {
@@ -144,8 +144,8 @@ export default function UploadReviewerDialog({ onClose, onCreated }) {
 
         <div className="reviewer-form">
           <label>
-            Title
-            <input type="text" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="Midterm review: Cell biology" disabled={busy} />
+            <span>Title <span className="reviewer-optional">(optional)</span></span>
+            <input type="text" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="Leave it blank and the AI will name it" disabled={busy} />
           </label>
           <label>
             <span>Course <span className="reviewer-optional">(optional)</span></span>

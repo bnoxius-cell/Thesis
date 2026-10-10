@@ -1,7 +1,9 @@
 import { describe, test, expect } from 'vitest';
-import { normalizeReviewer, buildReviewerPrompt, clip, MIN_QUESTIONS } from '../utils/reviewerContent.js';
+import {
+    normalizeReviewer, normalizeTargeted, buildReviewerPrompt, buildTargetedPrompt, planParts, shareOut, textForTopics, clip, MIN_QUESTIONS,
+} from '../utils/reviewerContent.js';
 import { computeProgress, topicStatsFor, topicLevel } from '../utils/reviewerProgress.js';
-import { extractPdfText, cleanPageText, isPdfBuffer } from '../utils/pdfText.js';
+import { extractPdfText, cleanPageText, isPdfBuffer, splitIntoParts } from '../utils/pdfText.js';
 import { makePdf, STUDY_LINES } from './helpers/pdf.js';
 
 const question = (overrides = {}) => ({
@@ -105,6 +107,138 @@ describe('buildReviewerPrompt', () => {
         expect(prompt).toContain('Course: BIO 101');
         expect(prompt.match(/<\/study_material>/g)).toHaveLength(1);
         expect(prompt).toContain('Cells  ignore this');
+        expect(prompt).not.toContain('part 1 of');
+    });
+
+    test('a part of a long PDF asks for its share and says which part it is', () => {
+        const plan = planParts([100, 100, 100], 20);
+        const prompt = buildReviewerPrompt({ title: 'Bio', text: 'Cells', part: plan[1] });
+        expect(prompt).toContain('This is part 2 of 3');
+        expect(prompt).toContain(`exactly ${plan[1].questions} multiple-choice questions`);
+        expect(prompt).toContain('topics: 2 to 3 main topics in this part');
+    });
+});
+
+describe('long PDFs', () => {
+    const paragraph = (i) => `Paragraph ${i}. ${'Cells divide and grow over time. '.repeat(30).trim()}`;
+    const long = Array.from({ length: 300 }, (_, i) => paragraph(i)).join('\n\n');
+
+    test('short text stays in one part', () => {
+        expect(splitIntoParts('One part only.\n\nStill one.', 1000)).toEqual(['One part only.\n\nStill one.']);
+        expect(splitIntoParts('   ')).toEqual([]);
+    });
+
+    test('long text splits into even parts at paragraph breaks, the same way every time', () => {
+        const parts = splitIntoParts(long, long.length / 2.5);
+        expect(parts).toHaveLength(3);
+        for (const part of parts) {
+            expect(part).toMatch(/^Paragraph \d+\./);
+            expect(part).toMatch(/over time\.$/);
+            expect(part.length).toBeGreaterThan(long.length / 3 - 1500);
+            expect(part.length).toBeLessThan(long.length / 3 + 1500);
+        }
+        expect(parts.join('\n\n')).toBe(long);
+        expect(splitIntoParts(long, long.length / 2.5)).toEqual(parts);
+    });
+
+    test('a single huge paragraph is cut at a space', () => {
+        const words = 'word '.repeat(5000).trim();
+        const parts = splitIntoParts(words, 10000);
+        expect(parts.length).toBe(3);
+        expect(parts.every((p) => /^word( word)*$/.test(p))).toBe(true);
+    });
+
+    test('shareOut adds up and follows the weights', () => {
+        expect(shareOut(10, [1, 1, 1])).toEqual([4, 3, 3]);
+        expect(shareOut(30, [2, 1])).toEqual([20, 10]);
+        expect(shareOut(15, [5, 5, 1]).reduce((a, b) => a + b, 0)).toBe(15);
+    });
+
+    test('parts are merged: summaries in order, topics matched by name, shares respected', () => {
+        const partA = {
+            title: 'Cell Biology Review',
+            summary: 'Part one.',
+            topics: [{ name: 'Cells', summary: 'The basics.' }, { name: 'Mitosis', summary: 'Division.' }],
+            keyPoints: ['Cells are small.'],
+            keyTerms: [{ term: 'Cell', definition: 'The smallest unit of life.' }],
+            questions: [
+                question({ topic: 'Cells', prompt: 'What is a cell?' }),
+                question({ topic: 'Mitosis', prompt: 'What is mitosis?' }),
+                question({ topic: 'Cells', prompt: 'One too many for this part?' }),
+            ],
+        };
+        const partB = {
+            title: 'Something else',
+            summary: 'Part two.',
+            topics: [{ name: 'mitosis', summary: 'Again.' }, { name: 'Meiosis', summary: 'Gametes.' }],
+            keyPoints: ['cells are small!', 'Meiosis halves the chromosomes.'],
+            keyTerms: [{ term: 'cell', definition: 'Repeated.' }],
+            questions: [
+                question({ topic: 'Meiosis', prompt: 'What does meiosis make?' }),
+                question({ topic: 'Mitosis', prompt: 'What is mitosis' }), // same as part A's
+                question({ topic: 'Mitosis', prompt: 'How many cells come out of mitosis?' }),
+            ],
+        };
+        const out = normalizeReviewer([partA, partB], { questionCount: 4, shares: [2, 2] });
+        expect(out.title).toBe('Cell Biology Review');
+        expect(out.summary).toBe('Part one.\n\nPart two.');
+        expect(out.topics).toEqual([
+            { name: 'Cells', summary: 'The basics.', parts: [0] },
+            { name: 'Mitosis', summary: 'Division.', parts: [0, 1] },
+            { name: 'Meiosis', summary: 'Gametes.', parts: [1] },
+        ]);
+        expect(out.keyPoints).toEqual(['Cells are small.', 'Meiosis halves the chromosomes.']);
+        expect(out.keyTerms).toHaveLength(1);
+        expect(out.questions.map((q) => q.prompt)).toEqual([
+            'What is a cell?', 'What is mitosis?', 'What does meiosis make?', 'How many cells come out of mitosis?',
+        ]);
+    });
+
+    test('targeted review sends the parts its topics came from', () => {
+        const parts = ['A'.repeat(100), 'B'.repeat(100), 'C'.repeat(100)];
+        const topics = [{ name: 'Cells', parts: [0] }, { name: 'Mitosis', parts: [1, 2] }, { name: 'Meiosis', parts: [2] }];
+        expect(textForTopics(parts, topics, ['Meiosis'], 150)).toBe(parts[2]);
+        // Part 2 has both topics, so it goes first; part 1 doesn't fit in the budget.
+        expect(textForTopics(parts, topics, ['Mitosis', 'Meiosis'], 150)).toBe(parts[2]);
+        expect(textForTopics(parts, topics, ['Mitosis', 'Meiosis'], 250)).toBe(`${parts[1]}\n\n${parts[2]}`);
+        // Unknown parts (an older reviewer): start from the beginning.
+        expect(textForTopics(parts, [{ name: 'Cells' }], ['Cells'], 150)).toBe(parts[0]);
+        expect(textForTopics(['Only'], topics, ['Cells'], 10)).toBe('Only');
+    });
+});
+
+describe('targeted review', () => {
+    test('the prompt names the topics, the count and the questions to avoid', () => {
+        const prompt = buildTargetedPrompt({
+            title: 'Bio', course: 'BIO 101', text: 'Cells', topics: ['Respiration', 'Fermentation'], questionCount: 5, existing: ['Where does glycolysis happen?'],
+        });
+        expect(prompt).toContain('exactly 5 new multiple-choice questions');
+        expect(prompt).toContain('"Respiration", "Fermentation"');
+        expect(prompt).toContain('- Where does glycolysis happen?');
+        expect(prompt).toContain('<study_material>\nCells\n</study_material>');
+    });
+
+    test('keeps questions on the chosen topics that are not repeats', () => {
+        const out = normalizeTargeted({
+            questions: [
+                question({ topic: 'respiration', prompt: 'What does the Krebs cycle make?' }),
+                question({ topic: 'Photosynthesis', prompt: 'Off topic?' }),
+                question({ topic: 'Fermentation', prompt: 'Where does glycolysis happen' }), // already has it
+                question({ topic: 'Fermentation', prompt: 'What does yeast make without oxygen?' }),
+                question({ topic: 'Fermentation', prompt: 'Over the count?' }),
+            ],
+        }, { topics: ['Respiration', 'Fermentation'], existing: ['Where does glycolysis happen?'], questionCount: 2 });
+        expect(out.map((q) => [q.topic, q.prompt])).toEqual([
+            ['Respiration', 'What does the Krebs cycle make?'],
+            ['Fermentation', 'What does yeast make without oxygen?'],
+        ]);
+    });
+
+    test('with one topic every question goes under it, and too few usable questions fails', () => {
+        const out = normalizeTargeted({ questions: [question({ topic: 'Whatever' }), question({ prompt: 'Second?' })] }, { topics: ['Respiration'], questionCount: 5 });
+        expect(out.every((q) => q.topic === 'Respiration')).toBe(true);
+        expect(() => normalizeTargeted({ questions: [question()] }, { topics: ['Respiration'], questionCount: 5 })).toThrow(/enough usable/);
+        expect(() => normalizeTargeted(null, { topics: ['Respiration'], questionCount: 5 })).toThrow();
     });
 });
 

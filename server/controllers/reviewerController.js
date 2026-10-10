@@ -3,11 +3,13 @@ import { randomUUID } from 'crypto';
 import reviewerModel from '../models/reviewerModel.js';
 import reviewerAttemptModel from '../models/reviewerAttemptModel.js';
 import aiRequestModel from '../models/aiRequestModel.js';
-import { extractPdfText, isPdfBuffer, MIN_SOURCE_CHARS } from '../utils/pdfText.js';
+import { extractPdfText, isPdfBuffer, splitIntoParts, MIN_SOURCE_CHARS, PART_CHARS } from '../utils/pdfText.js';
 import { generateJson, isGeminiConfigured } from '../utils/gemini.js';
 import {
-    REVIEWER_SCHEMA, REVIEWER_SYSTEM, buildReviewerPrompt, normalizeReviewer,
-    QUESTION_COUNTS, DEFAULT_QUESTION_COUNT,
+    REVIEWER_SCHEMA, REVIEWER_SYSTEM, TARGETED_SCHEMA, buildReviewerPrompt, buildTargetedPrompt, planParts,
+    normalizeReviewer, normalizeTargeted, textForTopics,
+    QUESTION_COUNTS, DEFAULT_QUESTION_COUNT, MIN_QUESTIONS,
+    TARGETED_COUNTS, DEFAULT_TARGETED_COUNT, MAX_TARGET_TOPICS, MAX_REVIEWER_QUESTIONS,
 } from '../utils/reviewerContent.js';
 import { computeProgress, summarizeAttempt, topicStatsFor, scorePercent } from '../utils/reviewerProgress.js';
 
@@ -15,14 +17,18 @@ import { computeProgress, summarizeAttempt, topicStatsFor, scorePercent } from '
 export const DAILY_GENERATION_LIMIT = 10;
 // Generation runs in the background after the upload answers. If the server restarts in the
 // middle, nothing would ever finish it, so anything still "processing" after this is failed.
-export const STALE_AFTER_MS = 6 * 60 * 1000;
-// Retries for a busy or flaky AI service. Tests set these to 0.
-export const generationSettings = { retryDelaysMs: [4000, 12000] };
+// Long enough for every retry below to run.
+export const STALE_AFTER_MS = 9 * 60 * 1000;
+// Retries for a busy or flaky AI service. The free tier often answers "high demand" (503) for
+// a minute or so, so the last wait is longer. Tests set these to 0.
+export const generationSettings = { retryDelaysMs: [4000, 12000, 30000] };
 
 const TITLE_MAX = 120;
 const COURSE_MAX = 80;
 const OPEN_SESSION_MS = 24 * 60 * 60 * 1000;
 const TOO_LONG = 'This took too long, so we stopped. Try again.';
+
+const NO_TARGETED = { status: 'none', topics: [], count: 0, added: 0, batch: '', jobId: '', requestedAt: null, error: '' };
 
 const isId = (id) => mongoose.Types.ObjectId.isValid(id);
 const cleanLine = (value, max) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '');
@@ -61,20 +67,43 @@ const listItem = (r) => ({
 // Questions go out without their answers. Those only come back once a question is answered.
 const publicQuestion = (q) => ({ _id: q._id, topic: q.topic, prompt: q.prompt, options: q.options, difficulty: q.difficulty });
 
+const publicTargeted = (t) => ({
+    status: t?.status || 'none',
+    topics: t?.topics ? [...t.topics] : [],
+    count: t?.count || 0,
+    added: t?.added || 0,
+    error: t?.error || '',
+    requestedAt: t?.requestedAt || null,
+});
+
 const publicReviewer = (r) => ({
     ...listItem(r),
     aiModel: r.aiModel,
     summary: r.summary,
     keyPoints: r.keyPoints,
     keyTerms: r.keyTerms,
-    topics: r.topics,
+    topics: r.topics.map((t) => ({ name: t.name, summary: t.summary })),
     questionCount: r.questions.length,
+    targeted: publicTargeted(r.targeted),
 });
 
-const expireStale = (filter) => reviewerModel.updateMany(
-    { ...filter, status: 'processing', requestedAt: { $lt: new Date(Date.now() - STALE_AFTER_MS) } },
-    { $set: { status: 'failed', error: TOO_LONG, jobId: '' } },
-);
+const expireStale = async (filter) => {
+    const before = new Date(Date.now() - STALE_AFTER_MS);
+    await reviewerModel.updateMany(
+        { ...filter, status: 'processing', requestedAt: { $lt: before } },
+        { $set: { status: 'failed', error: TOO_LONG, jobId: '' } },
+    );
+    await reviewerModel.updateMany(
+        { ...filter, 'targeted.status': 'processing', 'targeted.requestedAt': { $lt: before } },
+        { $set: { 'targeted.status': 'failed', 'targeted.error': TOO_LONG, 'targeted.jobId': '' } },
+    );
+};
+
+// The real problem goes to the server log. Students get a plain message, never a database error.
+const serverError = (res, label, error) => {
+    console.error(`${label}:`, error);
+    res.status(500).json({ success: false, message: 'Something went wrong on our side. Try again in a moment.' });
+};
 
 const findOwned = async (req, res, { withText = false } = {}) => {
     const { reviewerId } = req.params;
@@ -108,8 +137,12 @@ export const settleGenerationJobs = () => Promise.allSettled([...runningJobs.val
 const isRetryable = (error) =>
     error?.code === 'invalid_output' || error?.status === 429 || (error?.status >= 500 && error?.status < 600);
 
-const friendlyError = (error) => {
-    if (error?.code === 'invalid_output') return "We couldn't get good questions out of this PDF. Try again, or try a PDF with more text.";
+const friendlyError = (error, { targeted = false } = {}) => {
+    if (error?.code === 'invalid_output') {
+        return targeted
+            ? "We couldn't get good questions on those topics. Try again, or pick other topics."
+            : "We couldn't get good questions out of this PDF. Try again, or try a PDF with more text.";
+    }
     if (error?.status === 429) return 'The AI service is busy right now. Try again in a few minutes.';
     if (error?.status >= 500) return 'The AI service had a problem. Try again in a bit.';
     if (error?.status === 400) return "The AI service couldn't work with this material. Try a different PDF.";
@@ -117,52 +150,128 @@ const friendlyError = (error) => {
     return "We couldn't make this reviewer. Try again.";
 };
 
+// Calls `request`, and asks again a couple of times when the AI service is busy or flaky, or
+// answered with something unusable.
+const withRetries = async (request) => {
+    const { retryDelaysMs } = generationSettings;
+    for (let attempt = 0; ; attempt += 1) {
+        try {
+            return await request();
+        } catch (error) {
+            if (!isRetryable(error) || attempt >= retryDelaysMs.length) throw error;
+            await sleep(retryDelaysMs[attempt]);
+        }
+    }
+};
+
+// Most PDFs are one request. A long one is split into parts that are sent at the same time and
+// merged. If any part still fails after its retries, the whole reviewer fails: a reviewer that
+// quietly skipped part of the material would be worse than a clear "try again".
 const generate = async (reviewerId, jobId) => {
     const reviewer = await reviewerModel.findOne({ _id: reviewerId, jobId, status: 'processing' }).select('+sourceText');
     if (!reviewer) return;
 
-    const prompt = buildReviewerPrompt({
-        title: reviewer.title,
-        course: reviewer.course,
-        text: reviewer.sourceText,
-        questionCount: reviewer.questionTarget,
-    });
+    const parts = splitIntoParts(reviewer.sourceText);
+    const plan = planParts(parts.map((p) => p.length), reviewer.questionTarget);
 
-    let lastError;
-    const { retryDelaysMs } = generationSettings;
-    for (let attempt = 0; attempt <= retryDelaysMs.length; attempt += 1) {
-        try {
+    try {
+        const settled = await Promise.allSettled(parts.map((text, i) => withRetries(async () => {
+            const prompt = buildReviewerPrompt({ title: reviewer.title, course: reviewer.course, text, part: plan[i] });
             const { data, model } = await generateJson({ system: REVIEWER_SYSTEM, prompt, schema: REVIEWER_SCHEMA });
-            const content = normalizeReviewer(data, { questionCount: reviewer.questionTarget });
-            await reviewerModel.updateOne(
-                { _id: reviewerId, jobId, status: 'processing' },
-                {
-                    $set: { ...content, status: 'ready', error: '', jobId: '', generatedAt: new Date(), aiModel: model },
-                    $inc: { version: 1 },
-                },
-            );
-            return;
-        } catch (error) {
-            lastError = error;
-            if (!isRetryable(error) || attempt === retryDelaysMs.length) break;
-            await sleep(retryDelaysMs[attempt]);
-        }
-    }
+            // Checked on its own first, so a part with unusable questions is asked again.
+            normalizeReviewer(data, { questionCount: plan[i].questions, minQuestions: Math.min(MIN_QUESTIONS, plan[i].questions) });
+            return { data, model };
+        })));
+        const failed = settled.find((r) => r.status === 'rejected');
+        if (failed) throw failed.reason;
 
-    console.error('Reviewer generation failed:', lastError?.status || '', lastError?.message);
-    await reviewerModel.updateOne(
-        { _id: reviewerId, jobId, status: 'processing' },
-        { $set: { status: 'failed', error: friendlyError(lastError), jobId: '' } },
-    );
+        const answers = settled.map((r) => r.value);
+        const { title, ...content } = normalizeReviewer(answers.map((a) => a.data), {
+            questionCount: reviewer.questionTarget,
+            shares: plan.map((p) => p.questions),
+        });
+        const saved = await reviewerModel.updateOne(
+            { _id: reviewerId, jobId, status: 'processing' },
+            {
+                $set: {
+                    ...content,
+                    status: 'ready',
+                    error: '',
+                    jobId: '',
+                    generatedAt: new Date(),
+                    aiModel: answers[0].model,
+                    targeted: NO_TARGETED,
+                },
+                $inc: { version: 1 },
+            },
+        );
+        // A title the student didn't type (the file name) is replaced by the AI's, once.
+        // Renaming turns autoTitle off, so a rename made while this ran is kept.
+        if (saved.modifiedCount && title) {
+            await reviewerModel.updateOne({ _id: reviewerId, autoTitle: true }, { $set: { title, autoTitle: false } });
+        }
+    } catch (error) {
+        console.error('Reviewer generation failed:', error?.status || '', error?.message);
+        await reviewerModel.updateOne(
+            { _id: reviewerId, jobId, status: 'processing' },
+            { $set: { status: 'failed', error: friendlyError(error), jobId: '' } },
+        );
+    }
 };
 
-const startGeneration = (reviewerId, jobId) => {
-    const key = String(reviewerId);
-    const job = generate(reviewerId, jobId)
-        .catch((error) => console.error('Reviewer generation crashed:', error.message))
+// Targeted review: new questions on the topics the student picked, from the same stored text,
+// added to the current question set as one batch.
+const generateTargeted = async (reviewerId, jobId) => {
+    const running = { _id: reviewerId, 'targeted.jobId': jobId, 'targeted.status': 'processing' };
+    const reviewer = await reviewerModel.findOne(running).select('+sourceText');
+    if (!reviewer) return;
+
+    const topics = [...reviewer.targeted.topics];
+    const existing = reviewer.questions.filter((q) => topics.includes(q.topic)).map((q) => q.prompt);
+    const prompt = buildTargetedPrompt({
+        title: reviewer.title,
+        course: reviewer.course,
+        text: textForTopics(splitIntoParts(reviewer.sourceText), reviewer.topics, topics, PART_CHARS),
+        topics,
+        questionCount: reviewer.targeted.count,
+        existing,
+    });
+
+    try {
+        const questions = await withRetries(async () => {
+            const { data } = await generateJson({ system: REVIEWER_SYSTEM, prompt, schema: TARGETED_SCHEMA });
+            return normalizeTargeted(data, { topics, existing, questionCount: reviewer.targeted.count });
+        });
+        const batch = randomUUID();
+        await reviewerModel.updateOne(
+            { ...running, version: reviewer.version },
+            {
+                $push: { questions: { $each: questions.map((q) => ({ ...q, batch })) } },
+                $set: {
+                    'targeted.status': 'ready',
+                    'targeted.batch': batch,
+                    'targeted.added': questions.length,
+                    'targeted.jobId': '',
+                    'targeted.error': '',
+                },
+            },
+        );
+    } catch (error) {
+        console.error('Targeted questions failed:', error?.status || '', error?.message);
+        await reviewerModel.updateOne(running, {
+            $set: { 'targeted.status': 'failed', 'targeted.error': friendlyError(error, { targeted: true }), 'targeted.jobId': '' },
+        });
+    }
+};
+
+const track = (key, work) => {
+    const job = work
+        .catch((error) => console.error('Reviewer job crashed:', error.message))
         .finally(() => { if (runningJobs.get(key) === job) runningJobs.delete(key); });
     runningJobs.set(key, job);
 };
+const startGeneration = (reviewerId, jobId) => track(String(reviewerId), generate(reviewerId, jobId));
+const startTargeted = (reviewerId, jobId) => track(`${reviewerId}:targeted`, generateTargeted(reviewerId, jobId));
 
 // ---------------------------------------------------------------------------------------------
 // Reviewers
@@ -202,10 +311,12 @@ export const createReviewer = async (req, res) => {
         }
 
         const fileName = decodeFileName(file.originalname);
+        const typedTitle = cleanLine(req.body.title, TITLE_MAX);
         const jobId = randomUUID();
         const reviewer = await reviewerModel.create({
             owner: req.userId,
-            title: cleanLine(req.body.title, TITLE_MAX) || titleFromFileName(fileName),
+            title: typedTitle || titleFromFileName(fileName),
+            autoTitle: !typedTitle,
             course: cleanLine(req.body.course, COURSE_MAX),
             source: { fileName: fileName.slice(0, 200), pages: extracted.pages, chars: extracted.chars, truncated: extracted.truncated },
             sourceText: extracted.text,
@@ -219,8 +330,7 @@ export const createReviewer = async (req, res) => {
 
         res.status(201).json({ success: true, reviewer: listItem(reviewer) });
     } catch (error) {
-        console.error('Create reviewer error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Create reviewer error', error);
     }
 };
 
@@ -254,8 +364,7 @@ export const getReviewers = async (req, res) => {
             }),
         });
     } catch (error) {
-        console.error('Get reviewers error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Get reviewers error', error);
     }
 };
 
@@ -277,8 +386,7 @@ export const getReviewer = async (req, res) => {
 
         res.json({ success: true, reviewer: publicReviewer(reviewer), openSession });
     } catch (error) {
-        console.error('Get reviewer error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Get reviewer error', error);
     }
 };
 
@@ -286,9 +394,15 @@ export const getReviewerStatus = async (req, res) => {
     try {
         const reviewer = await findOwned(req, res);
         if (!reviewer) return;
-        res.json({ success: true, status: reviewer.status, error: reviewer.error, version: reviewer.version });
+        res.json({
+            success: true,
+            status: reviewer.status,
+            error: reviewer.error,
+            version: reviewer.version,
+            targeted: publicTargeted(reviewer.targeted),
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Reviewer status error', error);
     }
 };
 
@@ -300,13 +414,13 @@ export const updateReviewer = async (req, res) => {
             const title = cleanLine(req.body.title, TITLE_MAX);
             if (!title) return res.status(400).json({ success: false, message: 'Give the reviewer a title.' });
             reviewer.title = title;
+            reviewer.autoTitle = false;
         }
         if (req.body.course !== undefined) reviewer.course = cleanLine(req.body.course, COURSE_MAX);
         await reviewer.save();
         res.json({ success: true, reviewer: listItem(reviewer) });
     } catch (error) {
-        console.error('Update reviewer error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Update reviewer error', error);
     }
 };
 
@@ -318,6 +432,9 @@ export const regenerateReviewer = async (req, res) => {
         if (!reviewer) return;
         if (reviewer.status === 'processing') {
             return res.status(409).json({ success: false, message: 'This reviewer is still being made.' });
+        }
+        if (reviewer.targeted?.status === 'processing') {
+            return res.status(409).json({ success: false, message: 'Wait for the extra questions to finish first.' });
         }
         if (!reviewer.sourceText) {
             return res.status(409).json({ success: false, message: 'Upload the PDF again to make new questions.' });
@@ -338,8 +455,59 @@ export const regenerateReviewer = async (req, res) => {
 
         res.json({ success: true, reviewer: listItem(reviewer) });
     } catch (error) {
-        console.error('Regenerate reviewer error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Regenerate reviewer error', error);
+    }
+};
+
+// Targeted review: the student picks up to three topics (the app ticks their weak ones) and
+// asks for a few new questions on them. Only runs when asked; viewing results never calls the AI.
+export const requestTargeted = async (req, res) => {
+    try {
+        if (!isGeminiConfigured()) return notConfigured(res);
+        const reviewer = await findOwned(req, res, { withText: true });
+        if (!reviewer) return;
+        if (reviewer.status !== 'ready') {
+            return res.status(409).json({ success: false, message: "This reviewer isn't ready yet." });
+        }
+        if (reviewer.targeted?.status === 'processing') {
+            return res.status(409).json({ success: false, message: 'New questions are already on the way.' });
+        }
+        if (!reviewer.sourceText) {
+            return res.status(409).json({ success: false, message: 'Upload the PDF again to make new questions.' });
+        }
+
+        const known = new Set(reviewer.topics.map((t) => t.name));
+        const topics = Array.isArray(req.body.topics) ? [...new Set(req.body.topics.filter((t) => typeof t === 'string'))] : [];
+        if (!topics.length || topics.length > MAX_TARGET_TOPICS) {
+            return res.status(400).json({ success: false, message: `Pick one to ${MAX_TARGET_TOPICS} topics.` });
+        }
+        if (topics.some((t) => !known.has(t))) {
+            return res.status(400).json({ success: false, message: 'Pick topics from this reviewer.' });
+        }
+        const count = req.body.questionCount === undefined ? DEFAULT_TARGETED_COUNT : Number(req.body.questionCount);
+        if (!TARGETED_COUNTS.includes(count)) {
+            return res.status(400).json({ success: false, message: `Pick ${TARGETED_COUNTS.join(' or ')} questions.` });
+        }
+        const room = MAX_REVIEWER_QUESTIONS - reviewer.questions.length;
+        if (room < Math.min(...TARGETED_COUNTS)) {
+            return res.status(409).json({
+                success: false,
+                message: `This reviewer already has ${reviewer.questions.length} questions, the most it can hold. Use New questions to start a fresh set.`,
+            });
+        }
+        if (await requestsToday(req.userId) >= DAILY_GENERATION_LIMIT) {
+            return res.status(429).json({ success: false, message: limitMessage() });
+        }
+
+        const jobId = randomUUID();
+        reviewer.targeted = { ...NO_TARGETED, status: 'processing', topics, count: Math.min(count, room), jobId, requestedAt: new Date() };
+        await reviewer.save();
+        await aiRequestModel.create({ user: req.userId, kind: 'targeted' });
+        startTargeted(reviewer._id, jobId);
+
+        res.status(202).json({ success: true, targeted: publicTargeted(reviewer.targeted) });
+    } catch (error) {
+        serverError(res, 'Targeted questions error', error);
     }
 };
 
@@ -351,8 +519,7 @@ export const deleteReviewer = async (req, res) => {
         await reviewer.deleteOne();
         res.json({ success: true, message: 'Reviewer deleted.' });
     } catch (error) {
-        console.error('Delete reviewer error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Delete reviewer error', error);
     }
 };
 
@@ -422,7 +589,7 @@ export const startSession = async (req, res) => {
             return res.status(409).json({ success: false, message: "This reviewer isn't ready yet." });
         }
 
-        const mode = req.body.mode === 'weak' ? 'weak' : 'all';
+        const mode = ['weak', 'targeted'].includes(req.body.mode) ? req.body.mode : 'all';
         let pool = reviewer.questions;
         if (mode === 'weak') {
             const progress = computeProgress(reviewer, await finishedSessions(reviewer, req.userId));
@@ -430,6 +597,13 @@ export const startSession = async (req, res) => {
             pool = pool.filter((q) => weak.has(q.topic));
             if (!pool.length) {
                 return res.status(400).json({ success: false, message: 'No weak topics right now. Finish a full session first.' });
+            }
+        }
+        if (mode === 'targeted') {
+            const batch = reviewer.targeted?.status === 'ready' ? reviewer.targeted.batch : '';
+            pool = batch ? pool.filter((q) => q.batch === batch) : [];
+            if (!pool.length) {
+                return res.status(400).json({ success: false, message: 'There are no new questions to practice yet.' });
             }
         }
 
@@ -443,8 +617,7 @@ export const startSession = async (req, res) => {
         });
         res.status(201).json({ success: true, session: sessionPayload(attempt, reviewer) });
     } catch (error) {
-        console.error('Start session error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Start session error', error);
     }
 };
 
@@ -454,8 +627,7 @@ export const getSession = async (req, res) => {
         if (!attempt) return;
         res.json({ success: true, session: sessionPayload(attempt, reviewer) });
     } catch (error) {
-        console.error('Get session error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Get session error', error);
     }
 };
 
@@ -493,8 +665,7 @@ export const answerQuestion = async (req, res) => {
             total: current.questions.length,
         });
     } catch (error) {
-        console.error('Answer question error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Answer question error', error);
     }
 };
 
@@ -544,8 +715,7 @@ export const finishSession = async (req, res) => {
             progress,
         });
     } catch (error) {
-        console.error('Finish session error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Finish session error', error);
     }
 };
 
@@ -560,7 +730,6 @@ export const getProgress = async (req, res) => {
             history: sessions.slice(0, 30).map(summarizeAttempt),
         });
     } catch (error) {
-        console.error('Get progress error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Get progress error', error);
     }
 };

@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 // the request back. Rows expire on their own after two days.
 const aiRequestSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true },
-    kind: { type: String, enum: ['reviewer'], default: 'reviewer' },
+    kind: { type: String, enum: ['reviewer', 'targeted'], default: 'reviewer' },
     at: { type: Date, default: Date.now },
 });
 

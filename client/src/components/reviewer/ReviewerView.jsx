@@ -2,19 +2,23 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import {
-  ArrowLeft, BookOpenCheck, Ellipsis, FileText, History, Info, LoaderCircle, Pencil, Play, RefreshCw, RotateCcw, Target, Trash2, X,
+  ArrowLeft, BookOpenCheck, Ellipsis, FileText, History, Info, LoaderCircle, Pencil, Play, RefreshCw, RotateCcw, Sparkles, Target, Trash2, X,
 } from "lucide-react";
 import { useAuth } from "../../pages/authentication/AuthContext";
 import ConfirmDialog from "../ConfirmDialog";
 import Menu, { MenuItem } from "../schedule/Menu";
 import LearningMode from "./LearningMode";
 import SessionResults from "./SessionResults";
-import { QUESTION_COUNTS, LEVEL_LABEL, formatDate, errorMessage } from "./reviewerUtils";
+import {
+  QUESTION_COUNTS, TARGETED_COUNTS, DEFAULT_TARGETED_COUNT, MAX_TARGET_TOPICS, MAX_REVIEWER_QUESTIONS,
+  LEVEL_LABEL, formatDate, errorMessage, listNames,
+} from "./reviewerUtils";
 
 const STATUS_POLL_MS = 3000;
+const MODE_LABEL = { weak: " · weak topics", targeted: " · new questions" };
 
 // One reviewer: its notes, the student's progress, and Learning Mode. While the AI is still
-// writing it, this shows a waiting state and checks back every few seconds.
+// writing it (or writing extra questions for targeted review), this checks back every few seconds.
 export default function ReviewerView({ reviewerId, onBack }) {
   const { backendUrl } = useAuth();
   const api = `${backendUrl}/api/reviewers/${reviewerId}`;
@@ -30,7 +34,7 @@ export default function ReviewerView({ reviewerId, onBack }) {
   const [results, setResults] = useState(null);
   const [starting, setStarting] = useState(false);
 
-  const [dialog, setDialog] = useState(null); // rename | regenerate | delete
+  const [dialog, setDialog] = useState(null); // rename | regenerate | targeted | delete
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -58,21 +62,26 @@ export default function ReviewerView({ reviewerId, onBack }) {
   useEffect(() => { load(); }, [load]);
 
   // While the AI is working, check the light status endpoint and reload once it's done.
-  const processing = reviewer?.status === "processing";
+  const making = reviewer?.status === "processing";
+  const addingQuestions = reviewer?.targeted?.status === "processing";
   useEffect(() => {
-    if (!processing) return undefined;
+    if (!making && !addingQuestions) return undefined;
     const timer = setInterval(async () => {
       if (document.hidden) return;
       try {
         const { data } = await axios.get(`${api}/status`, { withCredentials: true });
-        if (data.success && data.status !== "processing") {
+        if (!data.success) return;
+        if (making && data.status !== "processing") {
           if (data.status === "ready") toast.success("Your reviewer is ready.");
+          load();
+        } else if (addingQuestions && data.targeted?.status !== "processing") {
+          if (data.targeted?.status === "ready") toast.success(`${data.targeted.added} new questions are ready.`);
           load();
         }
       } catch { /* try again on the next tick */ }
     }, STATUS_POLL_MS);
     return () => clearInterval(timer);
-  }, [processing, api, load]);
+  }, [making, addingQuestions, api, load]);
 
   const start = async (mode) => {
     setStarting(true);
@@ -163,6 +172,23 @@ export default function ReviewerView({ reviewerId, onBack }) {
     }
   };
 
+  const askForQuestions = async ({ topics, questionCount }) => {
+    setBusy(true);
+    try {
+      const { data } = await axios.post(`${api}/targeted`, { topics, questionCount }, { withCredentials: true });
+      if (data.success) {
+        setDialog(null);
+        setReviewer((r) => ({ ...r, targeted: data.targeted }));
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error(errorMessage(err, "Couldn't ask for new questions. Try again."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const rename = async (fields) => {
     setBusy(true);
     try {
@@ -210,6 +236,7 @@ export default function ReviewerView({ reviewerId, onBack }) {
         results={results}
         starting={starting}
         onPracticeWeak={() => start("weak")}
+        onMoreQuestions={() => { backToOverview(); setDialog("targeted"); }}
         onRestart={() => start("all")}
         onBack={backToOverview}
       />
@@ -220,6 +247,8 @@ export default function ReviewerView({ reviewerId, onBack }) {
   const weakQuestions = (progress?.topics || [])
     .filter((t) => t.level === "weak")
     .reduce((sum, t) => sum + t.questionCount, 0);
+  const targeted = reviewer.targeted || { status: "none" };
+  const isFull = reviewer.questionCount > MAX_REVIEWER_QUESTIONS - Math.min(...TARGETED_COUNTS);
 
   const dialogs = (
     <>
@@ -228,6 +257,9 @@ export default function ReviewerView({ reviewerId, onBack }) {
       )}
       {dialog === "regenerate" && (
         <RegenerateDialog reviewer={reviewer} busy={busy} onConfirm={regenerate} onClose={() => setDialog(null)} />
+      )}
+      {dialog === "targeted" && reviewer.status === "ready" && (
+        <TargetedDialog reviewer={reviewer} progress={progress} busy={busy} onConfirm={askForQuestions} onClose={() => setDialog(null)} />
       )}
       <ConfirmDialog
         open={dialog === "delete"}
@@ -353,6 +385,46 @@ export default function ReviewerView({ reviewerId, onBack }) {
             </div>
           </section>
 
+          <section className="panel reviewer-practice reviewer-targeted" aria-live="polite">
+            <span className="panel-kicker"><Sparkles size={15} aria-hidden="true" /> Targeted review</span>
+            <h2>More on weak spots</h2>
+            {targeted.status === "processing" ? (
+              <p className="reviewer-targeted-busy">
+                <LoaderCircle className="reviewer-spin" size={18} aria-hidden="true" />
+                <span>Writing {targeted.count} new questions on {listNames(targeted.topics)}. This usually takes under a minute.</span>
+              </p>
+            ) : (
+              <>
+                <p>
+                  {weakCount > 0
+                    ? `${listNames(progress.weakTopics.slice(0, MAX_TARGET_TOPICS))} ${weakCount === 1 ? "needs" : "need"} more work. Get new questions from the same PDF to practice with.`
+                    : "Want more practice on a topic? Get new questions on it from the same PDF."}
+                </p>
+                {targeted.status === "failed" && <p className="reviewer-targeted-error" role="alert">{targeted.error}</p>}
+                {targeted.status === "ready" && targeted.added > 0 && (
+                  <p className="reviewer-targeted-done">
+                    Added {targeted.added} new {targeted.added === 1 ? "question" : "questions"} on {listNames(targeted.topics)}.
+                  </p>
+                )}
+                <div className="reviewer-button-col">
+                  {targeted.status === "ready" && targeted.added > 0 && (
+                    <button type="button" className="primary-button" onClick={() => start("targeted")} disabled={starting}>
+                      <Play size={17} aria-hidden="true" /> Practice the new ones
+                    </button>
+                  )}
+                  <button type="button" className="secondary-button" onClick={() => setDialog("targeted")} disabled={starting || isFull}>
+                    <Sparkles size={17} aria-hidden="true" /> Get new questions
+                  </button>
+                </div>
+                {isFull && (
+                  <p className="reviewer-targeted-note">
+                    This reviewer has {reviewer.questionCount} questions, the most it can hold. Use New questions in the More menu to start a fresh set.
+                  </p>
+                )}
+              </>
+            )}
+          </section>
+
           <section className="panel reviewer-progress">
             <span className="panel-kicker">How you're doing</span>
             <h2>Topics</h2>
@@ -385,7 +457,7 @@ export default function ReviewerView({ reviewerId, onBack }) {
                 <ul>
                   {history.slice(0, 10).map((h) => (
                     <li key={h._id} className={h.version !== reviewer.version ? "is-old" : ""}>
-                      <span>{formatDate(h.finishedAt)}{h.mode === "weak" ? " · weak topics" : ""}{h.version !== reviewer.version ? " · older questions" : ""}</span>
+                      <span>{formatDate(h.finishedAt)}{MODE_LABEL[h.mode] || ""}{h.version !== reviewer.version ? " · older questions" : ""}</span>
                       <strong>{h.score}%</strong>
                     </li>
                   ))}
@@ -514,6 +586,70 @@ function RegenerateDialog({ reviewer, busy, onConfirm, onClose }) {
           <button type="button" className="primary-button" onClick={() => onConfirm(count)} disabled={busy}>{busy ? "Starting..." : "Make new questions"}</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Targeted review: pick up to three topics (weak ones come ticked) and how many new questions.
+function TargetedDialog({ reviewer, progress, busy, onConfirm, onClose }) {
+  const levels = new Map((progress?.topics || []).map((t) => [t.name, t.level]));
+  const [picked, setPicked] = useState(() => (progress?.weakTopics || []).slice(0, MAX_TARGET_TOPICS));
+  const room = MAX_REVIEWER_QUESTIONS - reviewer.questionCount;
+  const [count, setCount] = useState(Math.min(DEFAULT_TARGETED_COUNT, room));
+  const atLimit = picked.length >= MAX_TARGET_TOPICS;
+
+  const toggle = (name) => setPicked((current) => (
+    current.includes(name) ? current.filter((n) => n !== name) : atLimit ? current : [...current, name]
+  ));
+
+  return (
+    <div className="modal-overlay" onClick={busy ? undefined : onClose}>
+      <form
+        className="modal-content reviewer-modal is-narrow"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="targeted-title"
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={(e) => { e.preventDefault(); onConfirm({ topics: picked, questionCount: count }); }}
+      >
+        <div className="modal-header">
+          <h2 id="targeted-title">New questions</h2>
+          <button type="button" className="modal-close" onClick={onClose} disabled={busy} aria-label="Close"><X size={22} aria-hidden="true" /></button>
+        </div>
+        <p className="reviewer-dialog-text">
+          The AI writes new questions on the topics you pick, from the same PDF. They're added to this reviewer, and your progress so far stays.
+        </p>
+        <fieldset className="reviewer-topic-pick" disabled={busy}>
+          <legend className="reviewer-field-label">Topics (up to {MAX_TARGET_TOPICS})</legend>
+          {reviewer.topics.map((t) => {
+            const checked = picked.includes(t.name);
+            const level = levels.get(t.name);
+            return (
+              <label key={t.name} className={`reviewer-check${!checked && atLimit ? " is-off" : ""}`}>
+                <input type="checkbox" checked={checked} disabled={!checked && atLimit} onChange={() => toggle(t.name)} />
+                <span>{t.name}</span>
+                {level && <span className={`reviewer-level is-${level}`}>{LEVEL_LABEL[level]}</span>}
+              </label>
+            );
+          })}
+        </fieldset>
+        <div className="reviewer-field">
+          <span className="reviewer-field-label" id="targeted-count-label">How many</span>
+          <div className="sched-segment" role="group" aria-labelledby="targeted-count-label">
+            {TARGETED_COUNTS.map((n) => (
+              <button key={n} type="button" className={count === n ? "active" : ""} aria-pressed={count === n} onClick={() => setCount(n)} disabled={busy || n > room}>{n}</button>
+            ))}
+          </div>
+        </div>
+        <p className="reviewer-notice">
+          <Info size={16} aria-hidden="true" />
+          <span>This counts as one of your AI requests for today.</span>
+        </p>
+        <div className="modal-actions reviewer-actions">
+          <button type="button" className="secondary-button" onClick={onClose} disabled={busy}>Cancel</button>
+          <button type="submit" className="primary-button" disabled={busy || !picked.length}>{busy ? "Starting..." : "Write questions"}</button>
+        </div>
+      </form>
     </div>
   );
 }

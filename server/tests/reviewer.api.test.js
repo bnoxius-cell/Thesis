@@ -42,7 +42,7 @@ const aiOutput = () => ({
 });
 
 beforeAll(async () => {
-    generationSettings.retryDelaysMs = [0, 0];
+    generationSettings.retryDelaysMs = [0, 0, 0];
     await connectTestDB();
 });
 beforeEach(async () => {
@@ -168,7 +168,7 @@ describe('when the AI fails', () => {
         const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
         const id = (await upload(alice)).body.reviewer._id;
         await settleGenerationJobs();
-        expect(generateJson).toHaveBeenCalledTimes(3);
+        expect(generateJson).toHaveBeenCalledTimes(4);
         const status = await alice.get(`/api/reviewers/${id}/status`);
         expect(status.body).toMatchObject({ status: 'failed' });
         expect(status.body.error).toMatch(/busy/);
@@ -376,5 +376,235 @@ describe('Learning Mode', () => {
         const id = (await upload(alice)).body.reviewer._id;
         await settleGenerationJobs();
         expect((await alice.post(`/api/reviewers/${id}/sessions`).send({})).status).toBe(409);
+    });
+});
+
+describe('titles', () => {
+    test("the AI's title replaces the file name, but never a title the student chose", async () => {
+        generateJson.mockResolvedValue({ data: { ...aiOutput(), title: 'Photosynthesis and Respiration' }, model: 'gemini-test' });
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+
+        const fromFile = await makeReady(alice);
+        expect((await alice.get(`/api/reviewers/${fromFile}`)).body.reviewer.title).toBe('Photosynthesis and Respiration');
+
+        const typed = await makeReady(alice, { title: 'Bio midterm' });
+        expect((await alice.get(`/api/reviewers/${typed}`)).body.reviewer.title).toBe('Bio midterm');
+
+        // Renamed while the AI was still working: the rename stays.
+        const res = await upload(alice);
+        await alice.patch(`/api/reviewers/${res.body.reviewer._id}`).send({ title: 'My own name' });
+        await settleGenerationJobs();
+        expect((await alice.get(`/api/reviewers/${res.body.reviewer._id}`)).body.reviewer.title).toBe('My own name');
+    });
+});
+
+describe('long PDFs', () => {
+    test('are sent in parts at once and merged into one reviewer', async () => {
+        // Each part answers with its own topic and questions.
+        generateJson.mockImplementation(async ({ prompt }) => {
+            const part = Number(prompt.match(/This is part (\d) of 3/)[1]);
+            const share = Number(prompt.match(/exactly (\d+) multiple-choice/)[1]);
+            return {
+                model: 'gemini-test',
+                data: {
+                    title: `Long notes ${part}`,
+                    summary: `Part ${part} summary.`,
+                    topics: [{ name: `Chapter ${part}`, summary: 'A chapter.' }],
+                    keyPoints: [`Point from part ${part}.`],
+                    keyTerms: [],
+                    questions: Array.from({ length: share }, (_, i) => ({
+                        topic: `Chapter ${part}`,
+                        prompt: `Part ${part}, question ${i + 1}?`,
+                        options: ['Right', 'Wrong one', 'Wrong two', 'Wrong three'],
+                        correctIndex: 0,
+                        explanation: 'Because.',
+                        difficulty: 'easy',
+                    })),
+                },
+            };
+        });
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const user = await userModel.findOne({ email: 'alice@student.fatima.edu.ph' });
+        const sourceText = Array.from({ length: 300 }, (_, i) => `Section ${i}. ${'Plants turn light into sugar. '.repeat(30)}`).join('\n\n');
+        expect(sourceText.length).toBeGreaterThan(240000);
+        const reviewer = await reviewerModel.create({
+            owner: user._id, title: 'Long notes', autoTitle: true, status: 'failed', sourceText, questionTarget: 15,
+        });
+
+        await alice.post(`/api/reviewers/${reviewer._id}/regenerate`).send({});
+        await settleGenerationJobs();
+
+        expect(generateJson).toHaveBeenCalledTimes(3);
+        const got = (await alice.get(`/api/reviewers/${reviewer._id}`)).body.reviewer;
+        expect(got).toMatchObject({ status: 'ready', title: 'Long notes 1', questionCount: 15 });
+        expect(got.summary).toBe('Part 1 summary.\n\nPart 2 summary.\n\nPart 3 summary.');
+        expect(got.topics.map((t) => t.name)).toEqual(['Chapter 1', 'Chapter 2', 'Chapter 3']);
+        expect(got.topics[0]).not.toHaveProperty('parts');
+        const stored = await reviewerModel.findById(reviewer._id);
+        expect(stored.topics.map((t) => [...t.parts])).toEqual([[0], [1], [2]]);
+    });
+
+    test('one part failing fails the reviewer', async () => {
+        generateJson.mockImplementation(async ({ prompt }) => {
+            if (prompt.includes('part 2 of')) throw Object.assign(new Error('bad'), { status: 400 });
+            return { data: aiOutput(), model: 'gemini-test' };
+        });
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const user = await userModel.findOne({ email: 'alice@student.fatima.edu.ph' });
+        const reviewer = await reviewerModel.create({
+            owner: user._id, title: 'Long', status: 'failed', sourceText: 'Plants make sugar. '.repeat(15000), questionTarget: 10,
+        });
+        await alice.post(`/api/reviewers/${reviewer._id}/regenerate`).send({});
+        await settleGenerationJobs();
+        const status = (await alice.get(`/api/reviewers/${reviewer._id}/status`)).body;
+        expect(status.status).toBe('failed');
+        expect(status.error).toMatch(/different PDF/);
+    });
+});
+
+describe('targeted review', () => {
+    const extraQuestions = (topic = 'Respiration', n = 5) => ({
+        questions: Array.from({ length: n }, (_, i) => ({
+            topic,
+            prompt: `New ${topic} question ${i + 1}?`,
+            options: ['Right', 'Wrong one', 'Wrong two', 'Wrong three'],
+            correctIndex: 0,
+            explanation: 'Because the notes say so.',
+            difficulty: 'easy',
+        })),
+    });
+
+    test('adds new questions on the chosen topics, which can be practised on their own', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const id = await makeReady(alice);
+        generateJson.mockResolvedValueOnce({ data: extraQuestions(), model: 'gemini-test' });
+
+        const res = await alice.post(`/api/reviewers/${id}/targeted`).send({ topics: ['Respiration'], questionCount: 5 });
+        expect(res.status).toBe(202);
+        expect(res.body.targeted).toMatchObject({ status: 'processing', topics: ['Respiration'], count: 5 });
+        expect(JSON.stringify(res.body)).not.toMatch(/jobId/);
+        await settleGenerationJobs();
+
+        const call = generateJson.mock.calls.at(-1)[0];
+        expect(call.prompt).toContain('exactly 5 new multiple-choice questions');
+        expect(call.prompt).toContain('- Where does glycolysis happen?'); // asks for different ones
+        expect(call.prompt).not.toContain('- Where do the light-dependent reactions happen?');
+        expect(call.prompt).toContain('RuBisCO captures carbon dioxide');
+        expect(call.schema.properties).toHaveProperty('questions');
+
+        const got = (await alice.get(`/api/reviewers/${id}`)).body.reviewer;
+        // Added to the same set: progress isn't reset.
+        expect(got).toMatchObject({ questionCount: 11, version: 1 });
+        expect(got.targeted).toMatchObject({ status: 'ready', added: 5, topics: ['Respiration'] });
+        expect((await alice.get(`/api/reviewers/${id}/status`)).body.targeted.status).toBe('ready');
+
+        const session = (await alice.post(`/api/reviewers/${id}/sessions`).send({ mode: 'targeted' })).body.session;
+        expect(session.mode).toBe('targeted');
+        expect(session.questions.map((q) => q.prompt).sort()).toEqual(extraQuestions().questions.map((q) => q.prompt).sort());
+        expect(JSON.stringify(session.questions)).not.toMatch(/correctIndex|explanation|batch/);
+        const key = await answerKey(id);
+        const answer = await alice.post(`/api/reviewers/${id}/sessions/${session._id}/answer`)
+            .send({ questionId: session.questions[0]._id, choice: key.get(session.questions[0]._id).correctIndex });
+        expect(answer.body.result.correct).toBe(true);
+
+        // A full session now includes them too.
+        expect((await alice.post(`/api/reviewers/${id}/sessions`).send({})).body.session.questions).toHaveLength(11);
+        expect(await aiRequestModel.countDocuments({ kind: 'targeted' })).toBe(1);
+    });
+
+    test('checks topics, count, state and the daily limit', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const id = await makeReady(alice);
+        const ask = (body) => alice.post(`/api/reviewers/${id}/targeted`).send(body);
+
+        expect((await ask({})).status).toBe(400);
+        expect((await ask({ topics: [] })).status).toBe(400);
+        expect((await ask({ topics: ['Genetics'] })).body.message).toMatch(/from this reviewer/);
+        expect((await ask({ topics: ['Photosynthesis', 'Respiration', 'A', 'B'] })).status).toBe(400);
+        expect((await ask({ topics: ['Respiration'], questionCount: 7 })).status).toBe(400);
+        expect(generateJson).toHaveBeenCalledTimes(1);
+
+        // Only one at a time, and no full regeneration while it runs.
+        let release;
+        generateJson.mockImplementationOnce(() => new Promise((resolve) => { release = () => resolve({ data: extraQuestions(), model: 'gemini-test' }); }));
+        expect((await ask({ topics: ['Respiration'] })).status).toBe(202);
+        expect((await ask({ topics: ['Respiration'] })).status).toBe(409);
+        expect((await alice.post(`/api/reviewers/${id}/regenerate`).send({})).status).toBe(409);
+        await vi.waitFor(() => expect(release).toBeTypeOf('function'));
+        release();
+        await settleGenerationJobs();
+
+        const user = await userModel.findOne({ email: 'alice@student.fatima.edu.ph' });
+        await aiRequestModel.insertMany(Array.from({ length: DAILY_GENERATION_LIMIT }, () => ({ user: user._id })));
+        expect((await ask({ topics: ['Respiration'] })).status).toBe(429);
+    });
+
+    test('stops when the reviewer is full, and needs a ready reviewer', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const id = await makeReady(alice);
+        const reviewer = await reviewerModel.findById(id);
+        const filler = reviewer.questions[0].toObject();
+        delete filler._id;
+        reviewer.questions.push(...Array.from({ length: 56 }, () => ({ ...filler })));
+        await reviewer.save();
+        const full = await alice.post(`/api/reviewers/${id}/targeted`).send({ topics: ['Respiration'] });
+        expect(full.status).toBe(409);
+        expect(full.body.message).toMatch(/the most it can hold/);
+
+        generateJson.mockRejectedValue(Object.assign(new Error('bad'), { status: 400 }));
+        const failedId = (await upload(alice)).body.reviewer._id;
+        await settleGenerationJobs();
+        expect((await alice.post(`/api/reviewers/${failedId}/targeted`).send({ topics: ['Respiration'] })).status).toBe(409);
+    });
+
+    test('a failed request says so plainly, and practising needs a finished batch', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const id = await makeReady(alice);
+        expect((await alice.post(`/api/reviewers/${id}/sessions`).send({ mode: 'targeted' })).status).toBe(400);
+
+        generateJson.mockResolvedValue({ data: extraQuestions('Genetics'), model: 'gemini-test' });
+        await alice.post(`/api/reviewers/${id}/targeted`).send({ topics: ['Photosynthesis', 'Respiration'] });
+        await settleGenerationJobs();
+        // Every question was on the wrong topic, so it asked again, then gave up.
+        expect(generateJson).toHaveBeenCalledTimes(5);
+        const got = (await alice.get(`/api/reviewers/${id}`)).body.reviewer;
+        expect(got.targeted.status).toBe('failed');
+        expect(got.targeted.error).toMatch(/pick other topics/);
+        expect(got.questionCount).toBe(6);
+        expect((await alice.post(`/api/reviewers/${id}/sessions`).send({ mode: 'targeted' })).status).toBe(400);
+    });
+
+    test('new questions for the whole reviewer clear the last batch', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const id = await makeReady(alice);
+        generateJson.mockResolvedValueOnce({ data: extraQuestions(), model: 'gemini-test' });
+        await alice.post(`/api/reviewers/${id}/targeted`).send({ topics: ['Respiration'] });
+        await settleGenerationJobs();
+        await alice.post(`/api/reviewers/${id}/regenerate`).send({});
+        await settleGenerationJobs();
+        const got = (await alice.get(`/api/reviewers/${id}`)).body.reviewer;
+        expect(got).toMatchObject({ questionCount: 6, version: 2 });
+        expect(got.targeted.status).toBe('none');
+    });
+
+    test('only the owner can ask', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const bob = await signUp('bob@student.fatima.edu.ph', 'Bob');
+        const id = await makeReady(alice);
+        expect((await bob.post(`/api/reviewers/${id}/targeted`).send({ topics: ['Respiration'] })).status).toBe(404);
+    });
+});
+
+describe('server errors', () => {
+    test('students get a plain message, not the database error', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const spy = vi.spyOn(reviewerModel, 'aggregate').mockRejectedValueOnce(new Error('MongoNetworkError: connection 3 to 10.0.0.1 closed'));
+        const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const res = await alice.get('/api/reviewers');
+        expect(res.status).toBe(500);
+        expect(res.body.message).toBe('Something went wrong on our side. Try again in a moment.');
+        expect(JSON.stringify(res.body)).not.toMatch(/Mongo|10\.0\.0\.1/);
+        spy.mockRestore();
+        errorLog.mockRestore();
     });
 });

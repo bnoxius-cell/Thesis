@@ -3,6 +3,10 @@
 
 export const QUESTION_COUNTS = [10, 15, 20, 30];
 export const DEFAULT_QUESTION_COUNT = 15;
+export const TARGETED_COUNTS = [5, 10];
+export const DEFAULT_TARGETED_COUNT = 5;
+export const MAX_TARGET_TOPICS = 3;
+export const MAX_REVIEWER_QUESTIONS = 60;
 export const MAX_PDF_MB = 10;
 export const LETTERS = ["A", "B", "C", "D"];
 
@@ -11,9 +15,11 @@ export const formatBytes = (bytes) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-export const titleFromFileName = (name) => name.replace(/\.pdf$/i, "").replace(/_+/g, " ").trim();
-
 export const errorMessage = (err, fallback) => err?.response?.data?.message || fallback;
+
+// "A", "A and B", "A, B and C"
+export const listNames = (names) =>
+  names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 
 export const formatDate = (iso) =>
   new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" });

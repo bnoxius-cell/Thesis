@@ -6203,6 +6203,18 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
 .reviewer-practice p { margin: 0 0 16px; color: var(--text-secondary); line-height: 1.55; }
 .reviewer-practice .primary-button,
 .reviewer-practice .secondary-button { width: 100%; }
+.reviewer-targeted p { margin-bottom: 12px; }
+.reviewer-targeted .reviewer-button-col { margin-top: 4px; }
+.reviewer-targeted-busy { display: flex; align-items: flex-start; gap: 10px; }
+.reviewer-targeted-busy svg { flex-shrink: 0; margin-top: 3px; color: var(--chart-task); }
+.reviewer-targeted .reviewer-targeted-done { color: var(--text-primary); font-weight: 600; }
+.reviewer-targeted .reviewer-targeted-error {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--ochre-soft);
+  color: var(--text-primary);
+}
+.reviewer-targeted .reviewer-targeted-note { margin: 12px 0 0; font-size: 0.86rem; }
 
 .reviewer-progress-sum { margin: 0 0 14px; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; }
 .reviewer-topic-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
@@ -6303,6 +6315,25 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
 .reviewer-actions { grid-column: auto; margin-top: 0; align-items: center; flex-wrap: wrap; }
 .reviewer-upload-progress { margin-right: auto; font-size: 0.88rem; color: var(--text-secondary); }
 .reviewer-dialog-text { margin: 0; color: var(--text-secondary); line-height: 1.6; }
+.reviewer-topic-pick { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.reviewer-topic-pick legend { padding: 0; margin-bottom: 8px; }
+/* Global label styles stack their contents; these rows sit side by side. */
+.reviewer-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 10px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.reviewer-check input { flex-shrink: 0; width: 18px; height: 18px; padding: 0; accent-color: var(--chart-task); }
+.reviewer-check > span:nth-of-type(1) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.reviewer-check:has(input:checked) { border-color: var(--chart-task); }
+.reviewer-check.is-off { opacity: 0.6; cursor: default; }
 
 /* ---- Learning Mode ---- */
 .reviewer-learning { display: grid; gap: 14px; width: 100%; max-width: 760px; margin: 0 auto; }
@@ -6361,6 +6392,12 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
 .learning-option.is-wrong { border-color: var(--tone-watch-fg); background: var(--ochre-soft); }
 .learning-option.is-wrong .learning-letter { background: var(--tone-watch-fg); color: var(--panel-bg); }
 .learning-option.is-dim { opacity: 0.68; }
+.learning-option.is-selected {
+  border-color: var(--chart-task);
+  box-shadow: inset 0 0 0 1px var(--chart-task);
+  background: color-mix(in srgb, var(--chart-task) 10%, var(--input-bg));
+}
+.learning-option.is-selected .learning-letter { background: var(--chart-task); color: var(--panel-bg); }
 .learning-feedback {
   display: grid;
   gap: 6px;
@@ -6375,6 +6412,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
 .learning-feedback p { margin: 0; line-height: 1.6; }
 .learning-actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; min-height: 48px; }
 .learning-hint { margin-right: auto; font-size: 0.86rem; color: var(--text-secondary); }
+.learning-actions .primary-button { flex-shrink: 0; white-space: nowrap; }
 
 /* ---- Results ---- */
 .reviewer-results { display: grid; gap: 20px; }

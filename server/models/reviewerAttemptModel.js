@@ -14,7 +14,7 @@ const reviewerAttemptSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true },
     reviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'reviewer', required: true },
     version: { type: Number, required: true },
-    mode: { type: String, enum: ['all', 'weak'], default: 'all' },
+    mode: { type: String, enum: ['all', 'weak', 'targeted'], default: 'all' },
     questions: { type: [mongoose.Schema.Types.ObjectId], default: [] },
     answers: { type: [answerSchema], default: [] },
 

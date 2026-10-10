@@ -6,9 +6,10 @@ import { useAuth } from "../../pages/authentication/AuthContext";
 import ConfirmDialog from "../ConfirmDialog";
 import { LETTERS, errorMessage } from "./reviewerUtils";
 
-// One question at a time. The server grades each answer and only then sends the right answer
-// and the explanation back, so nothing here knows the key in advance. Keys 1-4 (or A-D) pick
-// an answer, Enter goes on.
+// One question at a time. Picking an answer only selects it; Submit sends it, so a stray tap
+// can't answer for you. The server grades each answer and only then sends the right answer and
+// the explanation back, so nothing here knows the key in advance. Keys 1-4 (or A-D) pick,
+// Enter submits, and Enter again goes on.
 //
 //   session     { _id, questions, answers } from the server (answers lets a session resume)
 //   onFinished  called with the finish response ({ session, review, progress } or session null)
@@ -24,6 +25,7 @@ export default function LearningMode({ reviewerId, title, session, onFinished, o
     const next = questions.findIndex((q) => !answered.has(String(q._id)));
     return next === -1 ? questions.length - 1 : next;
   });
+  const [selected, setSelected] = useState(null);
   const [sending, setSending] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
@@ -53,11 +55,11 @@ export default function LearningMode({ reviewerId, title, session, onFinished, o
     }
   }, [base, onFinished]);
 
-  const answer = useCallback(async (choice) => {
-    if (!question || result || sending) return;
+  const submit = useCallback(async () => {
+    if (!question || result || sending || selected === null) return;
     setSending(true);
     try {
-      const { data } = await axios.post(`${base}/answer`, { questionId: question._id, choice }, { withCredentials: true });
+      const { data } = await axios.post(`${base}/answer`, { questionId: question._id, choice: selected }, { withCredentials: true });
       if (data.success) {
         setResults((prev) => new Map(prev).set(String(question._id), data.result));
       } else {
@@ -68,10 +70,11 @@ export default function LearningMode({ reviewerId, title, session, onFinished, o
     } finally {
       setSending(false);
     }
-  }, [base, question, result, sending]);
+  }, [base, question, result, sending, selected]);
 
   const next = useCallback(() => {
     if (!result) return;
+    setSelected(null);
     if (isLast) finish();
     else setIndex((i) => i + 1);
   }, [result, isLast, finish]);
@@ -83,15 +86,20 @@ export default function LearningMode({ reviewerId, title, session, onFinished, o
       const pick = { 1: 0, 2: 1, 3: 2, 4: 3, a: 0, b: 1, c: 2, d: 3 }[e.key.toLowerCase()];
       if (pick !== undefined && !result) {
         e.preventDefault();
-        answer(pick);
-      } else if (e.key === "Enter" && result && e.target.tagName !== "BUTTON") {
-        e.preventDefault();
-        next();
+        if (!sending) setSelected(pick);
+      } else if (e.key === "Enter" && e.target.tagName !== "BUTTON") {
+        if (result) {
+          e.preventDefault();
+          next();
+        } else if (selected !== null) {
+          e.preventDefault();
+          submit();
+        }
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [answer, next, result, confirmEnd]);
+  }, [submit, next, result, selected, sending, confirmEnd]);
 
   if (!question) {
     return (
@@ -103,7 +111,7 @@ export default function LearningMode({ reviewerId, title, session, onFinished, o
   }
 
   const optionState = (i) => {
-    if (!result) return "";
+    if (!result) return selected === i ? " is-selected" : "";
     if (i === result.correctIndex) return " is-correct";
     if (i === result.choice) return " is-wrong";
     return " is-dim";
@@ -144,9 +152,9 @@ export default function LearningMode({ reviewerId, title, session, onFinished, o
               key={i}
               type="button"
               className={`learning-option${optionState(i)}`}
-              onClick={() => answer(i)}
+              onClick={() => setSelected(i)}
               disabled={Boolean(result) || sending}
-              aria-pressed={result ? result.choice === i : undefined}
+              aria-pressed={result ? result.choice === i : selected === i}
             >
               <span className="learning-letter" aria-hidden="true">
                 {result && i === result.correctIndex ? <Check size={16} /> : result && i === result.choice ? <X size={16} /> : LETTERS[i]}
@@ -166,7 +174,14 @@ export default function LearningMode({ reviewerId, title, session, onFinished, o
         )}
 
         <div className="learning-actions">
-          {!result && <span className="learning-hint">Pick an answer, or press 1 to 4.</span>}
+          {!result && (
+            <>
+              <span className="learning-hint">Pick an answer (or press 1 to 4), then submit.</span>
+              <button type="button" className="primary-button" onClick={submit} disabled={selected === null || sending}>
+                {sending ? "Checking..." : "Submit answer"}
+              </button>
+            </>
+          )}
           {result && (
             <button ref={nextRef} type="button" className="primary-button" onClick={next} disabled={finishing}>
               {isLast ? (finishing ? "Saving..." : "See results") : <>Next <ArrowRight size={17} aria-hidden="true" /></>}

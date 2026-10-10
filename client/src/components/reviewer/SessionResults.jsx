@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { ArrowLeft, Check, RotateCcw, Target, X } from "lucide-react";
+import { ArrowLeft, Check, RotateCcw, Sparkles, Target, X } from "lucide-react";
 import { LETTERS, LEVEL_LABEL, scoreMessage } from "./reviewerUtils";
 
+const MODE_KICKER = { all: "Session done", weak: "Weak topics", targeted: "New questions" };
+
 // After a session: the score, how each topic went, which topics to review overall, and every
-// question with the right answer and why.
-export default function SessionResults({ title, results, starting, onPracticeWeak, onRestart, onBack }) {
+// question with the right answer and why. Scores come from the server, never from this page.
+export default function SessionResults({ title, results, starting, onPracticeWeak, onMoreQuestions, onRestart, onBack }) {
   const { session, review, progress } = results;
   const missed = review.filter((r) => !r.correct);
   const [onlyMissed, setOnlyMissed] = useState(missed.length > 0);
@@ -22,7 +24,7 @@ export default function SessionResults({ title, results, starting, onPracticeWea
           <span>{session.score ?? 0}%</span>
         </div>
         <div>
-          <span className="panel-kicker">{session.mode === "weak" ? "Weak topics" : "Session done"}</span>
+          <span className="panel-kicker">{MODE_KICKER[session.mode] || MODE_KICKER.all}</span>
           <h1>{session.correct} of {session.answered} right</h1>
           <p>{scoreMessage(session.score)}</p>
           {session.answered < session.total && (
@@ -30,9 +32,14 @@ export default function SessionResults({ title, results, starting, onPracticeWea
           )}
           <div className="reviewer-button-row">
             {weakTopics.length > 0 && (
-              <button type="button" className="primary-button" onClick={onPracticeWeak} disabled={starting}>
-                <Target size={17} aria-hidden="true" /> Practice weak topics
-              </button>
+              <>
+                <button type="button" className="primary-button" onClick={onPracticeWeak} disabled={starting}>
+                  <Target size={17} aria-hidden="true" /> Practice weak topics
+                </button>
+                <button type="button" className="secondary-button" onClick={onMoreQuestions} disabled={starting}>
+                  <Sparkles size={17} aria-hidden="true" /> New questions on them
+                </button>
+              </>
             )}
             <button type="button" className={weakTopics.length ? "secondary-button" : "primary-button"} onClick={onRestart} disabled={starting}>
               <RotateCcw size={17} aria-hidden="true" /> Go again
