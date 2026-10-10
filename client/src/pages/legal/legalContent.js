@@ -3,7 +3,7 @@
 // should re-accept, bump LEGAL_VERSION in server/utils/legal.js as well, so everyone
 // sees the consent prompt again.
 
-export const LEGAL_UPDATED = "September 30, 2026";
+export const LEGAL_UPDATED = "October 10, 2026";
 export const SUPPORT_EMAILS = [
   "tkishore1434val@student.fatima.edu.ph",
   "amreniva0131val@student.fatima.edu.ph",
@@ -28,7 +28,7 @@ export const TERMS = {
       id: "what-it-is",
       title: "What StressCare is, and what it isn't",
       blocks: [
-        { p: "StressCare is a web app that helps you plan tasks, keep a class schedule, work with classmates and keep an eye on your workload and well-being. It was built as a student thesis project." },
+        { p: "StressCare is a web app that helps you plan tasks, keep a class schedule, work with classmates and keep an eye on your workload and well-being, and turn your study notes into reviewers and practice questions. It was built as a student thesis project." },
         { p: "It is not a medical service. The workload score, the check-ins (PSS-10 and WHO-5) and the tips are there to help you notice patterns. They don't diagnose anything, and they don't replace a doctor, a counsellor or a psychologist." },
         { p: "If you feel unsafe, or you're worried about hurting yourself, contact your local emergency services or your school's guidance office right away. Please don't wait for an app to tell you it's serious." },
       ],
@@ -64,8 +64,20 @@ export const TERMS = {
       id: "content",
       title: "What you put in",
       blocks: [
-        { p: "Your tasks, schedules, pictures, messages and check-in answers stay yours. You give StressCare permission to store them and to show them to the people you choose to share them with, because that's how the app works." },
+        { p: "Your tasks, schedules, reviewers, pictures, messages and check-in answers stay yours. You give StressCare permission to store them and to show them to the people you choose to share them with, because that's how the app works." },
         { p: "Only add things you have the right to add. If you upload a picture, it should be yours or something you're allowed to use." },
+      ],
+    },
+    {
+      id: "reviewers",
+      title: "Reviewers made by AI",
+      blocks: [
+        { ul: [
+          "When you upload a PDF to make a reviewer, its text is sent to Google's Gemini AI, which writes the summary, key terms and practice questions.",
+          "AI can get things wrong. Check a reviewer against your notes and your teacher's materials, and don't make it your only way to study.",
+          "Only upload material you're allowed to use, like your own notes or handouts given to your class. Leave out personal information about you or anyone else.",
+          "So the service keeps working for everyone, each account can make up to 10 reviewers a day.",
+        ] },
       ],
     },
     {
@@ -142,6 +154,7 @@ export const PRIVACY = {
           "Your tasks: titles, courses, descriptions, due dates, estimated hours, difficulty and importance.",
           "Your schedules: classes and activities with times, places, online class links and notes, any pictures you attach, days you mark off, who you share each one with, and a short log of recent changes on shared schedules.",
           "Social features: friend connections, groups you belong to, group messages and tasks shared in groups.",
+          "Reviewers: the text taken from PDFs you upload (we don't keep the PDF file itself), the reviewer and questions made from it, and your Learning Mode answers and scores.",
           "Notifications: your inbox and your notification preferences. If you turn on phone or computer alerts, we keep the address your browser gives us for sending them.",
           "Technical basics: a login cookie, plus a few settings saved in your browser (see Cookies and storage).",
         ] },
@@ -162,6 +175,7 @@ export const PRIVACY = {
         { ul: [
           "To run your account and the features you use.",
           "To work out your workload score, weekly plan and guidance, using your tasks, schedule and check-ins.",
+          "To make reviewers and practice questions from PDFs you upload, and to show you which topics you know well and which need more review.",
           "To send the emails and notifications the app needs, like verification codes, password resets and deadline reminders.",
           "To keep the service secure and fix problems.",
         ] },
@@ -180,6 +194,7 @@ export const PRIVACY = {
           "Brevo sends our emails.",
           "Google handles Google sign-in, and serves the fonts the site uses, which means Google sees your IP address when the page loads.",
           "Nager.Date provides public holidays. It only receives a country and a year.",
+          "Google's Gemini API writes your reviewers. It receives the text of the PDFs you upload, plus the title and course you give them, and nothing else about you. We use Gemini's free tier, so Google may keep that text for a while, use it to improve its products, and have people review it. Don't upload anything private.",
           "Your browser's push service (run by Google, Apple or Mozilla) delivers phone and computer alerts if you turn them on.",
         ] },
         { p: "We don't sell your information and we don't show ads. We may share information if the law requires it." },
@@ -198,6 +213,7 @@ export const PRIVACY = {
       title: "How long we keep it",
       blocks: [
         { p: "We keep your information while your account exists. When you ask us to delete your account, we delete your account and the data tied to it. Copies in backups may take a little longer to disappear." },
+        { p: "Deleting a reviewer deletes its text, its questions and your scores on it straight away." },
       ],
     },
     {

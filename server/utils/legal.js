@@ -2,4 +2,4 @@
 // should re-accept. Everyone whose accepted version differs sees the consent prompt
 // on their next visit. The matching "last updated" date lives in
 // client/src/pages/legal/legalContent.js.
-export const LEGAL_VERSION = '2026-09-30';
+export const LEGAL_VERSION = '2026-10-10';

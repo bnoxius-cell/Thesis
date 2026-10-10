@@ -29,6 +29,11 @@ services:
         sync: false
       - key: VAPID_SUBJECT
         sync: false
+      # AI reviewers (PDF to questions). Without the key the Reviewers page says it isn't set up.
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        sync: false
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
