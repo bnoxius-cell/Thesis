@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from "../../pages/authentication/AuthContext";
-import { LogOut, UserCircle, User, Info, Settings, Users, UserCheck, Bell, LayoutDashboard, Menu, CalendarDays } from 'lucide-react';
+import { LogOut, UserCircle, User, Info, Settings, Users, UserCheck, Bell, LayoutDashboard, Menu, CalendarDays, BookOpenCheck } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import Logo from '../../assets/logo.svg'; // Assuming you create this file
 import { useNotifications } from '../../context/NotificationContext';
@@ -52,6 +52,9 @@ export default function Header() {
               </Link>
               <Link to="/schedule" className={`sidepanel-link ${location.pathname === '/schedule' ? 'active' : ''}`} onClick={closeDrawer}>
                 <CalendarDays size={18} /> <span>Schedule</span>
+              </Link>
+              <Link to="/reviewers" className={`sidepanel-link ${location.pathname === '/reviewers' ? 'active' : ''}`} onClick={closeDrawer}>
+                <BookOpenCheck size={18} /> <span>Reviewers</span>
               </Link>
             </div>
 

@@ -8,6 +8,7 @@ import Friends from './pages/Friends';
 import Groups from './pages/Groups';
 import Schedule from './pages/Schedule';
 import Notifications from './pages/Notifications';
+import Reviewers from './pages/Reviewers';
 import AuthPage from './pages/authentication/AuthPage';
 import LegalPage from './pages/legal/LegalPage';
 import TermsGate from './components/TermsGate';
@@ -62,6 +63,7 @@ const AppContent = () => {
         <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
         <Route path="/friends" element={<RequireAuth><Friends /></RequireAuth>} />
         <Route path="/schedule" element={<RequireAuth><Schedule /></RequireAuth>} />
+        <Route path="/reviewers" element={<RequireAuth><Reviewers /></RequireAuth>} />
         <Route path="/groups" element={<RequireAuth><Groups /></RequireAuth>} />
         <Route path="/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/" replace />} />
