@@ -8,6 +8,9 @@ export const ENTRY_KINDS = ['class', 'activity', 'exam', 'event'];
 // Data URLs are stored inline, so this cap (plus MAX_ENTRIES) keeps a schedule
 // comfortably under Mongo's 16MB document limit. The client shrinks pictures well below it.
 export const MAX_IMAGE_LENGTH = 100 * 1024;
+// Every schedule uses Philippine public holidays. Students can still add or remove days off.
+export const HOLIDAY_COUNTRY = 'PH';
+export const MAX_MEETING_URL = 300;
 
 export const entrySchema = new mongoose.Schema({
     title: { type: String, required: true, trim: true, maxlength: 80 },
@@ -25,6 +28,8 @@ export const entrySchema = new mongoose.Schema({
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },
     location: { type: String, default: '', maxlength: 80 },
+    // Online classes: a Google Meet, Zoom, Teams or other https link, shown as a Join button.
+    meetingUrl: { type: String, default: '', maxlength: MAX_MEETING_URL },
     notes: { type: String, default: '', maxlength: 300 },
     color: { type: String, default: '' },
     icon: { type: String, default: '' },
@@ -61,13 +66,15 @@ const scheduleSchema = new mongoose.Schema({
     title: { type: String, required: true, trim: true, maxlength: 80 },
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true },
     theme: { type: String, enum: SCHEDULE_THEMES, default: 'classic' },
-    country: { type: String, default: 'PH', uppercase: true, match: /^[A-Z]{2}$/ },
     entries: [entrySchema],
     holidayOverrides: [holidayOverrideSchema],
     collaborators: [collaboratorSchema],
     activity: [activitySchema],
     shareCode: { type: String, unique: true, sparse: true, uppercase: true },
     shareRole: { type: String, enum: ['viewer', 'editor'], default: 'viewer' },
+    // Like Google Docs: when on, editors can also add people, change roles and manage the code.
+    // Only the owner can flip it, make the schedule private, or delete it.
+    editorsCanShare: { type: Boolean, default: false },
     // The one schedule the whole app is based on. Every user with a schedule has exactly one.
     // Other schedules are extras that are checked against it.
     isMain: { type: Boolean, default: false },

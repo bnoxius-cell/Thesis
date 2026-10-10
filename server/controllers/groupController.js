@@ -431,7 +431,6 @@ export const sendMessage = async (req, res) => {
                 title: schedule.title,
                 ownerName: schedule.owner?.name || '',
                 theme: schedule.theme,
-                country: schedule.country,
                 // Pictures stay out of chat: they are the heavy part and not needed to copy a week.
                 entries: schedule.entries.map((e) => ({ ...e.toObject(), _id: undefined, image: '' })),
             };

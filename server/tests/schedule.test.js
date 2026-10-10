@@ -63,7 +63,8 @@ describe('creating and listing schedules', () => {
         const res = await alice.post('/api/schedules').send({ title: '  Fall term ' });
 
         expect(res.status).toBe(201);
-        expect(res.body.schedule).toMatchObject({ title: 'Fall term', theme: 'classic', country: 'PH', role: 'owner' });
+        expect(res.body.schedule).toMatchObject({ title: 'Fall term', theme: 'classic', role: 'owner', canShare: true });
+        expect(res.body.schedule.access).toEqual({ people: 0, link: 'restricted' });
     });
 
     test('needs a name and a known theme', async () => {
@@ -158,13 +159,14 @@ describe('entries', () => {
 });
 
 describe('holidays', () => {
-    test('returns the public holiday list for a year and country', async () => {
+    test('always returns Philippine public holidays for a year', async () => {
         const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
         fetchPublicHolidays.mockResolvedValue([{ date: '2026-12-25', name: 'Christmas Day', englishName: 'Christmas Day' }]);
 
-        const res = await alice.get('/api/schedules/holidays?year=2026&country=ph');
+        const res = await alice.get('/api/schedules/holidays?year=2026&country=us');
 
         expect(res.body.holidays).toHaveLength(1);
+        // There is no country option anymore. Whatever is asked for, the list is the Philippines'.
         expect(fetchPublicHolidays).toHaveBeenCalledWith(2026, 'PH');
     });
 
@@ -178,11 +180,11 @@ describe('holidays', () => {
         expect(res.body.success).toBe(false);
     });
 
-    test('validates year and country', async () => {
+    test('validates the year', async () => {
         const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
 
-        expect((await alice.get('/api/schedules/holidays?year=abc&country=PH')).status).toBe(400);
-        expect((await alice.get('/api/schedules/holidays?year=2026&country=PHL')).status).toBe(400);
+        expect((await alice.get('/api/schedules/holidays?year=abc')).status).toBe(400);
+        expect((await alice.get('/api/schedules/holidays?year=1800')).status).toBe(400);
     });
 
     test('marks, renames, un-marks and resets a day', async () => {
@@ -341,7 +343,7 @@ describe('duplicating and deleting', () => {
         const copy = await bob.post(`/api/schedules/${schedule._id}/duplicate`);
 
         expect(copy.status).toBe(201);
-        expect(copy.body.schedule).toMatchObject({ title: 'Fall term (copy)', role: 'owner' });
+        expect(copy.body.schedule).toMatchObject({ title: 'Copy of Fall term', role: 'owner' });
         expect(copy.body.schedule.entries).toHaveLength(1);
         expect(copy.body.schedule.holidayOverrides).toHaveLength(1);
         expect(copy.body.schedule.collaborators).toHaveLength(0);

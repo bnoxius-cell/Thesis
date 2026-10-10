@@ -25,7 +25,6 @@ const groupMessageSchema = new mongoose.Schema({
         title: String,
         ownerName: String,
         theme: String,
-        country: String,
         entries: [entrySchema],
     },
 }, { timestamps: true });

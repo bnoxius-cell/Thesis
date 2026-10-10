@@ -26,7 +26,7 @@ export default function Footer() {
           <div className="site-footer-column">
             <h4>Product</h4>
             <Link to="/dashboard">Dashboard</Link>
-            <Link to="/create-task">Tasks</Link>
+            <Link to="/schedule">Schedule</Link>
             <Link to="/groups">Groups</Link>
             <Link to="/friends">Friends</Link>
           </div>

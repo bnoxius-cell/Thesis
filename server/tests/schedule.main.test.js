@@ -222,7 +222,8 @@ describe('sharing a schedule with a friend', () => {
         await alice.post(`/api/schedules/${shared._id}/share`).send({ userId: bobId });
 
         const note = await notificationModel.findOne({ type: 'schedule_share' });
-        expect(note.link).toBe(`/schedule?share=${shared._id}`);
+        // Like a view-only Google Doc, the link opens the schedule itself.
+        expect(note.link).toBe(`/schedule?s=${shared._id}`);
         expect(String(note.sender)).toBe(aliceId);
 
         const bobList = await bob.get('/api/schedules');

@@ -563,7 +563,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
                 {myTasks === null && <p className="chat-state">Loading your tasks...</p>}
                 {myTasks?.length === 0 && (
                   <p className="chat-state">
-                    You don't have any open tasks to share. <Link to="/create-task">Create one</Link> first.
+                    You don't have any open tasks to share. <Link to="/schedule?task=new">Create one</Link> first.
                   </p>
                 )}
                 {myTasks?.length > 0 && (

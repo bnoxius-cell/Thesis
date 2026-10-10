@@ -1,8 +1,9 @@
-import { ChevronLeft, ChevronRight, CalendarOff, Plus, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarOff, Plus, MapPin, ClipboardCheck } from "lucide-react";
 import {
   WEEKDAYS, ENTRY_ICONS, addDays, toISODate, entryOccursOn, formatTime, defaultIconFor, resolveHoliday,
 } from "../../utils/scheduleUtils";
 import { overlapsOnDay } from "../../utils/scheduleConflicts";
+import JoinLink from "./JoinLink";
 
 const rangeLabel = (start) => {
   const end = addDays(start, 6);
@@ -12,16 +13,25 @@ const rangeLabel = (start) => {
   return `${startText} to ${endText}, ${end.getFullYear()}`;
 };
 
+// The whole card opens the entry (an invisible button covers it), and the Join link sits on
+// top so a tap on it goes to the meeting instead.
 function EntryCard({ entry, suspended, clash, canEdit, onOpen }) {
   const Icon = ENTRY_ICONS[entry.icon] || ENTRY_ICONS[defaultIconFor(entry.kind)];
   const style = entry.color ? { "--entry-color": entry.color } : undefined;
-  const body = (
-    <>
+  const time = `${formatTime(entry.startTime)} to ${formatTime(entry.endTime)}`;
+  return (
+    <div className={`sched-entry kind-${entry.kind} ${suspended ? "is-suspended" : ""}`} style={style}>
+      <button
+        type="button"
+        className="sched-entry-hit"
+        onClick={() => onOpen(entry)}
+        aria-label={`${canEdit ? "Edit" : "Details for"} ${entry.title}, ${time}`}
+      />
       <span className="sched-thumb">
         {entry.image ? <img src={entry.image} alt="" loading="lazy" /> : <Icon size={20} aria-hidden="true" />}
       </span>
       <span className="sched-entry-text">
-        <span className="sched-entry-time">{formatTime(entry.startTime)} to {formatTime(entry.endTime)}</span>
+        <span className="sched-entry-time">{time}</span>
         <strong>{entry.title}</strong>
         {entry.location && (
           <span className="sched-entry-meta"><MapPin size={12} aria-hidden="true" /> {entry.location}</span>
@@ -30,25 +40,36 @@ function EntryCard({ entry, suspended, clash, canEdit, onOpen }) {
         {entry.kind === "exam" && <span className="sched-tag is-exam">Exam{entry.prepHours > 0 ? ` · ${entry.prepHours}h study` : ""}</span>}
         {suspended && <span className="sched-tag">No class today</span>}
         {clash && !suspended && <span className="sched-tag is-clash">Overlaps {clash.join(", ")}</span>}
+        {entry.meetingUrl && !suspended && <JoinLink url={entry.meetingUrl} />}
       </span>
-    </>
+    </div>
   );
-  const className = `sched-entry kind-${entry.kind} ${suspended ? "is-suspended" : ""}`;
-  return canEdit ? (
-    <button type="button" className={className} style={style} onClick={() => onOpen(entry)}>{body}</button>
-  ) : (
-    <div className={className} style={style}>{body}</div>
+}
+
+function TaskChip({ task, overdue, onOpen }) {
+  return (
+    <button type="button" className={`sched-due-chip${overdue ? " is-overdue" : ""}`} onClick={() => onOpen(task)}>
+      <ClipboardCheck size={15} aria-hidden="true" />
+      <span>
+        <strong>{task.title}</strong>
+        <small>{task.course} · {task.hours}h{overdue ? " · overdue" : ""}</small>
+      </span>
+    </button>
   );
 }
 
 // One week, Monday to Sunday. Wide screens show seven columns, narrow screens stack the
 // days into a single list, so nothing ever needs sideways scrolling.
+//
+// `tasks` are the viewer's own open tasks (never shared with anyone else on the schedule),
+// shown under the day they are due.
 export default function WeekView({
   weekStart, entries, overrides, publicByDate, canEdit, onShiftWeek, onToday, onAddEntry, onOpenEntry, onMarkDay,
-  mainEntries = [],
+  mainEntries = [], tasks = [], onOpenTask,
 }) {
   const todayIso = toISODate(new Date());
   const days = WEEKDAYS.map((_, i) => addDays(weekStart, i));
+  const isThisWeek = days.some((d) => toISODate(d) === todayIso);
 
   return (
     <section className="sched-week" aria-label="Weekly schedule">
@@ -61,7 +82,7 @@ export default function WeekView({
           <button type="button" className="sched-icon-button" onClick={() => onShiftWeek(1)} aria-label="Next week">
             <ChevronRight size={18} aria-hidden="true" />
           </button>
-          <button type="button" className="secondary-button small" onClick={onToday}>This week</button>
+          <button type="button" className="secondary-button small" onClick={onToday} disabled={isThisWeek}>This week</button>
         </div>
       </div>
 
@@ -72,6 +93,7 @@ export default function WeekView({
           const dayEntries = entries
             .filter((e) => entryOccursOn(e, iso))
             .sort((a, b) => a.startTime.localeCompare(b.startTime));
+          const dayTasks = tasks.filter((t) => t.dueIso === iso);
           const label = day.toLocaleDateString(undefined, { weekday: "short" });
           // Entries on a day off don't clash, so only look at the ones that actually run.
           // An extra schedule is also checked against the main one, so a gaming session that
@@ -93,7 +115,7 @@ export default function WeekView({
                       <button type="button" className="sched-icon-button" onClick={() => onAddEntry(iso)} aria-label={`Add something on ${label}`}>
                         <Plus size={16} aria-hidden="true" />
                       </button>
-                      <button type="button" className="sched-icon-button" onClick={() => onMarkDay(iso)} aria-label={`Holiday settings for ${label} ${day.getDate()}`}>
+                      <button type="button" className="sched-icon-button" onClick={() => onMarkDay(iso)} aria-label={`Day off settings for ${label} ${day.getDate()}`}>
                         <CalendarOff size={16} aria-hidden="true" />
                       </button>
                     </>
@@ -104,7 +126,7 @@ export default function WeekView({
               {holiday && <div className="sched-holiday-banner">{holiday.name}</div>}
 
               <div className="sched-day-body">
-                {dayEntries.length === 0 ? (
+                {dayEntries.length === 0 && dayTasks.length === 0 ? (
                   <p className="sched-day-empty">{holiday ? "Enjoy the day off." : "Nothing planned."}</p>
                 ) : (
                   dayEntries.map((entry) => (
@@ -117,6 +139,14 @@ export default function WeekView({
                       onOpen={onOpenEntry}
                     />
                   ))
+                )}
+                {dayTasks.length > 0 && (
+                  <div className="sched-due" aria-label={`Due ${label}`}>
+                    <span className="sched-due-label">Due</span>
+                    {dayTasks.map((task) => (
+                      <TaskChip key={task._id} task={task} overdue={iso < todayIso} onOpen={onOpenTask} />
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

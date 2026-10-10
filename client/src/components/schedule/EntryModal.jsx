@@ -1,8 +1,14 @@
 import { useState, useRef } from "react";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, X, MapPin, Video, StickyNote } from "lucide-react";
 import {
-  WEEKDAYS, ENTRY_ICONS, ENTRY_COLORS, defaultIconFor, compressImage, toISODate, KIND_LABELS,
+  WEEKDAYS, ENTRY_ICONS, ENTRY_COLORS, defaultIconFor, compressImage, toISODate, KIND_LABELS, isWebLink, meetingProvider,
 } from "../../utils/scheduleUtils";
+
+// People paste "meet.google.com/abc-defg-hij" without the https part. Add it for them.
+const withScheme = (value) => {
+  const v = value.trim();
+  return v && !/^[a-z][a-z0-9+.-]*:/i.test(v) ? `https://${v}` : v;
+};
 
 const blankForm = (kind, date) => ({
   title: "",
@@ -15,6 +21,7 @@ const blankForm = (kind, date) => ({
   startTime: "09:00",
   endTime: "10:00",
   location: "",
+  meetingUrl: "",
   notes: "",
   color: "",
   icon: "",
@@ -82,6 +89,8 @@ export default function EntryModal({ entry, kind = "class", date, onSave, onDele
       return setError("Study hours can be 0 to 40.");
     }
     if (form.endTime <= form.startTime) return setError("The end time has to be after the start time.");
+    const meetingUrl = withScheme(form.meetingUrl || "");
+    if (meetingUrl && !isWebLink(meetingUrl)) return setError("That meeting link doesn't look right. Paste the full link from Google Meet, Zoom or Teams.");
 
     const payload = {
       title: form.title.trim(),
@@ -89,6 +98,7 @@ export default function EntryModal({ entry, kind = "class", date, onSave, onDele
       startTime: form.startTime,
       endTime: form.endTime,
       location: form.location,
+      meetingUrl,
       notes: form.notes,
       color: form.color,
       icon: form.icon,
@@ -106,6 +116,7 @@ export default function EntryModal({ entry, kind = "class", date, onSave, onDele
   };
 
   const PreviewIcon = ENTRY_ICONS[form.icon] || ENTRY_ICONS[defaultIconFor(form.kind)];
+  const provider = isWebLink(withScheme(form.meetingUrl || "")) ? meetingProvider(withScheme(form.meetingUrl)) : null;
 
   return (
     <div className="modal-overlay" onClick={saving ? undefined : onClose}>
@@ -210,14 +221,31 @@ export default function EntryModal({ entry, kind = "class", date, onSave, onDele
             </div>
           )}
 
-          <div className="form-group full-span">
-            <label htmlFor="entry-location">Where (optional)</label>
-            <input id="entry-location" type="text" value={form.location} maxLength={80} onChange={(e) => set({ location: e.target.value })} placeholder="Room, building, or online link" />
-          </div>
-
-          <div className="form-group full-span">
-            <label htmlFor="entry-notes">Notes (optional)</label>
-            <input id="entry-notes" type="text" value={form.notes} maxLength={300} onChange={(e) => set({ notes: e.target.value })} placeholder="Bring your laptop, quiz today, etc." />
+          <div className="full-span sched-info">
+            <span className="sched-info-title">Info</span>
+            <div className="form-group">
+              <label htmlFor="entry-location"><MapPin size={14} aria-hidden="true" /> Where (optional)</label>
+              <input id="entry-location" type="text" value={form.location} maxLength={80} onChange={(e) => set({ location: e.target.value })} placeholder="Room or building, e.g., Room 304" />
+            </div>
+            <div className="form-group">
+              <label htmlFor="entry-meeting"><Video size={14} aria-hidden="true" /> Online class link (optional)</label>
+              <input
+                id="entry-meeting"
+                type="url"
+                inputMode="url"
+                value={form.meetingUrl}
+                maxLength={300}
+                onChange={(e) => set({ meetingUrl: e.target.value })}
+                onBlur={() => form.meetingUrl && set({ meetingUrl: withScheme(form.meetingUrl) })}
+                placeholder="Google Meet, Zoom or Teams link"
+                autoComplete="off"
+              />
+              {provider && <span className="sched-hint sched-meeting-hint">Shows a Join {provider.short || "class"} button on this {KIND_LABELS[form.kind].toLowerCase()}.</span>}
+            </div>
+            <div className="form-group">
+              <label htmlFor="entry-notes"><StickyNote size={14} aria-hidden="true" /> Notes (optional)</label>
+              <input id="entry-notes" type="text" value={form.notes} maxLength={300} onChange={(e) => set({ notes: e.target.value })} placeholder="Bring your laptop, quiz today, etc." />
+            </div>
           </div>
 
           <div className="form-group full-span">

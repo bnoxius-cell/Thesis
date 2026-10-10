@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
-import scheduleModel, { SCHEDULE_THEMES, MAX_ENTRIES, MAX_ACTIVITY, MAX_IMAGE_LENGTH, MAX_OWNED_SCHEDULES, ENTRY_KINDS } from '../models/scheduleModel.js';
+import scheduleModel, {
+    SCHEDULE_THEMES, MAX_ENTRIES, MAX_ACTIVITY, MAX_IMAGE_LENGTH, MAX_OWNED_SCHEDULES, ENTRY_KINDS, HOLIDAY_COUNTRY, MAX_MEETING_URL,
+} from '../models/scheduleModel.js';
 import Friend from '../models/Friend.js';
 import { notify } from '../utils/notify.js';
 import userModel from '../models/userModel.js';
@@ -17,6 +19,8 @@ const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 const ICON_RE = /^[a-z0-9-]{0,30}$/;
 const IMAGE_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+// Days off changed in one go from the holiday calendar (a two-week break is 14).
+const MAX_DAY_CHANGES = 120;
 
 // Same no-lookalike alphabet the group join codes use.
 const SHARE_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -44,10 +48,17 @@ const roleOf = (schedule, userId) => {
 
 const CAN = {
     view: ['owner', 'editor', 'viewer'],
-    // Editors change the entries and days off. Name, theme, country, main and sharing stay with the owner.
+    // Editors change the entries and days off. Name, theme, main and deleting stay with the owner.
     edit: ['owner', 'editor'],
     owner: ['owner'],
 };
+
+// Who can add people, change roles and manage the code: the owner, plus editors when the owner
+// turned on "editors can share" (the same switch Google Docs has).
+const canManageSharing = (schedule, role) => role === 'owner' || (role === 'editor' && schedule.editorsCanShare === true);
+
+// 'restricted' when only the people added can open it, otherwise the role the code gives.
+const linkAccess = (schedule) => (schedule.shareCode ? (schedule.shareRole === 'editor' ? 'editor' : 'viewer') : 'restricted');
 
 // A schedule is "live" once at least one person other than the owner can edit it. Only then
 // are changes logged and announced, so a plain copy-share stays quiet.
@@ -132,14 +143,20 @@ const serialize = async (schedule, role, viewerId = '') => {
     const plain = schedule.toObject();
     plain.role = role;
     plain.live = isLive(schedule);
-    // Only the owner manages sharing, so nobody else needs to see the code.
+    plain.canShare = canManageSharing(schedule, role);
+    plain.editorsCanShare = schedule.editorsCanShare === true;
+    // Enough for everyone on it to see how open the schedule is, without the code itself.
+    plain.access = { people: schedule.collaborators.length, link: linkAccess(schedule) };
     if (role !== 'owner') {
+        plain.myCountInWorkload = schedule.collaborators.find((c) => (c.user._id ?? c.user).toString() === viewerId)?.countInWorkload === true;
+    }
+    // Only the people who manage sharing see the code and the full list of who has access.
+    if (!plain.canShare) {
         delete plain.shareCode;
         delete plain.shareRole;
         // Members of a live schedule can see who else edits it. Plain viewers stay private.
         plain.collaborators = plain.live ? plain.collaborators.filter((c) => c.role === 'editor') : [];
         if (!plain.live) plain.activity = [];
-        plain.myCountInWorkload = schedule.collaborators.find((c) => (c.user._id ?? c.user).toString() === viewerId)?.countInWorkload === true;
     }
     return plain;
 };
@@ -156,6 +173,7 @@ const summarize = (schedule, role, userId = '') => ({
         ? schedule.countInWorkload !== false
         : schedule.collaborators.find((c) => c.user.toString() === userId)?.countInWorkload === true,
     live: isLive(schedule),
+    private: schedule.collaborators.length === 0 && !schedule.shareCode,
     entryCount: schedule.entries.length,
     collaboratorCount: schedule.collaborators.length,
     updatedAt: schedule.updatedAt,
@@ -165,6 +183,16 @@ const isRealDate = (value) => {
     if (!DATE_RE.test(value)) return false;
     const d = new Date(`${value}T00:00:00Z`);
     return d.toISOString().slice(0, 10) === value;
+};
+
+// Only http(s) links, so a "Join" button can never run script or open an app scheme.
+const isWebLink = (value) => {
+    try {
+        const url = new URL(value);
+        return (url.protocol === 'https:' || url.protocol === 'http:') && Boolean(url.hostname);
+    } catch {
+        return false;
+    }
 };
 
 // Returns { entry } with cleaned fields, or { error } describing what's wrong.
@@ -191,6 +219,7 @@ const cleanEntry = (body = {}) => {
         startDate: '',
         endDate: '',
         location: String(body.location || '').trim().slice(0, 80),
+        meetingUrl: '',
         notes: String(body.notes || '').trim().slice(0, 300),
         color: '',
         icon: '',
@@ -225,6 +254,13 @@ const cleanEntry = (body = {}) => {
         }
     }
 
+    const meetingUrl = String(body.meetingUrl || '').trim();
+    if (meetingUrl) {
+        if (meetingUrl.length > MAX_MEETING_URL) return { error: 'That meeting link is too long.' };
+        if (!isWebLink(meetingUrl)) return { error: 'The meeting link has to be a full web address, like https://meet.google.com/abc-defg-hij.' };
+        entry.meetingUrl = meetingUrl;
+    }
+
     if (body.color) {
         if (!COLOR_RE.test(body.color)) return { error: 'That color is not valid.' };
         entry.color = body.color;
@@ -247,8 +283,6 @@ export const createSchedule = async (req, res) => {
         if (!title) return fail(res, 400, 'Give your schedule a name.');
         if (title.length > 80) return fail(res, 400, 'That name is too long (80 characters max).');
         if (req.body.theme && !SCHEDULE_THEMES.includes(req.body.theme)) return fail(res, 400, 'Unknown theme.');
-        const country = req.body.country ? String(req.body.country).toUpperCase() : undefined;
-        if (country && !/^[A-Z]{2}$/.test(country)) return fail(res, 400, 'Unknown country code.');
 
         await ensureMainSchedule(req.userId);
         const ownedCount = await scheduleModel.countDocuments({ owner: req.userId });
@@ -262,7 +296,6 @@ export const createSchedule = async (req, res) => {
             owner: req.userId,
             isMain: ownedCount === 0,
             ...(req.body.theme && { theme: req.body.theme }),
-            ...(country && { country }),
         });
         res.status(201).json({ success: true, schedule: await serialize(schedule, 'owner') });
     } catch (error) {
@@ -314,7 +347,7 @@ export const updateSchedule = async (req, res) => {
         const loaded = await loadSchedule(req, res, 'owner');
         if (!loaded) return;
         const { schedule, role } = loaded;
-        const { title, theme, country, countInWorkload, isMain } = req.body;
+        const { title, theme, countInWorkload, isMain, editorsCanShare } = req.body;
 
         if (title !== undefined) {
             const trimmed = String(title).trim();
@@ -326,11 +359,7 @@ export const updateSchedule = async (req, res) => {
             if (!SCHEDULE_THEMES.includes(theme)) return fail(res, 400, 'Unknown theme.');
             schedule.theme = theme;
         }
-        if (country !== undefined) {
-            const code = String(country).toUpperCase();
-            if (!/^[A-Z]{2}$/.test(code)) return fail(res, 400, 'Unknown country code.');
-            schedule.country = code;
-        }
+        if (editorsCanShare !== undefined) schedule.editorsCanShare = Boolean(editorsCanShare);
         // The main schedule always counts. The toggle is only for extras.
         if (countInWorkload !== undefined && !schedule.isMain) schedule.countInWorkload = Boolean(countInWorkload);
         if (isMain === true && !schedule.isMain) {
@@ -433,15 +462,13 @@ export const deleteEntry = async (req, res) => {
     }
 };
 
-// GET /api/schedules/holidays?year=2026&country=PH
+// GET /api/schedules/holidays?year=2026  (always Philippine holidays)
 export const getHolidays = async (req, res) => {
     try {
         const year = Number(req.query.year);
-        const country = String(req.query.country || '').toUpperCase();
         if (!Number.isInteger(year) || year < 1970 || year > 2100) return fail(res, 400, 'Pick a valid year.');
-        if (!/^[A-Z]{2}$/.test(country)) return fail(res, 400, 'Unknown country code.');
 
-        const holidays = await fetchPublicHolidays(year, country);
+        const holidays = await fetchPublicHolidays(year, HOLIDAY_COUNTRY);
         res.json({ success: true, holidays });
     } catch {
         // The schedule still works without the list (users can add their own days off),
@@ -450,7 +477,26 @@ export const getHolidays = async (req, res) => {
     }
 };
 
-// PUT /api/schedules/:scheduleId/holidays  { date, state: 'holiday' | 'workday' | null, name? }
+const DAY_CHANGE_VERB = { holiday: 'marked', workday: 'cleared', null: 'reset' };
+
+// One line for the change log: "marked Dec 20 as a day off", "marked 5 days off (2026-12-20 to 2026-12-24)".
+const describeDayChanges = (changes) => {
+    const dates = changes.map((c) => c.date).sort();
+    const states = new Set(changes.map((c) => c.state));
+    if (changes.length === 1) {
+        const { date, state } = changes[0];
+        return state === null ? `reset the day off on ${date}` : state === 'holiday' ? `marked ${date} as a day off` : `marked ${date} as a normal day`;
+    }
+    const span = `${dates[0]} to ${dates[dates.length - 1]}`;
+    if (states.size > 1) return `updated days off on ${changes.length} days (${span})`;
+    const [state] = states;
+    if (state === 'holiday') return `marked ${changes.length} days off (${span})`;
+    return `${DAY_CHANGE_VERB[state]} ${changes.length} days off (${span})`;
+};
+
+// PUT /api/schedules/:scheduleId/holidays
+//   { date, state: 'holiday' | 'workday' | null, name? }    one day, or
+//   { changes: [{ date, state, name? }, ...] }               several, from the holiday calendar
 // A null state removes the override, which puts the day back to whatever the
 // public holiday list says.
 export const setHolidayOverride = async (req, res) => {
@@ -458,24 +504,31 @@ export const setHolidayOverride = async (req, res) => {
         const loaded = await loadSchedule(req, res, 'edit');
         if (!loaded) return;
         const { schedule, role } = loaded;
-        const { date, state } = req.body;
 
-        if (!isRealDate(date || '')) return fail(res, 400, 'That date is not valid.');
-        if (state !== null && !['holiday', 'workday'].includes(state)) return fail(res, 400, 'Unknown holiday state.');
-
-        const index = schedule.holidayOverrides.findIndex((o) => o.date === date);
-        if (state === null) {
-            if (index !== -1) schedule.holidayOverrides.splice(index, 1);
-        } else {
-            const name = String(req.body.name || '').trim().slice(0, 80);
-            const override = { date, state, name: state === 'holiday' ? name : '' };
-            if (index === -1) schedule.holidayOverrides.push(override);
-            else schedule.holidayOverrides.set(index, override);
+        const changes = Array.isArray(req.body.changes)
+            ? req.body.changes
+            : [{ date: req.body.date, state: req.body.state, name: req.body.name }];
+        if (!changes.length) return fail(res, 400, 'Pick at least one day.');
+        if (changes.length > MAX_DAY_CHANGES) return fail(res, 400, `You can change up to ${MAX_DAY_CHANGES} days at once.`);
+        const seen = new Set();
+        for (const change of changes) {
+            if (!isRealDate(change?.date || '')) return fail(res, 400, 'That date is not valid.');
+            if (change.state !== null && !['holiday', 'workday'].includes(change.state)) return fail(res, 400, 'Unknown holiday state.');
+            if (seen.has(change.date)) return fail(res, 400, 'The same day is listed twice.');
+            seen.add(change.date);
         }
-        const announce = await recordChange(
-            schedule, req.userId,
-            state === null ? `reset the day off on ${date}` : state === 'holiday' ? `marked ${date} as a day off` : `marked ${date} as a normal day`,
-        );
+
+        for (const { date, state, name } of changes) {
+            const index = schedule.holidayOverrides.findIndex((o) => o.date === date);
+            if (state === null) {
+                if (index !== -1) schedule.holidayOverrides.splice(index, 1);
+            } else {
+                const override = { date, state, name: state === 'holiday' ? String(name || '').trim().slice(0, 80) : '' };
+                if (index === -1) schedule.holidayOverrides.push(override);
+                else schedule.holidayOverrides.set(index, override);
+            }
+        }
+        const announce = await recordChange(schedule, req.userId, describeDayChanges(changes));
         await schedule.save();
         await announce();
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
@@ -491,7 +544,7 @@ export const setHolidayOverride = async (req, res) => {
 
 const PLAIN_ENTRY_FIELDS = [
     'title', 'kind', 'days', 'date', 'startDate', 'endDate', 'startTime', 'endTime',
-    'location', 'notes', 'color', 'icon', 'skipOnHoliday', 'prepHours',
+    'location', 'meetingUrl', 'notes', 'color', 'icon', 'skipOnHoliday', 'prepHours',
 ];
 
 // Loads whatever the request points at: a share code, or a schedule message in one of the
@@ -518,7 +571,7 @@ const loadImportSource = async (req, res) => {
         const plain = shared.toObject();
         return {
             token: `schedule:${shared._id}`,
-            title: plain.title, ownerName: plain.owner?.name || '', theme: plain.theme, country: plain.country,
+            title: plain.title, ownerName: plain.owner?.name || '', theme: plain.theme,
             entries: plain.entries,
         };
     }
@@ -541,7 +594,7 @@ const loadImportSource = async (req, res) => {
         const snap = message.schedule.toObject();
         return {
             token: `message:${message._id}`,
-            title: snap.title, ownerName: snap.ownerName, theme: snap.theme, country: snap.country,
+            title: snap.title, ownerName: snap.ownerName, theme: snap.theme,
             entries: snap.entries.map((e) => ({ ...e, image: '' })),
         };
     }
@@ -563,9 +616,12 @@ const loadImportSource = async (req, res) => {
     const plain = schedule.toObject();
     return {
         token: `schedule:${schedule._id}`,
-        title: plain.title, ownerName: plain.owner?.name || '', theme: plain.theme, country: plain.country,
+        scheduleId: String(schedule._id),
+        title: plain.title, ownerName: plain.owner?.name || '', theme: plain.theme,
         entries: plain.entries,
-        canJoinLive: plain.shareRole === 'editor',
+        // A code works like a Google Docs link: it opens the schedule itself, as a viewer or an editor.
+        codeRole: plain.shareRole === 'editor' ? 'editor' : 'viewer',
+        memberRole: roleOf(schedule, req.userId),
     };
 };
 
@@ -586,9 +642,12 @@ export const previewImport = async (req, res) => {
         res.json({
             success: true,
             source: {
-                title: source.title, ownerName: source.ownerName, theme: source.theme, country: source.country,
+                title: source.title, ownerName: source.ownerName, theme: source.theme,
                 alreadyAdded: owned.some((s) => (s.importedFrom || []).includes(source.token)),
-                canJoinLive: Boolean(source.canJoinLive),
+                canJoinLive: source.codeRole === 'editor',
+                codeRole: source.codeRole || null,
+                // Already on it (opened the link before): the dialog offers to open it instead of joining.
+                ...(source.memberRole && { memberRole: source.memberRole, scheduleId: source.scheduleId }),
             },
             entries: source.entries.map((e) => ({
                 ..._pick(e, ['_id', ...PLAIN_ENTRY_FIELDS]),
@@ -661,7 +720,7 @@ export const importSchedule = async (req, res) => {
                     return fail(res, 400, `You can have a main schedule and up to ${MAX_OWNED_SCHEDULES - 1} extra ones.`);
                 }
                 const title = String(req.body.title || source.title || 'Shared schedule').trim().slice(0, 80) || 'Shared schedule';
-                schedule = new scheduleModel({ title, owner: req.userId, isMain: ownedCount === 0, theme: source.theme, country: source.country });
+                schedule = new scheduleModel({ title, owner: req.userId, isMain: ownedCount === 0, theme: source.theme });
             }
         }
 
@@ -700,27 +759,20 @@ export const getWeekOverview = async (req, res) => {
             })
             .lean();
 
-        // One holiday lookup per country and year the week touches. A failed lookup
-        // only means public holidays are missing; the timetable itself still counts.
-        const wanted = new Set();
-        schedules.forEach((s) => {
-            [start, end].forEach((iso) => wanted.add(`${s.country}-${iso.slice(0, 4)}`));
-        });
-        const holidayMap = {};
-        await Promise.all([...wanted].map(async (key) => {
-            const [country, year] = key.split('-');
-            try {
-                holidayMap[key] = await fetchPublicHolidays(Number(year), country);
-            } catch {
-                holidayMap[key] = [];
-            }
-        }));
-        schedules.forEach((s) => {
-            s.publicByDate = {};
-            [start, end].forEach((iso) => {
-                (holidayMap[`${s.country}-${iso.slice(0, 4)}`] || []).forEach((h) => { s.publicByDate[h.date] = h.name; });
-            });
-        });
+        // One holiday lookup per year the week touches. A failed lookup only means public
+        // holidays are missing; the timetable itself still counts.
+        const publicByDate = {};
+        if (schedules.length) {
+            const years = [...new Set([start, end].map((iso) => Number(iso.slice(0, 4))))];
+            await Promise.all(years.map(async (year) => {
+                try {
+                    (await fetchPublicHolidays(year, HOLIDAY_COUNTRY)).forEach((h) => { publicByDate[h.date] = h.name; });
+                } catch {
+                    // Leave them out.
+                }
+            }));
+        }
+        schedules.forEach((s) => { s.publicByDate = publicByDate; });
 
         res.json({
             success: true,
@@ -740,39 +792,52 @@ const areFriends = async (a, b) => Boolean(await Friend.exists({
     $or: [{ user: a, friend: b }, { user: b, friend: a }],
 }));
 
-// POST /api/schedules/:scheduleId/share  { userId }
+// Loads a schedule for a sharing change: the owner, or an editor when the owner lets editors share.
+const loadForSharing = async (req, res) => {
+    const loaded = await loadSchedule(req, res, 'view');
+    if (!loaded) return null;
+    if (!canManageSharing(loaded.schedule, loaded.role)) {
+        fail(res, 403, loaded.role === 'editor'
+            ? "The owner hasn't let editors share this schedule."
+            : 'Only the owner can change who has access');
+        return null;
+    }
+    return loaded;
+};
+
+// POST /api/schedules/:scheduleId/share  { userId, role: 'viewer' | 'editor' }
+// Adds a friend, or changes the role of someone already on it. Viewers open the schedule itself
+// and see every change as it happens, like a view-only Google Doc. Editors change it too.
 export const shareWithFriend = async (req, res) => {
     try {
-        const loaded = await loadSchedule(req, res, 'owner');
+        const loaded = await loadForSharing(req, res);
         if (!loaded) return;
-        const { schedule } = loaded;
+        const { schedule, role: actorRole } = loaded;
         const { userId } = req.body;
 
         if (!mongoose.Types.ObjectId.isValid(userId)) return fail(res, 404, 'User not found');
-        if (userId === req.userId) return fail(res, 400, 'This is already your schedule.');
-        if (!(await areFriends(req.userId, userId))) return fail(res, 403, 'You can only share with your friends.');
+        if (userId === req.userId) return fail(res, 400, 'You are already on this schedule.');
+        if (userId === schedule.owner.toString()) return fail(res, 400, 'They own this schedule.');
 
-        // 'editor' puts the friend on the live schedule. Anything else is the copy-only share.
         const role = req.body.role === 'editor' ? 'editor' : 'viewer';
         const existing = schedule.collaborators.find((c) => c.user.toString() === userId);
+        // New people have to be the sharer's friends. Changing the role of someone already on it doesn't.
+        if (!existing && !(await areFriends(req.userId, userId))) return fail(res, 403, 'You can only share with your friends.');
+
         const sender = await userModel.findById(req.userId).select('name');
         const senderName = sender?.name || 'A friend';
+        const link = `/schedule?s=${schedule._id}`;
         if (!existing) {
             schedule.collaborators.push({ user: userId, role });
-            await notify(role === 'editor' ? {
+            await notify({
                 recipients: [userId],
                 sender: req.userId,
                 type: 'schedule_share',
-                title: 'You can edit a shared schedule',
-                message: `${senderName} added you to the schedule "${schedule.title}". You can change it, and everyone on it is told when you do.`,
-                link: `/schedule?s=${schedule._id}`,
-            } : {
-                recipients: [userId],
-                sender: req.userId,
-                type: 'schedule_share',
-                title: 'Schedule shared with you',
-                message: `${senderName} shared the schedule "${schedule.title}" with you. Open it to add it to yours, or just ignore it.`,
-                link: `/schedule?share=${schedule._id}`,
+                title: role === 'editor' ? 'You can edit a shared schedule' : 'Schedule shared with you',
+                message: role === 'editor'
+                    ? `${senderName} added you to the schedule "${schedule.title}". You can change it, and everyone on it is told when you do.`
+                    : `${senderName} shared the schedule "${schedule.title}" with you. You'll see changes as they happen, and you can make your own copy.`,
+                link,
             });
         } else if (existing.role !== role) {
             existing.role = role;
@@ -784,11 +849,11 @@ export const shareWithFriend = async (req, res) => {
                 message: role === 'editor'
                     ? `${senderName} let you edit "${schedule.title}".`
                     : `${senderName} changed your access to "${schedule.title}" to view only.`,
-                link: `/schedule?s=${schedule._id}`,
+                link,
             });
         }
         await schedule.save();
-        res.json({ success: true, schedule: await serialize(schedule, 'owner') });
+        res.json({ success: true, schedule: await serialize(schedule, actorRole, req.userId) });
     } catch (error) {
         fail(res, 500, error.message);
     }
@@ -800,48 +865,49 @@ export const removeCollaborator = async (req, res) => {
         if (!loaded) return;
         const { schedule, role } = loaded;
         const { userId } = req.params;
+        const leaving = userId === req.userId;
 
-        // Owners can remove anyone. Everyone else can only remove themselves (leave).
-        if (role !== 'owner' && userId !== req.userId) return fail(res, 403, 'Only the owner can do that');
+        // People who manage sharing can remove anyone else. Everyone can remove themselves (leave).
+        if (!leaving && !canManageSharing(schedule, role)) return fail(res, 403, 'Only the owner can do that');
         const index = schedule.collaborators.findIndex((c) => c.user.toString() === userId);
         if (index === -1) return fail(res, 404, 'That person is not on this schedule');
 
         const wasEditor = schedule.collaborators[index].role === 'editor';
         schedule.collaborators.splice(index, 1);
         await schedule.save();
-        if (wasEditor) {
+        if (!leaving) {
+            await notify({
+                recipients: [userId], sender: req.userId, type: 'schedule_share',
+                title: 'Removed from a schedule', message: `You no longer have access to "${schedule.title}".`,
+            });
+        } else if (wasEditor) {
             const person = await userModel.findById(userId).select('name');
-            if (role === 'owner') {
-                await notify({
-                    recipients: [userId], sender: req.userId, type: 'schedule_share',
-                    title: 'Removed from a schedule', message: `You can no longer edit "${schedule.title}".`,
-                });
-            } else {
-                await notify({
-                    recipients: [schedule.owner], sender: userId, type: 'schedule_change',
-                    title: `"${schedule.title}" was changed`, message: `${person?.name || 'Someone'} left the schedule.`,
-                    link: `/schedule?s=${schedule._id}`,
-                });
-            }
+            await notify({
+                recipients: [schedule.owner], sender: userId, type: 'schedule_change',
+                title: `"${schedule.title}" was changed`, message: `${person?.name || 'Someone'} left the schedule.`,
+                link: `/schedule?s=${schedule._id}`,
+            });
         }
         res.json({
             success: true,
-            ...(role === 'owner' && { schedule: await serialize(schedule, 'owner') }),
+            ...(!leaving && { schedule: await serialize(schedule, role, req.userId) }),
         });
     } catch (error) {
         fail(res, 500, error.message);
     }
 };
 
-// PUT /api/schedules/:scheduleId/share-code  { enabled, regenerate? }
+// PUT /api/schedules/:scheduleId/share-code  { enabled?, regenerate?, role? }
+// The code (and the link built from it) is the "general access" setting: off means only the
+// people added can open the schedule.
 export const updateShareCode = async (req, res) => {
     try {
-        const loaded = await loadSchedule(req, res, 'owner');
+        const loaded = await loadForSharing(req, res);
         if (!loaded) return;
-        const { schedule } = loaded;
+        const { schedule, role } = loaded;
         const { enabled, regenerate } = req.body;
 
-        // 'editor' codes put whoever enters them on the live schedule. 'viewer' codes only let them copy it.
+        // 'editor' codes put whoever opens them on the schedule as an editor, 'viewer' codes as a viewer.
         if (req.body.role !== undefined) schedule.shareRole = req.body.role === 'editor' ? 'editor' : 'viewer';
         if (enabled === false) {
             schedule.shareCode = undefined;
@@ -849,7 +915,50 @@ export const updateShareCode = async (req, res) => {
             if (!schedule.shareCode || regenerate) schedule.shareCode = await createUniqueShareCode();
         }
         await schedule.save();
-        res.json({ success: true, schedule: await serialize(schedule, 'owner') });
+        res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
+    } catch (error) {
+        fail(res, 500, error.message);
+    }
+};
+
+// POST /api/schedules/:scheduleId/make-private
+// Owner only. Everyone else loses access, and the code stops working. Copies people already
+// made stay theirs.
+export const makePrivate = async (req, res) => {
+    try {
+        const loaded = await loadSchedule(req, res, 'owner');
+        if (!loaded) return;
+        const { schedule } = loaded;
+        const removed = schedule.collaborators.map((c) => c.user.toString());
+        schedule.collaborators = [];
+        schedule.shareCode = undefined;
+        await schedule.save();
+        if (removed.length) {
+            const owner = await userModel.findById(req.userId).select('name');
+            await notify({
+                recipients: removed, sender: req.userId, type: 'schedule_share',
+                title: 'A schedule is now private',
+                message: `${owner?.name || 'The owner'} made "${schedule.title}" private, so you no longer have access. Any copy you made is still yours.`,
+            });
+        }
+        res.json({ success: true, removed: removed.length, schedule: await serialize(schedule, 'owner') });
+    } catch (error) {
+        fail(res, 500, error.message);
+    }
+};
+
+// GET /api/schedules/:scheduleId/stamp
+// A tiny check the open schedule page polls every few seconds. It only downloads the whole
+// schedule (pictures and all) when this says something changed.
+export const getScheduleStamp = async (req, res) => {
+    try {
+        const { scheduleId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(scheduleId)) return fail(res, 404, 'Schedule not found');
+        const schedule = await scheduleModel.findById(scheduleId).select('owner collaborators updatedAt').lean();
+        if (!schedule) return fail(res, 404, 'Schedule not found');
+        const role = roleOf(schedule, req.userId);
+        if (!role) return fail(res, 403, 'You do not have access to this schedule');
+        res.json({ success: true, updatedAt: schedule.updatedAt, role });
     } catch (error) {
         fail(res, 500, error.message);
     }
@@ -873,6 +982,7 @@ export const updateMembership = async (req, res) => {
 };
 
 // POST /api/schedules/join  { shareCode }
+// Opening a code or link puts the person on the schedule with the role the code gives.
 export const joinByCode = async (req, res) => {
     try {
         const shareCode = String(req.body.shareCode || '').trim().toUpperCase();
@@ -882,9 +992,13 @@ export const joinByCode = async (req, res) => {
         if (!schedule) return fail(res, 404, 'No schedule found with that code.');
 
         let role = roleOf(schedule, req.userId);
-        if (!role) {
-            role = schedule.shareRole === 'editor' ? 'editor' : 'viewer';
-            schedule.collaborators.push({ user: req.userId, role });
+        const codeRole = schedule.shareRole === 'editor' ? 'editor' : 'viewer';
+        // A viewer who opens an editor code moves up. Nobody is ever moved down by a code.
+        const member = role && role !== 'owner' ? schedule.collaborators.find((c) => c.user.toString() === req.userId) : null;
+        if (!role || (member && member.role === 'viewer' && codeRole === 'editor')) {
+            if (member) member.role = codeRole;
+            else schedule.collaborators.push({ user: req.userId, role: codeRole });
+            role = codeRole;
             const person = await userModel.findById(req.userId).select('name');
             await notify({
                 recipients: [schedule.owner], sender: req.userId, type: 'schedule_change',
@@ -900,7 +1014,9 @@ export const joinByCode = async (req, res) => {
     }
 };
 
-// POST /api/schedules/:scheduleId/duplicate: anyone who can view gets their own editable copy.
+// POST /api/schedules/:scheduleId/duplicate  { title? }
+// "Make a copy": anyone who can view gets their own private, editable copy as an extra schedule
+// (or as their main, if it is their first). Nothing links it back to the original.
 export const duplicateSchedule = async (req, res) => {
     try {
         const loaded = await loadSchedule(req, res, 'view');
@@ -913,12 +1029,12 @@ export const duplicateSchedule = async (req, res) => {
             return fail(res, 400, `You can have a main schedule and up to ${MAX_OWNED_SCHEDULES - 1} extra ones.`);
         }
         const source = schedule.toObject();
+        const title = String(req.body?.title || '').trim().slice(0, 80) || `Copy of ${source.title}`.slice(0, 80);
         const copy = await scheduleModel.create({
             isMain: ownedCount === 0,
-            title: `${source.title} (copy)`.slice(0, 80),
+            title,
             owner: req.userId,
             theme: source.theme,
-            country: source.country,
             entries: source.entries.map(({ _id, ...rest }) => rest),
             holidayOverrides: source.holidayOverrides,
             // A copy of someone else's timetable is usually the user's own week too.

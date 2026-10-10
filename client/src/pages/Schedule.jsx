@@ -2,24 +2,33 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Plus, Link2, ArrowLeft, Share2, Trash2, LogOut, CalendarDays, Star, Download, X } from "lucide-react";
+import {
+  Plus, Link2, ArrowLeft, Share2, Trash2, LogOut, CalendarDays, Star, Download, X, ChevronDown, MoreHorizontal,
+  Copy, Palette, Pencil, Lock, Users, Globe2, ClipboardList, BookOpen, PenTool, Sparkles, PartyPopper, Eye,
+} from "lucide-react";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import ConfirmDialog from "../components/ConfirmDialog";
+import TaskImportDialog from "../components/TaskImportDialog";
 import WeekView from "../components/schedule/WeekView";
-import HolidayPanel from "../components/schedule/HolidayPanel";
+import HolidayCalendar from "../components/schedule/HolidayCalendar";
 import EntryModal from "../components/schedule/EntryModal";
+import EntryDetails from "../components/schedule/EntryDetails";
+import TaskModal from "../components/schedule/TaskModal";
 import DayMarkModal from "../components/schedule/DayMarkModal";
 import ShareModal from "../components/schedule/ShareModal";
 import ScheduleImportDialog from "../components/schedule/ScheduleImportDialog";
 import ScheduleActivity from "../components/schedule/ScheduleActivity";
+import Menu, { MenuItem } from "../components/schedule/Menu";
 import { useAuth } from "./authentication/AuthContext";
 import {
-  SCHEDULE_THEMES, COUNTRY_CODES, countryName, startOfWeek, addDays,
+  SCHEDULE_THEMES, startOfWeek, addDays, toISODate, fromISODate, taskDueIso,
 } from "../utils/scheduleUtils";
 import "../App.css";
 
-const SCHEDULE_REFRESH_MS = 15000;
+// How often an open schedule checks for changes made by others. The check is tiny; the full
+// schedule is only downloaded again when it says something changed.
+const LIVE_CHECK_MS = 4000;
 
 function ThemePicker({ value, disabled, onChange }) {
   return (
@@ -44,6 +53,32 @@ function ThemePicker({ value, disabled, onChange }) {
   );
 }
 
+// One line under the title saying how open the schedule is, like the lock or globe in Google Docs.
+function AccessLine({ schedule }) {
+  const { people = 0, link = "restricted" } = schedule.access || {};
+  if (schedule.role !== "owner") {
+    return (
+      <p className="sched-access">
+        {schedule.role === "editor" ? <Pencil size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
+        {schedule.role === "editor" ? "You can edit this" : "View only"}
+        {people > 0 && ` · ${people + 1} people on it`}
+      </p>
+    );
+  }
+  if (people === 0 && link === "restricted") {
+    return <p className="sched-access"><Lock size={15} aria-hidden="true" /> Private, only you can see it</p>;
+  }
+  return (
+    <p className="sched-access">
+      {link === "restricted" ? <Users size={15} aria-hidden="true" /> : <Globe2 size={15} aria-hidden="true" />}
+      {people > 0 ? `Shared with ${people} ${people === 1 ? "person" : "people"}` : "Not shared with anyone yet"}
+      {link !== "restricted" && ` · anyone with the code can ${link === "editor" ? "edit" : "view"}`}
+    </p>
+  );
+}
+
+const dayCountLabel = (n) => `${n} ${n === 1 ? "day" : "days"}`;
+
 export default function Schedule() {
   const { backendUrl, user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -55,11 +90,11 @@ export default function Schedule() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newTheme, setNewTheme] = useState("classic");
-  const [newCountry, setNewCountry] = useState("PH");
   const [joinCode, setJoinCode] = useState("");
-  const [importSource, setImportSource] = useState(null); // { shareCode } while the import dialog is open
+  const [importSource, setImportSource] = useState(null); // what the "add to my schedule" dialog is showing
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   // Schedules shared with you can be dismissed, which just removes your view of them.
@@ -74,38 +109,75 @@ export default function Schedule() {
   const schedule = loadedSchedule?._id === openId ? loadedSchedule : null;
   const detailFailed = failedId === openId;
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
-  const [holidayCache, setHolidayCache] = useState({}); // "PH-2026" -> [{date, name}]
+  const [calMonth, setCalMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [holidayCache, setHolidayCache] = useState({}); // year -> [{date, name}]
   const [holidayError, setHolidayError] = useState("");
 
+  // The signed-in person's own tasks. They show on their schedules under the day they are due,
+  // and nobody else on a shared schedule ever sees them.
+  const [tasks, setTasks] = useState([]);
+  const [taskModal, setTaskModal] = useState(null); // { task?, date? }
+  const [taskCode, setTaskCode] = useState(null); // 6-digit code being previewed
+
   const [entryModal, setEntryModal] = useState(null); // { entry?, kind, date? }
+  const [detailsEntry, setDetailsEntry] = useState(null);
   const [markDate, setMarkDate] = useState(null);
   const [shareOpen, setShareOpen] = useState(false);
-  const [confirm, setConfirm] = useState(null); // { kind: "delete" | "leave" | "entry", entry? }
+  const [confirm, setConfirm] = useState(null); // { kind: "delete" | "leave" | "entry" | "task", entry?, task? }
   const [confirming, setConfirming] = useState(false);
 
   // Bumped after every save, so a slow background refresh that started earlier can't
   // land afterwards and overwrite what the user just changed.
   const mutationVersion = useRef(0);
-  // Holiday requests already sent, so a re-render (or Strict Mode's double effect run)
-  // never asks for the same country and year twice.
+  // Holiday years already asked for, so a re-render (or Strict Mode's double effect run)
+  // never asks for the same year twice.
   const holidayRequests = useRef(new Set());
+  // The last version of the open schedule we have, and the newest change in its log we've seen.
+  const lastStamp = useRef(null);
+  const seenActivity = useRef(null);
 
   const api = `${backendUrl}/api/schedules`;
   const role = schedule?.role;
   // Viewers can only look and copy. Editors change the entries and days off for everybody on a
-  // shared schedule. Settings, sharing and deleting stay with the owner.
+  // shared schedule. Settings and deleting stay with the owner.
   const isOwner = role === "owner";
   const isEditor = role === "editor";
   const canEdit = isOwner || isEditor;
+  // Your tasks appear on schedules that are your week: your own, or a shared one you count.
+  const tasksHere = Boolean(schedule && (isOwner || schedule.myCountInWorkload));
 
-  // A friend's share notification links here. It opens the "add to my schedule" preview
-  // right away, and nothing is added unless the person confirms.
+  // ---- Links: ?share= (old friend-share notes), ?code= (a shared link) --------
+
   const shareParam = searchParams.get("share");
+  const codeParam = searchParams.get("code");
   useEffect(() => {
-    if (!shareParam) return;
-    setImportSource({ scheduleId: shareParam });
-    setSearchParams({}, { replace: true });
-  }, [shareParam, setSearchParams]);
+    if (shareParam) {
+      // Shared schedules open directly now, like a Google Doc.
+      setSearchParams({ s: shareParam }, { replace: true });
+    } else if (codeParam) {
+      setImportSource({ shareCode: codeParam.trim().toUpperCase() });
+      const next = new URLSearchParams(searchParams);
+      next.delete("code");
+      setSearchParams(next, { replace: true });
+    }
+  }, [shareParam, codeParam, searchParams, setSearchParams]);
+
+  // ---- Tasks -------------------------------------------------------------
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      const { data } = await axios.get(`${backendUrl}/api/tasks`, { withCredentials: true });
+      if (data.success) setTasks(data.tasks);
+    } catch {
+      // The schedule still works without them.
+    }
+  }, [backendUrl]);
+
+  useEffect(() => { fetchTasks(); }, [fetchTasks]);
+
+  const openTasks = tasks
+    .filter((t) => !t.isCompleted)
+    .map((t) => ({ ...t, dueIso: taskDueIso(t.dueDate) }));
 
   // ---- List --------------------------------------------------------------
 
@@ -131,6 +203,11 @@ export default function Schedule() {
 
   // ---- Detail ------------------------------------------------------------
 
+  const leaveDetail = useCallback((message) => {
+    toast.error(message);
+    setSearchParams({});
+  }, [setSearchParams]);
+
   const fetchDetail = useCallback(async ({ quiet } = {}) => {
     const startedAt = mutationVersion.current;
     try {
@@ -144,21 +221,54 @@ export default function Schedule() {
       }
     } catch (err) {
       if ([403, 404].includes(err.response?.status)) {
-        toast.error("That schedule isn't available. It may have been deleted or unshared.");
-        setSearchParams({});
+        leaveDetail("That schedule isn't available anymore. It may have been deleted or made private.");
       } else if (!quiet) {
         setFailedId(openId);
       }
     }
-  }, [api, openId, setSearchParams]);
+  }, [api, openId, leaveDetail]);
 
   useEffect(() => {
     if (!openId) return undefined;
+    lastStamp.current = null;
+    seenActivity.current = null;
     fetchDetail();
-    // Pick up edits from anyone else working on the same schedule.
-    const id = setInterval(() => { if (!document.hidden) fetchDetail({ quiet: true }); }, SCHEDULE_REFRESH_MS);
-    return () => clearInterval(id);
-  }, [openId, fetchDetail]);
+    // Pick up edits from anyone else on the same schedule within a few seconds.
+    const check = async () => {
+      if (document.hidden || !lastStamp.current) return;
+      try {
+        const { data } = await axios.get(`${api}/${openId}/stamp`, { withCredentials: true });
+        if (data.success && data.updatedAt !== lastStamp.current) fetchDetail({ quiet: true });
+      } catch (err) {
+        // Only the API's own answer means access is gone. A bare 404 (an older server without
+        // this route, mid-deploy) is ignored and the page simply stops auto-refreshing.
+        if ([403, 404].includes(err.response?.status) && err.response?.data?.success === false) {
+          leaveDetail("You no longer have access to that schedule.");
+        }
+      }
+    };
+    const id = setInterval(check, LIVE_CHECK_MS);
+    window.addEventListener("focus", check);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("focus", check);
+    };
+  }, [openId, api, fetchDetail, leaveDetail]);
+
+  // Remember the version we have, and tell the person when someone else changed something.
+  useEffect(() => {
+    if (!schedule) return;
+    lastStamp.current = schedule.updatedAt;
+    const log = schedule.activity || [];
+    const newest = log[log.length - 1]?._id || null;
+    if (seenActivity.current !== null && newest !== seenActivity.current) {
+      const from = log.findIndex((a) => a._id === seenActivity.current);
+      const fresh = log.slice(from + 1).filter((a) => String(a.user) !== String(user?._id));
+      if (fresh.length === 1) toast.info(`${fresh[0].userName || "Someone"} ${fresh[0].summary}.`);
+      else if (fresh.length > 1) toast.info(`${fresh.length} new changes from others. See "What changed" below.`);
+    }
+    seenActivity.current = newest ?? "";
+  }, [schedule, user?._id]);
 
   const scheduleId = schedule?._id;
   const needsMain = Boolean(schedule && schedule.role === "owner" && !schedule.isMain);
@@ -172,39 +282,30 @@ export default function Schedule() {
   }, [needsMain, scheduleId, api]);
   const mainEntries = needsMain && mainInfo?.forId === scheduleId ? mainInfo.entries : [];
 
-  // Holidays: fetch every year the visible week touches, once per country and year.
-  const country = schedule?.country;
-  const weekYears = [weekStart.getFullYear(), addDays(weekStart, 6).getFullYear()];
-  const panelYear = addDays(weekStart, 3).getFullYear();
+  // Holidays (always the Philippines): every year the visible week and calendar month touch.
+  const holidayYears = [...new Set([weekStart.getFullYear(), addDays(weekStart, 6).getFullYear(), calMonth.getFullYear()])];
+  const holidayYearsKey = holidayYears.join(",");
   useEffect(() => {
-    if (!country) return;
-    const years = [...new Set([...weekYears, panelYear])];
-    years.forEach(async (year) => {
-      const key = `${country}-${year}`;
-      if (holidayRequests.current.has(key)) return;
-      holidayRequests.current.add(key);
+    if (!openId) return;
+    holidayYearsKey.split(",").map(Number).forEach(async (year) => {
+      if (holidayRequests.current.has(year)) return;
+      holidayRequests.current.add(year);
       try {
-        const { data } = await axios.get(`${api}/holidays`, { params: { year, country }, withCredentials: true });
+        const { data } = await axios.get(`${api}/holidays`, { params: { year }, withCredentials: true });
         if (!data.success) throw new Error(data.message);
-        setHolidayCache((c) => ({ ...c, [key]: data.holidays }));
+        setHolidayCache((c) => ({ ...c, [year]: data.holidays }));
         setHolidayError("");
       } catch {
         // Forget the attempt so browsing to another week retries, and keep the
         // schedule usable in the meantime.
-        holidayRequests.current.delete(key);
+        holidayRequests.current.delete(year);
         setHolidayError("Couldn't load public holidays right now. You can still mark your own days off.");
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [country, weekStart, api]);
+  }, [openId, holidayYearsKey, api]);
 
-  const publicHolidays = country ? (holidayCache[`${country}-${panelYear}`] || []) : [];
   const publicByDate = {};
-  if (country) {
-    Object.entries(holidayCache).forEach(([key, list]) => {
-      if (key.startsWith(`${country}-`)) list.forEach((h) => { publicByDate[h.date] = h.name; });
-    });
-  }
+  Object.values(holidayCache).forEach((list) => list.forEach((h) => { publicByDate[h.date] = h.name; }));
 
   // Sends a change, then swaps in the schedule the server sends back. Returns an error
   // message on failure so forms can show it inline.
@@ -231,7 +332,7 @@ export default function Schedule() {
       : axios.post(`${api}/${openId}/entries`, payload, { withCredentials: true })));
     if (!message) {
       setEntryModal(null);
-      toast.success(editing ? "Entry updated." : "Added to your schedule.");
+      toast.success(editing ? "Saved." : "Added to the schedule.");
       if (schedule?.live) toast.info("Everyone on this schedule will be told.");
     }
     return message;
@@ -242,14 +343,25 @@ export default function Schedule() {
       axios.put(`${api}/${openId}/holidays`, { date: markDate, state, name }, { withCredentials: true }));
     if (!message) {
       setMarkDate(null);
-      toast.success(state === null ? "Back to the default." : state === "workday" ? "Marked as a regular day." : "Marked as a holiday.");
+      toast.success(state === null ? "Back to the default." : state === "workday" ? "Marked as a normal day." : "Marked as a day off.");
     }
     return message;
   };
 
-  const updateSettings = async (patch) => {
+  const applyDayChanges = async (changes) => {
+    const message = await mutate(() => axios.put(`${api}/${openId}/holidays`, { changes }, { withCredentials: true }));
+    if (!message) {
+      const off = changes.filter((c) => c.state === "holiday").length;
+      toast.success(off ? `${dayCountLabel(off)} off saved.` : `${dayCountLabel(changes.length)} updated.`);
+    }
+    return message;
+  };
+
+  const updateSettings = async (patch, success) => {
     const message = await mutate(() => axios.put(`${api}/${openId}`, patch, { withCredentials: true }));
     if (message) toast.error(message);
+    else if (success) toast.success(success);
+    return message;
   };
 
   const toggleMyWorkload = async (checked) => {
@@ -257,10 +369,18 @@ export default function Schedule() {
     if (message) toast.error(message);
   };
 
-  const makeMain = async () => {
-    const message = await mutate(() => axios.put(`${api}/${openId}`, { isMain: true }, { withCredentials: true }));
-    if (message) toast.error(message);
-    else toast.success("This is now your main schedule. Your dashboard plans around it.");
+  const makeMain = () => updateSettings({ isMain: true }, "This is now your main schedule. Your dashboard plans around it.");
+
+  // "Make a copy": a private, editable copy of the whole schedule as one of your own.
+  const makeCopy = async () => {
+    try {
+      const { data } = await axios.post(`${api}/${openId}/duplicate`, {}, { withCredentials: true });
+      if (!data.success) return toast.error(data.message);
+      toast.success(`"${data.schedule.title}" is yours. Change it however you like.`);
+      setSearchParams({ s: data.schedule._id });
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Couldn't make a copy.");
+    }
   };
 
   const dismissShared = async (shared) => {
@@ -280,17 +400,89 @@ export default function Schedule() {
     }
   };
 
+  // ---- Task changes ------------------------------------------------------
+
+  const taskError = (err) => err.response?.data?.message || "Couldn't save the task. Check your connection and try again.";
+
+  // A new task due outside the week on screen moves the view to that week, so it's seen landing.
+  const showWeekOf = (iso) => {
+    const target = startOfWeek(fromISODate(iso));
+    if (toISODate(target) !== toISODate(weekStart)) setWeekStart(target);
+  };
+
+  const saveTask = async (payload) => {
+    const editing = taskModal?.task;
+    try {
+      const { data } = editing
+        ? await axios.put(`${backendUrl}/api/tasks/${editing._id}`, payload, { withCredentials: true })
+        : await axios.post(`${backendUrl}/api/tasks`, payload, { withCredentials: true });
+      if (!data.success) return data.message || "Couldn't save the task.";
+      setTasks((list) => (editing ? list.map((t) => (t._id === editing._id ? data.task : t)) : [...list, data.task]));
+      setTaskModal(null);
+      if (editing) {
+        toast.success("Task saved.");
+      } else if (openId) {
+        toast.success(tasksHere ? "Task added. It's on the day it's due." : "Task added to your plan.");
+        if (tasksHere) showWeekOf(payload.dueDate);
+      } else {
+        toast.success("Task added. Your dashboard plans time for it.");
+      }
+      return undefined;
+    } catch (err) {
+      return taskError(err);
+    }
+  };
+
+  const toggleTaskDone = async () => {
+    const task = taskModal?.task;
+    if (!task) return;
+    try {
+      const { data } = await axios.put(`${backendUrl}/api/tasks/${task._id}`, { isCompleted: !task.isCompleted }, { withCredentials: true });
+      if (!data.success) return toast.error(data.message);
+      setTasks((list) => list.map((t) => (t._id === task._id ? data.task : t)));
+      setTaskModal(null);
+      toast.success(data.task.isCompleted ? "Nice work. Marked as done." : "Reopened.");
+    } catch (err) {
+      toast.error(taskError(err));
+    }
+  };
+
+  // Dashboard and old /create-task links arrive with ?task=new. With a main schedule, the task
+  // form opens on top of it, so the new task is seen on its week.
+  const taskParam = searchParams.get("task");
+  const mainSchedule = schedules.find((x) => x.role === "owner" && x.isMain);
+  const mainId = mainSchedule?._id;
+  useEffect(() => {
+    if (taskParam !== "new") return;
+    if (openId) {
+      if (!scheduleId) return;
+      setTaskModal({});
+      setSearchParams({ s: openId }, { replace: true });
+    } else if (!loading) {
+      if (mainId) {
+        setSearchParams({ s: mainId, task: "new" }, { replace: true });
+      } else {
+        setTaskModal({});
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [taskParam, openId, scheduleId, loading, mainId, setSearchParams]);
+
   const handleConfirm = async () => {
     if (!confirm) return;
     setConfirming(true);
     try {
-      let request;
       if (confirm.kind === "entry") {
-        request = () => axios.delete(`${api}/${openId}/entries/${confirm.entry._id}`, { withCredentials: true });
-        const message = await mutate(request);
+        const message = await mutate(() => axios.delete(`${api}/${openId}/entries/${confirm.entry._id}`, { withCredentials: true }));
         if (message) return toast.error(message);
         setEntryModal(null);
-        toast.success("Entry deleted.");
+        toast.success("Removed.");
+      } else if (confirm.kind === "task") {
+        const { data } = await axios.delete(`${backendUrl}/api/tasks/${confirm.task._id}`, { withCredentials: true });
+        if (!data.success) return toast.error(data.message);
+        setTasks((list) => list.filter((t) => t._id !== confirm.task._id));
+        setTaskModal(null);
+        toast.success("Task deleted.");
       } else if (confirm.kind === "delete") {
         const { data } = await axios.delete(`${api}/${openId}`, { withCredentials: true });
         if (!data.success) return toast.error(data.message);
@@ -310,11 +502,12 @@ export default function Schedule() {
     }
   };
 
-  // ---- Create / join -----------------------------------------------------
+  // ---- Create / join / rename --------------------------------------------
 
   const closeForms = () => {
     setCreateOpen(false);
     setJoinOpen(false);
+    setRenameOpen(false);
     setFormError("");
   };
 
@@ -324,7 +517,7 @@ export default function Schedule() {
     if (!title) return setFormError("Give your schedule a name.");
     setSubmitting(true);
     try {
-      const { data } = await axios.post(api, { title, theme: newTheme, country: newCountry }, { withCredentials: true });
+      const { data } = await axios.post(api, { title, theme: newTheme }, { withCredentials: true });
       if (data.success) {
         setNewTitle("");
         closeForms();
@@ -340,11 +533,24 @@ export default function Schedule() {
     }
   };
 
-  // A code opens a preview of the schedule first. Nothing is added until the person
-  // has seen what's inside and what clashes with their own week.
+  const handleRename = async (e) => {
+    e.preventDefault();
+    const title = newTitle.trim();
+    if (!title) return setFormError("Give your schedule a name.");
+    setSubmitting(true);
+    const message = await mutate(() => axios.put(`${api}/${openId}`, { title }, { withCredentials: true }));
+    setSubmitting(false);
+    if (message) return setFormError(message);
+    closeForms();
+    toast.success("Renamed.");
+  };
+
+  // A code opens a preview first: open the schedule itself, or copy what you want from it.
   const handleJoin = (e) => {
     e.preventDefault();
-    const shareCode = joinCode.trim().toUpperCase();
+    const raw = joinCode.trim();
+    // People paste the whole link as often as the code.
+    const shareCode = (raw.match(/[?&]code=([A-Za-z0-9]+)/)?.[1] || raw).toUpperCase();
     if (!shareCode) return setFormError("Please enter a share code.");
     setJoinCode("");
     closeForms();
@@ -353,9 +559,13 @@ export default function Schedule() {
 
   // ---- Render ------------------------------------------------------------
 
-  const mainSchedule = schedules.find((x) => x.role === "owner" && x.isMain);
   const extras = schedules.filter((x) => x.role === "owner" && !x.isMain);
   const sharedWithMe = schedules.filter((x) => x.role !== "owner");
+
+  const courses = [
+    ...(schedule?.entries || []).filter((e) => e.kind === "class" || e.kind === "exam").map((e) => e.title),
+    ...tasks.map((t) => t.course),
+  ];
 
   const markInfo = markDate && schedule && {
     holiday: (() => {
@@ -367,6 +577,59 @@ export default function Schedule() {
     publicName: publicByDate[markDate],
     hasOverride: schedule.holidayOverrides.some((x) => x.date === markDate),
   };
+
+  // Shared by both views. They sit in the schedule's theme scope so every form and dialog
+  // takes its colors and shapes.
+  const dialogs = (
+    <>
+      {taskModal && (
+        <TaskModal
+          task={taskModal.task}
+          date={taskModal.date}
+          courses={courses}
+          onSave={saveTask}
+          onDelete={taskModal.task ? () => setConfirm({ kind: "task", task: taskModal.task }) : undefined}
+          onToggleDone={taskModal.task ? toggleTaskDone : undefined}
+          onUseCode={(tag) => { setTaskModal(null); setTaskCode(tag); }}
+          onClose={() => setTaskModal(null)}
+        />
+      )}
+      {taskCode && (
+        <TaskImportDialog
+          tag={taskCode}
+          onClose={() => setTaskCode(null)}
+          onImported={(task) => {
+            setTaskCode(null);
+            setTasks((list) => [...list, task]);
+            if (openId && tasksHere) showWeekOf(taskDueIso(task.dueDate));
+          }}
+        />
+      )}
+      {importSource && (
+        <ScheduleImportDialog
+          source={importSource}
+          onClose={() => setImportSource(null)}
+          onImported={(added) => { setImportSource(null); setSearchParams({ s: added._id }); }}
+        />
+      )}
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        tone="danger"
+        busy={confirming}
+        title={{
+          delete: "Delete this schedule?", leave: "Leave this schedule?", entry: "Remove this from the schedule?", task: "Delete this task?",
+        }[confirm?.kind] || ""}
+        confirmLabel={confirm?.kind === "leave" ? "Leave" : "Delete"}
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirm(null)}
+      >
+        {confirm?.kind === "delete" && <p>"{schedule?.title}" will be removed for you and everyone on it{schedule?.live && ", and they'll be told"}. Copies people made stay theirs. This can't be undone.</p>}
+        {confirm?.kind === "leave" && <p>You'll lose access to "{schedule?.title}". The owner can share it with you again.{isEditor && " They'll be told you left."}</p>}
+        {confirm?.kind === "entry" && <p>"{confirm.entry.title}" will be removed from the schedule{schedule?.live ? " for everyone on it" : ""}.</p>}
+        {confirm?.kind === "task" && <p>"{confirm.task.title}" will be deleted, and your plan won't count it anymore.</p>}
+      </ConfirmDialog>
+    </>
+  );
 
   if (openId) {
     return (
@@ -389,86 +652,97 @@ export default function Schedule() {
           ) : (
             <div className="sched" data-sched-theme={schedule.theme}>
               <section className="sched-top panel">
-                <div className="sched-top-title">
-                  <span className="panel-kicker">
-                    <CalendarDays size={16} aria-hidden="true" />
-                    {isOwner ? (schedule.isMain ? "Your main schedule" : "Extra schedule") : `Shared by ${schedule.owner?.name || "a friend"}`}
-                    {schedule.live && " · Shared and editable"}
-                  </span>
-                  <h1>{schedule.title}</h1>
-                  {isEditor && (
-                    <p className="sched-hint">You can edit this schedule with {schedule.owner?.name || "its owner"}. Changes show up for everyone on it, and they get told what you changed.</p>
-                  )}
-                  {isOwner && schedule.live && (
-                    <p className="sched-hint">Other people can edit this schedule. You'll be told when they change something, and the recent changes are listed below.</p>
-                  )}
-                  {role === "viewer" && (
-                    <p className="sched-hint">This is a view of {schedule.owner?.name || "your friend"}'s schedule, and you can't change it. Add it to your own if it helps, then edit your copy however you like.</p>
-                  )}
-                  {isOwner && !schedule.isMain && (
-                    <p className="sched-hint">An extra schedule sits on top of your main one. Anything that overlaps a class or exam in your main schedule is flagged.</p>
-                  )}
+                <div className="sched-top-row">
+                  <div className="sched-top-title">
+                    <span className="panel-kicker">
+                      <CalendarDays size={16} aria-hidden="true" />
+                      {isOwner ? (schedule.isMain ? "Your main schedule" : "Extra schedule") : `Shared by ${schedule.owner?.name || "a friend"}`}
+                    </span>
+                    <h1>{schedule.title}</h1>
+                    <AccessLine schedule={schedule} />
+                  </div>
+
+                  <div className="sched-actions">
+                    {canEdit ? (
+                      <Menu trigger={<><Plus size={18} aria-hidden="true" /> Add <ChevronDown size={16} aria-hidden="true" /></>} className="primary-button" wide>
+                        {(close) => (
+                          <>
+                            {tasksHere && (
+                              <MenuItem icon={ClipboardList} hint="Assignment, project, reading. Only you see it." onClick={() => { close(); setTaskModal({}); }}>Task</MenuItem>
+                            )}
+                            <MenuItem icon={BookOpen} hint="Repeats on the days you pick" onClick={() => { close(); setEntryModal({ kind: "class" }); }}>Class</MenuItem>
+                            <MenuItem icon={PenTool} hint="One day, with study time" onClick={() => { close(); setEntryModal({ kind: "exam" }); }}>Exam</MenuItem>
+                            <MenuItem icon={Sparkles} hint="Gym, org, part-time job" onClick={() => { close(); setEntryModal({ kind: "activity" }); }}>Activity</MenuItem>
+                            <MenuItem icon={PartyPopper} hint="A one-off thing" onClick={() => { close(); setEntryModal({ kind: "event" }); }}>Event</MenuItem>
+                          </>
+                        )}
+                      </Menu>
+                    ) : tasksHere && (
+                      <button type="button" className="primary-button" onClick={() => setTaskModal({})}>
+                        <Plus size={18} aria-hidden="true" /> Add task
+                      </button>
+                    )}
+                    {schedule.canShare && (
+                      <button type="button" className="secondary-button" onClick={() => setShareOpen(true)}>
+                        <Share2 size={18} aria-hidden="true" /> Share
+                      </button>
+                    )}
+                    {!isOwner && (
+                      <button type="button" className="secondary-button" onClick={() => setImportSource({ scheduleId: schedule._id })}>
+                        <Download size={18} aria-hidden="true" /> Add to mine
+                      </button>
+                    )}
+                    {isOwner && (
+                      <Menu trigger={<><Palette size={18} aria-hidden="true" /> Theme</>} className="secondary-button" wide>
+                        {(close) => (
+                          <div className="sched-menu-themes">
+                            <ThemePicker value={schedule.theme} onChange={(theme) => { close(); updateSettings({ theme }); }} />
+                          </div>
+                        )}
+                      </Menu>
+                    )}
+                    <Menu trigger={<MoreHorizontal size={18} aria-hidden="true" />} label="More options" className="sched-icon-button sched-more">
+                      {(close) => (
+                        <>
+                          <MenuItem icon={Copy} hint="A private copy that's all yours" onClick={() => { close(); makeCopy(); }}>Make a copy</MenuItem>
+                          {isOwner && (
+                            <MenuItem icon={Pencil} onClick={() => { close(); setNewTitle(schedule.title); setFormError(""); setRenameOpen(true); }}>Rename</MenuItem>
+                          )}
+                          {isOwner && !schedule.isMain && (
+                            <MenuItem icon={Star} hint="Your dashboard plans around it" onClick={() => { close(); makeMain(); }}>Make this my main</MenuItem>
+                          )}
+                          {isOwner ? (
+                            <MenuItem icon={Trash2} tone="danger" onClick={() => { close(); setConfirm({ kind: "delete" }); }}>Delete schedule</MenuItem>
+                          ) : (
+                            <MenuItem icon={LogOut} tone="danger" onClick={() => { close(); setConfirm({ kind: "leave" }); }}>Leave schedule</MenuItem>
+                          )}
+                        </>
+                      )}
+                    </Menu>
+                  </div>
                 </div>
 
-                <div className="sched-actions">
-                  {canEdit && (
-                    <>
-                      <button type="button" className="primary-button" onClick={() => setEntryModal({ kind: "class" })}>
-                        <Plus size={18} aria-hidden="true" /> Add class
-                      </button>
-                      <button type="button" className="secondary-button" onClick={() => setEntryModal({ kind: "exam" })}>
-                        <Plus size={18} aria-hidden="true" /> Add exam
-                      </button>
-                      <button type="button" className="secondary-button" onClick={() => setEntryModal({ kind: "activity" })}>
-                        <Plus size={18} aria-hidden="true" /> Add activity
-                      </button>
-                      <button type="button" className="secondary-button" onClick={() => setEntryModal({ kind: "event" })}>
-                        <Plus size={18} aria-hidden="true" /> Add event
-                      </button>
-                    </>
-                  )}
-                  {isOwner && (
-                    <button type="button" className="secondary-button" onClick={() => setShareOpen(true)}>
-                      <Share2 size={18} aria-hidden="true" /> Share
-                    </button>
-                  )}
-                  {!isOwner && (
-                    <button type="button" className={canEdit ? "secondary-button" : "primary-button"} onClick={() => setImportSource({ scheduleId: schedule._id })}>
-                      <Download size={18} aria-hidden="true" /> Add to my schedule
-                    </button>
-                  )}
-                  {isOwner && !schedule.isMain && (
-                    <button type="button" className="secondary-button" onClick={makeMain}>
-                      <Star size={18} aria-hidden="true" /> Make this my main
-                    </button>
-                  )}
-                  {isOwner ? (
-                    <button type="button" className="remove-friend-btn" onClick={() => setConfirm({ kind: "delete" })}>
-                      <Trash2 size={16} aria-hidden="true" /> Delete
-                    </button>
-                  ) : (
-                    <button type="button" className="remove-friend-btn" onClick={() => setConfirm({ kind: "leave" })}>
-                      <LogOut size={16} aria-hidden="true" /> Leave
-                    </button>
-                  )}
-                </div>
-
-                <div className="sched-look">
-                  <span className="sched-field-label">Look</span>
-                  <ThemePicker value={schedule.theme} disabled={!isOwner} onChange={(theme) => updateSettings({ theme })} />
-                </div>
+                {isEditor && (
+                  <p className="sched-hint">You and {schedule.owner?.name || "the owner"} both edit this. Changes show up for everyone on it within a few seconds, and they're told what changed.</p>
+                )}
+                {role === "viewer" && (
+                  <p className="sched-hint">You see changes as they happen, but can't make them. "Make a copy" or "Add to mine" gives you one you can edit.</p>
+                )}
+                {isOwner && schedule.live && (
+                  <p className="sched-hint">Others can edit this schedule. Their changes show up here within a few seconds, and the latest are listed under the week.</p>
+                )}
+                {isOwner && !schedule.isMain && (
+                  <p className="sched-hint">An extra schedule sits on top of your main one. Anything that overlaps a class or exam in your main schedule is flagged.</p>
+                )}
 
                 {!isOwner && (
                   <label className="sched-check sched-workload-toggle">
                     <input type="checkbox" checked={Boolean(schedule.myCountInWorkload)} onChange={(e) => toggleMyWorkload(e.target.checked)} />
                     <span>
                       Count this in my dashboard workload
-                      <small>Use this if it is a class you actually attend. Its time is taken off your study time, and it follows any changes made to it.</small>
+                      <small>Use this if it's a class you actually attend. Its time is taken off your study time, your tasks show on it, and it follows any changes made to it.</small>
                     </span>
                   </label>
-                )}
-                {isOwner && schedule.isMain && (
-                  <p className="sched-hint sched-workload-toggle">Your main schedule always counts toward your dashboard workload. Exams you add here become study time on the dashboard.</p>
                 )}
                 {isOwner && !schedule.isMain && (
                   <label className="sched-check sched-workload-toggle">
@@ -479,7 +753,7 @@ export default function Schedule() {
                     />
                     <span>
                       Count this in my dashboard workload
-                      <small>Time in this schedule is taken off your study time, next to your main one. Turn it off if it should not affect your plan.</small>
+                      <small>Time in this schedule is taken off your study time, next to your main one. Turn it off if it shouldn't affect your plan.</small>
                     </span>
                   </label>
                 )}
@@ -494,77 +768,84 @@ export default function Schedule() {
                 onShiftWeek={(n) => setWeekStart((w) => addDays(w, n * 7))}
                 onToday={() => setWeekStart(startOfWeek(new Date()))}
                 onAddEntry={(date) => setEntryModal({ kind: "class", date })}
-                onOpenEntry={(entry) => setEntryModal({ entry, kind: entry.kind })}
+                onOpenEntry={(entry) => (canEdit ? setEntryModal({ entry, kind: entry.kind }) : setDetailsEntry(entry))}
                 onMarkDay={setMarkDate}
                 mainEntries={mainEntries}
+                tasks={tasksHere ? openTasks : []}
+                onOpenTask={(task) => setTaskModal({ task: tasks.find((t) => t._id === task._id) || task })}
               />
+              {tasksHere && (schedule.live || (schedule.access?.people ?? 0) > 0) && (
+                <p className="sched-hint sched-week-note">Your tasks show under the day they're due. Only you see them, not the others on this schedule.</p>
+              )}
 
               {schedule.live && <ScheduleActivity schedule={schedule} />}
 
-              <HolidayPanel
-                year={panelYear}
-                country={schedule.country}
-                publicHolidays={publicHolidays}
+              <HolidayCalendar
+                month={calMonth}
+                onMonthChange={setCalMonth}
+                publicByDate={publicByDate}
                 overrides={schedule.holidayOverrides}
                 holidayError={holidayError}
                 canEdit={canEdit}
-                canChangeCountry={isOwner}
-                onCountryChange={(c) => updateSettings({ country: c })}
-                onPickDate={setMarkDate}
+                onApply={applyDayChanges}
               />
             </div>
           )}
         </main>
         <Footer />
 
-        {entryModal && (
-          <EntryModal
-            entry={entryModal.entry}
-            kind={entryModal.kind}
-            date={entryModal.date}
-            onSave={saveEntry}
-            onDelete={entryModal.entry ? () => setConfirm({ kind: "entry", entry: entryModal.entry }) : undefined}
-            onClose={() => setEntryModal(null)}
-          />
-        )}
-        {markDate && schedule && (
-          <DayMarkModal
-            date={markDate}
-            holiday={markInfo.holiday}
-            publicName={markInfo.publicName}
-            hasOverride={markInfo.hasOverride}
-            onApply={applyDayMark}
-            onClose={() => setMarkDate(null)}
-          />
-        )}
-        {shareOpen && schedule && (
-          <ShareModal
-            schedule={schedule}
-            backendUrl={backendUrl}
-            onUpdated={(next) => { mutationVersion.current += 1; setSchedule(next); }}
-            onClose={() => setShareOpen(false)}
-          />
-        )}
-        {importSource && (
-          <ScheduleImportDialog
-            source={importSource}
-            onClose={() => setImportSource(null)}
-            onImported={(added) => { setImportSource(null); setSearchParams({ s: added._id }); }}
-          />
-        )}
-        <ConfirmDialog
-          open={Boolean(confirm)}
-          tone="danger"
-          busy={confirming}
-          title={confirm?.kind === "delete" ? "Delete this schedule?" : confirm?.kind === "leave" ? "Leave this schedule?" : "Delete this entry?"}
-          confirmLabel={confirm?.kind === "leave" ? "Leave" : "Delete"}
-          onConfirm={handleConfirm}
-          onCancel={() => setConfirm(null)}
-        >
-          {confirm?.kind === "delete" && <p>"{schedule?.title}" will be removed for you and everyone you shared it with{schedule?.live && ", and they'll be told"}. Copies people already added to their own schedules stay theirs. This can't be undone.</p>}
-          {confirm?.kind === "leave" && <p>You'll lose access to "{schedule?.title}". The owner can share it with you again.{isEditor && " They'll be told you left."}</p>}
-          {confirm?.kind === "entry" && <p>"{confirm.entry.title}" will be removed from the schedule.</p>}
-        </ConfirmDialog>
+        <div className="sched-layer" data-sched-theme={schedule?.theme || "classic"}>
+          {entryModal && (
+            <EntryModal
+              entry={entryModal.entry}
+              kind={entryModal.kind}
+              date={entryModal.date}
+              onSave={saveEntry}
+              onDelete={entryModal.entry ? () => setConfirm({ kind: "entry", entry: entryModal.entry }) : undefined}
+              onClose={() => setEntryModal(null)}
+            />
+          )}
+          {detailsEntry && <EntryDetails entry={detailsEntry} onClose={() => setDetailsEntry(null)} />}
+          {markDate && schedule && (
+            <DayMarkModal
+              date={markDate}
+              holiday={markInfo.holiday}
+              publicName={markInfo.publicName}
+              hasOverride={markInfo.hasOverride}
+              onApply={applyDayMark}
+              onClose={() => setMarkDate(null)}
+            />
+          )}
+          {shareOpen && schedule && (
+            <ShareModal
+              schedule={schedule}
+              backendUrl={backendUrl}
+              currentUserId={user?._id}
+              onUpdated={(next) => { mutationVersion.current += 1; setSchedule(next); }}
+              onClose={() => setShareOpen(false)}
+            />
+          )}
+          {renameOpen && (
+            <div className="modal-overlay" onClick={closeForms}>
+              <form className="modal-content sched-modal sched-modal-narrow" onClick={(e) => e.stopPropagation()} onSubmit={handleRename}>
+                <div className="modal-header">
+                  <h2>Rename schedule</h2>
+                  <button type="button" className="modal-close" onClick={closeForms} aria-label="Close">×</button>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="rename-title">Name</label>
+                  <input id="rename-title" type="text" value={newTitle} maxLength={80} onChange={(e) => { setNewTitle(e.target.value); setFormError(""); }} autoFocus />
+                </div>
+                {formError && <p className="form-error" role="alert">{formError}</p>}
+                <div className="modal-actions sched-modal-actions">
+                  <button type="button" className="secondary-button" onClick={closeForms}>Cancel</button>
+                  <button type="submit" className="primary-button" disabled={submitting}>{submitting ? "Saving..." : "Save"}</button>
+                </div>
+              </form>
+            </div>
+          )}
+          {dialogs}
+        </div>
       </div>
     );
   }
@@ -576,32 +857,34 @@ export default function Schedule() {
         <section className="hero" id="schedule-hero">
           <div className="hero-copy">
             <span className="eyebrow">Plan your week</span>
-            <h1>Your class schedule</h1>
+            <h1>Your schedule</h1>
             <p>
-              One main schedule holds your classes and exams, and your dashboard plans your study time around it.
-              Add extra schedules for anything else (gym, gaming, a side gig) and they get checked against the main one.
-              Classmates can copy yours from a code, a friend share or a group chat instead of typing theirs from scratch.
+              Your classes, exams and tasks in one week. Your main schedule is what the dashboard plans around.
+              Extra schedules hold anything else, and shared ones work like a Google Doc: whoever can edit changes it for everyone.
             </p>
           </div>
           <aside className="hero-panel">
             <h2>What you can do</h2>
             <ul className="hero-list">
-              <li>Add classes, exams, activities and events</li>
-              <li>Exams turn into study time on your dashboard</li>
-              <li>Attach a picture to any subject</li>
-              <li>Edit holidays or mark your own days off</li>
-              <li>Share it so classmates can copy it in one tap</li>
+              <li>Add classes, exams, tasks and events</li>
+              <li>Put Google Meet or Zoom links on online classes</li>
+              <li>Mark days off on a Philippine holiday calendar</li>
+              <li>Share with viewers or editors, or keep it private</li>
+              <li>Make a copy of any schedule you can see</li>
               <li>Pick a theme that suits light or dark mode</li>
             </ul>
           </aside>
         </section>
 
         <div className="groups-actions">
-          <button className="primary-button" onClick={() => { setFormError(""); setCreateOpen(true); }}>
+          <button className="primary-button" onClick={() => { setFormError(""); setNewTitle(""); setCreateOpen(true); }}>
             <Plus size={18} aria-hidden="true" /> {mainSchedule ? "New extra schedule" : "Create my schedule"}
           </button>
+          <button className="secondary-button" onClick={() => setTaskModal({})}>
+            <ClipboardList size={18} aria-hidden="true" /> Add a task
+          </button>
           <button className="secondary-button" onClick={() => { setFormError(""); setJoinOpen(true); }}>
-            <Link2 size={18} aria-hidden="true" /> Add with a code
+            <Link2 size={18} aria-hidden="true" /> Open with a code
           </button>
         </div>
 
@@ -632,14 +915,14 @@ export default function Schedule() {
                   </div>
                   <p className="group-desc">
                     {mainSchedule.entryCount} {mainSchedule.entryCount === 1 ? "entry" : "entries"}
-                    {mainSchedule.collaboratorCount > 0 && ` · shared with ${mainSchedule.collaboratorCount}`}
+                    {mainSchedule.private ? " · private" : mainSchedule.collaboratorCount > 0 ? ` · shared with ${mainSchedule.collaboratorCount}` : " · shared by code"}
                     {" · "}Your dashboard and workload are based on this one.
                   </p>
                 </button>
               ) : (
                 <div className="panel" style={{ textAlign: "center" }}>
                   <p className="schedule-empty">
-                    You don't have a main schedule yet. Create it with your classes and exams, or add a classmate's with a code.
+                    You don't have a main schedule yet. Create it with your classes and exams, or open a classmate's with a code.
                     Your dashboard plans around this one.
                   </p>
                 </div>
@@ -665,7 +948,7 @@ export default function Schedule() {
                       </div>
                       <p className="group-desc">
                         {s.entryCount} {s.entryCount === 1 ? "entry" : "entries"}
-                        {s.collaboratorCount > 0 && ` · shared with ${s.collaboratorCount}`}
+                        {s.private ? " · private" : s.collaboratorCount > 0 ? ` · shared with ${s.collaboratorCount}` : " · shared by code"}
                         {s.live && " · editable by others"}
                       </p>
                     </button>
@@ -677,23 +960,23 @@ export default function Schedule() {
             {sharedWithMe.length > 0 && (
               <section className="sched-section">
                 <h2 className="sched-section-title">Shared with you</h2>
-                <p className="sched-hint">Friends shared these. Some you can edit together, the rest are view-only. Adding one to your own schedule is your call.</p>
+                <p className="sched-hint">Open one to see it as it changes. Some you can edit together. Copying one into your own is your call.</p>
                 <div className="groups-grid">
                   {sharedWithMe.map((s) => (
                     <div key={s._id} className="group-card sched-card sched-shared-card" data-sched-theme={s.theme}>
                       <span className="sched-card-band" aria-hidden="true" />
                       <div className="group-header">
                         <h3>{s.title}</h3>
-                        {s.role === "editor" && <span className="owner-badge">You can edit</span>}
+                        <span className="owner-badge">{s.role === "editor" ? "Editor" : "Viewer"}</span>
                       </div>
                       <p className="group-desc">
                         {s.entryCount} {s.entryCount === 1 ? "entry" : "entries"} · by {s.owner?.name}
                       </p>
                       <div className="sched-shared-actions">
-                        <button type="button" className="primary-button small" onClick={() => setImportSource({ scheduleId: s._id })}>
-                          <Download size={15} aria-hidden="true" /> Add to my schedule
+                        <button type="button" className="primary-button small" onClick={() => setSearchParams({ s: s._id })}>Open</button>
+                        <button type="button" className="secondary-button small" onClick={() => setImportSource({ scheduleId: s._id })}>
+                          <Download size={15} aria-hidden="true" /> Add to mine
                         </button>
-                        <button type="button" className="secondary-button small" onClick={() => setSearchParams({ s: s._id })}>{s.role === "editor" ? "Open" : "View"}</button>
                         <button type="button" className="ghost-button small" onClick={() => dismissShared(s)} disabled={dismissing === s._id}>
                           <X size={15} aria-hidden="true" /> Dismiss
                         </button>
@@ -708,83 +991,74 @@ export default function Schedule() {
       </main>
       <Footer />
 
-      {importSource && (
-        <ScheduleImportDialog
-          source={importSource}
-          onClose={() => setImportSource(null)}
-          onImported={(added) => { setImportSource(null); setSearchParams({ s: added._id }); }}
-        />
-      )}
+      <div className="sched-layer" data-sched-theme={mainSchedule?.theme || "classic"}>
+        {dialogs}
 
-      {createOpen && (
-        <div className="modal-overlay" onClick={closeForms}>
-          <form className="modal-content sched-modal" onClick={(e) => e.stopPropagation()} onSubmit={handleCreate}>
-            <div className="modal-header">
-              <h2>{mainSchedule ? "New extra schedule" : "Create your main schedule"}</h2>
-              <button type="button" className="modal-close" onClick={closeForms} aria-label="Close">×</button>
-            </div>
-            <div className="form-grid">
-              <div className="form-group full-span">
-                <label htmlFor="schedule-title">Name *</label>
+        {createOpen && (
+          <div className="modal-overlay" onClick={closeForms}>
+            <form className="modal-content sched-modal" data-sched-theme={newTheme} onClick={(e) => e.stopPropagation()} onSubmit={handleCreate}>
+              <div className="modal-header">
+                <h2>{mainSchedule ? "New extra schedule" : "Create your main schedule"}</h2>
+                <button type="button" className="modal-close" onClick={closeForms} aria-label="Close">×</button>
+              </div>
+              <div className="form-grid">
+                <div className="form-group full-span">
+                  <label htmlFor="schedule-title">Name *</label>
+                  <input
+                    id="schedule-title"
+                    type="text"
+                    value={newTitle}
+                    maxLength={80}
+                    onChange={(e) => { setNewTitle(e.target.value); setFormError(""); }}
+                    placeholder={mainSchedule ? "e.g., Gym, Gaming, Part-time job" : "e.g., 1st Semester"}
+                    autoFocus
+                  />
+                </div>
+                <div className="form-group full-span">
+                  <span className="sched-field-label">Look</span>
+                  <ThemePicker value={newTheme} onChange={setNewTheme} />
+                </div>
+              </div>
+              <p className="sched-hint">Philippine public holidays are filled in for you. You can add or remove days off later.</p>
+              {formError && <p className="form-error" role="alert">{formError}</p>}
+              <div className="modal-actions sched-modal-actions">
+                <button type="button" className="secondary-button" onClick={closeForms}>Cancel</button>
+                <button type="submit" className="primary-button" disabled={submitting}>{submitting ? "Creating..." : "Create"}</button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {joinOpen && (
+          <div className="modal-overlay" onClick={closeForms}>
+            <form className="modal-content sched-modal sched-modal-narrow" onClick={(e) => e.stopPropagation()} onSubmit={handleJoin}>
+              <div className="modal-header">
+                <h2>Open with a code</h2>
+                <button type="button" className="modal-close" onClick={closeForms} aria-label="Close">×</button>
+              </div>
+              <div className="form-group">
+                <label htmlFor="schedule-code">Share code or link</label>
+                <p className="sched-hint">Ask a classmate for their code or link. You'll see what's in it, then open it or copy the parts you want.</p>
                 <input
-                  id="schedule-title"
+                  id="schedule-code"
                   type="text"
-                  value={newTitle}
-                  maxLength={80}
-                  onChange={(e) => { setNewTitle(e.target.value); setFormError(""); }}
-                  placeholder={mainSchedule ? "e.g., Gym, Gaming, Part-time job" : "e.g., 1st Semester"}
+                  value={joinCode}
+                  maxLength={200}
+                  onChange={(e) => { setJoinCode(e.target.value); setFormError(""); }}
+                  placeholder="e.g., K7PQ2M"
                   autoFocus
+                  autoComplete="off"
                 />
               </div>
-              <div className="form-group full-span">
-                <label htmlFor="schedule-country">Country for holidays</label>
-                <select id="schedule-country" value={newCountry} onChange={(e) => setNewCountry(e.target.value)}>
-                  {COUNTRY_CODES.map((code) => <option key={code} value={code}>{countryName(code)}</option>)}
-                </select>
+              {formError && <p className="form-error" role="alert">{formError}</p>}
+              <div className="modal-actions sched-modal-actions">
+                <button type="button" className="secondary-button" onClick={closeForms}>Cancel</button>
+                <button type="submit" className="primary-button" disabled={submitting}>Continue</button>
               </div>
-              <div className="form-group full-span">
-                <span className="sched-field-label">Look</span>
-                <ThemePicker value={newTheme} onChange={setNewTheme} />
-              </div>
-            </div>
-            {formError && <p className="form-error" role="alert">{formError}</p>}
-            <div className="modal-actions sched-modal-actions">
-              <button type="button" className="secondary-button" onClick={closeForms}>Cancel</button>
-              <button type="submit" className="primary-button" disabled={submitting}>{submitting ? "Creating..." : "Create"}</button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {joinOpen && (
-        <div className="modal-overlay" onClick={closeForms}>
-          <form className="modal-content sched-modal sched-modal-narrow" onClick={(e) => e.stopPropagation()} onSubmit={handleJoin}>
-            <div className="modal-header">
-              <h2>Add with a code</h2>
-              <button type="button" className="modal-close" onClick={closeForms} aria-label="Close">×</button>
-            </div>
-            <div className="form-group">
-              <label htmlFor="schedule-code">Share code</label>
-              <p className="sched-hint">Ask a classmate for their code, or tap a schedule they posted in a group. You'll see what's in it before anything is added.</p>
-              <input
-                id="schedule-code"
-                type="text"
-                value={joinCode}
-                maxLength={6}
-                onChange={(e) => { setJoinCode(e.target.value.toUpperCase()); setFormError(""); }}
-                placeholder="6 characters"
-                autoFocus
-                autoComplete="off"
-              />
-            </div>
-            {formError && <p className="form-error" role="alert">{formError}</p>}
-            <div className="modal-actions sched-modal-actions">
-              <button type="button" className="secondary-button" onClick={closeForms}>Cancel</button>
-              <button type="submit" className="primary-button" disabled={submitting}>Continue</button>
-            </div>
-          </form>
-        </div>
-      )}
+            </form>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

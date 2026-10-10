@@ -73,9 +73,9 @@ export const TERMS = {
       title: "Sharing with others",
       blocks: [
         { ul: [
-          "A schedule you share is view-only. People you share it with can open it and copy it into their own schedules. Their copy is theirs, and changing it never changes yours.",
+          "When you share a schedule you choose what each person can do. Viewers can see it and every change you make. Editors can also change it, and everyone on it is told what changed. Anyone you share with can make their own copy, and changing a copy never changes yours.",
           "Tasks you post in a group can be added to your groupmates' own task lists.",
-          "Anyone who has a schedule share code can view that schedule. Turn the code off, or make a new one, if it ends up somewhere it shouldn't.",
+          "Anyone who has a schedule's share code or link can open that schedule as a viewer or an editor, whichever you picked. Turn the code off, make a new one, or make the schedule private if it ends up somewhere it shouldn't.",
           "Your friends can see your name, email, avatar and profile tag.",
         ] },
       ],
@@ -140,7 +140,7 @@ export const PRIVACY = {
           "Profile details you add: bio, program, the hours you can study per day, your well-being goal and a picture.",
           "Check-in results: your answers and scores for the PSS-10 stress scale and the WHO-5 well-being index, with dates.",
           "Your tasks: titles, courses, descriptions, due dates, estimated hours, difficulty and importance.",
-          "Your schedules: classes and activities with times, places and notes, any pictures you attach, the country you pick for holidays and days you mark off.",
+          "Your schedules: classes and activities with times, places, online class links and notes, any pictures you attach, days you mark off, who you share each one with, and a short log of recent changes on shared schedules.",
           "Social features: friend connections, groups you belong to, group messages and tasks shared in groups.",
           "Notifications: your inbox and your notification preferences. If you turn on phone or computer alerts, we keep the address your browser gives us for sending them.",
           "Technical basics: a login cookie, plus a few settings saved in your browser (see Cookies and storage).",
@@ -172,7 +172,7 @@ export const PRIVACY = {
       id: "share",
       title: "Who else sees it",
       blocks: [
-        { p: "Other people: friends can see your name, email, avatar and profile tag. Group members see your name and avatar and what you post in the group. People you share a schedule with can view that schedule." },
+        { p: "Other people: friends can see your name, email, avatar and profile tag. Group members see your name and avatar and what you post in the group. People you share a schedule with can see it, and editors can change it." },
         { p: "Services that help run the app. They only handle data to do their job:" },
         { ul: [
           "MongoDB Atlas stores the database.",

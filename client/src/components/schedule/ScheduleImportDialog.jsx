@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { AlertTriangle, Check, Pencil, X } from "lucide-react";
+import { AlertTriangle, Check, Pencil, X, Eye, PencilLine } from "lucide-react";
 import { useAuth } from "../../pages/authentication/AuthContext";
 import { WEEKDAYS, formatTime, formatLongDate, KIND_LABELS } from "../../utils/scheduleUtils";
 import { analyzeEntry } from "../../utils/scheduleConflicts";
@@ -77,14 +77,17 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
   });
   const patchEdit = (id, patch) => setEdits((e) => ({ ...e, [id]: { ...e[id], ...patch } }));
 
-  // For an editor code: join the owner's schedule itself instead of copying it.
+  // A code works like a Google Docs link: it opens the owner's schedule itself (as a viewer or
+  // an editor, whatever the code allows) instead of copying it.
   const joinLive = async () => {
     setBusy(true);
     setSaveError("");
     try {
       const { data } = await axios.post(`${backendUrl}/api/schedules/join`, { shareCode: source.shareCode }, { withCredentials: true });
       if (data.success) {
-        toast.success(`You can now edit "${data.schedule.title}" with ${data.schedule.owner?.name || "the owner"}.`);
+        toast.success(data.schedule.role === "editor"
+          ? `You can now edit "${data.schedule.title}" with ${data.schedule.owner?.name || "the owner"}.`
+          : `You can see "${data.schedule.title}" now. Changes show up as they're made.`);
         onImported(data.schedule);
       } else {
         setSaveError(data.message || "Couldn't join that schedule.");
@@ -126,7 +129,7 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
     <div className="modal-overlay" onClick={busy ? undefined : onClose}>
       <div className="modal-content sched-modal imp" role="dialog" aria-modal="true" aria-labelledby="imp-title" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 id="imp-title">{preview ? `Add "${preview.source.title}"` : "Add a schedule"}</h2>
+          <h2 id="imp-title">{preview ? (source.shareCode ? `"${preview.source.title}"` : `Add "${preview.source.title}"`) : "Opening the schedule"}</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button>
         </div>
 
@@ -147,14 +150,24 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
               {preview.source.ownerName ? `${preview.source.ownerName}'s` : "A shared"} schedule has {preview.entries.length}{" "}
               {preview.entries.length === 1 ? "entry" : "entries"}. Pick the ones you want. Adding is up to you. Your copy is yours to edit, and changing it never touches theirs.
             </p>
-            {preview.source.canJoinLive && source.shareCode && (
-              <div className="imp-clash-bar" role="status">
+            {source.shareCode && preview.source.memberRole && (
+              <div className="imp-clash-bar imp-open-bar" role="status">
                 <Check size={18} aria-hidden="true" />
+                <span>You're already on this schedule as {preview.source.memberRole === "editor" ? "an editor" : "a viewer"}.</span>
+                <button type="button" className="primary-button small" onClick={() => onImported({ _id: preview.source.scheduleId })} disabled={busy}>Open it</button>
+              </div>
+            )}
+            {source.shareCode && !preview.source.memberRole && preview.source.codeRole && (
+              <div className="imp-clash-bar imp-open-bar" role="status">
+                {preview.source.codeRole === "editor" ? <PencilLine size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
                 <span>
-                  This code lets you edit the schedule together with {preview.source.ownerName || "its owner"}. Everyone on it is told
-                  when someone changes something. Or just add a copy below.
+                  {preview.source.codeRole === "editor"
+                    ? `This code lets you edit the schedule together with ${preview.source.ownerName || "its owner"}. Everyone on it is told when someone changes something.`
+                    : `Open it to follow ${preview.source.ownerName || "the owner"}'s schedule as it changes, or copy just the entries you want below.`}
                 </span>
-                <button type="button" className="primary-button small" onClick={joinLive} disabled={busy}>Join and edit</button>
+                <button type="button" className="primary-button small" onClick={joinLive} disabled={busy}>
+                  {preview.source.codeRole === "editor" ? "Open and edit" : "Open schedule"}
+                </button>
               </div>
             )}
             {preview.source.alreadyAdded && (
