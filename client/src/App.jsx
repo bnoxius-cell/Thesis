@@ -1,8 +1,7 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
-import TaskCreation from './pages/TaskCreation';
 import About from './pages/About';
 import Settings from './pages/Settings';
 import Friends from './pages/Friends';
@@ -18,8 +17,23 @@ import { ToastContainer } from 'react-toastify';
 import './App.css';
 import { useAuth } from './pages/authentication/AuthContext';
 
+// Signed-out visitors go to the login page, which remembers where they were headed (a shared
+// schedule link, a group) and sends them there once they're in.
+function RequireAuth({ children }) {
+  const { isLoggedin } = useAuth();
+  const location = useLocation();
+  return isLoggedin ? children : <Navigate to="/" replace state={{ from: location }} />;
+}
+
+function Home() {
+  const { isLoggedin } = useAuth();
+  const from = useLocation().state?.from;
+  if (!isLoggedin) return <AuthPage />;
+  return <Navigate to={from ? `${from.pathname}${from.search}` : '/dashboard'} replace />;
+}
+
 const AppContent = () => {
-  const { isLoggedin, userData } = useAuth();
+  const { userData, loading } = useAuth();
   const { theme } = useTheme();
 
   return (
@@ -27,28 +41,34 @@ const AppContent = () => {
     {/* Every toast() call in the app renders here. Without it, errors like a wrong
         password or an invalid code failed silently. */}
     <ToastContainer position="top-right" autoClose={4000} newestOnTop theme={theme} />
+    {/* Wait for the session check before routing. Otherwise a fresh load of any page counted as
+        signed out for a moment and bounced to the dashboard, losing links like /schedule?code=. */}
+    {loading ? (
+      <div className="app-boot" role="status">Loading StressCare...</div>
+    ) : (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <NotificationProvider key={userData?._id || 'guest'}>
       <TermsGate />
       <Routes>
-        <Route path="/" element={isLoggedin ? <Navigate to="/dashboard" replace /> : <AuthPage />} />
-        <Route path="/dashboard" element={isLoggedin ? <Dashboard /> : <Navigate to="/" replace />} />
-        <Route path="/profile" element={isLoggedin ? <Profile /> : <Navigate to="/" replace />} />
-        <Route path="/profile/:uid" element={isLoggedin ? <Profile /> : <Navigate to="/" replace />} />
-        <Route path="/create-task" element={isLoggedin ? <TaskCreation /> : <Navigate to="/" replace />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
+        <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
+        <Route path="/profile/:uid" element={<RequireAuth><Profile /></RequireAuth>} />
+        {/* Tasks are added from the schedule now. Old links and bookmarks open the task form there. */}
+        <Route path="/create-task" element={<Navigate to="/schedule?task=new" replace />} />
         <Route path="/about" element={<About />} />
         <Route path="/terms-of-service" element={<LegalPage kind="terms" />} />
         <Route path="/privacy-policy" element={<LegalPage kind="privacy" />} />
-        <Route path="/settings" element={isLoggedin ? <Settings /> : <Navigate to="/" replace />} />
-        <Route path="/friends" element={isLoggedin ? <Friends /> : <Navigate to="/" replace />} />
-        <Route path="/schedule" element={isLoggedin ? <Schedule /> : <Navigate to="/" replace />} />
-        <Route path="/groups" element={isLoggedin ? <Groups /> : <Navigate to="/" replace />} />
-        <Route path="/notifications" element={isLoggedin ? <Notifications /> : <Navigate to="/" replace />} />
+        <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
+        <Route path="/friends" element={<RequireAuth><Friends /></RequireAuth>} />
+        <Route path="/schedule" element={<RequireAuth><Schedule /></RequireAuth>} />
+        <Route path="/groups" element={<RequireAuth><Groups /></RequireAuth>} />
+        <Route path="/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/" replace />} />
-      
       </Routes>
       </NotificationProvider>
     </Router>
+    )}
     </>
   );
 };

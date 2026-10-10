@@ -51,7 +51,7 @@ const unionMinutes = (ranges) => {
 const round1 = (n) => Math.round(n * 10) / 10;
 
 // schedules: plain objects with entries, holidayOverrides and holidays (a date -> name map
-// already resolved for that schedule's country).
+// already resolved, Philippine public holidays).
 export const buildWeekOverview = (schedules, startIso, dayCount = 7) => {
     const days = [];
     for (let i = 0; i < dayCount; i += 1) {
@@ -77,6 +77,7 @@ export const buildWeekOverview = (schedules, startIso, dayCount = 7) => {
                     startTime: entry.startTime,
                     endTime: entry.endTime,
                     location: entry.location || '',
+                    meetingUrl: entry.meetingUrl || '',
                 });
             }
         }

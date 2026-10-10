@@ -2,23 +2,19 @@
 
 Read this first after a `/clear`. It's the short "where we left off" note. `CLAUDE.md` has the full project reference, this file only has the current state.
 
-Last updated: 2026-09-30 (after main schedule, exams, suggestions)
+Last updated: 2026-10-10 (schedule workspace)
 
 ## Where things stand
-- **Newest (2026-10-02), branch `feature/shared-schedule-editing`, NOT committed:** live shared schedules. Friends or an editor share code can edit one schedule together, every change is logged and notified to the others (see CLAUDE.md, "Live shared schedules"). Server tests 242 pass, client builds. **Not checked in a browser yet**: share modal role pickers, "Join and edit" in the import dialog, Recent changes panel, the member workload checkbox, dark mode, mobile. Previous branch `feature/main-schedule-exams-suggestions` is merged into main.
-- **Current branch: `feature/main-schedule-exams-suggestions`, NOT committed yet** (previous branch `feature/dashboard-guidance-groups-profiles` is merged into main). Work on it: one main schedule + extras, exam/event entries feeding the workload, move suggestions, optional friend-share preview (see CLAUDE.md). Tests 228. Browser-checked: dashboard exam note, suggestion panel, schedule list sections, friend-share import preview. Not checked: Add exam modal, extra-vs-main overlap tags, Make this my main, dark mode, mobile.
-- (Group/profile work below.) Server tests 192 passing, client builds. Details are in CLAUDE.md ("Dashboard focus, guidance, groups and profiles"). Checked in a browser: today panel (in-class, caught up, tomorrow), group roles list, member dialog, add friend, public profile. Not eyeballed: group settings dialog, icon upload, family-friendly toast, avatar upload, dark mode, mobile widths, friends page avatars. Restart the dev server for the new group fields.
-- Older notes below.
-- **Branch:** `polish/legal-and-visual-refresh`, pushed and merged into `main` (2026-09-30). Branch from `main` for the next piece of work. Server tests: 150 passing. Client builds, design detector clean.
-- **Just finished:** Terms + Privacy pages and consent (sign-up checkbox, `TermsGate` for everyone else); schedule sharing rebuilt like task sharing (code or group chat post, import preview with conflicts, retime or skip entries, add to new or existing schedule); task import preview (already-added, busy-day warning, 409 on duplicates); sidebar grouping; motion pass; dashboard greeting summary and count-up.
-- Checked in a browser against an in-memory server: chat schedule card, import dialog (duplicate and both clashes detected, added, card flips to "In your schedules"), task dialog, consent gate, terms page, sign-up checkbox. Not eyeballed: mobile widths, dark mode of the new dialogs, the auth-page drift on a real GPU.
-- **Owner should confirm** the claims in the Privacy Policy (see CLAUDE.md, Terms section) before real users see it.
-- **Not done:** other pages (Profile, Friends, Groups, Settings, About) only got the shared motion and hover polish, not a layout redo. No custom 404 (unknown URLs redirect home).
+- **Newest (2026-10-10), branch `feature/schedule-workspace`, merged into `main` via PR.** Create Task page removed (tasks are added from the schedule, in its theme, and show on their due day), Philippine-only holidays on a month calendar with range selection, Google Docs-style sharing (viewer/editor roles, editors-can-share setting, general access by code or link, make private, make a copy), online class links with Join buttons, 4-second live updates, and deep links that survive a reload or login. Details in CLAUDE.md, "Schedule workspace". Server tests 258 passing, client builds.
+- Checked in a browser against an in-memory server (desktop width, plus a 375px iframe probe): task form and due chips, Add/More/Theme menus, Info section with meeting link, holiday calendar (range select, name, remove a public holiday), share dialog (code on, role switch, editors-can-share, make private), live update from another user (about 2s), opening a share link while signed out, viewer details card with Join, make a copy, dashboard Join button. Contrast of the new pieces measured at 4.5:1 or better in all 6 themes, light and dark. **Not eyeballed**: dark mode by screenshot (only measured), a real phone, the week view's per-day day-off button after the calendar change.
+- **Owner decisions pending**: the Terms/Privacy text about sharing changed, but `LEGAL_VERSION` was not bumped, so nobody is asked to re-accept. Bump it if you want that.
+- All earlier branches (`feature/shared-schedule-editing`, `feature/main-schedule-exams-suggestions`, etc.) are merged into `main`. Older notes below are history.
 
 ## Vercel fix (2026-09-29)
 - Every git-triggered Vercel build had failed since Sep 18 (`vite: command not found`, exit 127). Cause: Root Directory was `./`, should be `client`. Set it to `client` in the dashboard and redeployed `main` (`0e15609`, PR #12 already merged). Live site now serves the latest build.
 - Google OAuth origin for the Vercel URL was already present, no change needed. A real Google sign-in on the live site is still untried.
 - Possible leftover: a second Vercel project named `client` (domain `client-indol-theta-46.vercel.app`) from an old CLI deploy. Harmless, delete in the dashboard if wanted.
+- Heads-up (2026-10-10): this machine's `client/.vercel/project.json` is linked to that leftover `client` project, not `stresscare`. Git pushes still deploy correctly, but a manual `vercel` CLI deploy from `client/` would go to the wrong project. Run `vercel link` and pick `stresscare` before deploying by hand. (The Vercel CLI isn't installed on this machine right now, and the Vercel connector has no access to the `art-8707` team.)
 
 ## Mobile login fix (2026-09-29, needs a phone test)
 - Login didn't stick on phones: the cookie was third-party (site on vercel.app, API on onrender.com). Fix merged as PR #13 on branch `fix/mobile-login-cookie`: `client/vercel.json` proxies `/api/*` to Render, and Production `VITE_BACKEND_URL` was set to `https://stresscare-art-8707.vercel.app`, then redeployed.
@@ -48,8 +44,8 @@ Last updated: 2026-09-30 (after main schedule, exams, suggestions)
 - **Port 5000 is the owner's real dev server** (nodemon, real Atlas database), usually running along with Vite on 5173. Never run test servers on 5000. For manual UI testing, use an in-memory MongoDB (`mongodb-memory-server`) on another port, with `VITE_BACKEND_URL` pointing at it. Windows lets two processes bind the same port, which silently sends requests to the wrong server.
 - **Restart the dev server** to pick up the notification changes (new model fields, routes, reminder job).
 - Page wrapper class is `app app-layout` (not `app-container`), or the sidebar renders full width.
-- A full page reload on any route redirects to `/dashboard` (known quirk), so deep links like `?s=<id>` or `?g=<id>` don't survive a refresh. Navigate in-app when testing.
-- The browser `resize_window` tool doesn't work here. Probe mobile layouts with a fixed-width iframe instead. Screenshots of a hidden tab can time out, so retry or check computed styles.
+- Deep links (`?s=`, `?g=`, `?code=`) now survive a full reload and a login (fixed 2026-10-10).
+- The browser `resize_window` tool doesn't work here. Probe mobile layouts with a fixed-width iframe instead. Screenshots of a hidden tab can time out, so retry or check computed styles. Typing into a background tab can silently do nothing: set React inputs through the native value setter plus an `input` event. The open schedule page skips its live check while `document.hidden`, so override that when testing live updates.
 - Global CSS styles bare `label`, `input`, `select` (column flex, width 100%). New form rows need explicit `flex-direction` and `width` overrides.
 - The Bash tool choked on a long heredoc containing apostrophes. Use the Write or Edit tools for big files.
 - Lint: `react-hooks/set-state-in-effect` on fetch-in-effect is an existing pattern (Groups, Friends, NotificationContext), not something new.

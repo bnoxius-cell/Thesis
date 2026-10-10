@@ -75,22 +75,48 @@ export const resolveHoliday = (iso, publicByDate, overrides) => {
   return null;
 };
 
-// A small, common set. Nager.Date covers all of these.
-export const COUNTRY_CODES = [
-  "PH", "US", "GB", "CA", "AU", "NZ", "IE", "SG", "MY", "ID", "TH", "VN", "JP", "KR", "CN", "HK", "TW",
-  "IN", "PK", "BD", "LK", "NP", "AE", "SA", "QA", "KW", "ZA", "NG", "KE", "EG", "DE", "FR", "ES", "IT",
-  "PT", "NL", "BE", "CH", "AT", "SE", "NO", "DK", "FI", "PL", "GR", "TR", "BR", "MX", "AR", "CL", "CO", "PE",
-];
+// Every schedule uses Philippine public holidays (the server always asks for PH).
+export const HOLIDAY_COUNTRY_NAME = "Philippines";
 
-let regionNames;
-export const countryName = (code) => {
+// ---- Online classes --------------------------------------------------------
+
+// Same rule as the server: a full http(s) address, so a Join button can only open a web page.
+export const isWebLink = (value) => {
   try {
-    regionNames ??= new Intl.DisplayNames(undefined, { type: "region" });
-    return regionNames.of(code) || code;
+    const url = new URL(value);
+    return (url.protocol === "https:" || url.protocol === "http:") && Boolean(url.hostname);
   } catch {
-    return code;
+    return false;
   }
 };
+
+// What to call a meeting link on its Join button. Anything unknown is just "Join".
+export const meetingProvider = (value) => {
+  let host = "";
+  try {
+    host = new URL(value).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  const is = (domain) => host === domain || host.endsWith(`.${domain}`);
+  if (is("meet.google.com")) return { name: "Google Meet", short: "Meet" };
+  if (is("zoom.us") || is("zoom.com")) return { name: "Zoom", short: "Zoom" };
+  if (is("teams.microsoft.com") || is("teams.live.com")) return { name: "Microsoft Teams", short: "Teams" };
+  if (is("discord.gg") || is("discord.com")) return { name: "Discord", short: "Discord" };
+  if (is("webex.com")) return { name: "Webex", short: "Webex" };
+  if (is("jit.si")) return { name: "Jitsi", short: "Jitsi" };
+  return { name: host.replace(/^www\./, ""), short: "" };
+};
+
+// The link a share code makes. Opening it shows the schedule (as a viewer or editor, whatever
+// the code allows) with the option to copy it instead.
+export const shareLinkFor = (code) => `${window.location.origin}/schedule?code=${code}`;
+
+// ---- Tasks -----------------------------------------------------------------
+
+// Tasks store their due date as midnight UTC of the picked day, so read the day back in UTC
+// (the same way the task forms always have) to land on the right column of the week.
+export const taskDueIso = (dueDate) => (dueDate ? new Date(dueDate).toISOString().slice(0, 10) : "");
 
 // ---- Themes ----------------------------------------------------------------
 

@@ -11,6 +11,7 @@ import PSSSurveyModal from "../components/PSSSurveyModal";
 import WHOSurveyModal from "../components/WHOSurveyModal";
 import CheckInBanner from "../components/CheckInBanner";
 import TaskImportDialog from "../components/TaskImportDialog";
+import JoinLink from "../components/schedule/JoinLink";
 import { AlertTriangle, Eye, Lightbulb, Sparkles, CalendarDays, MapPin, CircleCheck, Download, Plus, CalendarClock } from "lucide-react";
 import { toISODate, formatTime, fromISODate } from "../utils/scheduleUtils";
 import { buildWeek, computeWorkload, getTaskMetrics, surveyStatus, examsToTasks, examPressure, PSS_VALID_DAYS, WHO_VALID_DAYS } from "../utils/workload";
@@ -98,6 +99,7 @@ function EntryList({ entries, label, live = false }) {
               {entry.location && <> · <MapPin size={12} aria-hidden="true" /> {entry.location}</>}
             </span>
           </div>
+          {entry.meetingUrl && <JoinLink url={entry.meetingUrl} className={`today-join${live ? " is-live" : ""}`} />}
         </li>
       ))}
     </ul>
@@ -458,7 +460,7 @@ const Dashboard = () => {
               <h2>Add your first task</h2>
               <p>StressCare turns your deadlines and your class schedule into a realistic weekly plan and a gentle read on how you're doing, once there's something to work with.</p>
               <div className="welcome-actions">
-                <Link to="/create-task" className="primary-button">+ Add your first task</Link>
+                <Link to="/schedule?task=new" className="primary-button">+ Add your first task</Link>
                 <Link to="/schedule" className="ghost-button"><CalendarDays size={16} aria-hidden="true" /> Add your class schedule</Link>
               </div>
               <p className="welcome-hint">Feel free to look around first. Nothing here needs to happen right away.</p>
@@ -524,7 +526,7 @@ const Dashboard = () => {
                     <strong>You're all caught up</strong>
                     <p>No open tasks right now. Enjoy it, or use the time to plan ahead.</p>
                     <div className="caught-up-actions">
-                      <Link to="/create-task" className="ghost-button today-add"><Plus size={16} aria-hidden="true" /> Add a task</Link>
+                      <Link to="/schedule?task=new" className="ghost-button today-add"><Plus size={16} aria-hidden="true" /> Add a task</Link>
                       <button
                         type="button"
                         className="ghost-button today-add"
@@ -572,7 +574,7 @@ const Dashboard = () => {
 
               {!focus.caughtUp && (
                 <div className="today-actions">
-                  <Link to="/create-task" className="ghost-button today-add">+ Add a task</Link>
+                  <Link to="/schedule?task=new" className="ghost-button today-add">+ Add a task</Link>
                   <Link to="/schedule" className="ghost-button today-add"><CalendarDays size={16} aria-hidden="true" /> {hasSchedule ? "View schedule" : "Add your class schedule"}</Link>
                 </div>
               )}
