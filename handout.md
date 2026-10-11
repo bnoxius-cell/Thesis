@@ -2,9 +2,16 @@
 
 Read this first after a `/clear`. It's the short "where we left off" note. `CLAUDE.md` has the full project reference, this file only has the current state.
 
-Last updated: 2026-10-11 (dialogs + Guide button done, branch `feature/dialogs-and-tutorials`)
+Last updated: 2026-10-11, end of session. On `main`, clean, everything merged (PRs #20, #21) and live. Nothing in progress.
 
-## Dialogs, Guide button, mobile rule (2026-10-11, branch `feature/dialogs-and-tutorials`)
+## Next up
+Nothing is half done. Pick from:
+1. **Real phone pass on the live site** (owner, or with them): the Guide's bottom sheet, the new confirm dialogs, login sticking after the API proxy change, the schedule workspace, a reviewer upload. All are only checked at phone width in a desktop browser so far.
+2. Small fixes seen on 2026-10-11, not done: the dashboard's "Next exam" pill wraps into narrow columns at 375px; the Rename schedule dialog doesn't close on Escape.
+3. The page-by-page redesign list in CLAUDE.md (Profile, Friends, Groups, Notifications, Settings, About, Auth). Read `mobile-rules.md` first: every UI change is also done for mobile in the same change.
+4. Owner's manual reviewer tests (end of `reviewer-report.md`).
+
+## Dialogs, Guide button, mobile rule (2026-10-11, merged as PR #20)
 - **Merged into `main` as PR #20 and live** (checked: the Vercel bundle has the Guide). No server changes. Branch from `main` for the next piece of work.
 - What changed (details in CLAUDE.md, "Dialogs and the page Guide"): every confirm in the app now uses `ConfirmDialog` (TaskBoard mark as done and delete, task-tag copy fallback, Friends remove, Notifications clear all; the old `.confirm-card` CSS is gone). New bottom-right **Guide** button on Dashboard, Schedule and Reviewers with step-by-step help that outlines each section. New `mobile-rules.md` (root) with the "do it for mobile in the same change" rule, pointed to from CLAUDE.md.
 - **Tested in the owner's Chrome** (extension) against an in-memory API on 5070 + Vite on 5174 (real DB untouched): all four dialogs (mark done, delete, remove friend, clear all, plus the forced copy fallback), every Guide step on all three pages and their views (dashboard 7 steps, schedule list 4 and open schedule 4, reviewer list 3, open reviewer 5, Learning Mode 1), Escape/arrow keys, no console errors. Phone widths via a same-origin iframe at 375px and 320px: bottom sheet, 44px tap targets, no horizontal scroll, button clears the footer and Learning Mode's Submit. Contrast measured in light and dark (panel text 6:1 or better, icon 3.7:1 in dark).
