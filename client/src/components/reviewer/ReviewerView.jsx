@@ -283,7 +283,7 @@ export default function ReviewerView({ reviewerId, onBack }) {
   );
 
   const head = (
-    <header className="reviewer-head">
+    <header className="reviewer-head" data-tour="rev-head">
       <button type="button" className="reviewer-back" onClick={onBack}>
         <ArrowLeft size={16} aria-hidden="true" /> All reviewers
       </button>
@@ -370,7 +370,7 @@ export default function ReviewerView({ reviewerId, onBack }) {
 
       <div className="reviewer-layout">
         <div className="reviewer-side">
-          <section className="panel reviewer-practice">
+          <section className="panel reviewer-practice" data-tour="rev-practice">
             <span className="panel-kicker"><BookOpenCheck size={15} aria-hidden="true" /> Learning Mode</span>
             <h2>Practice</h2>
             <p>One question at a time. You'll see the answer and why after each one.</p>
@@ -397,7 +397,7 @@ export default function ReviewerView({ reviewerId, onBack }) {
             </div>
           </section>
 
-          <section className="panel reviewer-practice reviewer-targeted" aria-live="polite">
+          <section className="panel reviewer-practice reviewer-targeted" aria-live="polite" data-tour="rev-targeted">
             <span className="panel-kicker"><Sparkles size={15} aria-hidden="true" /> Targeted review</span>
             <h2>More on weak spots</h2>
             {targeted.status === "processing" ? (
@@ -437,7 +437,7 @@ export default function ReviewerView({ reviewerId, onBack }) {
             )}
           </section>
 
-          <section className="panel reviewer-progress">
+          <section className="panel reviewer-progress" data-tour="rev-progress">
             <span className="panel-kicker">How you're doing</span>
             <h2>Topics</h2>
             {progress?.sessions ? (
@@ -479,7 +479,7 @@ export default function ReviewerView({ reviewerId, onBack }) {
           </section>
         </div>
 
-        <div className="reviewer-main">
+        <div className="reviewer-main" data-tour="rev-notes">
           <section className="panel reviewer-notes">
             <span className="panel-kicker">Summary</span>
             <h2>What this covers</h2>

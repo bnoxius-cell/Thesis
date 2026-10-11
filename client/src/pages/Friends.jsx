@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "./authentication/AuthContext";
 import axios from "axios";
 import UserAvatar from "../components/UserAvatar";
+import ConfirmDialog from "../components/ConfirmDialog";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import "../App.css";
@@ -16,6 +17,8 @@ export default function Friends() {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(true);
+  const [confirmRemove, setConfirmRemove] = useState(null); // the friend being removed
+  const [removing, setRemoving] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -82,23 +85,27 @@ export default function Friends() {
     }
   };
 
-  const removeFriend = async (friendId) => {
-    if (window.confirm("Remove this friend?")) {
-      try {
-        const { data } = await axios.delete(`${backendUrl}/api/friends/${friendId}`, { withCredentials: true });
-        if (data.success) {
-          setFriends(prev => prev.filter(f => f._id !== friendId));
-          setSuccessMsg("Friend removed.");
-          setTimeout(() => setSuccessMsg(""), 3000);
-        } else {
-          setError("Failed to remove friend.");
-          setTimeout(() => setError(""), 3000);
-        }
-      } catch (err) {
-        console.error(err);
+  const removeFriend = async () => {
+    const friendId = confirmRemove?._id;
+    if (!friendId) return;
+    setRemoving(true);
+    try {
+      const { data } = await axios.delete(`${backendUrl}/api/friends/${friendId}`, { withCredentials: true });
+      if (data.success) {
+        setFriends(prev => prev.filter(f => f._id !== friendId));
+        setSuccessMsg("Friend removed.");
+        setTimeout(() => setSuccessMsg(""), 3000);
+      } else {
         setError("Failed to remove friend.");
         setTimeout(() => setError(""), 3000);
       }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to remove friend.");
+      setTimeout(() => setError(""), 3000);
+    } finally {
+      setRemoving(false);
+      setConfirmRemove(null);
     }
   };
 
@@ -230,7 +237,7 @@ export default function Friends() {
                     <span className="friend-id">Tag: {friend.profileTag}</span>
                     <small>{friend.email}</small>
                   </Link>
-                  <button className="icon-btn remove-friend-btn" onClick={() => removeFriend(friend._id)} aria-label={`Remove ${friend.name}`}>✕</button>
+                  <button className="icon-btn remove-friend-btn" onClick={() => setConfirmRemove(friend)} aria-label={`Remove ${friend.name}`}>✕</button>
                 </div>
               ))}
             </div>
@@ -267,6 +274,18 @@ export default function Friends() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(confirmRemove)}
+        title="Remove this friend?"
+        confirmLabel="Remove friend"
+        tone="danger"
+        busy={removing}
+        onConfirm={removeFriend}
+        onCancel={() => setConfirmRemove(null)}
+      >
+        <p>You and <strong>{confirmRemove?.name}</strong> will no longer be friends. You can send a new request later.</p>
+      </ConfirmDialog>
 
       <Footer />
     </div>

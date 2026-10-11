@@ -9,6 +9,7 @@ import {
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import ConfirmDialog from "../components/ConfirmDialog";
+import PageTour from "../components/PageTour";
 import TaskImportDialog from "../components/TaskImportDialog";
 import WeekView from "../components/schedule/WeekView";
 import HolidayCalendar from "../components/schedule/HolidayCalendar";
@@ -24,6 +25,7 @@ import { useAuth } from "./authentication/AuthContext";
 import {
   SCHEDULE_THEMES, startOfWeek, addDays, toISODate, fromISODate, taskDueIso,
 } from "../utils/scheduleUtils";
+import { SCHEDULE_TOUR } from "../utils/tours";
 import "../App.css";
 
 // How often an open schedule checks for changes made by others. The check is tiny; the full
@@ -651,7 +653,7 @@ export default function Schedule() {
             </div>
           ) : (
             <div className="sched" data-sched-theme={schedule.theme}>
-              <section className="sched-top panel">
+              <section className="sched-top panel" data-tour="sched-head">
                 <div className="sched-top-row">
                   <div className="sched-top-title">
                     <span className="panel-kicker">
@@ -662,7 +664,7 @@ export default function Schedule() {
                     <AccessLine schedule={schedule} />
                   </div>
 
-                  <div className="sched-actions">
+                  <div className="sched-actions" data-tour="sched-actions">
                     {canEdit ? (
                       <Menu trigger={<><Plus size={18} aria-hidden="true" /> Add <ChevronDown size={16} aria-hidden="true" /></>} className="primary-button" wide>
                         {(close) => (
@@ -793,6 +795,7 @@ export default function Schedule() {
           )}
         </main>
         <Footer />
+        <PageTour page="schedule" title="Schedule" steps={SCHEDULE_TOUR} />
 
         <div className="sched-layer" data-sched-theme={schedule?.theme || "classic"}>
           {entryModal && (
@@ -854,7 +857,7 @@ export default function Schedule() {
     <div className="app app-layout">
       <Header />
       <main className="dashboard">
-        <section className="hero" id="schedule-hero">
+        <section className="hero" id="schedule-hero" data-tour="sched-intro">
           <div className="hero-copy">
             <span className="eyebrow">Plan your week</span>
             <h1>Your schedule</h1>
@@ -876,7 +879,7 @@ export default function Schedule() {
           </aside>
         </section>
 
-        <div className="groups-actions">
+        <div className="groups-actions" data-tour="sched-list-actions">
           <button className="primary-button" onClick={() => { setFormError(""); setNewTitle(""); setCreateOpen(true); }}>
             <Plus size={18} aria-hidden="true" /> {mainSchedule ? "New extra schedule" : "Create my schedule"}
           </button>
@@ -899,7 +902,7 @@ export default function Schedule() {
           </div>
         ) : (
           <>
-            <section className="sched-section">
+            <section className="sched-section" data-tour="sched-main">
               <h2 className="sched-section-title">Main schedule</h2>
               {mainSchedule ? (
                 <button
@@ -930,7 +933,7 @@ export default function Schedule() {
             </section>
 
             {extras.length > 0 && (
-              <section className="sched-section">
+              <section className="sched-section" data-tour="sched-extras">
                 <h2 className="sched-section-title">Extra schedules</h2>
                 <div className="groups-grid">
                   {extras.map((s) => (
@@ -958,7 +961,7 @@ export default function Schedule() {
             )}
 
             {sharedWithMe.length > 0 && (
-              <section className="sched-section">
+              <section className="sched-section" data-tour="sched-shared">
                 <h2 className="sched-section-title">Shared with you</h2>
                 <p className="sched-hint">Open one to see it as it changes. Some you can edit together. Copying one into your own is your call.</p>
                 <div className="groups-grid">
@@ -990,6 +993,7 @@ export default function Schedule() {
         )}
       </main>
       <Footer />
+      <PageTour page="schedule" title="Schedule" steps={SCHEDULE_TOUR} />
 
       <div className="sched-layer" data-sched-theme={mainSchedule?.theme || "classic"}>
         {dialogs}

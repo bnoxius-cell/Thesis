@@ -1650,103 +1650,6 @@ input[type="range"] {
   font-weight: 600;
   line-height: 1;
 }
-.confirm-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-}
-.confirm-card {
-  width: 300px;
-  height: fit-content;
-  background: var(--panel-bg);
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  padding: 30px;
-  position: relative;
-  box-shadow: var(--card-shadow);
-  color: var(--text-primary);
-}
-.confirm-card .card-content {
-  width: 100%;
-  height: fit-content;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  text-align: center;
-}
-.confirm-card .card-heading {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-}
-.confirm-card .card-description {
-  font-weight: 100;
-  color: var(--text-secondary);
-  margin: 0;
-}
-.confirm-card .card-button-wrapper {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-.confirm-card .card-button {
-  width: 50%;
-  height: 35px;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-.confirm-card .primary {
-  background-color: var(--clay);
-  color: white;
-}
-.confirm-card .primary:hover {
-  background-color: #9c4835;
-}
-.confirm-card .secondary {
-  background-color: var(--mist);
-  color: var(--text-primary);
-}
-.confirm-card .secondary:hover {
-  background-color: var(--sage-soft);
-}
-.confirm-card .exit-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background-color: transparent;
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  cursor: pointer;
-  padding: 0;
-}
-.confirm-card .exit-button svg {
-  fill: var(--text-secondary);
-  width: 16px;
-  height: 16px;
-  transition: fill 0.2s;
-}
-.confirm-card .exit-button:hover svg {
-  fill: var(--text-primary);
-}
 
 /* ==========================================================================
    NOTIFICATIONS MARK AS READ BUTTON
@@ -2120,6 +2023,14 @@ input[type="range"] {
 .primary-button.confirm-danger {
   background: var(--clay);
   color: #fff;
+}
+.confirm-dialog-code {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ==========================================================================
@@ -6513,4 +6424,195 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   .learning-progress span { transition: none; }
   .reviewer-card:hover,
   .learning-option:hover:not(:disabled) { transform: none; }
+}
+
+/* ==========================================================================
+   PAGE GUIDE: bottom-right Guide button and its step panel (components/PageTour.jsx)
+   Desktop: a pill button and a card above it. Phones (720px and under): a round
+   icon button and a bottom sheet. Both clear the home bar (safe-area insets).
+   ========================================================================== */
+.tour-button {
+  position: fixed;
+  right: calc(24px + env(safe-area-inset-right));
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 900;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 18px 0 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 22%, transparent);
+  background: var(--panel-bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+  cursor: pointer;
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s ease;
+}
+.tour-button svg { color: var(--sage); flex: none; }
+.tour-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.2);
+}
+.tour-button:focus-visible { outline: 2px solid var(--sage); outline-offset: 3px; }
+.tour-button.is-open svg { color: var(--text-primary); }
+.tour-button-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--ochre);
+  border: 2px solid var(--panel-bg);
+}
+
+.tour-panel {
+  position: fixed;
+  right: calc(24px + env(safe-area-inset-right));
+  bottom: calc(24px + 46px + 12px + env(safe-area-inset-bottom));
+  z-index: 901;
+  width: min(360px, calc(100vw - 48px));
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+  padding: 16px 18px 18px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 18%, transparent);
+  background: var(--panel-bg);
+  color: var(--text-primary);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+  transform-origin: bottom right;
+  animation: pop-in 0.32s var(--ease-out);
+}
+.tour-panel-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tour-kicker {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-primary) 72%, var(--panel-bg));
+}
+.tour-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: -6px -8px -6px 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.tour-close:hover { background: var(--mist); }
+.tour-panel h2 {
+  margin: 8px 0 6px;
+  font-size: 1.2rem;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+.tour-panel h2:focus { outline: none; }
+.tour-panel p {
+  margin: 0;
+  line-height: 1.55;
+  color: var(--text-primary);
+}
+.tour-panel-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+.tour-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+.tour-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-secondary) 30%, transparent);
+  transition: width 0.2s var(--ease-out), background 0.2s ease;
+}
+.tour-dots span.is-done { background: color-mix(in srgb, var(--sage) 45%, transparent); }
+.tour-dots span.is-current { width: 16px; background: var(--sage); }
+.tour-nav {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+.tour-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The section the current step is about. Outline only: no animation, because the
+   page's sections already carry their own rise-in animation and replacing it would replay it. */
+.tour-target {
+  outline: 3px solid var(--sage);
+  outline-offset: 4px;
+}
+
+/* Room under the footer so the button never sits on top of its last links. */
+.app:has(> .tour-button) .site-footer {
+  padding-bottom: calc(24px + 46px + 24px + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 720px) {
+  .tour-button {
+    right: calc(14px + env(safe-area-inset-right));
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    width: 48px;
+    height: 48px;
+    min-height: 0;
+    padding: 0;
+    justify-content: center;
+  }
+  .tour-button-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .tour-button-dot { top: -1px; right: -1px; }
+  .tour-nav button { min-height: 44px; padding-inline: 16px; }
+  .tour-close { width: 44px; height: 44px; margin: -10px -12px -10px 0; }
+  .tour-panel {
+    left: calc(8px + env(safe-area-inset-left));
+    right: calc(8px + env(safe-area-inset-right));
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    width: auto;
+    max-height: 60vh;
+    padding: 14px 16px 16px;
+    border-radius: 18px;
+    transform-origin: bottom center;
+  }
+  .app:has(> .tour-button) .site-footer {
+    padding-bottom: calc(14px + 48px + 20px + env(safe-area-inset-bottom));
+  }
+}
+@media (max-width: 360px) {
+  .tour-panel-foot { flex-wrap: wrap; }
+  .tour-nav { width: 100%; justify-content: flex-end; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-panel { animation: none; }
+  .tour-button,
+  .tour-dots span { transition: none; }
+  .tour-button:hover { transform: none; }
 }

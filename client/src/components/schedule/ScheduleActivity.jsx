@@ -17,7 +17,7 @@ export default function ScheduleActivity({ schedule }) {
   const recent = [...(schedule.activity || [])].reverse().slice(0, 12);
 
   return (
-    <section className="panel sched-activity" aria-labelledby="sched-activity-heading">
+    <section className="panel sched-activity" aria-labelledby="sched-activity-heading" data-tour="sched-activity">
       <div className="sched-activity-head">
         <div>
           <span className="panel-kicker"><History size={16} aria-hidden="true" /> Recent changes</span>

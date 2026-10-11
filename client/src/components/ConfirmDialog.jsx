@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 
 // In-app replacement for window.confirm. `tone="danger"` is for destructive actions
 // (delete, leave) and uses the clay color; everything else uses the normal button.
+// `cancelLabel={null}` drops the cancel button, for a notice with a single "Done".
 export default function ConfirmDialog({
   open,
   title,
@@ -39,9 +40,11 @@ export default function ConfirmDialog({
         <h2 id="confirm-dialog-title" className="confirm-dialog-title">{title}</h2>
         <div className="confirm-dialog-body">{children}</div>
         <div className="modal-actions">
-          <button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>
-            {cancelLabel}
-          </button>
+          {cancelLabel !== null && (
+            <button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>
+              {cancelLabel}
+            </button>
+          )}
           <button
             type="button"
             ref={confirmRef}

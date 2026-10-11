@@ -112,7 +112,7 @@ export default function HolidayCalendar({
   const isThisMonth = monthKey === todayIso.slice(0, 7);
 
   return (
-    <section className="panel sched-cal" aria-labelledby="sched-cal-heading">
+    <section className="panel sched-cal" aria-labelledby="sched-cal-heading" data-tour="sched-cal">
       <div className="sched-cal-head">
         <div>
           <span className="panel-kicker">Days off · {HOLIDAY_COUNTRY_NAME}</span>
