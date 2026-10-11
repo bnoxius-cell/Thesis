@@ -118,7 +118,7 @@ export default function LearningMode({ reviewerId, title, session, onFinished, o
   };
 
   return (
-    <section className="reviewer-learning" aria-label={`Learning Mode: ${title}`}>
+    <section className="reviewer-learning" aria-label={`Learning Mode: ${title}`} data-tour="rev-learning">
       <div className="learning-top">
         <div className="learning-count">
           <span>Question {index + 1} of {questions.length}</span>

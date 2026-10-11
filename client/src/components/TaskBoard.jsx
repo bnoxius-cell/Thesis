@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ConfirmDialog from "./ConfirmDialog";
 
 function formatDays(daysLeft) {
   if (daysLeft < 0) return `${Math.abs(daysLeft)} day(s) overdue`;
@@ -33,9 +34,10 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask, o
     importance: 3,
   });
   const [copiedCode, setCopiedCode] = useState("");
-
-  // State for delete confirmation modal
-  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, taskId: null });
+  // { kind: "done" | "delete", task }: asks before a task leaves the board.
+  const [confirm, setConfirm] = useState(null);
+  // Tag to show for copying by hand when the browser blocks the clipboard.
+  const [manualCopy, setManualCopy] = useState("");
 
   const openEditModal = (task) => {
     setEditingTask(task);
@@ -66,13 +68,6 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask, o
     }
   };
 
-  const handleMarkDone = (taskId) => {
-    const confirmDone = window.confirm("✅ Mark this task as done?\nIt will be removed from your board.");
-    if (confirmDone) {
-      onMarkDone(taskId);
-    }
-  };
-
   const copyTaskCode = async (shareTag) => {
     if (!shareTag) return;
 
@@ -81,24 +76,14 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask, o
       setCopiedCode(shareTag);
       setTimeout(() => setCopiedCode(""), 1600);
     } catch {
-      window.prompt("Copy this task code:", shareTag);
+      setManualCopy(shareTag);
     }
   };
 
-  // Show custom delete confirmation modal
-  const confirmDelete = (taskId) => {
-    setDeleteConfirm({ show: true, taskId });
-  };
-
-  const handleDeleteConfirmed = () => {
-    if (deleteConfirm.taskId) {
-      onDeleteTask(deleteConfirm.taskId);
-    }
-    setDeleteConfirm({ show: false, taskId: null });
-  };
-
-  const cancelDelete = () => {
-    setDeleteConfirm({ show: false, taskId: null });
+  const handleConfirm = () => {
+    if (confirm?.kind === "done") onMarkDone(confirm.task._id);
+    if (confirm?.kind === "delete") onDeleteTask(confirm.task._id);
+    setConfirm(null);
   };
 
   return (
@@ -123,21 +108,21 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask, o
 
                 <div className="task-actions">
                   {/* EDIT BUTTON */}
-                  <button className="edit-button" onClick={() => openEditModal(task)}>
+                  <button type="button" className="edit-button" onClick={() => openEditModal(task)} aria-label={`Edit ${task.title}`} title="Edit">
                     <svg className="edit-svgIcon" viewBox="0 0 512 512">
                       <path d="M410.3 231l11.3-11.3-33.9-33.9-62.1-62.1L291.7 89.8l-11.3 11.3-22.6 22.6L58.6 322.9c-10.4 10.4-18 23.3-22.2 37.4L1 480.7c-2.5 8.4-.2 17.5 6.1 23.7s15.3 8.5 23.7 6.1l120.3-35.4c14.1-4.2 27-11.8 37.4-22.2L387.7 253.7 410.3 231zM160 399.4l-9.1 22.7c-4 3.1-8.5 5.4-13.3 6.9L59.4 452l23-78.1c1.4-4.9 3.8-9.4 6.9-13.3l22.7-9.1v32c0 8.8 7.2 16 16 16h32zM362.7 18.7L348.3 33.2 325.7 55.8 314.3 67.1l33.9 33.9 62.1 62.1 33.9 33.9 11.3-11.3 22.6-22.6 14.5-14.5c25-25 25-65.5 0-90.5L453.3 18.7c-25-25-65.5-25-90.5 0zm-47.4 168l-144 144c-6.2 6.2-16.4 6.2-22.6 0s-6.2-16.4 0-22.6l144-144c6.2-6.2 16.4-6.2 22.6 0s6.2 16.4 0 22.6z"></path>
                     </svg>
                   </button>
 
                   {/* DONE BUTTON */}
-                  <button className="done-button" onClick={() => handleMarkDone(task._id)}>
+                  <button type="button" className="done-button" onClick={() => setConfirm({ kind: "done", task })} aria-label={`Mark ${task.title} as done`} title="Mark as done">
                     <svg className="done-svgIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M20 6L9 17l-5-5" />
                     </svg>
                   </button>
 
                   {/* REMOVE BUTTON (animated, with trash icon) */}
-                  <button className="remove-button" onClick={() => confirmDelete(task._id)}>
+                  <button type="button" className="remove-button" onClick={() => setConfirm({ kind: "delete", task })} aria-label={`Delete ${task.title}`} title="Delete">
                     <svg className="remove-svgIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                       <line x1="10" y1="11" x2="10" y2="17" />
@@ -252,26 +237,40 @@ export default function TaskBoard({ tasks, schedule, onDeleteTask, onEditTask, o
         </div>
       )}
 
-      {/* CUSTOM DELETE CONFIRMATION MODAL */}
-      {deleteConfirm.show && (
-        <div className="confirm-overlay">
-          <div className="confirm-card">
-            <button className="exit-button" onClick={cancelDelete}>
-              <svg height="20px" viewBox="0 0 384 512">
-                <path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z" />
-              </svg>
-            </button>
-            <div className="card-content">
-              <p className="card-heading">Delete task?</p>
-              <p className="card-description">This action cannot be undone. The task will be permanently removed.</p>
-            </div>
-            <div className="card-button-wrapper">
-              <button className="card-button secondary" onClick={cancelDelete}>Cancel</button>
-              <button className="card-button primary" onClick={handleDeleteConfirmed}>Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        title={confirm?.kind === "delete" ? "Delete this task?" : "Mark this task as done?"}
+        confirmLabel={confirm?.kind === "delete" ? "Delete" : "Mark as done"}
+        tone={confirm?.kind === "delete" ? "danger" : "default"}
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirm(null)}
+      >
+        {confirm?.kind === "done" && (
+          <p><strong>{confirm.task.title}</strong> moves off your board and stops counting toward your week.</p>
+        )}
+        {confirm?.kind === "delete" && (
+          <p><strong>{confirm.task.title}</strong> will be deleted, and your plan won't count it anymore. This can't be undone.</p>
+        )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={Boolean(manualCopy)}
+        title="Copy this task tag"
+        confirmLabel="Done"
+        cancelLabel={null}
+        onConfirm={() => setManualCopy("")}
+        onCancel={() => setManualCopy("")}
+      >
+        <p>Your browser didn't let us copy it. Select the tag below and copy it yourself.</p>
+        <input
+          className="confirm-dialog-code"
+          type="text"
+          value={manualCopy}
+          readOnly
+          aria-label="Task tag"
+          onFocus={(e) => e.target.select()}
+        />
+      </ConfirmDialog>
     </>
   );
 }

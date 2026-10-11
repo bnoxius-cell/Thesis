@@ -14,7 +14,7 @@ export default function SessionResults({ title, results, starting, onPracticeWea
   const weakTopics = progress?.weakTopics || [];
 
   return (
-    <div className="reviewer-results">
+    <div className="reviewer-results" data-tour="rev-results">
       <button type="button" className="reviewer-back" onClick={onBack}>
         <ArrowLeft size={16} aria-hidden="true" /> {title}
       </button>

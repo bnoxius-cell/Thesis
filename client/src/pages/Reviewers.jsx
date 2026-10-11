@@ -6,6 +6,8 @@ import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import UploadReviewerDialog from "../components/reviewer/UploadReviewerDialog";
 import ReviewerView from "../components/reviewer/ReviewerView";
+import PageTour from "../components/PageTour";
+import { REVIEWERS_TOUR } from "../utils/tours";
 import { formatDate } from "../components/reviewer/reviewerUtils";
 import { useAuth } from "./authentication/AuthContext";
 import "../App.css";
@@ -60,6 +62,7 @@ export default function Reviewers() {
           <ReviewerView key={openId} reviewerId={openId} onBack={close} />
         </main>
         <Footer />
+        <PageTour page="reviewers" title="Reviewers" steps={REVIEWERS_TOUR} />
       </div>
     );
   }
@@ -71,7 +74,7 @@ export default function Reviewers() {
     <div className="app app-layout">
       <Header />
       <main className="dashboard reviewer-page">
-        <section className="reviewer-intro">
+        <section className="reviewer-intro" data-tour="rev-intro">
           <div>
             <span className="panel-kicker"><BookOpenCheck size={15} aria-hidden="true" /> Study</span>
             <h1>Reviewers</h1>
@@ -80,7 +83,7 @@ export default function Reviewers() {
               questions, and you'll see which topics need more of your time.
             </p>
           </div>
-          <div className="reviewer-intro-actions">
+          <div className="reviewer-intro-actions" data-tour="rev-upload">
             <button type="button" className="primary-button" onClick={() => setUploadOpen(true)} disabled={!canUpload}>
               <FileUp size={18} aria-hidden="true" /> Upload a PDF
             </button>
@@ -118,7 +121,7 @@ export default function Reviewers() {
         )}
 
         {data && data.reviewers.length > 0 && (
-          <ul className="reviewer-grid">
+          <ul className="reviewer-grid" data-tour="rev-list">
             {data.reviewers.map((r) => (
               <li key={r._id}>
                 <button type="button" className={`reviewer-card is-${r.status}`} onClick={() => open(r._id)}>
@@ -162,6 +165,7 @@ export default function Reviewers() {
         />
       )}
       <Footer />
+      <PageTour page="reviewers" title="Reviewers" steps={REVIEWERS_TOUR} />
     </div>
   );
 }

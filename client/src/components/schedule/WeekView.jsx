@@ -72,7 +72,7 @@ export default function WeekView({
   const isThisWeek = days.some((d) => toISODate(d) === todayIso);
 
   return (
-    <section className="sched-week" aria-label="Weekly schedule">
+    <section className="sched-week" aria-label="Weekly schedule" data-tour="sched-week">
       <div className="sched-week-bar">
         <div className="sched-week-nav">
           <button type="button" className="sched-icon-button" onClick={() => onShiftWeek(-1)} aria-label="Previous week">

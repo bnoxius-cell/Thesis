@@ -23,7 +23,7 @@ export default function CheckInBanner({
     : "Your well-being check-in is ready whenever you are.";
 
   return (
-    <div className="checkin-banner" role="status">
+    <div className="checkin-banner" role="status" data-tour="dash-checkin">
       <div className="checkin-banner-text">
         <span className="checkin-banner-icon" aria-hidden="true"><MessageCircle size={20} /></span>
         <div>

@@ -11,6 +11,8 @@ import PSSSurveyModal from "../components/PSSSurveyModal";
 import WHOSurveyModal from "../components/WHOSurveyModal";
 import CheckInBanner from "../components/CheckInBanner";
 import TaskImportDialog from "../components/TaskImportDialog";
+import PageTour from "../components/PageTour";
+import { DASHBOARD_TOUR } from "../utils/tours";
 import JoinLink from "../components/schedule/JoinLink";
 import { AlertTriangle, Eye, Lightbulb, Sparkles, CalendarDays, MapPin, CircleCheck, Download, Plus, CalendarClock } from "lucide-react";
 import { toISODate, formatTime, fromISODate } from "../utils/scheduleUtils";
@@ -143,7 +145,7 @@ function SuggestionsPanel({ userId, tasks, fixedTasks, profile, overview, strain
   };
 
   return (
-    <section className="panel suggestions-panel">
+    <section className="panel suggestions-panel" data-tour="dash-suggestions">
       <div className="panel-heading">
         <div>
           <span className="panel-kicker">Smart suggestions</span>
@@ -448,13 +450,13 @@ const Dashboard = () => {
           }}
         />
 
-        <section className="greeting" id="dashboard">
+        <section className="greeting" id="dashboard" data-tour="dash-greeting">
           <h1>{getGreeting()}{firstName ? `, ${firstName}` : ""}.</h1>
           <p>{workloadInsights.isNewUser ? "Here's your space. Let's get it set up." : summarizeDay(today, focus)}</p>
         </section>
 
         {workloadInsights.isNewUser ? (
-          <section className="hero welcome-hero">
+          <section className="hero welcome-hero" data-tour="dash-welcome">
             <div className="hero-copy">
               <span className="panel-kicker">Getting started</span>
               <h2>Add your first task</h2>
@@ -476,7 +478,7 @@ const Dashboard = () => {
           </section>
         ) : (
           <section className="grid today-grid">
-            <section className="panel">
+            <section className="panel" data-tour="dash-today">
               <div className="panel-heading"><div><span className="panel-kicker">{focus.kicker}</span><h2>{focus.heading}</h2></div></div>
 
               {today.holiday && (
@@ -580,7 +582,7 @@ const Dashboard = () => {
               )}
             </section>
 
-            <aside className="hero-panel">
+            <aside className="hero-panel" data-tour="dash-doing">
               <h2>How you're doing</h2>
               <div className={`stress-ring ${BAND_SEVERITY[workloadInsights.band]}`}>
                 <div className="stress-ring-inner">
@@ -609,11 +611,11 @@ const Dashboard = () => {
 
         {!workloadInsights.isNewUser && (
           <section className="grid analytics-grid">
-            <section className="panel">
+            <section className="panel" data-tour="dash-week">
               <div className="panel-heading"><div><span className="panel-kicker">This week</span><h2>How your week adds up</h2></div></div>
               <WorkloadChart schedule={week} hasSchedule={hasSchedule} />
             </section>
-            <section className="panel insights-panel">
+            <section className="panel insights-panel" data-tour="dash-guidance">
               <div className="panel-heading"><div><span className="panel-kicker">Guidance</span><h2>Where to focus</h2></div></div>
               <div className="insight-stack">
                 {workloadInsights.tips.map((tip) => {
@@ -646,7 +648,7 @@ const Dashboard = () => {
           />
         )}
 
-        <section className="panel">
+        <section className="panel" data-tour="dash-tasks">
           <div className="panel-heading"><div><span className="panel-kicker">All tasks</span><h2>Everything on your plate</h2></div></div>
           <form className="task-import-form" onSubmit={importTask}>
             <input id="task-import-code" type="text" inputMode="numeric" maxLength="6" value={importCode} onChange={(e) => handleImportCodeChange(e.target.value)} onPaste={handleImportCodePaste} placeholder="6-digit task tag" />
@@ -657,6 +659,7 @@ const Dashboard = () => {
         </section>
       </main>
       <Footer />
+      <PageTour page="dashboard" title="Dashboard" steps={DASHBOARD_TOUR} />
 
       {/* Mounted only while open, so each one starts from a clean slate
           (unanswered questions, no leftover "thanks for checking in" state)
