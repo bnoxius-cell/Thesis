@@ -2,7 +2,7 @@ import { describe, test, expect } from 'vitest';
 import {
     normalizeReviewer, normalizeTargeted, buildReviewerPrompt, buildTargetedPrompt, planParts, shareOut, textForTopics, clip, MIN_QUESTIONS,
 } from '../utils/reviewerContent.js';
-import { computeProgress, topicStatsFor, topicLevel } from '../utils/reviewerProgress.js';
+import { computeProgress, topicStatsFor, topicLevel, scorePercent } from '../utils/reviewerProgress.js';
 import { extractPdfText, cleanPageText, isPdfBuffer, splitIntoParts } from '../utils/pdfText.js';
 import { makePdf, STUDY_LINES } from './helpers/pdf.js';
 
@@ -60,6 +60,10 @@ describe('normalizeReviewer', () => {
             question({ prompt: 'Empty option?', options: ['One', '', 'Three', 'Four'] }),
             question({ prompt: '   ' }),
             question({ prompt: 'Where do the light dependent reactions happen' }), // same as the first
+            question({ prompt: 'No explanation?', explanation: '   ' }),
+            question({ prompt: 'Answer as text?', correctIndex: 'Stroma' }),
+            question({ prompt: 'Half an index?', correctIndex: 1.5 }),
+            question({ prompt: 'Options not a list?', options: 'Thylakoid, Stroma, Cytoplasm, Matrix' }),
         ]));
         expect(out.questions).toHaveLength(3);
     });
@@ -266,6 +270,23 @@ describe('progress', () => {
         expect(topicLevel(1, 2)).toBe('weak');
         expect(topicLevel(2, 3)).toBe('fair');
         expect(topicLevel(4, 5)).toBe('strong');
+    });
+
+    test('the boundaries: 60% is fair, 80% is strong', () => {
+        expect(topicLevel(59, 100)).toBe('weak');
+        expect(topicLevel(6, 10)).toBe('fair');
+        expect(topicLevel(79, 100)).toBe('fair');
+        expect(topicLevel(8, 10)).toBe('strong');
+        expect(topicLevel(0, 2)).toBe('weak');
+        expect(topicLevel(2, 2)).toBe('strong');
+    });
+
+    test('scores are whole percentages of the questions answered', () => {
+        expect(scorePercent(8, 10)).toBe(80);
+        expect(scorePercent(2, 3)).toBe(67);
+        expect(scorePercent(1, 3)).toBe(33);
+        expect(scorePercent(0, 10)).toBe(0);
+        expect(scorePercent(0, 0)).toBeNull();
     });
 
     test('weak topics come from recent sessions on the current version only', () => {

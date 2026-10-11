@@ -6194,8 +6194,20 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   gap: 20px;
   align-items: start;
 }
-.reviewer-side { grid-column: 2; grid-row: 1; display: grid; gap: 20px; min-width: 0; }
-.reviewer-main { grid-column: 1; grid-row: 1; display: grid; gap: 20px; min-width: 0; }
+/* minmax(0, 1fr): a long unbroken word in the notes must not widen the column past the screen. */
+.reviewer-side { grid-column: 2; grid-row: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; }
+.reviewer-main { grid-column: 1; grid-row: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; }
+/* AI-written text can hold long links or terms with no spaces. */
+.reviewer-notes p,
+.reviewer-points li,
+.reviewer-terms dt,
+.reviewer-terms dd,
+.learning-prompt,
+.learning-feedback p,
+.results-prompt,
+.results-why,
+.results-topic,
+.reviewer-back { overflow-wrap: anywhere; }
 
 .reviewer-practice h2,
 .reviewer-progress h2,

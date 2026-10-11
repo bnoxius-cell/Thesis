@@ -226,7 +226,9 @@ export class InvalidReviewerOutput extends Error {
     }
 }
 
-// One question from the model, cleaned up, or null if it can't be used. `topic` is left as the
+// One question from the model, cleaned up, or null if it can't be used: it needs a prompt, four
+// different non-empty options, a correctIndex that points at one of them (0 to 3), and an
+// explanation. A missing or unknown difficulty becomes "medium". `topic` is left as the
 // model wrote it; the caller decides which topic it belongs to. Answer positions are shuffled
 // because models tend to favour the first options.
 const cleanQuestion = (q, random) => {
@@ -237,6 +239,9 @@ const cleanQuestion = (q, random) => {
     if (options.length !== 4 || options.some((o) => !o)) return null;
     if (new Set(options.map(keyOf)).size !== 4) return null;
     if (!Number.isInteger(q.correctIndex) || q.correctIndex < 0 || q.correctIndex > 3) return null;
+    // Students see the explanation right after answering. A question without one teaches nothing.
+    const explanation = clip(q.explanation, LIMITS.explanation);
+    if (!explanation) return null;
 
     const placed = options.some((o) => ORDER_DEPENDENT.test(o))
         ? { options, correctIndex: q.correctIndex }
@@ -247,7 +252,7 @@ const cleanQuestion = (q, random) => {
         prompt,
         options: placed.options,
         correctIndex: placed.correctIndex,
-        explanation: clip(q.explanation, LIMITS.explanation),
+        explanation,
         difficulty: DIFFICULTIES.includes(q.difficulty) ? q.difficulty : 'medium',
     };
 };
