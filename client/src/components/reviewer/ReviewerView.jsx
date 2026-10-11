@@ -15,6 +15,8 @@ import {
 } from "./reviewerUtils";
 
 const STATUS_POLL_MS = 3000;
+// How long a failed "New questions" stays mentioned on the reviewer.
+const RECENT_FAILURE_MS = 24 * 60 * 60 * 1000;
 const MODE_LABEL = { weak: " · weak topics", targeted: " · new questions" };
 
 // One reviewer: its notes, the student's progress, and Learning Mode. While the AI is still
@@ -36,6 +38,7 @@ export default function ReviewerView({ reviewerId, onBack }) {
 
   const [dialog, setDialog] = useState(null); // rename | regenerate | targeted | delete
   const [busy, setBusy] = useState(false);
+  const [openedAt] = useState(() => Date.now());
 
   const load = useCallback(async () => {
     try {
@@ -72,7 +75,9 @@ export default function ReviewerView({ reviewerId, onBack }) {
         const { data } = await axios.get(`${api}/status`, { withCredentials: true });
         if (!data.success) return;
         if (making && data.status !== "processing") {
-          if (data.status === "ready") toast.success("Your reviewer is ready.");
+          // Ready with an error: new questions failed, and the reviewer kept the ones it had.
+          if (data.status === "ready" && data.error) toast.error(`New questions didn't come through. ${data.error}`);
+          else if (data.status === "ready") toast.success("Your reviewer is ready.");
           load();
         } else if (addingQuestions && data.targeted?.status !== "processing") {
           if (data.targeted?.status === "ready") toast.success(`${data.targeted.added} new questions are ready.`);
@@ -249,6 +254,8 @@ export default function ReviewerView({ reviewerId, onBack }) {
     .reduce((sum, t) => sum + t.questionCount, 0);
   const targeted = reviewer.targeted || { status: "none" };
   const isFull = reviewer.questionCount > MAX_REVIEWER_QUESTIONS - Math.min(...TARGETED_COUNTS);
+  const newSetFailed = reviewer.status === "ready" && reviewer.error
+    && openedAt - new Date(reviewer.requestedAt).getTime() < RECENT_FAILURE_MS;
 
   const dialogs = (
     <>
@@ -350,6 +357,11 @@ export default function ReviewerView({ reviewerId, onBack }) {
   return (
     <>
       {head}
+      {newSetFailed && (
+        <p className="reviewer-note" role="status">
+          <Info size={16} aria-hidden="true" /> New questions didn't come through. {reviewer.error} You still have your current questions.
+        </p>
+      )}
       {reviewer.source?.truncated && (
         <p className="reviewer-note">
           <Info size={16} aria-hidden="true" /> Your PDF was long, so only the first part was used. For the rest, split it and upload the second half.

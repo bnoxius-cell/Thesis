@@ -5,6 +5,7 @@ import reviewerAttemptModel from '../models/reviewerAttemptModel.js';
 import aiRequestModel from '../models/aiRequestModel.js';
 import { extractPdfText, isPdfBuffer, splitIntoParts, MIN_SOURCE_CHARS, PART_CHARS } from '../utils/pdfText.js';
 import { generateJson, isGeminiConfigured } from '../utils/gemini.js';
+import { withRetries as retrying, friendlyError, describeError } from '../utils/aiErrors.js';
 import {
     REVIEWER_SCHEMA, REVIEWER_SYSTEM, TARGETED_SCHEMA, buildReviewerPrompt, buildTargetedPrompt, planParts,
     normalizeReviewer, normalizeTargeted, textForTopics,
@@ -17,8 +18,8 @@ import { computeProgress, summarizeAttempt, topicStatsFor, scorePercent } from '
 export const DAILY_GENERATION_LIMIT = 10;
 // Generation runs in the background after the upload answers. If the server restarts in the
 // middle, nothing would ever finish it, so anything still "processing" after this is failed.
-// Long enough for every retry below to run.
-export const STALE_AFTER_MS = 9 * 60 * 1000;
+// Long enough for every retry below to run: 4 tries of up to 150s (utils/gemini.js) plus waits.
+export const STALE_AFTER_MS = 12 * 60 * 1000;
 // Retries for a busy or flaky AI service. The free tier often answers "high demand" (503) for
 // a minute or so, so the last wait is longer. Tests set these to 0.
 export const generationSettings = { retryDelaysMs: [4000, 12000, 30000] };
@@ -26,13 +27,14 @@ export const generationSettings = { retryDelaysMs: [4000, 12000, 30000] };
 const TITLE_MAX = 120;
 const COURSE_MAX = 80;
 const OPEN_SESSION_MS = 24 * 60 * 60 * 1000;
+// The same PDF sent again this soon, while the first is still being made, is a double submit.
+const DUPLICATE_UPLOAD_MS = 2 * 60 * 1000;
 const TOO_LONG = 'This took too long, so we stopped. Try again.';
 
 const NO_TARGETED = { status: 'none', topics: [], count: 0, added: 0, batch: '', jobId: '', requestedAt: null, error: '' };
 
 const isId = (id) => mongoose.Types.ObjectId.isValid(id);
 const cleanLine = (value, max) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '');
-const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
 
 // Browsers send the file name as UTF-8, but the multipart parser may read it as latin1.
 const decodeFileName = (name = '') => {
@@ -87,12 +89,18 @@ const publicReviewer = (r) => ({
     targeted: publicTargeted(r.targeted),
 });
 
+// A reviewer that already had questions (version 1 or more) goes back to them when making new
+// ones fails. Only a first attempt ends up "failed", with nothing to practise.
+// `error` stays on it, so the student is told why the new set didn't come.
+const markRunFailed = (filter, error) => reviewerModel.updateMany(
+    filter,
+    [{ $set: { status: { $cond: [{ $gt: ['$version', 0] }, 'ready', 'failed'] }, error: { $literal: error }, jobId: '' } }],
+    { updatePipeline: true },
+);
+
 const expireStale = async (filter) => {
     const before = new Date(Date.now() - STALE_AFTER_MS);
-    await reviewerModel.updateMany(
-        { ...filter, status: 'processing', requestedAt: { $lt: before } },
-        { $set: { status: 'failed', error: TOO_LONG, jobId: '' } },
-    );
+    await markRunFailed({ ...filter, status: 'processing', requestedAt: { $lt: before } }, TOO_LONG);
     await reviewerModel.updateMany(
         { ...filter, 'targeted.status': 'processing', 'targeted.requestedAt': { $lt: before } },
         { $set: { 'targeted.status': 'failed', 'targeted.error': TOO_LONG, 'targeted.jobId': '' } },
@@ -134,35 +142,8 @@ const runningJobs = new Map();
 // Lets tests wait for background work instead of polling.
 export const settleGenerationJobs = () => Promise.allSettled([...runningJobs.values()]);
 
-const isRetryable = (error) =>
-    error?.code === 'invalid_output' || error?.status === 429 || (error?.status >= 500 && error?.status < 600);
-
-const friendlyError = (error, { targeted = false } = {}) => {
-    if (error?.code === 'invalid_output') {
-        return targeted
-            ? "We couldn't get good questions on those topics. Try again, or pick other topics."
-            : "We couldn't get good questions out of this PDF. Try again, or try a PDF with more text.";
-    }
-    if (error?.status === 429) return 'The AI service is busy right now. Try again in a few minutes.';
-    if (error?.status >= 500) return 'The AI service had a problem. Try again in a bit.';
-    if (error?.status === 400) return "The AI service couldn't work with this material. Try a different PDF.";
-    if (/timed? ?out|abort/i.test(error?.message || '')) return 'The AI took too long to answer. Try again, or try a shorter PDF.';
-    return "We couldn't make this reviewer. Try again.";
-};
-
-// Calls `request`, and asks again a couple of times when the AI service is busy or flaky, or
-// answered with something unusable.
-const withRetries = async (request) => {
-    const { retryDelaysMs } = generationSettings;
-    for (let attempt = 0; ; attempt += 1) {
-        try {
-            return await request();
-        } catch (error) {
-            if (!isRetryable(error) || attempt >= retryDelaysMs.length) throw error;
-            await sleep(retryDelaysMs[attempt]);
-        }
-    }
-};
+// Asks again when the AI service is busy, slow or flaky, or answered with something unusable.
+const withRetries = (request) => retrying(request, generationSettings.retryDelaysMs);
 
 // Most PDFs are one request. A long one is split into parts that are sent at the same time and
 // merged. If any part still fails after its retries, the whole reviewer fails: a reviewer that
@@ -211,11 +192,8 @@ const generate = async (reviewerId, jobId) => {
             await reviewerModel.updateOne({ _id: reviewerId, autoTitle: true }, { $set: { title, autoTitle: false } });
         }
     } catch (error) {
-        console.error('Reviewer generation failed:', error?.status || '', error?.message);
-        await reviewerModel.updateOne(
-            { _id: reviewerId, jobId, status: 'processing' },
-            { $set: { status: 'failed', error: friendlyError(error), jobId: '' } },
-        );
+        console.error('Reviewer generation failed:', describeError(error));
+        await markRunFailed({ _id: reviewerId, jobId, status: 'processing' }, friendlyError(error));
     }
 };
 
@@ -257,7 +235,7 @@ const generateTargeted = async (reviewerId, jobId) => {
             },
         );
     } catch (error) {
-        console.error('Targeted questions failed:', error?.status || '', error?.message);
+        console.error('Targeted questions failed:', describeError(error));
         await reviewerModel.updateOne(running, {
             $set: { 'targeted.status': 'failed', 'targeted.error': friendlyError(error, { targeted: true }), 'targeted.jobId': '' },
         });
@@ -266,7 +244,7 @@ const generateTargeted = async (reviewerId, jobId) => {
 
 const track = (key, work) => {
     const job = work
-        .catch((error) => console.error('Reviewer job crashed:', error.message))
+        .catch((error) => console.error('Reviewer job crashed:', describeError(error)))
         .finally(() => { if (runningJobs.get(key) === job) runningJobs.delete(key); });
     runningJobs.set(key, job);
 };
@@ -310,7 +288,19 @@ export const createReviewer = async (req, res) => {
             });
         }
 
-        const fileName = decodeFileName(file.originalname);
+        const fileName = decodeFileName(file.originalname).slice(0, 200);
+        // A double submit (same PDF and count, the first still being made) gets the first one back
+        // instead of a second reviewer and a second AI request.
+        const duplicate = await reviewerModel.findOne({
+            owner: req.userId,
+            status: 'processing',
+            questionTarget,
+            'source.fileName': fileName,
+            'source.chars': extracted.chars,
+            createdAt: { $gt: new Date(Date.now() - DUPLICATE_UPLOAD_MS) },
+        });
+        if (duplicate) return res.json({ success: true, reviewer: listItem(duplicate) });
+
         const typedTitle = cleanLine(req.body.title, TITLE_MAX);
         const jobId = randomUUID();
         const reviewer = await reviewerModel.create({
@@ -318,7 +308,7 @@ export const createReviewer = async (req, res) => {
             title: typedTitle || titleFromFileName(fileName),
             autoTitle: !typedTitle,
             course: cleanLine(req.body.course, COURSE_MAX),
-            source: { fileName: fileName.slice(0, 200), pages: extracted.pages, chars: extracted.chars, truncated: extracted.truncated },
+            source: { fileName, pages: extracted.pages, chars: extracted.chars, truncated: extracted.truncated },
             sourceText: extracted.text,
             questionTarget,
             status: 'processing',
@@ -562,6 +552,29 @@ const sessionPayload = (attempt, reviewer) => {
     };
 };
 
+// Ends a session and scores it. The score comes only from the answers graded and stored here,
+// never from anything the browser sends. Closing first means no answer can be added after the
+// score is worked out. Safe to call twice: the second call just reads the closed session.
+const closeAttempt = async (attempt, reviewer) => {
+    const closed = await reviewerAttemptModel.findOneAndUpdate(
+        { _id: attempt._id, finishedAt: null },
+        { $set: { finishedAt: new Date() } },
+        { returnDocument: 'after' },
+    );
+    if (!closed) return reviewerAttemptModel.findById(attempt._id);
+    const correct = closed.answers.filter((a) => a.correct).length;
+    const answered = closed.answers.length;
+    return reviewerAttemptModel.findByIdAndUpdate(closed._id, {
+        $set: {
+            correct,
+            answered,
+            total: closed.questions.length,
+            score: scorePercent(correct, answered),
+            topicStats: topicStatsFor(reviewer.questions, closed.answers),
+        },
+    }, { returnDocument: 'after' });
+};
+
 // Loads the reviewer and one of the caller's sessions on it, or answers with the reason not.
 const loadSession = async (req, res) => {
     const reviewer = await findOwned(req, res);
@@ -635,7 +648,6 @@ export const answerQuestion = async (req, res) => {
     try {
         const { reviewer, attempt } = await loadSession(req, res);
         if (!attempt) return;
-        if (attempt.finishedAt) return res.status(409).json({ success: false, message: 'This session is already over.' });
 
         const { questionId, choice } = req.body;
         if (!isId(questionId) || !attempt.questions.some((id) => String(id) === String(questionId))) {
@@ -647,16 +659,27 @@ export const answerQuestion = async (req, res) => {
         const question = reviewer.questions.id(questionId);
         if (!question) return res.status(400).json({ success: false, message: "That question isn't part of this session." });
 
-        // The first answer counts. A double click or a retry gets the same result back.
-        const answer = { question: question._id, choice, correct: choice === question.correctIndex, answeredAt: new Date() };
-        const updated = await reviewerAttemptModel.findOneAndUpdate(
-            { _id: attempt._id, finishedAt: null, 'answers.question': { $ne: question._id } },
-            { $push: { answers: answer } },
-            { returnDocument: 'after' },
-        );
-        const current = updated || await reviewerAttemptModel.findById(attempt._id);
-        const recorded = current.answers.find((a) => String(a.question) === String(question._id));
+        // The first answer counts. A double click or a retry gets the same result back, even
+        // after the last answer closed the session.
+        const isThis = (a) => String(a.question) === String(question._id);
+        let current = attempt;
+        if (!attempt.answers.some(isThis)) {
+            if (attempt.finishedAt) return res.status(409).json({ success: false, message: 'This session is already over.' });
+            const answer = { question: question._id, choice, correct: choice === question.correctIndex, answeredAt: new Date() };
+            current = await reviewerAttemptModel.findOneAndUpdate(
+                { _id: attempt._id, finishedAt: null, 'answers.question': { $ne: question._id } },
+                { $push: { answers: answer } },
+                { returnDocument: 'after' },
+            ) || await reviewerAttemptModel.findById(attempt._id);
+        }
+        const recorded = current.answers.find(isThis);
         if (!recorded) return res.status(409).json({ success: false, message: 'This session is already over.' });
+
+        // The last answer closes the session, so leaving or refreshing before the results page
+        // doesn't lose it.
+        if (!current.finishedAt && current.answers.length >= current.questions.length) {
+            await closeAttempt(current, reviewer);
+        }
 
         res.json({
             success: true,
@@ -678,25 +701,10 @@ export const finishSession = async (req, res) => {
         if (!attempt.finishedAt) {
             if (!attempt.answers.length) {
                 // Nothing answered: there's nothing to learn from, so don't keep it.
-                await attempt.deleteOne();
+                await reviewerAttemptModel.deleteOne({ _id: attempt._id, finishedAt: null, answers: { $size: 0 } });
                 return res.json({ success: true, session: null });
             }
-            const correct = attempt.answers.filter((a) => a.correct).length;
-            const answered = attempt.answers.length;
-            finished = await reviewerAttemptModel.findOneAndUpdate(
-                { _id: attempt._id, finishedAt: null },
-                {
-                    $set: {
-                        finishedAt: new Date(),
-                        correct,
-                        answered,
-                        total: attempt.questions.length,
-                        score: scorePercent(correct, answered),
-                        topicStats: topicStatsFor(reviewer.questions, attempt.answers),
-                    },
-                },
-                { returnDocument: 'after' },
-            ) || await reviewerAttemptModel.findById(attempt._id);
+            finished = await closeAttempt(attempt, reviewer);
         }
 
         const byId = new Map(reviewer.questions.map((q) => [String(q._id), q]));

@@ -8,6 +8,7 @@ import 'dotenv/config';
 import { readFile } from 'fs/promises';
 import { extractPdfText, splitIntoParts, MIN_SOURCE_CHARS, PART_CHARS } from '../utils/pdfText.js';
 import { generateJson, isGeminiConfigured, geminiModel } from '../utils/gemini.js';
+import { withRetries, friendlyError, describeError } from '../utils/aiErrors.js';
 import {
     REVIEWER_SCHEMA, REVIEWER_SYSTEM, TARGETED_SCHEMA, buildReviewerPrompt, buildTargetedPrompt, planParts,
     normalizeReviewer, normalizeTargeted, textForTopics,
@@ -23,20 +24,11 @@ if (!isGeminiConfigured()) {
     process.exit(1);
 }
 
-// Like the server: a busy service (429, 5xx) is asked again after a short wait.
-const RETRY_DELAYS_MS = [5000, 15000, 30000];
-const ask = async (request) => {
-    for (let attempt = 0; ; attempt += 1) {
-        try {
-            return await generateJson(request);
-        } catch (error) {
-            const busy = error.status === 429 || error.status >= 500;
-            if (!busy || attempt >= RETRY_DELAYS_MS.length) throw error;
-            console.log(`  HTTP ${error.status}, trying again in ${RETRY_DELAYS_MS[attempt] / 1000}s...`);
-            await new Promise((resolve) => { setTimeout(resolve, RETRY_DELAYS_MS[attempt]); });
-        }
-    }
-};
+// Same retry rules as the server (utils/aiErrors.js).
+const RETRY_DELAYS_MS = [4000, 12000, 30000];
+const ask = (request) => withRetries(() => generateJson(request), RETRY_DELAYS_MS, (error, wait) => {
+    console.log(`  ${describeError(error).slice(0, 120)}. Trying again in ${wait / 1000}s...`);
+});
 
 const seconds = (since) => `${((Date.now() - since) / 1000).toFixed(1)}s`;
 const printQuestion = (q) => {
@@ -94,7 +86,8 @@ try {
     console.log(`Answered in ${seconds(started)}. Kept ${extra.length} of ${data.questions?.length ?? 0}.`);
     printQuestion(extra[0]);
 } catch (error) {
-    console.error(`Failed${error.status ? ` (HTTP ${error.status})` : ''}: ${error.message}`);
+    console.error(`Failed: ${describeError(error)}`);
+    console.error(`A student would see: ${friendlyError(error)}`);
     // exitCode, not exit(): exiting while the SDK still has sockets open crashes Node on Windows.
     process.exitCode = 1;
 }
