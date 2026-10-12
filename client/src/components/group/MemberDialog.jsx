@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { X, UserPlus, UserCheck, Clock, ShieldPlus, ShieldMinus, UserX, ExternalLink } from "lucide-react";
 import UserAvatar from "../UserAvatar";
 import { useAuth } from "../../pages/authentication/AuthContext";
+import Modal from "../Modal";
 
 // A group member's card: who they are, how you're connected (with add friend), and, for
 // admins, the role and removal controls. The server enforces every one of these rules again.
@@ -90,8 +91,7 @@ export default function MemberDialog({ group, member, onClose, onGroupUpdated })
   const roleLabel = memberIsOwner ? "Owner" : memberIsAdmin ? "Admin" : "Member";
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content member-dialog" role="dialog" aria-modal="true" aria-labelledby="member-title" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} className="member-dialog" labelledBy="member-title">
         <div className="modal-header">
           <h2 id="member-title" className="visually-hidden">{member.name}</h2>
           <span />
@@ -158,7 +158,6 @@ export default function MemberDialog({ group, member, onClose, onGroupUpdated })
             ))}
           </div>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }

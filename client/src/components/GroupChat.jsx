@@ -12,6 +12,7 @@ import ScheduleImportDialog from "./schedule/ScheduleImportDialog";
 import UserAvatar from "./UserAvatar";
 import MemberDialog from "./group/MemberDialog";
 import GroupSettingsDialog from "./group/GroupSettingsDialog";
+import Modal from "./Modal";
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_LENGTH = 1000;
@@ -551,8 +552,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
       </div>
 
       {shareOpen && (
-        <div className="modal-overlay" onClick={() => setShareOpen(null)}>
-          <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="share-title" onClick={(e) => e.stopPropagation()}>
+        <Modal onClose={() => setShareOpen(null)} labelledBy="share-title">
             <div className="modal-header">
               <h2 id="share-title">{shareOpen === "schedule" ? "Share a schedule" : "Share a task"}</h2>
               <button type="button" className="modal-close" onClick={() => setShareOpen(null)} aria-label="Close"><X size={20} /></button>
@@ -608,8 +608,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
                 )}
               </>
             )}
-          </div>
-        </div>
+        </Modal>
       )}
 
       {memberOpen && group.members.some((m) => m._id === memberOpen) && (

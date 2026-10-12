@@ -3,6 +3,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { BookOpen, CalendarClock, Gauge, AlertTriangle, Check } from "lucide-react";
 import { useAuth } from "../pages/authentication/AuthContext";
+import Modal from "./Modal";
 
 const formatDue = (iso) => new Date(iso).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 const formatShort = (iso) => new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" });
@@ -55,8 +56,7 @@ export default function TaskImportDialog({ tag, onClose, onImported }) {
   const past = task && new Date(task.dueDate) < new Date(new Date().setHours(0, 0, 0, 0));
 
   return (
-    <div className="modal-overlay" onClick={busy ? undefined : onClose}>
-      <div className="modal-content task-import" role="dialog" aria-modal="true" aria-labelledby="task-import-title" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} busy={busy} className="task-import" labelledBy="task-import-title">
         <div className="modal-header">
           <h2 id="task-import-title">Add this task?</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button>
@@ -109,7 +109,6 @@ export default function TaskImportDialog({ tag, onClose, onImported }) {
             </button>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

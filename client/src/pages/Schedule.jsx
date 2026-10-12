@@ -31,6 +31,7 @@ import {
 } from "../utils/scheduleUtils";
 import { SCHEDULE_TOUR } from "../utils/tours";
 import "../App.css";
+import Modal from "../components/Modal";
 
 // How often an open schedule checks for changes made by others. The check is tiny; the full
 // schedule is only downloaded again when it says something changed.
@@ -880,8 +881,7 @@ export default function Schedule() {
             />
           )}
           {renameOpen && (
-            <div className="modal-overlay" onClick={closeForms}>
-              <form className="modal-content sched-modal sched-modal-narrow" onClick={(e) => e.stopPropagation()} onSubmit={handleRename}>
+            <Modal onClose={closeForms} as="form" className="sched-modal sched-modal-narrow" onSubmit={handleRename}>
                 <div className="modal-header">
                   <h2>Rename schedule</h2>
                   <button type="button" className="modal-close" onClick={closeForms} aria-label="Close">×</button>
@@ -895,8 +895,7 @@ export default function Schedule() {
                   <button type="button" className="secondary-button" onClick={closeForms}>Cancel</button>
                   <button type="submit" className="primary-button" disabled={submitting}>{submitting ? "Saving..." : "Save"}</button>
                 </div>
-              </form>
-            </div>
+            </Modal>
           )}
           {dialogs}
         </div>
@@ -1050,8 +1049,7 @@ export default function Schedule() {
         {dialogs}
 
         {createOpen && (
-          <div className="modal-overlay" onClick={closeForms}>
-            <form className="modal-content sched-modal" data-sched-theme={newTheme} onClick={(e) => e.stopPropagation()} onSubmit={handleCreate}>
+          <Modal onClose={closeForms} as="form" className="sched-modal" data-sched-theme={newTheme} onSubmit={handleCreate}>
               <div className="modal-header">
                 <h2>{mainSchedule ? "New extra schedule" : "Create your main schedule"}</h2>
                 <button type="button" className="modal-close" onClick={closeForms} aria-label="Close">×</button>
@@ -1080,13 +1078,11 @@ export default function Schedule() {
                 <button type="button" className="secondary-button" onClick={closeForms}>Cancel</button>
                 <button type="submit" className="primary-button" disabled={submitting}>{submitting ? "Creating..." : "Create"}</button>
               </div>
-            </form>
-          </div>
+          </Modal>
         )}
 
         {joinOpen && (
-          <div className="modal-overlay" onClick={closeForms}>
-            <form className="modal-content sched-modal sched-modal-narrow" onClick={(e) => e.stopPropagation()} onSubmit={handleJoin}>
+          <Modal onClose={closeForms} as="form" className="sched-modal sched-modal-narrow" onSubmit={handleJoin}>
               <div className="modal-header">
                 <h2>Open with a code</h2>
                 <button type="button" className="modal-close" onClick={closeForms} aria-label="Close">×</button>
@@ -1110,8 +1106,7 @@ export default function Schedule() {
                 <button type="button" className="secondary-button" onClick={closeForms}>Cancel</button>
                 <button type="submit" className="primary-button" disabled={submitting}>Continue</button>
               </div>
-            </form>
-          </div>
+          </Modal>
         )}
       </div>
     </div>

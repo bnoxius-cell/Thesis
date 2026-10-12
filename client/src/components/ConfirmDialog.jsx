@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
+import ModalShell from "./ModalShell";
 
 // In-app replacement for window.confirm. `tone="danger"` is for destructive actions
 // (delete, leave) and uses the clay color; everything else uses the normal button.
@@ -16,46 +17,34 @@ export default function ConfirmDialog({
 }) {
   const confirmRef = useRef(null);
 
-  useEffect(() => {
-    if (!open) return undefined;
-    confirmRef.current?.focus();
-    const onKeyDown = (e) => {
-      if (e.key === "Escape" && !busy) onCancel();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, busy, onCancel]);
-
-  if (!open) return null;
-
   return (
-    <div className="modal-overlay" onClick={busy ? undefined : onCancel}>
-      <div
-        className="modal-content confirm-dialog"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 id="confirm-dialog-title" className="confirm-dialog-title">{title}</h2>
-        <div className="confirm-dialog-body">{children}</div>
-        <div className="modal-actions">
-          {cancelLabel !== null && (
-            <button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>
-              {cancelLabel}
-            </button>
-          )}
-          <button
-            type="button"
-            ref={confirmRef}
-            className={tone === "danger" ? "primary-button confirm-danger" : "primary-button"}
-            onClick={onConfirm}
-            disabled={busy}
-          >
-            {busy ? "Working..." : confirmLabel}
+    <ModalShell
+      open={Boolean(open)}
+      onClose={onCancel}
+      busy={busy}
+      role="alertdialog"
+      labelledBy="confirm-dialog-title"
+      className="confirm-dialog"
+      initialFocusRef={confirmRef}
+    >
+      <h2 id="confirm-dialog-title" className="confirm-dialog-title">{title}</h2>
+      <div className="confirm-dialog-body">{children}</div>
+      <div className="modal-actions">
+        {cancelLabel !== null && (
+          <button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>
+            {cancelLabel}
           </button>
-        </div>
+        )}
+        <button
+          type="button"
+          ref={confirmRef}
+          className={tone === "danger" ? "primary-button confirm-danger" : "primary-button"}
+          onClick={onConfirm}
+          disabled={busy}
+        >
+          {busy ? "Working..." : confirmLabel}
+        </button>
       </div>
-    </div>
+    </ModalShell>
   );
 }

@@ -3,6 +3,7 @@ import { ImagePlus, X, MapPin, Video, StickyNote } from "lucide-react";
 import {
   WEEKDAYS, ENTRY_ICONS, ENTRY_COLORS, defaultIconFor, compressImage, toISODate, KIND_LABELS, isWebLink, meetingProvider,
 } from "../../utils/scheduleUtils";
+import Modal from "../Modal";
 
 // People paste "meet.google.com/abc-defg-hij" without the https part. Add it for them.
 const withScheme = (value) => {
@@ -119,8 +120,7 @@ export default function EntryModal({ entry, kind = "class", date, onSave, onDele
   const provider = isWebLink(withScheme(form.meetingUrl || "")) ? meetingProvider(withScheme(form.meetingUrl)) : null;
 
   return (
-    <div className="modal-overlay" onClick={saving ? undefined : onClose}>
-      <form className="modal-content sched-modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+    <Modal onClose={onClose} busy={saving} as="form" className="sched-modal" onSubmit={submit}>
         <div className="modal-header">
           <h2>{entry ? `Edit ${KIND_LABELS[form.kind].toLowerCase()}` : `Add ${KIND_LABELS[form.kind] === "Event" ? "an event" : KIND_LABELS[form.kind] === "Exam" ? "an exam" : `a ${KIND_LABELS[form.kind].toLowerCase()}`}`}</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button>
@@ -332,7 +332,6 @@ export default function EntryModal({ entry, kind = "class", date, onSave, onDele
             {saving ? "Saving..." : entry ? "Save changes" : "Add"}
           </button>
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }

@@ -5,6 +5,7 @@ import {
   WEEKDAYS, ENTRY_ICONS, KIND_LABELS, formatTime, formatLongDate, defaultIconFor, meetingProvider,
 } from "../../utils/scheduleUtils";
 import JoinLink from "./JoinLink";
+import Modal from "../Modal";
 
 const whenText = (entry) => {
   if (entry.date) return formatLongDate(entry.date);
@@ -31,8 +32,7 @@ export default function EntryDetails({ entry, onClose }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content sched-modal sched-modal-narrow sched-details" role="dialog" aria-modal="true" aria-labelledby="entry-details-title" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} className="sched-modal sched-modal-narrow sched-details" labelledBy="entry-details-title">
         <div className="modal-header">
           <div className="sched-details-head" style={entry.color ? { "--entry-color": entry.color } : undefined}>
             <span className="sched-thumb sched-thumb-lg">
@@ -72,7 +72,6 @@ export default function EntryDetails({ entry, onClose }) {
         <div className="modal-actions sched-modal-actions">
           <button type="button" className="primary-button" onClick={onClose}>Close</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

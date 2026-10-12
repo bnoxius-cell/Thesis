@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { Copy, RefreshCw, Send, Link2, Lock, Globe2, UserPlus, ShieldCheck } from "lucide-react";
 import UserAvatar from "../UserAvatar";
 import { shareLinkFor } from "../../utils/scheduleUtils";
+import Modal from "../Modal";
 
 const ROLE_HELP = {
   viewer: "Viewers see the schedule and every change as it happens. They can make their own copy.",
@@ -133,8 +134,7 @@ export default function ShareModal({ schedule, backendUrl, currentUserId, onUpda
   ].filter((p) => p.user);
 
   return (
-    <div className="modal-overlay" onClick={busy ? undefined : onClose}>
-      <div className="modal-content sched-modal share-modal" role="dialog" aria-modal="true" aria-labelledby="share-title" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} busy={busy} className="sched-modal share-modal" labelledBy="share-title">
         <div className="modal-header">
           <h2 id="share-title">Share "{schedule.title}"</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button>
@@ -297,7 +297,6 @@ export default function ShareModal({ schedule, backendUrl, currentUserId, onUpda
           )}
           <button type="button" className="primary-button" onClick={onClose}>Done</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

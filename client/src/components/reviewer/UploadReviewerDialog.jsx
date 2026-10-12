@@ -3,6 +3,7 @@ import axios from "axios";
 import { FileUp, FileText, Info, X } from "lucide-react";
 import { useAuth } from "../../pages/authentication/AuthContext";
 import { QUESTION_COUNTS, DEFAULT_QUESTION_COUNT, MAX_PDF_MB, formatBytes, errorMessage } from "./reviewerUtils";
+import Modal from "../Modal";
 
 // Pick a PDF, name it (or leave that to the AI), choose how many questions, and send it off. The
 // server reads the text and starts writing the reviewer in the background, so this closes as
@@ -91,15 +92,7 @@ export default function UploadReviewerDialog({ onClose, onCreated }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={busy ? undefined : onClose}>
-      <form
-        className="modal-content reviewer-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="upload-reviewer-title"
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={submit}
-      >
+    <Modal onClose={onClose} busy={busy} as="form" className="reviewer-modal" labelledBy="upload-reviewer-title" onSubmit={submit}>
         <div className="modal-header">
           <h2 id="upload-reviewer-title">New reviewer</h2>
           <button type="button" className="modal-close" onClick={onClose} disabled={busy} aria-label="Close">
@@ -187,7 +180,6 @@ export default function UploadReviewerDialog({ onClose, onCreated }) {
             {busy ? "Working..." : "Make reviewer"}
           </button>
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }

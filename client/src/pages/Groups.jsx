@@ -15,6 +15,7 @@ import { useTabParam } from "../utils/useTabParam";
 import Friends from "./Friends";
 import { useAuth } from "./authentication/AuthContext";
 import "../App.css";
+import Modal from "../components/Modal";
 
 const GROUP_REFRESH_MS = 10000;
 
@@ -317,8 +318,7 @@ export default function Groups() {
 
       {/* Create Group Modal */}
       {createModalOpen && (
-        <div className="modal-overlay" onClick={closeModals}>
-          <form className="modal-content" onClick={(e) => e.stopPropagation()} onSubmit={handleCreateGroup}>
+        <Modal onClose={closeModals} as="form" onSubmit={handleCreateGroup}>
             <div className="modal-header">
               <h2>Create a new study group</h2>
               <button type="button" className="modal-close" onClick={closeModals} aria-label="Close">×</button>
@@ -371,14 +371,12 @@ export default function Groups() {
                 </button>
               </div>
             </div>
-          </form>
-        </div>
+        </Modal>
       )}
 
       {/* Join Group Modal */}
       {joinModalOpen && (
-        <div className="modal-overlay" onClick={closeModals}>
-          <form className="modal-content" onClick={(e) => e.stopPropagation()} onSubmit={handleJoinGroup}>
+        <Modal onClose={closeModals} as="form" onSubmit={handleJoinGroup}>
             <div className="modal-header">
               <h2>Join a group</h2>
               <button type="button" className="modal-close" onClick={closeModals} aria-label="Close">×</button>
@@ -409,8 +407,7 @@ export default function Groups() {
                 </button>
               </div>
             </div>
-          </form>
-        </div>
+        </Modal>
       )}
 
       {confirmDialog}
