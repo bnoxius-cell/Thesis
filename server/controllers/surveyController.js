@@ -1,13 +1,17 @@
 import { PSSResponse, WHOResponse } from '../models/Survey.js';
 import userModel from '../models/userModel.js';
+import { scorePSS, scoreWHO } from '../utils/surveyScoring.js';
+import { serverError } from '../utils/httpErrors.js';
 
 export const submitPSS = async (req, res) => {
     try {
-        const { score, responses } = req.body;
         const userId = req.userId;
+        const { responses } = req.body;
 
-        if (score < 0 || score > 40) {
-            return res.status(400).json({ success: false, message: 'Invalid score range.' });
+        // The score the browser sends is ignored: it is worked out here from the answers.
+        const score = scorePSS(responses);
+        if (score === null) {
+            return res.status(400).json({ success: false, message: 'Please answer all 10 questions.' });
         }
 
         const newResponse = new PSSResponse({ user: userId, score, responses });
@@ -18,20 +22,20 @@ export const submitPSS = async (req, res) => {
             latestPSSScore: score,
         });
 
-        res.json({ success: true, message: 'PSS-10 survey saved successfully.' });
+        res.json({ success: true, message: 'PSS-10 survey saved successfully.', score });
     } catch (error) {
-        console.error('Submit PSS error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Submit PSS error', error);
     }
 };
 
 export const submitWHO = async (req, res) => {
     try {
-        const { score, responses } = req.body;
         const userId = req.userId;
+        const { responses } = req.body;
 
-        if (score < 0 || score > 100) {
-            return res.status(400).json({ success: false, message: 'Invalid score range.' });
+        const score = scoreWHO(responses);
+        if (score === null) {
+            return res.status(400).json({ success: false, message: 'Please answer all 5 questions.' });
         }
 
         const newResponse = new WHOResponse({ user: userId, score, responses });
@@ -42,9 +46,8 @@ export const submitWHO = async (req, res) => {
             latestWHOScore: score,
         });
 
-        res.json({ success: true, message: 'WHO-5 survey saved successfully.' });
+        res.json({ success: true, message: 'WHO-5 survey saved successfully.', score });
     } catch (error) {
-        console.error('Submit WHO error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Submit WHO error', error);
     }
 };

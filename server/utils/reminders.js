@@ -6,6 +6,12 @@ const HOUR = 60 * 60 * 1000;
 const MAX_LEAD_HOURS = 48;
 const CHECK_INTERVAL = 10 * 60 * 1000;
 
+// A task's dueDate is midnight UTC of its due day. Students think of it as due at the end of
+// that day in the Philippines (UTC+8), so reminders count down to 23:59 there, which is
+// 15:59 UTC of the same date.
+const END_OF_DAY_MS = 15 * HOUR + 59 * 60 * 1000;
+export const dueMoment = (task) => task.dueDate.getTime() + END_OF_DAY_MS;
+
 const leadLabel = (hours) => (hours >= 48 ? `${hours / 24} days` : `${hours} hours`);
 
 // Sends a "due soon" reminder for every unfinished task that falls inside its owner's
@@ -14,7 +20,10 @@ const leadLabel = (hours) => (hours >= 48 ? `${hours / 24} days` : `${hours} hou
 export const runTaskReminders = async (now = new Date()) => {
     const tasks = await taskModel.find({
         isCompleted: false,
-        dueDate: { $gt: now, $lte: new Date(now.getTime() + MAX_LEAD_HOURS * HOUR) },
+        dueDate: {
+            $gt: new Date(now.getTime() - END_OF_DAY_MS),
+            $lte: new Date(now.getTime() + MAX_LEAD_HOURS * HOUR - END_OF_DAY_MS),
+        },
     });
     if (!tasks.length) return 0;
 
@@ -28,7 +37,8 @@ export const runTaskReminders = async (now = new Date()) => {
         if (!prefs || prefs.taskReminders === false) continue;
 
         const lead = prefs.reminderLeadHours || 24;
-        if (task.dueDate.getTime() - now.getTime() > lead * HOUR) continue;
+        const msLeft = dueMoment(task) - now.getTime();
+        if (msLeft <= 0 || msLeft > lead * HOUR) continue;
 
         const created = await notify({
             recipients: [task.owner],

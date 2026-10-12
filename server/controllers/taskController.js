@@ -1,6 +1,7 @@
 import taskModel from '../models/taskModel.js';
 import taskShareModel from '../models/taskShareModel.js';
 import mongoose from 'mongoose';
+import { isId, serverError } from '../utils/httpErrors.js';
 
 const generateShareTag = () => String(Math.floor(100000 + Math.random() * 900000));
 
@@ -14,10 +15,14 @@ const getSharePayloadFromTask = (task) => ({
     importance: task.importance,
 });
 
+export const TASK_LIMITS = { title: 120, course: 80, description: 1000 };
+
+const text = (value) => (typeof value === 'string' ? value.trim() : '');
+
 const getTaskPayload = (body) => {
-    const title = body.title?.trim();
-    const course = body.course?.trim();
-    const description = body.description?.trim() || '';
+    const title = text(body.title);
+    const course = text(body.course);
+    const description = text(body.description);
     const dueDate = body.dueDate ? new Date(body.dueDate) : null;
     const hours = Number(body.hours ?? 3);
     const difficulty = Number(body.difficulty ?? 3);
@@ -30,6 +35,10 @@ const getTaskPayload = (body) => {
     if (!Number.isFinite(dueDate?.getTime())) {
         return { error: 'Please provide a valid due date.' };
     }
+
+    if (title.length > TASK_LIMITS.title) return { error: `The title can be up to ${TASK_LIMITS.title} characters.` };
+    if (course.length > TASK_LIMITS.course) return { error: `The course can be up to ${TASK_LIMITS.course} characters.` };
+    if (description.length > TASK_LIMITS.description) return { error: `The description can be up to ${TASK_LIMITS.description} characters.` };
 
     if (!Number.isFinite(hours) || hours < 0.5) {
         return { error: 'Estimated hours must be at least 0.5.' };
@@ -90,19 +99,42 @@ export const ensureShareTemplateForTask = async (task) => {
     return template;
 };
 
+// Same checks as getTaskPayload, but only for the fields that were sent.
 const getTaskUpdatePayload = (body) => {
-    const allowedFields = {};
+    const fields = {};
+    const fail = (error) => ({ error });
 
-    if (body.title !== undefined) allowedFields.title = body.title.trim();
-    if (body.course !== undefined) allowedFields.course = body.course.trim();
-    if (body.description !== undefined) allowedFields.description = body.description.trim();
-    if (body.dueDate !== undefined) allowedFields.dueDate = new Date(body.dueDate);
-    if (body.hours !== undefined) allowedFields.hours = Number(body.hours);
-    if (body.difficulty !== undefined) allowedFields.difficulty = Number(body.difficulty);
-    if (body.importance !== undefined) allowedFields.importance = Number(body.importance);
-    if (body.isCompleted !== undefined) allowedFields.isCompleted = Boolean(body.isCompleted);
+    for (const key of ['title', 'course']) {
+        if (body[key] === undefined) continue;
+        const value = text(body[key]);
+        if (!value) return fail(`The ${key} can't be empty.`);
+        if (value.length > TASK_LIMITS[key]) return fail(`The ${key} can be up to ${TASK_LIMITS[key]} characters.`);
+        fields[key] = value;
+    }
+    if (body.description !== undefined) {
+        const value = text(body.description);
+        if (value.length > TASK_LIMITS.description) return fail(`The description can be up to ${TASK_LIMITS.description} characters.`);
+        fields.description = value;
+    }
+    if (body.dueDate !== undefined) {
+        const due = new Date(body.dueDate);
+        if (!body.dueDate || !Number.isFinite(due.getTime())) return fail('Please provide a valid due date.');
+        fields.dueDate = due;
+    }
+    if (body.hours !== undefined) {
+        const hours = Number(body.hours);
+        if (!Number.isFinite(hours) || hours < 0.5) return fail('Estimated hours must be at least 0.5.');
+        fields.hours = hours;
+    }
+    for (const key of ['difficulty', 'importance']) {
+        if (body[key] === undefined) continue;
+        const value = Number(body[key]);
+        if (!Number.isFinite(value) || value < 1 || value > 5) return fail(`${key[0].toUpperCase()}${key.slice(1)} must be between 1 and 5.`);
+        fields[key] = value;
+    }
+    if (body.isCompleted !== undefined) fields.isCompleted = Boolean(body.isCompleted);
 
-    return allowedFields;
+    return { fields };
 };
 
 const findShareTemplateByTag = async (shareTag) => {
@@ -177,7 +209,7 @@ export const getTasks = async (req, res) => {
         await Promise.all(tasks.map((task) => ensureShareTemplateForTask(task)));
         res.json({ success: true, tasks });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'getTasks error', error);
     }
 };
 
@@ -218,13 +250,15 @@ export const getTaskByTag = async (req, res) => {
             },
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'getTaskByTag error', error);
     }
 };
 
 export const updateTask = async (req, res) => {
     try {
-        const updateFields = getTaskUpdatePayload(req.body);
+        if (!isId(req.params.taskId)) return res.status(404).json({ success: false, message: 'Task not found' });
+        const { fields: updateFields, error } = getTaskUpdatePayload(req.body);
+        if (error) return res.status(400).json({ success: false, message: error });
         const task = await taskModel.findOne({ _id: req.params.taskId, owner: req.userId });
         if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
@@ -240,17 +274,18 @@ export const updateTask = async (req, res) => {
         await task.save();
         res.json({ success: true, task });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'updateTask error', error);
     }
 };
 
 export const deleteTask = async (req, res) => {
     try {
+        if (!isId(req.params.taskId)) return res.status(404).json({ success: false, message: 'Task not found' });
         const task = await taskModel.findOneAndDelete({ _id: req.params.taskId, owner: req.userId });
         if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
         res.json({ success: true });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'deleteTask error', error);
     }
 };
 
@@ -277,6 +312,6 @@ export const importTaskByTag = async (req, res) => {
         await importedTask.save();
         res.json({ success: true, message: 'Task imported successfully', task: importedTask });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'importTaskByTag error', error);
     }
 };

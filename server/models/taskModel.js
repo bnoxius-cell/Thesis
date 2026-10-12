@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 
 const taskSchema = new mongoose.Schema({
-    title: { type: String, required: true },
-    course: { type: String, required: true },
-    description: { type: String, default: '' },
+    title: { type: String, required: true, maxlength: 120 },
+    course: { type: String, required: true, maxlength: 80 },
+    description: { type: String, default: '', maxlength: 1000 },
     dueDate: { type: Date, required: true },
     hours: { type: Number, default: 3, min: 0.5 },
     difficulty: { type: Number, default: 3, min: 1, max: 5 },

@@ -8,6 +8,7 @@ import userModel from '../models/userModel.js';
 import { notify } from '../utils/notify.js';
 import { ensureShareTemplateForTask } from './taskController.js';
 import { containsProfanity } from '../utils/familyFilter.js';
+import { isId, serverError } from '../utils/httpErrors.js';
 import { isValidPicture } from '../utils/images.js';
 
 const MAX_MESSAGE_LENGTH = 1000;
@@ -122,7 +123,7 @@ export const createGroup = async (req, res) => {
         await newGroup.save();
         res.json({ success: true, message: 'Group created successfully', group: newGroup });
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        serverError(res, 'createGroup error', error);
     }
 };
 
@@ -140,21 +141,16 @@ export const getGroups = async (req, res) => {
 
         res.json({ success: true, groups });
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        serverError(res, 'getGroups error', error);
     }
 };
 
 export const joinGroup = async (req, res) => {
     try {
-        const { groupId, joinCode } = req.body;
-        const code = String(joinCode || '').trim().toUpperCase();
-
-        let group = null;
-        if (code) {
-            group = await groupModel.findOne({ joinCode: code });
-        } else if (mongoose.Types.ObjectId.isValid(groupId)) {
-            group = await groupModel.findById(groupId);
-        }
+        // A join code is required. Joining by group id would let a removed member walk
+        // back in, since the id is in their "you were removed" notification.
+        const code = String(req.body.joinCode || '').trim().toUpperCase();
+        const group = code ? await groupModel.findOne({ joinCode: code }) : null;
 
         if (!group) return res.json({ success: false, message: 'Group not found' });
         if (isMember(group, req.userId)) {
@@ -176,12 +172,13 @@ export const joinGroup = async (req, res) => {
         });
         res.json({ success: true, message: 'Joined group successfully', group });
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        serverError(res, 'joinGroup error', error);
     }
 };
 
 export const leaveGroup = async (req, res) => {
     try {
+        if (!isId(req.body.groupId)) return res.json({ success: false, message: 'Group not found' });
         const group = await groupModel.findById(req.body.groupId);
         if (!group) return res.json({ success: false, message: 'Group not found' });
         if (group.admin.toString() === req.userId) {
@@ -204,12 +201,13 @@ export const leaveGroup = async (req, res) => {
         });
         res.json({ success: true, message: 'Left group successfully' });
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        serverError(res, 'leaveGroup error', error);
     }
 };
 
 export const deleteGroup = async (req, res) => {
     try {
+        if (!isId(req.params.groupId)) return res.json({ success: false, message: 'Group not found or unauthorized' });
         const group = await groupModel.findOneAndDelete({ _id: req.params.groupId, admin: req.userId });
         if (!group) return res.json({ success: false, message: 'Group not found or unauthorized' });
         await groupMessageModel.deleteMany({ group: group._id });
@@ -225,7 +223,7 @@ export const deleteGroup = async (req, res) => {
         });
         res.json({ success: true, message: 'Group deleted successfully' });
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        serverError(res, 'deleteGroup error', error);
     }
 };
 
