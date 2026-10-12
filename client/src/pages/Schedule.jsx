@@ -13,6 +13,8 @@ import PageTour from "../components/PageTour";
 import TaskImportDialog from "../components/TaskImportDialog";
 import WeekView from "../components/schedule/WeekView";
 import HolidayCalendar from "../components/schedule/HolidayCalendar";
+import TasksTab from "../components/schedule/TasksTab";
+import Tabs from "../components/Tabs";
 import EntryModal from "../components/schedule/EntryModal";
 import EntryDetails from "../components/schedule/EntryDetails";
 import TaskModal from "../components/schedule/TaskModal";
@@ -22,6 +24,8 @@ import ScheduleImportDialog from "../components/schedule/ScheduleImportDialog";
 import ScheduleActivity from "../components/schedule/ScheduleActivity";
 import Menu, { MenuItem } from "../components/schedule/Menu";
 import { useAuth } from "./authentication/AuthContext";
+import useWorkload from "../utils/useWorkload";
+import { useTabParam } from "../utils/useTabParam";
 import {
   SCHEDULE_THEMES, startOfWeek, addDays, toISODate, fromISODate, taskDueIso,
 } from "../utils/scheduleUtils";
@@ -117,7 +121,7 @@ export default function Schedule() {
 
   // The signed-in person's own tasks. They show on their schedules under the day they are due,
   // and nobody else on a shared schedule ever sees them.
-  const [tasks, setTasks] = useState([]);
+  const { tasks, setTasks, week, now } = useWorkload();
   const [taskModal, setTaskModal] = useState(null); // { task?, date? }
   const [taskCode, setTaskCode] = useState(null); // 6-digit code being previewed
 
@@ -147,6 +151,8 @@ export default function Schedule() {
   const canEdit = isOwner || isEditor;
   // Your tasks appear on schedules that are your week: your own, or a shared one you count.
   const tasksHere = Boolean(schedule && (isOwner || schedule.myCountInWorkload));
+  const tabIds = tasksHere ? ["week", "tasks", "days-off"] : ["week", "days-off"];
+  const [tab, setTab] = useTabParam(tabIds);
 
   // ---- Links: ?share= (old friend-share notes), ?code= (a shared link) --------
 
@@ -166,16 +172,6 @@ export default function Schedule() {
 
   // ---- Tasks -------------------------------------------------------------
 
-  const fetchTasks = useCallback(async () => {
-    try {
-      const { data } = await axios.get(`${backendUrl}/api/tasks`, { withCredentials: true });
-      if (data.success) setTasks(data.tasks);
-    } catch {
-      // The schedule still works without them.
-    }
-  }, [backendUrl]);
-
-  useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
   const openTasks = tasks
     .filter((t) => !t.isCompleted)
@@ -207,7 +203,7 @@ export default function Schedule() {
 
   const leaveDetail = useCallback((message) => {
     toast.error(message);
-    setSearchParams({});
+    setSearchParams({ view: "all" });
   }, [setSearchParams]);
 
   const fetchDetail = useCallback(async ({ quiet } = {}) => {
@@ -470,6 +466,28 @@ export default function Schedule() {
     }
   }, [taskParam, openId, scheduleId, loading, mainId, setSearchParams]);
 
+  // /schedule opens the main schedule. The list of every schedule lives at ?view=all.
+  const viewAll = searchParams.get("view") === "all";
+  useEffect(() => {
+    if (openId || viewAll || taskParam || loading || !mainId) return;
+    const next = { s: mainId };
+    const wantedTab = searchParams.get("tab");
+    if (wantedTab) next.tab = wantedTab;
+    setSearchParams(next, { replace: true });
+  }, [searchParams, openId, viewAll, taskParam, loading, mainId, setSearchParams]);
+
+  const DONE_TOASTS = ["Done. One less thing.", "Nice, that's off your plate.", "Finished. Take a breath before the next one."];
+  const setTaskDone = async (task, done) => {
+    try {
+      const { data } = await axios.put(`${backendUrl}/api/tasks/${task._id}`, { isCompleted: done }, { withCredentials: true });
+      if (!data.success) return toast.error(data.message || "That change didn't save. Try again.");
+      setTasks((list) => list.map((t) => (t._id === task._id ? data.task : t)));
+      toast.success(done ? DONE_TOASTS[Math.floor(Math.random() * DONE_TOASTS.length)] : "Reopened.");
+    } catch (err) {
+      toast.error(taskError(err));
+    }
+  };
+
   const handleConfirm = async () => {
     if (!confirm) return;
     setConfirming(true);
@@ -489,12 +507,12 @@ export default function Schedule() {
         const { data } = await axios.delete(`${api}/${openId}`, { withCredentials: true });
         if (!data.success) return toast.error(data.message);
         toast.success("Schedule deleted.");
-        setSearchParams({});
+        setSearchParams({ view: "all" });
       } else {
         const { data } = await axios.delete(`${api}/${openId}/share/${user._id}`, { withCredentials: true });
         if (!data.success) return toast.error(data.message);
         toast.success("You left the schedule.");
-        setSearchParams({});
+        setSearchParams({ view: "all" });
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Something went wrong.");
@@ -638,7 +656,7 @@ export default function Schedule() {
       <div className="app app-layout">
         <Header />
         <main className="dashboard">
-          <button type="button" className="sched-back" onClick={() => setSearchParams({})}>
+          <button type="button" className="sched-back" onClick={() => setSearchParams({ view: "all" })}>
             <ArrowLeft size={16} aria-hidden="true" /> All schedules
           </button>
 
@@ -761,36 +779,69 @@ export default function Schedule() {
                 )}
               </section>
 
-              <WeekView
-                weekStart={weekStart}
-                entries={schedule.entries}
-                overrides={schedule.holidayOverrides}
-                publicByDate={publicByDate}
-                canEdit={canEdit}
-                onShiftWeek={(n) => setWeekStart((w) => addDays(w, n * 7))}
-                onToday={() => setWeekStart(startOfWeek(new Date()))}
-                onAddEntry={(date) => setEntryModal({ kind: "class", date })}
-                onOpenEntry={(entry) => (canEdit ? setEntryModal({ entry, kind: entry.kind }) : setDetailsEntry(entry))}
-                onMarkDay={setMarkDate}
-                mainEntries={mainEntries}
-                tasks={tasksHere ? openTasks : []}
-                onOpenTask={(task) => setTaskModal({ task: tasks.find((t) => t._id === task._id) || task })}
+              <Tabs
+                tabs={[
+                  { id: "week", label: "Week" },
+                  ...(tasksHere ? [{ id: "tasks", label: "Tasks", count: openTasks.length }] : []),
+                  { id: "days-off", label: "Days off" },
+                ]}
+                value={tab}
+                onChange={setTab}
+                label="Schedule sections"
               />
-              {tasksHere && (schedule.live || (schedule.access?.people ?? 0) > 0) && (
-                <p className="sched-hint sched-week-note">Your tasks show under the day they're due. Only you see them, not the others on this schedule.</p>
+
+              {tab === "week" && (
+                <div role="tabpanel" id="panel-week" aria-labelledby="tab-week">
+                <WeekView
+                  weekStart={weekStart}
+                  entries={schedule.entries}
+                  overrides={schedule.holidayOverrides}
+                  publicByDate={publicByDate}
+                  canEdit={canEdit}
+                  onShiftWeek={(n) => setWeekStart((w) => addDays(w, n * 7))}
+                  onToday={() => setWeekStart(startOfWeek(new Date()))}
+                  onAddEntry={(date) => setEntryModal({ kind: "class", date })}
+                  onOpenEntry={(entry) => (canEdit ? setEntryModal({ entry, kind: entry.kind }) : setDetailsEntry(entry))}
+                  onMarkDay={setMarkDate}
+                  mainEntries={mainEntries}
+                  tasks={tasksHere ? openTasks : []}
+                  onOpenTask={(task) => setTaskModal({ task: tasks.find((t) => t._id === task._id) || task })}
+                />
+                {tasksHere && (schedule.live || (schedule.access?.people ?? 0) > 0) && (
+                  <p className="sched-hint sched-week-note">Your tasks show under the day they're due. Only you see them, not the others on this schedule.</p>
+                )}
+
+                {schedule.live && <ScheduleActivity schedule={schedule} />}
+
+                </div>
               )}
 
-              {schedule.live && <ScheduleActivity schedule={schedule} />}
+              {tab === "tasks" && tasksHere && (
+                <TasksTab
+                  tasks={tasks}
+                  week={week}
+                  now={now}
+                  onAdd={() => setTaskModal({})}
+                  onUseCode={(tag) => setTaskCode(tag)}
+                  onEdit={(task) => setTaskModal({ task })}
+                  onSetDone={setTaskDone}
+                  onDelete={(task) => setConfirm({ kind: "task", task })}
+                />
+              )}
 
-              <HolidayCalendar
-                month={calMonth}
-                onMonthChange={setCalMonth}
-                publicByDate={publicByDate}
-                overrides={schedule.holidayOverrides}
-                holidayError={holidayError}
-                canEdit={canEdit}
-                onApply={applyDayChanges}
-              />
+              {tab === "days-off" && (
+                <div role="tabpanel" id="panel-days-off" aria-labelledby="tab-days-off">
+                <HolidayCalendar
+                  month={calMonth}
+                  onMonthChange={setCalMonth}
+                  publicByDate={publicByDate}
+                  overrides={schedule.holidayOverrides}
+                  holidayError={holidayError}
+                  canEdit={canEdit}
+                  onApply={applyDayChanges}
+                />
+                </div>
+              )}
             </div>
           )}
         </main>
