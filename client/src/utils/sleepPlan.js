@@ -58,3 +58,15 @@ export function sleepPlan({ first, travelMinutes = 0, sleepHours = 8, usualSleep
     text: `Your first ${what} tomorrow is at ${clock(toMinutes(first.startTime))}${travelClause}. To get ${sleep} hours of sleep, be in bed by ${clock(bedMinutes)}.`,
   };
 }
+
+// The suggestion for tomorrow from the shared workload data (`week` and `profile`), or null.
+export function tomorrowSleepPlan({ week, profile }) {
+  const tomorrow = week?.[1];
+  if (!tomorrow) return null;
+  return sleepPlan({
+    first: firstStartOf(tomorrow.entries),
+    travelMinutes: profile.travelMinutesPerDay,
+    sleepHours: profile.sleepHours,
+    usualSleepStart: profile.hasRegularSleepSchedule ? profile.usualSleepStart : "",
+  });
+}

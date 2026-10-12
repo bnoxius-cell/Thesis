@@ -161,3 +161,41 @@ export const REVIEWERS_TOUR = [
     text: "Your score and how each topic went. From here you can practice the weak topics or ask for new questions on them.",
   },
 ];
+
+export const WELLBEING_TOUR = [
+  {
+    target: "well-drivers",
+    title: "What's shaping your week",
+    text: "The few things that push your week up or down, each with a word and a short reason.",
+  },
+  {
+    target: "well-week",
+    title: "Your week",
+    text: "The next seven days side by side: classes, task work and how much room is left each day.",
+  },
+  {
+    target: "well-focus",
+    title: "What to focus on",
+    text: "Short, practical tips based on your own week. Up to five.",
+  },
+  {
+    target: "well-ideas",
+    title: "Ideas to lighten the week",
+    text: "Deadlines you could move to a lighter day. Nothing changes until you tap Move it, and you can undo it.",
+  },
+  {
+    target: "well-checkins",
+    title: "Check-ins",
+    text: "Take or retake the stress and well-being check-ins, see what the last result meant and when the next one is due.",
+  },
+  {
+    target: "well-sleep",
+    title: "Sleep",
+    text: "Your sleep target, and a suggested bedtime when you have an early class or exam tomorrow.",
+  },
+  {
+    target: "well-how",
+    title: "How this works",
+    text: "In plain words, what goes into your score and where the two check-ins come from.",
+  },
+];

@@ -3078,187 +3078,113 @@ input[type="range"] {
 }
 
 
-/* PSS Survey Modal Styles */
-.pss-modal {
-  max-width: 700px;
-  max-height: 85vh;
+/* Check-in stepper (one question per screen) and its result */
+.checkin-modal {
+  display: block;
+  max-width: 560px;
+  max-height: 90vh;
   overflow-y: auto;
 }
-
-/* Shared across both survey modals: the validated-instrument citation, the
-   answered-count progress bar, and the warm completion screen. */
 .survey-citation {
-  margin: -12px 0 18px;
-  color: var(--text-secondary);
-  font-size: 0.78rem;
+  margin: var(--space-3) 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
 }
-.survey-progress {
-  position: sticky;
-  top: 0;
-  z-index: 5;
+.checkin-intro h3 { margin: 0 0 var(--space-2); font-size: var(--text-lg); outline: none; }
+.checkin-intro p { margin: 0 0 var(--space-2); color: var(--text-secondary); line-height: 1.5; }
+.checkin-window { color: var(--text-primary) !important; }
+.checkin-progress {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 0 0 18px;
-  padding: 10px 0;
-  background: var(--panel-bg);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 .survey-progress-track {
   flex: 1;
   height: 6px;
-  border-radius: 999px;
-  background: var(--mist);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
   overflow: hidden;
 }
 .survey-progress-fill {
   height: 100%;
   border-radius: inherit;
-  background: var(--sage);
+  background: var(--accent);
   transition: width 0.3s ease;
 }
-.survey-progress span {
+.checkin-progress span {
   flex-shrink: 0;
-  color: var(--text-secondary);
-  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
   font-weight: 600;
 }
-.survey-complete {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 10px;
-  padding: 48px 24px;
-  color: var(--sage);
-}
-.survey-complete h3 {
-  margin: 4px 0 0;
-  font-size: 1.4rem;
-}
-.survey-complete p {
-  margin: 0;
-  max-width: 32ch;
-  color: var(--text-secondary);
-}
-
-.pss-instructions {
-  background: var(--insight-card-bg);
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-}
-
-.pss-questions {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.pss-question {
-  padding: 12px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  background: var(--card-bg);
-}
-
-.question-text {
-  margin-bottom: 10px;
-  font-weight: 500;
+.checkin-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.checkin-question {
+  padding: 0;
+  margin-bottom: var(--space-4);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: 1.35;
   color: var(--text-primary);
+  outline: none;
 }
-
-.pss-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
+.checkin-stem {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
 }
-
-.pss-option {
+.checkin-options { display: grid; gap: var(--space-2); }
+.checkin-option {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 52px;
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: var(--text-md);
   cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
+.checkin-option:hover { border-color: var(--accent); }
+.checkin-option input { width: auto; margin: 0; accent-color: var(--accent); flex-shrink: 0; }
+.checkin-option.is-selected { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.checkin-option:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.checkin-nav { justify-content: space-between; }
+.checkin-nav .primary-button, .checkin-nav .secondary-button { display: inline-flex; align-items: center; gap: var(--space-2); }
 
-.pss-option input {
-  width: auto;
-  margin: 0;
-  accent-color: var(--sage);
+.checkin-loading { padding: var(--space-6) 0; text-align: center; color: var(--text-secondary); }
+.checkin-result { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+.checkin-result .modal-actions, .checkin-intro .modal-actions { grid-column: auto; }
+.checkin-block { padding-bottom: var(--space-4); border-bottom: 1px solid var(--border); }
+.checkin-block h3 {
+  margin: 0 0 var(--space-2);
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
+.checkin-block p { margin: 0 0 var(--space-2); line-height: 1.5; }
+.checkin-meaning { font-size: var(--text-lg); font-weight: 600; }
+.checkin-score { color: var(--text-muted); font-size: var(--text-xs); }
+.checkin-move, .checkin-today, .checkin-cheer { display: flex; gap: var(--space-3); align-items: flex-start; }
+.checkin-move svg, .checkin-today svg, .checkin-cheer svg { flex-shrink: 0; margin-top: 2px; color: var(--accent); }
+.checkin-move strong { display: block; }
+.checkin-today p { margin: 0; }
+.checkin-cheer { border-bottom: 0; padding-bottom: 0; color: var(--text-secondary); }
+.checkin-cheer p:last-child { margin-bottom: 0; }
 
-.pss-welcome {
-  text-align: center;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-light);
-}
-.pss-welcome h3,
-.who-welcome h3 {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin: 0 0 8px 0;
-  color: var(--sage);
-  font-size: 1.3rem;
-}
-.pss-welcome p {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-/* Well-being Survey Modal Styles */
-
-.who-modal {
-  max-width: 700px;
-  max-height: 85vh;
-  overflow-y: auto;
-}
-.who-welcome {
-  text-align: center;
-  margin-bottom: 20px;
-  padding: 12px;
-  background: var(--insight-card-bg);
-  border-radius: 8px;
-}
-.who-questions {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-.who-question {
-  padding: 12px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  background: var(--card-bg);
-}
-.who-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
-  margin-top: 8px;
-}
-.who-option {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-.who-option input {
-  width: auto;
-  margin: 0;
-  accent-color: var(--ochre);
+@media (max-width: 720px) {
+  .checkin-modal { max-height: 100dvh; }
+  .checkin-option { min-height: 56px; }
 }
 
 /*success toast in friends page*/
@@ -7175,3 +7101,36 @@ a.sidepanel-user:hover {
 .wellbeing-score { margin: var(--space-1) 0 0; font-size: var(--text-sm); color: var(--text-muted); }
 .wellbeing-sleep { margin: 0 0 var(--space-2); color: var(--text-secondary); line-height: 1.5; }
 .driver-note { grid-column: 1 / -1; color: var(--text-secondary); font-size: var(--text-sm); }
+
+/* WELLBEING: check-in cards and "How this works" */
+.checkin-intro-line { margin: 0 0 var(--space-4); color: var(--text-secondary); line-height: 1.5; }
+.checkin-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.checkin-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.checkin-card h3 { margin: 0; font-family: var(--font-ui); font-size: var(--text-md); }
+.checkin-card p { margin: 0; line-height: 1.45; }
+.checkin-card-lead, .checkin-card-meta { color: var(--text-muted); font-size: var(--text-xs); }
+.checkin-card-meaning { font-weight: 600; }
+.checkin-card .secondary-button { margin-top: var(--space-1); }
+.checkin-history { align-self: stretch; margin: var(--space-2) 0 0; padding: var(--space-2) 0 0; list-style: none; border-top: 1px solid var(--border); }
+.checkin-history li { display: flex; justify-content: space-between; gap: var(--space-3); padding: 2px 0; color: var(--text-muted); font-size: var(--text-xs); }
+.how-works summary { cursor: pointer; list-style: none; }
+.how-works summary::-webkit-details-marker { display: none; }
+.how-works summary h2 { display: inline; }
+.how-works summary::after { content: "Show"; margin-left: var(--space-3); color: var(--text-muted); font-size: var(--text-xs); }
+.how-works[open] summary::after { content: "Hide"; }
+.how-works p { color: var(--text-secondary); line-height: 1.55; }
+.how-sources { color: var(--text-muted) !important; font-size: var(--text-xs); }
+@media (max-width: 720px) {
+  .checkin-cards { grid-template-columns: minmax(0, 1fr); }
+}
+
+.done-this-week { margin: 0; color: var(--text-muted); font-size: var(--text-sm); text-align: center; }

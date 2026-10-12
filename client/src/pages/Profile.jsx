@@ -1,23 +1,28 @@
 import { useAuth } from "./authentication/AuthContext";
 import { useState, useEffect } from "react";
-import { useParams, Navigate, useLocation } from "react-router-dom";
+import { useParams, Navigate, useLocation, Link } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
-import PSSSurveyModal from "../components/PSSSurveyModal";
-import WHOSurveyModal from "../components/WHOSurveyModal";
 import PictureField from "../components/PictureField";
 import PublicProfile from "./PublicProfile";
 import { useTheme } from "../context/ThemeContext";
-import { surveyStatus, PSS_VALID_DAYS, WHO_VALID_DAYS } from "../utils/workload";
 import "../App.css";
 
 // Helper to get optimized Google avatar URL
 const getOptimizedAvatarUrl = (avatar) => {
   if (!avatar) return null;
   return avatar.replace('s96-c', 's150-c');
+};
+
+const day = (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+const lastCheckIn = (u) => {
+  const bits = [];
+  if (u?.lastPSSSubmission) bits.push(`stress on ${day(u.lastPSSSubmission)}`);
+  if (u?.lastWHOSubmission) bits.push(`well-being on ${day(u.lastWHOSubmission)}`);
+  return bits.length ? `You last checked in: ${bits.join(", ")}.` : "You haven't taken a check-in yet.";
 };
 
 // Your own profile at /profile/:yourId, someone else's (a friend or groupmate) at any other id.
@@ -38,14 +43,6 @@ function OwnProfile() {
   const [savingPicture, setSavingPicture] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
-
-  // Survey modals state
-  const [showPSSModal, setShowPSSModal] = useState(false);
-  const [showWHOModal, setShowWHOModal] = useState(false);
-  const [pssScore, setPssScore] = useState(null);
-  const [whoScore, setWhoScore] = useState(null);
-  const [lastPSSSubmission, setLastPSSSubmission] = useState(null);
-  const [lastWHOSubmission, setLastWHOSubmission] = useState(null);
 
 // Profile TAG
 const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCase() : "");
@@ -86,10 +83,6 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
           };
           setProfile(loaded);
           setEditForm(loaded);
-          setPssScore(userData.latestPSSScore ?? null);
-          setWhoScore(userData.latestWHOScore ?? null);
-          setLastPSSSubmission(userData.lastPSSSubmission ?? null);
-          setLastWHOSubmission(userData.lastWHOSubmission ?? null);
         }
       } catch (err) {
         console.error("Failed to load profile", err);
@@ -155,19 +148,6 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
     }
   };
 
-  const handlePSSComplete = (newScore) => {
-    setPssScore(newScore);
-    setLastPSSSubmission(new Date().toISOString());
-    setShowPSSModal(false);
-    // Optionally refetch profile to update lastPSSSubmission
-  };
-
-  const handleWHOComplete = (newScore) => {
-    setWhoScore(newScore);
-    setLastWHOSubmission(new Date().toISOString());
-    setShowWHOModal(false);
-  };
-
   // Links like /profile/<id>#appearance should land on that section once the page has loaded.
   useEffect(() => {
     if (loading || !hash) return;
@@ -203,27 +183,6 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
       </div>
     );
   }
-
-  // Helper to get stress level from PSS score
-  const pss = surveyStatus(pssScore, lastPSSSubmission, PSS_VALID_DAYS);
-  const who = surveyStatus(whoScore, lastWHOSubmission, WHO_VALID_DAYS);
-  const staleNote = (status) => (status.status === "stale"
-    ? `Taken ${status.ageDays} days ago. It's out of date, so it isn't counted in your workload until you retake it.`
-    : null);
-
-  const getStressLevel = (score) => {
-    if (score <= 13) return "Low Stress";
-    if (score <= 26) return "Moderate Stress";
-    return "High Stress";
-  };
-
-  // Helper to get well-being interpretation from WHO score
-  const getWellbeingInterpretation = (score) => {
-    if (score <= 28) return "Very Poor Well-being";
-    if (score <= 50) return "Low Well-being";
-    if (score <= 75) return "Moderate Well-being";
-    return "Good Well-being";
-  };
 
   return (
     <div className="app app-layout">
@@ -398,71 +357,15 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
           </div>
         </section>
 
-        {/* Survey History Section */}
-        <section className="panel">
+        <section className="panel" id="checkins">
           <div className="panel-heading">
             <div>
-              <span className="panel-kicker">Health Check-ins</span>
-              <h2>Your latest survey results</h2>
+              <span className="panel-kicker">Check-ins</span>
+              <h2>Your stress and well-being check-ins</h2>
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* PSS-10 Card */}
-            <div className="survey-card">
-              <div className="survey-card-head">
-                <div>
-                  <h3>📊 Perceived Stress Scale (PSS-10)</h3>
-                  <p>Your stress level over the last month</p>
-                </div>
-                <div className={`survey-score${pss.status === "stale" ? " is-stale" : ""}`}>
-                  <div className="survey-score-value">
-                    {pss.status === "stale" ? "Expired" : pssScore === null ? "No result" : `${pssScore} / 40`}
-                  </div>
-                  <div className="survey-score-label">
-                    {pss.status === "stale" ? "Retake to refresh" : pssScore === null ? "Take the survey to personalize your score" : getStressLevel(pssScore)}
-                  </div>
-                </div>
-              </div>
-              {staleNote(pss) && <p className="survey-stale-note">{staleNote(pss)}</p>}
-              <div className="survey-card-actions">
-                <button
-                  className="secondary-button small"
-                  onClick={() => setShowPSSModal(true)}
-                >
-                  {!lastPSSSubmission ? "Take Survey" : "Retake Survey"}
-                </button>
-              </div>
-            </div>
-
-            {/* WHO-5 Card */}
-            <div className="survey-card">
-              <div className="survey-card-head">
-                <div>
-                  <h3>💚 WHO-5 Well-Being Index</h3>
-                  <p>Your emotional well-being over the last two weeks</p>
-                </div>
-                <div className={`survey-score${who.status === "stale" ? " is-stale" : ""}`}>
-                  <div className="survey-score-value">
-                    {who.status === "stale" ? "Expired" : whoScore === null ? "No result" : `${whoScore} / 100`}
-                  </div>
-                  <div className="survey-score-label">
-                    {who.status === "stale" ? "Retake to refresh" : whoScore === null ? "Take the survey to personalize your score" : getWellbeingInterpretation(whoScore)}
-                  </div>
-                </div>
-              </div>
-              {staleNote(who) && <p className="survey-stale-note">{staleNote(who)}</p>}
-              <div className="survey-card-actions">
-                <button
-                  className="secondary-button small"
-                  onClick={() => setShowWHOModal(true)}
-                >
-                  {!lastWHOSubmission ? "Take Survey" : "Retake Survey"}
-                </button>
-              </div>
-            </div>
-          </div>
-          <p style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
-            Your responses help personalize your workload recommendations. You can retake any survey at any time.
+          <p>
+            {lastCheckIn(user)} Results, history and retakes are on the <Link to="/wellbeing#checkins">Wellbeing page</Link>.
           </p>
         </section>
 
@@ -496,22 +399,6 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
         </section>
       </main>
       <Footer />
-
-      {/* PSS-10 Modal */}
-      <PSSSurveyModal
-        isOpen={showPSSModal}
-        onClose={() => setShowPSSModal(false)}
-        onComplete={handlePSSComplete}
-        onRemindLater={() => setShowPSSModal(false)}
-      />
-
-      {/* WHO-5 Modal */}
-      <WHOSurveyModal
-        isOpen={showWHOModal}
-        onClose={() => setShowWHOModal(false)}
-        onComplete={handleWHOComplete}
-        onRemindLater={() => setShowWHOModal(false)}
-      />
     </div>
   );
 }
