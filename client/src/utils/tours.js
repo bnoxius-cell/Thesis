@@ -7,12 +7,12 @@ export const DASHBOARD_TOUR = [
   {
     target: "dash-greeting",
     title: "Your day at a glance",
-    text: "The dashboard pulls your tasks, your class schedule and your check-ins together, so you can see what today and this week look like.",
+    text: "Today pulls your classes, tasks and check-ins together, so you can see what today and this week look like.",
   },
   {
-    target: "dash-welcome",
-    title: "Start with one thing",
-    text: "Add a task or put in your class schedule. The rest of this page fills in once there's something to plan around.",
+    target: "dash-setup",
+    title: "Getting set up",
+    text: "Four small steps: your classes, a few numbers about your week, a first check-in and a task. Each one ticks off by itself. You can hide the card any time.",
   },
   {
     target: "dash-checkin",
@@ -26,28 +26,18 @@ export const DASHBOARD_TOUR = [
   },
   {
     target: "dash-doing",
-    title: "How you're doing",
-    text: "A read on your week from 0 to 100, based on your deadlines, your classes and your recent check-ins. The bars show what's adding the most.",
+    title: "This week",
+    text: "How heavy your week is, in words, and the two things adding the most. See what's behind this opens the full picture.",
+  },
+  {
+    target: "dash-next",
+    title: "Next step",
+    text: "One thing worth doing now: an earlier night before an early class, a deadline you could move, or a tip for your week. Move it changes the due date, and you can undo it.",
   },
   {
     target: "dash-week",
-    title: "How your week adds up",
-    text: "Each day's study time next to your classes and activities, so heavy days stand out early. Tasks that don't fit in a day are marked.",
-  },
-  {
-    target: "dash-guidance",
-    title: "Where to focus",
-    text: "A few tips picked for your week, like a busy day coming up, a free gap between classes or your next deadline.",
-  },
-  {
-    target: "dash-suggestions",
-    title: "Suggestions",
-    text: "When the week doesn't fit, this offers to move a task to a later day. Move it changes the due date, and you can undo it. Not now hides it until tomorrow.",
-  },
-  {
-    target: "dash-tasks",
-    title: "All your tasks",
-    text: "Every open task, with buttons to edit it, mark it as done or delete it. Got a 6-digit tag from a classmate? Type it here to add their task. New tasks are added from your Schedule.",
+    title: "The next 7 days",
+    text: "Each day's study time next to your classes and activities, so heavy days stand out early. Tap it for the details.",
   },
 ];
 
@@ -93,6 +83,16 @@ export const SCHEDULE_TOUR = [
     target: "sched-week",
     title: "Your week",
     text: "Classes, exams and your own tasks, day by day. Tap anything to see or change it, and use the arrows to move between weeks. Each day has buttons to add something or mark it as a day off.",
+  },
+  {
+    target: "sched-tasks",
+    title: "Your tasks",
+    text: "Tap the circle to mark a task done, or the title to edit it. The menu has Copy share code and Delete. Got a 6-digit code from a classmate? Add it here.",
+  },
+  {
+    target: "sched-plan",
+    title: "Your study plan",
+    text: "How the next 7 days of tasks fit around your classes. Days that are too full are the ones to look at first.",
   },
   {
     target: "sched-activity",

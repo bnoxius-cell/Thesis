@@ -17,10 +17,10 @@ export default function CheckInBanner({
   const bothDue = pssDue && whoDue;
 
   const message = bothDue
-    ? "You've got two quick check-ins ready when you are: one about stress, one about how you've been feeling."
+    ? "Two quick check-ins are ready, one on stress and one on how you've been feeling."
     : pssDue
-    ? "Your stress check-in is ready whenever you are."
-    : "Your well-being check-in is ready whenever you are.";
+    ? "Your stress check-in is ready when you are."
+    : "Your well-being check-in is ready when you are.";
 
   return (
     <div className="checkin-banner" role="status" data-tour="dash-checkin">
@@ -28,7 +28,7 @@ export default function CheckInBanner({
         <span className="checkin-banner-icon" aria-hidden="true"><MessageCircle size={20} /></span>
         <div>
           <strong>Time for a check-in</strong>
-          <p>{message} Take it whenever you're ready, no rush.</p>
+          <p>{message}</p>
         </div>
       </div>
       <div className="checkin-banner-actions">

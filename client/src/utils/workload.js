@@ -47,6 +47,15 @@ export const BANDS = [
 export const PSS_VALID_DAYS = 30;
 export const WHO_VALID_DAYS = 14;
 
+// What a student sees. The internal names above stay as they are, since isStrained, the tests and
+// the thesis all use them.
+export const BAND_LABEL = {
+  "Light Workload": "Light week",
+  "Moderate Workload": "Steady week",
+  "Heavy Workload": "Full week",
+  "Critical Overload": "Too much this week",
+};
+
 export const bandFor = (score) => BANDS.find((b) => score <= b.max).name;
 
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));

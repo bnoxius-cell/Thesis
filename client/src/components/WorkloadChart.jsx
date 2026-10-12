@@ -3,12 +3,12 @@ const round1 = (n) => Math.round(n * 10) / 10;
 // One column per day. The bottom block is what classes and activities already take,
 // the block on top is study time from tasks, and the tick marks how much study time the
 // day has room for. A day only turns clay when its tasks don't fit.
-export default function WorkloadChart({ schedule, hasSchedule = false }) {
+export default function WorkloadChart({ schedule, hasSchedule = false, compact = false }) {
   const scale = Math.max(...schedule.map((d) => d.busyHours + Math.max(d.load, d.capacity)), 1);
   const pct = (hours) => (hours / scale) * 100;
 
   return (
-    <div className="chart-shell">
+    <div className={`chart-shell${compact ? " is-compact" : ""}`}>
       <div className="chart-grid" role="list">
         {schedule.map((day) => {
           const overloaded = day.load > day.capacity + 0.05;
@@ -36,12 +36,12 @@ export default function WorkloadChart({ schedule, hasSchedule = false }) {
         })}
       </div>
 
-      <div className="chart-legend">
+      {!compact && <div className="chart-legend">
         {hasSchedule && <span><i className="legend-swatch busy" /> Classes and activities</span>}
         <span><i className="legend-swatch" /> Tasks</span>
         <span><i className="legend-swatch overload" /> Tasks that don't fit</span>
         <span><i className="legend-tick" /> Room for study</span>
-      </div>
+      </div>}
     </div>
   );
 }

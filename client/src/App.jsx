@@ -7,6 +7,7 @@ import NotFound from './pages/NotFound';
 import Groups from './pages/Groups';
 import Schedule from './pages/Schedule';
 import Notifications from './pages/Notifications';
+import Wellbeing from './pages/Wellbeing';
 import Reviewers from './pages/Reviewers';
 import AuthPage from './pages/authentication/AuthPage';
 import LegalPage from './pages/legal/LegalPage';
@@ -70,6 +71,7 @@ const AppContent = () => {
         <Route path="/schedule" element={<RequireAuth><Schedule /></RequireAuth>} />
         <Route path="/reviewers" element={<RequireAuth><Reviewers /></RequireAuth>} />
         <Route path="/groups" element={<RequireAuth><Groups /></RequireAuth>} />
+        <Route path="/wellbeing" element={<RequireAuth><Wellbeing /></RequireAuth>} />
         <Route path="/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
