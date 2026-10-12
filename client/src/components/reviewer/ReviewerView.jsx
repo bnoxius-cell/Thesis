@@ -13,6 +13,7 @@ import {
   QUESTION_COUNTS, TARGETED_COUNTS, DEFAULT_TARGETED_COUNT, MAX_TARGET_TOPICS, MAX_REVIEWER_QUESTIONS,
   LEVEL_LABEL, formatDate, errorMessage, listNames,
 } from "./reviewerUtils";
+import Modal from "../Modal";
 
 const STATUS_POLL_MS = 3000;
 // How long a failed "New questions" stays mentioned on the reviewer.
@@ -540,15 +541,7 @@ function RenameDialog({ reviewer, busy, onSave, onClose }) {
   const [title, setTitle] = useState(reviewer.title);
   const [course, setCourse] = useState(reviewer.course || "");
   return (
-    <div className="modal-overlay" onClick={busy ? undefined : onClose}>
-      <form
-        className="modal-content reviewer-modal is-narrow"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="rename-reviewer-title"
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={(e) => { e.preventDefault(); onSave({ title, course }); }}
-      >
+    <Modal onClose={onClose} busy={busy} as="form" className="reviewer-modal is-narrow" labelledBy="rename-reviewer-title" onSubmit={(e) => { e.preventDefault(); onSave({ title, course }); }}>
         <div className="modal-header">
           <h2 id="rename-reviewer-title">Rename</h2>
           <button type="button" className="modal-close" onClick={onClose} disabled={busy} aria-label="Close"><X size={22} aria-hidden="true" /></button>
@@ -561,22 +554,14 @@ function RenameDialog({ reviewer, busy, onSave, onClose }) {
           <button type="button" className="secondary-button" onClick={onClose} disabled={busy}>Cancel</button>
           <button type="submit" className="primary-button" disabled={busy || !title.trim()}>{busy ? "Saving..." : "Save"}</button>
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }
 
 function RegenerateDialog({ reviewer, busy, onConfirm, onClose }) {
   const [count, setCount] = useState(reviewer.questionTarget || 15);
   return (
-    <div className="modal-overlay" onClick={busy ? undefined : onClose}>
-      <div
-        className="modal-content reviewer-modal is-narrow"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="regen-reviewer-title"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal onClose={onClose} busy={busy} className="reviewer-modal is-narrow" labelledBy="regen-reviewer-title">
         <div className="modal-header">
           <h2 id="regen-reviewer-title">New questions</h2>
           <button type="button" className="modal-close" onClick={onClose} disabled={busy} aria-label="Close"><X size={22} aria-hidden="true" /></button>
@@ -597,8 +582,7 @@ function RegenerateDialog({ reviewer, busy, onConfirm, onClose }) {
           <button type="button" className="secondary-button" onClick={onClose} disabled={busy}>Cancel</button>
           <button type="button" className="primary-button" onClick={() => onConfirm(count)} disabled={busy}>{busy ? "Starting..." : "Make new questions"}</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -615,15 +599,7 @@ function TargetedDialog({ reviewer, progress, busy, onConfirm, onClose }) {
   ));
 
   return (
-    <div className="modal-overlay" onClick={busy ? undefined : onClose}>
-      <form
-        className="modal-content reviewer-modal is-narrow"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="targeted-title"
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={(e) => { e.preventDefault(); onConfirm({ topics: picked, questionCount: count }); }}
-      >
+    <Modal onClose={onClose} busy={busy} as="form" className="reviewer-modal is-narrow" labelledBy="targeted-title" onSubmit={(e) => { e.preventDefault(); onConfirm({ topics: picked, questionCount: count }); }}>
         <div className="modal-header">
           <h2 id="targeted-title">New questions</h2>
           <button type="button" className="modal-close" onClick={onClose} disabled={busy} aria-label="Close"><X size={22} aria-hidden="true" /></button>
@@ -661,7 +637,6 @@ function TargetedDialog({ reviewer, progress, busy, onConfirm, onClose }) {
           <button type="button" className="secondary-button" onClick={onClose} disabled={busy}>Cancel</button>
           <button type="submit" className="primary-button" disabled={busy || !picked.length}>{busy ? "Starting..." : "Write questions"}</button>
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }

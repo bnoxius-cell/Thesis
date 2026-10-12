@@ -11,7 +11,8 @@ Last updated: 2026-10-12, end of the Sonnet build session. FE-1, FE-2 and system
 - Not eyeballed: the new-account setup checklist (use `ana@student.fatima.edu.ph`), Wellbeing and Tasks tab on a real phone. Seen: Today and the Tasks tab on a laptop in the owner's Chrome; Today at 375px is 1,845px tall with no horizontal scroll.
 - Old `TaskBoard` CSS (`.task-card`, `.edit-button` etc.) is now unused; remove it in FE-6 after a search.
 - **Batch 3 done** (`fix/server-checks`, details in CLAUDE.md "Server checks"): S3, S5 (server scores check-ins, so FE-3 can show the result from the response), S7, B5, B12, B13, B14, B16. Not done on purpose: B13 has no failing-save test (the order is checked by the join-by-code test only).
-- **Next**: SR Batch 7 (`feature/shared-modal`), then FE-3. Batches 1 and 5 (auth) need an Opus review before merging; ask the owner about S6 when Batch 1 or 2 starts.
+- **Batch 7 done** (`feature/shared-modal`, 2026-10-13): shared `Modal`/`ModalShell`, all dialogs switched, check-ins ask before closing. Builds clean; NOT tried in a browser (Chrome extension was disconnected), so click through a few dialogs (Escape, drag-select out, check-in leave prompt, Tab) before relying on it.
+- **Next**: FE-3 (check-ins and Wellbeing). Batches 1 and 5 (auth) need an Opus review before merging; ask the owner about S6 when Batch 1 or 2 starts.
 - **UI harness**: `node server/scripts/uiHarness.js` (API on 5070) plus `VITE_BACKEND_URL=http://localhost:5070 npx vite --port 5174 --strictPort` in `client/`; login `maria@student.fatima.edu.ph` / `Password123`. Start the harness once only (two runs on the same port duplicate the seed). Kill both when done. The Chrome extension screenshots time out often; retry, or measure with JS in a 375px iframe.
 
 ## Frontend revamp plan (2026-10-12)

@@ -219,14 +219,14 @@ The dashboard "Next exam" pill wraps into narrow columns at 375px (`.today-exam-
 - [ ] **R12** Remove the leftover comments listed in R12. Leave the email template colors unless the owner asks.
 
 ## Batch 7: `feature/shared-modal` (UI, mobile rules apply)
-- [ ] **B7** Build `client/src/components/Modal.jsx`:
+- [x] **B7** Build `client/src/components/Modal.jsx`:
   - Props: `open`, `onClose`, `labelledBy`, `busy` (blocks closing), `className`, `children`, and optional `confirmClose` (a function that returns true when closing should ask first).
   - Closes on Escape (unless `busy`, and only the top-most modal when several are open), and on an overlay click only when the press *started* on the overlay too (track `onMouseDown`/`onPointerDown` target), which fixes the drag-select bug.
   - `role="dialog"`, `aria-modal="true"`, `aria-labelledby`; moves focus to the first field (or the dialog) on open and back to the opener on close; keeps Tab inside the dialog; locks page scroll while open.
   - Reuses the existing `.modal-overlay` / `.modal-content` styles, so nothing looks different.
-- [ ] **B7** Switch every dialog to it, one file at a time, checking each still works: `ConfirmDialog`, `TaskBoard` (edit), `TaskImportDialog`, `PSSSurveyModal`, `WHOSurveyModal`, `Friends` (add), `Groups` (create, join), `GroupChat` (share picker), `MemberDialog`, `GroupSettingsDialog`, `UploadReviewerDialog`, the three in `ReviewerView`, and in `components/schedule/`: `EntryModal`, `EntryDetails`, `TaskModal`, `DayMarkModal`, `ShareModal`, `ScheduleImportDialog`, plus Rename, Create and Join in `Schedule.jsx`. `TermsGate` stays as it is (it must not close).
-- [ ] **B7** For the PSS-10 and WHO-5 check-ins, pass `confirmClose` so that closing with answers started asks "Leave the check-in? Your answers so far won't be saved." (use `ConfirmDialog`).
-- [ ] **B7** Tick the "Rename schedule dialog doesn't close on Escape" to-do in CLAUDE.md and add a line under "Dialogs and the page Guide": new dialogs use `Modal`.
+- [x] **B7** Switch every dialog to it, one file at a time, checking each still works: `ConfirmDialog`, `TaskBoard` (edit), `TaskImportDialog`, `PSSSurveyModal`, `WHOSurveyModal`, `Friends` (add), `Groups` (create, join), `GroupChat` (share picker), `MemberDialog`, `GroupSettingsDialog`, `UploadReviewerDialog`, the three in `ReviewerView`, and in `components/schedule/`: `EntryModal`, `EntryDetails`, `TaskModal`, `DayMarkModal`, `ShareModal`, `ScheduleImportDialog`, plus Rename, Create and Join in `Schedule.jsx`. `TermsGate` stays as it is (it must not close).
+- [x] **B7** For the PSS-10 and WHO-5 check-ins, pass `confirmClose` so that closing with answers started asks "Leave the check-in? Your answers so far won't be saved." (use `ConfirmDialog`).
+- [x] **B7** Tick the "Rename schedule dialog doesn't close on Escape" to-do in CLAUDE.md and add a line under "Dialogs and the page Guide": new dialogs use `Modal`.
 
 ## Batch 8: `feature/friend-requests` (server and UI; good to combine with the Friends redesign on the to-do)
 - [ ] **B8 server** Add `DELETE /api/friends/request/:requestId` (the receiver declines or the sender cancels a pending request, nobody else) and `GET /api/friends/sent` (pending requests you sent). In `sendFriendRequest`, if the other person already sent you a pending request, accept it and notify them instead of answering "already sent". First tests for the friend controller in a new `friends.test.js`: send, accept, decline, cancel, mutual request, bad ids.

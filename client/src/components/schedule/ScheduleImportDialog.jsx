@@ -5,6 +5,7 @@ import { AlertTriangle, Check, Pencil, X, Eye, PencilLine } from "lucide-react";
 import { useAuth } from "../../pages/authentication/AuthContext";
 import { WEEKDAYS, formatTime, formatLongDate, KIND_LABELS } from "../../utils/scheduleUtils";
 import { analyzeEntry } from "../../utils/scheduleConflicts";
+import Modal from "../Modal";
 
 const dayLabel = (entry) =>
   entry.date
@@ -126,8 +127,7 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={busy ? undefined : onClose}>
-      <div className="modal-content sched-modal imp" role="dialog" aria-modal="true" aria-labelledby="imp-title" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} busy={busy} className="sched-modal imp" labelledBy="imp-title">
         <div className="modal-header">
           <h2 id="imp-title">{preview ? (source.shareCode ? `"${preview.source.title}"` : `Add "${preview.source.title}"`) : "Opening the schedule"}</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button>
@@ -290,7 +290,6 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
             </div>
           </>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }

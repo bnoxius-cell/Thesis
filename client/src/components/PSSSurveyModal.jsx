@@ -3,6 +3,7 @@ import axios from "axios";
 import { ClipboardList, CheckCircle2 } from "lucide-react";
 import { useAuth } from "../pages/authentication/AuthContext";
 import "../App.css";
+import Modal from "./Modal";
 
 const questions = [
   "been upset because of something that happened unexpectedly?",
@@ -107,8 +108,7 @@ export default function PSSSurveyModal({ isOpen, isFirstTime = false, onClose, o
   const answeredCount = answers.filter((a) => a !== null).length;
 
   return (
-    <div className="modal-overlay" onClick={submitted ? undefined : onClose}>
-      <div className="modal-content pss-modal" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} busy={submitted} confirmClose={() => answeredCount > 0} leavePrompt={{ title: "Leave the check-in?", body: "Your answers so far won't be saved.", confirmLabel: "Leave", cancelLabel: "Keep going" }} className="pss-modal">
         {submitted ? (
           <div className="survey-complete">
             <CheckCircle2 size={40} aria-hidden="true" />
@@ -179,7 +179,6 @@ export default function PSSSurveyModal({ isOpen, isFirstTime = false, onClose, o
             </form>
           </>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }

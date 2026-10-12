@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Minus, Plus, Ticket, CircleCheck, RotateCcw } from "lucide-react";
 import { toISODate, addDays, taskDueIso } from "../../utils/scheduleUtils";
+import Modal from "../Modal";
 
 const DIFFICULTY = ["Very easy", "Easy", "Medium", "Hard", "Very hard"];
 const IMPORTANCE = ["Low", "Minor", "Normal", "Important", "Critical"];
@@ -117,8 +118,7 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
   const courseList = [...new Set(courses.filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
   return (
-    <div className="modal-overlay" onClick={saving ? undefined : onClose}>
-      <form className="modal-content sched-modal task-modal" role="dialog" aria-modal="true" aria-labelledby="task-modal-title" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+    <Modal onClose={onClose} busy={saving} as="form" className="sched-modal task-modal" labelledBy="task-modal-title" onSubmit={submit}>
         <div className="modal-header">
           <div>
             <span className="panel-kicker">Task</span>
@@ -255,7 +255,6 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
             {saving ? "Saving..." : task ? "Save changes" : "Add task"}
           </button>
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }

@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { X, ShieldCheck } from "lucide-react";
 import PictureField from "../PictureField";
 import { useAuth } from "../../pages/authentication/AuthContext";
+import Modal from "../Modal";
 
 // Owner and admins edit the group here: name, description, icon and the family-friendly filter.
 export default function GroupSettingsDialog({ group, onClose, onGroupUpdated }) {
@@ -43,8 +44,7 @@ export default function GroupSettingsDialog({ group, onClose, onGroupUpdated }) 
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <form className="modal-content" role="dialog" aria-modal="true" aria-labelledby="settings-title" onClick={(e) => e.stopPropagation()} onSubmit={save}>
+    <Modal onClose={onClose} as="form" labelledBy="settings-title" onSubmit={save}>
         <div className="modal-header">
           <h2 id="settings-title">Group settings</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close"><X size={20} /></button>
@@ -80,7 +80,6 @@ export default function GroupSettingsDialog({ group, onClose, onGroupUpdated }) 
             </button>
           </div>
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }

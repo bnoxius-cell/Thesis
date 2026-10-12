@@ -6,6 +6,7 @@ import axios from "axios";
 import UserAvatar from "../components/UserAvatar";
 import ConfirmDialog from "../components/ConfirmDialog";
 import "../App.css";
+import Modal from "../components/Modal";
 
 // The Friends tab of People (/groups?tab=friends). It renders inside the Groups page.
 export default function Friends() {
@@ -176,8 +177,7 @@ export default function Friends() {
 
       {/* Add Friend Modal */}
       {modalOpen && (
-        <div className="modal-overlay" onClick={() => setModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <Modal onClose={() => setModalOpen(false)}>
             <div className="modal-header">
               <h2>Add a new friend</h2>
               <button className="modal-close" onClick={() => setModalOpen(false)}>×</button>
@@ -200,8 +200,7 @@ export default function Friends() {
                 <button className="btn-create-task" onClick={handleSendRequest}>Send Request</button>
               </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       <ConfirmDialog

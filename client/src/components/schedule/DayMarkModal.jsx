@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { formatLongDate } from "../../utils/scheduleUtils";
+import Modal from "../Modal";
 
 // Lets a user decide what a single date is: a holiday (with their own name), not a
 // holiday (hides a public one), or back to whatever the public list says.
@@ -18,12 +19,7 @@ export default function DayMarkModal({ date, holiday, publicName, hasOverride, o
   };
 
   return (
-    <div className="modal-overlay" onClick={busy ? undefined : onClose}>
-      <form
-        className="modal-content sched-modal sched-modal-narrow"
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={(e) => { e.preventDefault(); apply("holiday"); }}
-      >
+    <Modal onClose={onClose} busy={busy} as="form" className="sched-modal sched-modal-narrow" onSubmit={(e) => { e.preventDefault(); apply("holiday"); }}>
         <div className="modal-header">
           <h2>{formatLongDate(date)}</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button>
@@ -67,7 +63,6 @@ export default function DayMarkModal({ date, holiday, publicName, hasOverride, o
             </button>
           )}
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }
