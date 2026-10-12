@@ -189,7 +189,7 @@ const AuthPage = () => {
             <p>Loading...</p>
           </div>
         </main>
-        <Footer />
+        <Footer variant="full" />
       </div>
     );
   }
@@ -396,7 +396,7 @@ const AuthPage = () => {
           </div>
         </section>
       </main>
-      <Footer />
+      <Footer variant="full" />
     </div>
   );
 };

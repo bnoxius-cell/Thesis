@@ -1,15 +1,12 @@
+* {
+  box-sizing: border-box;
+}
+
 :root {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color: #1f2937;
-  background: #f8fafc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
 }
 
 html,
@@ -21,9 +18,6 @@ body,
 
 body {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top, rgba(239, 68, 68, 0.08), transparent 35%),
-    #f8fafc;
 }
 
 button,

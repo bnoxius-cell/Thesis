@@ -1,10 +1,31 @@
 import { Link } from 'react-router-dom';
 import { Github, Mail } from 'lucide-react';
 import Logo from '../../assets/logo.svg';
+import { useAuth } from '../../pages/authentication/AuthContext';
 import { SUPPORT_EMAILS } from '../../pages/legal/legalContent';
 import './Footer.css';
 
-export default function Footer() {
+// `variant="app"` is the one-line footer for signed-in pages; `"full"` is the public one
+// (sign-in, About, legal). Left unset, it follows whether someone is signed in.
+export default function Footer({ variant }) {
+  const { isLoggedin, user } = useAuth();
+  const kind = variant || (isLoggedin ? 'app' : 'full');
+  const year = new Date().getFullYear();
+
+  if (kind === 'app') {
+    const helpTo = user?._id ? `/profile/${user._id}#help` : '/about';
+    return (
+      <footer className="footer app-footer">
+        <span>&copy; {year} StressCare</span>
+        <nav aria-label="Footer">
+          <Link to="/privacy-policy">Privacy</Link>
+          <Link to="/terms-of-service">Terms</Link>
+          <Link to={helpTo}>Help</Link>
+        </nav>
+      </footer>
+    );
+  }
+
   return (
     <footer className="footer site-footer">
       <div className="site-footer-top">
@@ -21,19 +42,17 @@ export default function Footer() {
             <a href={`mailto:${SUPPORT_EMAILS.join(',')}`} aria-label="Email Support"><Mail size={20} /></a>
           </div>
         </div>
-        
+
         <div className="site-footer-links">
           <div className="site-footer-column">
             <h4>Product</h4>
-            <Link to="/dashboard">Dashboard</Link>
+            <Link to="/dashboard">Today</Link>
             <Link to="/schedule">Schedule</Link>
-            <Link to="/groups">Groups</Link>
-            <Link to="/friends">Friends</Link>
+            <Link to="/groups">People</Link>
           </div>
           <div className="site-footer-column">
             <h4>Resources</h4>
             <Link to="/about">About Us</Link>
-            <Link to="/notifications">Alerts</Link>
             <h4 className="site-footer-subhead">Support</h4>
             {SUPPORT_EMAILS.map((e) => (
               <a key={e} href={`mailto:${e}`} className="site-footer-email">{e}</a>
@@ -48,7 +67,7 @@ export default function Footer() {
       </div>
 
       <div className="site-footer-bottom">
-        <p>&copy; {new Date().getFullYear()} StressCare. All rights reserved.</p>
+        <p>&copy; {year} StressCare. All rights reserved.</p>
         <p className="site-footer-made-by">Built for OLFU IT Students</p>
       </div>
     </footer>

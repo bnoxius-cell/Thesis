@@ -9,6 +9,10 @@ import GroupChat from "../components/GroupChat";
 import ConfirmDialog from "../components/ConfirmDialog";
 import UserAvatar from "../components/UserAvatar";
 import PictureField from "../components/PictureField";
+import PageHeader from "../components/PageHeader";
+import Tabs from "../components/Tabs";
+import { useTabParam } from "../utils/useTabParam";
+import Friends from "./Friends";
 import { useAuth } from "./authentication/AuthContext";
 import "../App.css";
 
@@ -19,6 +23,7 @@ export default function Groups() {
   const myId = user?._id;
   const [searchParams, setSearchParams] = useSearchParams();
   const openGroupId = searchParams.get("g");
+  const [tab, setTab] = useTabParam(["groups", "friends"]);
 
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -223,25 +228,20 @@ export default function Groups() {
     <div className="app app-layout">
       <Header />
       <main className="dashboard">
-        <section className="hero" id="groups-hero">
-          <div className="hero-copy">
-            <span className="eyebrow">Collaboration Hub</span>
-            <h1>Study groups & shared tasks</h1>
-            <p>
-              Create a group, invite classmates with a join code, then chat and share tasks to work together.
-            </p>
-          </div>
-          <aside className="hero-panel">
-            <h2>Groups</h2>
-            <ul className="hero-list">
-              <li>Create a group and get a join code</li>
-              <li>Join a classmate's group with their code</li>
-              <li>Chat with everyone in the group</li>
-              <li>Share a task and let others add it to their schedule</li>
-            </ul>
-          </aside>
-        </section>
+        <PageHeader title="People" description="Your study groups and your friends." />
+        <Tabs
+          tabs={[{ id: "groups", label: "Groups" }, { id: "friends", label: "Friends" }]}
+          value={tab}
+          onChange={setTab}
+          label="People"
+        />
 
+        {tab === "friends" ? (
+          <div role="tabpanel" id="panel-friends" aria-labelledby="tab-friends" className="tab-panel">
+            <Friends />
+          </div>
+        ) : (
+        <div role="tabpanel" id="panel-groups" aria-labelledby="tab-groups" className="tab-panel">
         <div className="groups-actions">
           <button className="primary-button" onClick={() => { setError(""); setCreateModalOpen(true); }}>
             <Plus size={18} aria-hidden="true" /> Create group
@@ -310,6 +310,8 @@ export default function Groups() {
               </div>
             ))}
           </div>
+        )}
+        </div>
         )}
       </main>
 

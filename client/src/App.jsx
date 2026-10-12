@@ -3,8 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import About from './pages/About';
-import Settings from './pages/Settings';
-import Friends from './pages/Friends';
+import NotFound from './pages/NotFound';
 import Groups from './pages/Groups';
 import Schedule from './pages/Schedule';
 import Notifications from './pages/Notifications';
@@ -17,6 +16,12 @@ import { NotificationProvider } from './context/NotificationContext';
 import { ToastContainer } from 'react-toastify';
 import './App.css';
 import { useAuth } from './pages/authentication/AuthContext';
+
+// Settings now lives in Me. Old bookmarks go to the appearance section of the own profile.
+function SettingsRedirect() {
+  const { user } = useAuth();
+  return <Navigate to={user?._id ? `/profile/${user._id}#appearance` : '/profile'} replace />;
+}
 
 // Signed-out visitors go to the login page, which remembers where they were headed (a shared
 // schedule link, a group) and sends them there once they're in.
@@ -60,13 +65,13 @@ const AppContent = () => {
         <Route path="/about" element={<About />} />
         <Route path="/terms-of-service" element={<LegalPage kind="terms" />} />
         <Route path="/privacy-policy" element={<LegalPage kind="privacy" />} />
-        <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
-        <Route path="/friends" element={<RequireAuth><Friends /></RequireAuth>} />
+        <Route path="/settings" element={<RequireAuth><SettingsRedirect /></RequireAuth>} />
+        <Route path="/friends" element={<Navigate to="/groups?tab=friends" replace />} />
         <Route path="/schedule" element={<RequireAuth><Schedule /></RequireAuth>} />
         <Route path="/reviewers" element={<RequireAuth><Reviewers /></RequireAuth>} />
         <Route path="/groups" element={<RequireAuth><Groups /></RequireAuth>} />
         <Route path="/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       </NotificationProvider>
     </Router>
