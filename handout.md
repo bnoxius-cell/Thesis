@@ -2,10 +2,16 @@
 
 Read this first after a `/clear`. It's the short "where we left off" note. `CLAUDE.md` has the full project reference, this file only has the current state.
 
-Last updated: 2026-10-11, end of session. On `main`, clean, everything merged (PRs #20, #21) and live. Nothing in progress.
+Last updated: 2026-10-12. Branch `docs/system-review` holds a new `system-review.md` (not committed yet). No app code changed.
+
+## System review (2026-10-12)
+- The owner asked for a full review (bugs, broken parts, redundancy) with instructions Sonnet can build from. It's in `system-review.md` at the project root: findings first, then 11 batches, each with a branch name, steps and tests.
+- Top items: password-reset codes can be guessed with no attempt limit (S1, High); there's no "Forgot password" screen at all (B1, High); unverified accounts can be claimed through Google linking (S2); removed group members can rejoin by group id (S3); check-in scores are trusted from the browser (S5).
+- Before Sonnet starts: get the owner's answers to the three decisions at the top of the work list (well-being goal direction, sleep fields, reset wording). Batches 1 and 5 touch auth, so Opus reviews those diffs before merging.
+- Checked while reviewing: 375/375 server tests pass, client builds (one 628 KB chunk), lint has 20 errors (mostly the known setState-in-effect pattern).
 
 ## Next up
-Nothing is half done. Pick from:
+Start with `system-review.md` (above). Older list, still valid:
 1. **Real phone pass on the live site** (owner, or with them): the Guide's bottom sheet, the new confirm dialogs, login sticking after the API proxy change, the schedule workspace, a reviewer upload. All are only checked at phone width in a desktop browser so far.
 2. Small fixes seen on 2026-10-11, not done: the dashboard's "Next exam" pill wraps into narrow columns at 375px; the Rename schedule dialog doesn't close on Escape.
 3. The page-by-page redesign list in CLAUDE.md (Profile, Friends, Groups, Notifications, Settings, About, Auth). Read `mobile-rules.md` first: every UI change is also done for mobile in the same change.
