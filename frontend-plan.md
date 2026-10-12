@@ -4,7 +4,7 @@ This is the project's `frontend-plan.md`. It covers the frontend revamp (pages, 
 
 Written by Opus after a walk through every page (desktop and phone width, light and dark, seeded with a realistic student account), a read of the client code, and web research. The second half is a work list for Sonnet.
 
-**Status:** plan written, nothing built yet. Answer the Open decisions in section 8 first; most of them don't block Week 1.
+**Status:** plan written, nothing built yet. The owner answered every open decision on 2026-10-12 (section 8), so it is ready to build. Start with section 9.
 
 ---
 
@@ -85,7 +85,7 @@ What I looked up and what it changed in this plan. Most design sources are pract
 - **Study techniques.** Practice testing and spaced practice are the only two "high utility" techniques in Dunlosky et al. 2013 ([APS](https://www.psychologicalscience.org/news/releases/which-study-strategies-make-the-grade.html)). Supports keeping Reviewers (practice questions) and giving it a top-level "Study" place.
 - **WHO-5.** 50 or under is the usual screening cut-off for low well-being ([INSPQ](https://www.inspq.qc.ca/en/post-disaster-mental-health-impacts-surveillance-toolkit/standardized-measurement-instruments/information-sheets-standardized-measurement-instruments-recommended/well-being), [PsyToolkit](https://us.psytoolkit.org/survey-library/who5.html)). The app already uses under 50 in `isStrained`; keep it.
 - **Mobile navigation.** Material guidance: 3 to 5 destinations in a bottom bar, a drawer only past 5 or 6; visible bottom bars suit task apps better than hidden menus ([Material Components](https://chromium.googlesource.com/external/github.com/material-components/material-components-ios/+/v55.5.0/components/BottomNavigation/README.md), [Uxcel](https://uxcel.com/lessons/navigation-678)). Changed: 5 destinations, bottom bar on phones.
-- **Philippine crisis lines** (for Open decision 3, not built by default): NCMH Crisis Hotline 1553 (24/7, English and Filipino), Hopeline, In Touch ([findahelpline: NCMH](https://findahelpline.com/organizations/ncmh-crisis-hotline), [The Beat Asia list](https://thebeat.asia/manila/ohana/health-wellness/mental-health-helplines-apps)). Numbers differ between directories; confirm with NCMH before publishing. I couldn't find an OLFU Guidance office contact online ([OLFU contact page](https://www.fatima.edu.ph/contact-us/) lists only admissions, registrar and concierge).
+- **Philippine crisis lines** (for the "Talk to someone" placeholders in section 8; the owner verifies them): NCMH Crisis Hotline 1553 (24/7, English and Filipino), Hopeline, In Touch ([findahelpline: NCMH](https://findahelpline.com/organizations/ncmh-crisis-hotline), [The Beat Asia list](https://thebeat.asia/manila/ohana/health-wellness/mental-health-helplines-apps)). Numbers differ between directories; confirm with NCMH before publishing. I couldn't find an OLFU Guidance office contact online ([OLFU contact page](https://www.fatima.edu.ph/contact-us/) lists only admissions, registrar and concierge).
 - **Visual references.** Dribbble searches for "mental health app dashboard", "student wellbeing app" and "study planner app": the good ones use one check-in row at the top, soft tinted cards with a single focus each, and big rounded type for the one number that matters. The study-planner results are mostly purple gradients with 3D robot mascots, which is exactly the templated look to avoid.
 
 ---
@@ -185,13 +185,13 @@ Removed from Today: the full task board, the import form, the 7-day study plan (
 
 ### Me (`/profile/:id`, own)
 One page of sections with an in-page index at the top on a laptop:
-1. **You**: photo (existing `PictureField`), friend code with Copy, and the profile fields: name, program (select, see Open decision 6; free text until then), bio (200). Always editable, one Save button, a success toast.
-2. **Your week** (the numbers the planner uses): study hours a day, sleep hours, usual bedtime, usual wake time, travel time on school days, and "How should we pace you?" (the wellbeing goal; labels depend on system-review B3). Always editable, its own Save button, a success toast. No Edit mode anywhere.
+1. **You**: photo (existing `PictureField`), friend code with Copy, and the profile fields: name, program (select: "BS Information Technology" or "BS Computer Science", section 8), bio (200). Always editable, one Save button, a success toast.
+2. **Your week** (the numbers the planner uses): study hours a day, sleep hours, usual bedtime, usual wake time, travel time on school days, and "How should we pace you?" (the wellbeing goal: Lighter, Balanced or Fuller pace, with the one-line hints from section 8). Always editable, its own Save button, a success toast. No Edit mode anywhere.
 3. **Appearance** (`#appearance`): Light / Dark / Match my device.
 4. **Notifications** (`#notifications`): the existing `NotificationPreferences` component, moved here.
 5. **Check-ins**: a short line with the last dates and a link to Wellbeing.
 6. **Privacy and data**: an accurate paragraph (text in system-review B2), links to the Privacy Policy and Terms, and "Ask us to delete your account" as a mailto to the support emails.
-7. **Help and about**: "Each page has a Guide button (bottom right)", links to About, support emails.
+7. **Help and more**: "Each page has a Guide button (bottom right)", links to About, support emails, and the "Talk to someone" block with the contacts from `helpContacts.js` (section 8; placeholders until the owner fills them in).
 8. **Sign out**.
 
 Removed: "Auth Provider", "Account Verified", the Profile & Capacity hero, emoji headings. Another student's profile (`PublicProfile.jsx`) only gets the new page header.
@@ -208,7 +208,7 @@ Removed: "Auth Provider", "Account Verified", the Profile & Capacity hero, emoji
 - "Forgot password?" (system-review Batch 2) under the password field.
 
 ### About (`/about`, public)
-Rewrite to match the app: what StressCare is (one paragraph), how it works in 4 steps (classes, tasks, check-ins, a plan), the workload score (the real bands and inputs, check-in validity windows, PSS-10 and WHO-5 with citations), what it isn't (not a diagnosis or treatment), who made it (**the owner supplies names; never invent them**), contact.
+Rewrite to match the app: what StressCare is (one paragraph), how it works in 4 steps (classes, tasks, check-ins, a plan), the workload score (the real bands and inputs, check-in validity windows, PSS-10 and WHO-5 with citations), what it isn't (not a diagnosis or treatment), who made it (a placeholder line until the owner gives names: "Made by [team member names] as a thesis project at Our Lady of Fatima University"; **never invent names**), contact.
 
 ### 404
 "This page doesn't exist." plus a link to Today (or to sign-in when signed out).
@@ -278,20 +278,28 @@ Pure function `sleepPlan()` in `client/src/utils/sleepPlan.js`:
 - **Numbers one tap deeper**: Today shows words only; Wellbeing shows the workload score and check-in scores. (Opus, delegated, follows the owner's "scores are for the system")
 - **Fraunces only for page titles (h1) and the Today greeting**; everything else, including panel titles, in Karla. The app is a tool; a display serif on every card title reads as decoration. (Opus, delegated)
 
+Answered by the owner on 2026-10-12 (these were the Open list):
+- **Student-facing band names** (owner: "you suggest"): "Light week", "Steady week", "Full week", "Too much this week" on screen. The code and the thesis keep Light/Moderate/Heavy Workload and Critical Overload: add a display map (`BAND_LABEL` in `workload.js`) and rename nothing, since `isStrained` and the tests compare the internal names.
+- **Red off buttons and labels** (owner: "sure, fix the restored red"): navy (`--accent`) for primary and secondary actions, slate (`--text-muted`) for kickers, red (`--brand`, `--danger`) only for the logo, the active nav marker, overdue, delete and errors. "Doesn't fit" and Full weeks use amber (`--watch`).
+- **"Talk to someone" line, with placeholders** (owner will look up the details). One short block in Me > Help and More (section 6), never on result screens: "If things feel like too much, you don't have to handle it alone. You can reach:" followed by the contacts. All contact text lives in one file, `client/src/utils/helpContacts.js`, as a list of `{ name, detail }`. Until the owner fills it in, `detail` shows a visible placeholder such as "[Contact details to be added]". **Never fill in numbers yourself.** For the owner to verify (put these in a code comment, not on screen): NCMH Crisis Hotline 1553 (24/7, English and Filipino); OLFU Guidance and Counseling Office (contact not found online).
+- **Wellbeing goal** (owner: wellbeing first, but formal). This also settles system-review B3. Labels and effect on the score (internal values stay `catch-up`, `steady`, `high-performance`):
+  - "Lighter pace": "Flags a heavy week sooner. Good when you're catching up or worn out." Adds +10 to the score, so warnings come earlier.
+  - "Balanced pace" (default): "The standard reading." No change.
+  - "Fuller pace": "Allows a busier week before flagging it." Subtracts 10, **but only while the latest fresh check-ins aren't strained** (PSS under 27 and WHO-5 at 50 or more, or no fresh check-in). When a check-in says the student is struggling, the app stops allowing the heavier load. Tip text in `buildTips` matches this. Done in FE-4.
+- **Privacy Policy** (owner: yes): list sleep target, usual bedtime and wake time, travel time, task completion times and check-in history in "What we collect", and bump `LEGAL_VERSION` (`server/utils/legal.js`) and `LEGAL_UPDATED` (`legalContent.js`), so everyone re-accepts once. Done in FE-5, after FE-3 adds `completedAt`. Settles system-review D2.
+- **Program list** (owner: "you tell me"): a select with "BS Information Technology" (default) and "BS Computer Science", the two degrees OLFU's College of Computer Studies lists ([OLFU programs](https://fatima.edu.ph/category/programs/college/page/2)). If a student's saved program is anything else, keep it as an extra option so nothing is lost.
+- **Team names on About**: placeholder for now ("Made by [team member names] as a thesis project at Our Lady of Fatima University"). Never invent names.
+
 ### Open (owner)
-1. **Student-facing band names.** Recommended: "Light week", "Steady week", "Full week", "Too much this week" on screen, while the code and the thesis keep Light/Moderate/Heavy Workload and Critical Overload (a display map, `BAND_LABEL`, nothing renamed). Blocks FE-2 step 3 only; until answered, show the current names.
-2. **Red off buttons and labels.** Recommended: navy for primary and secondary actions, slate for kickers, red only for the logo, the active nav marker, overdue, delete and errors; "doesn't fit" and Full weeks in amber. Keeps the owner's slate and red identity. Blocks FE-1 step 2 only.
-3. **A quiet "Talk to someone" entry.** The owner chose plan changes and encouragement over hotlines on result screens, and that's what gets built. Recommended addition: one line in Me > Help ("If things feel like too much, you can talk to someone: OLFU Guidance and Counseling, or the NCMH Crisis Hotline at 1553, free, 24/7"), never on result screens, with the numbers confirmed by the owner. Needs the OLFU Guidance office contact (not findable online). Doesn't block anything.
-4. **Wellbeing goal labels and direction** (system-review B3). Recommended labels: "Go easy on me" (warns sooner), "Keep it balanced", "I can take on more" (tolerates more). Blocks the label part of FE-5.
-5. **Privacy Policy**: list sleep target, bedtime, wake time, travel time and task completion times, and decide whether to bump `LEGAL_VERSION` (everyone re-accepts once). Same as system-review D2. Doesn't block building.
-6. **Program list** for the Me select: which OLFU computing programs to offer (BSIT, BSCS, others?). Until answered, keep the free-text field.
-7. **Team names and roles** for the About page. Until answered, About leaves the "who made it" section out (never invent names).
+None right now. New questions go here, with a recommendation and what they block.
+
+**Placeholders the owner fills in before the panel:** the contacts in `client/src/utils/helpContacts.js` (OLFU Guidance office, crisis line), and the team names on the About page. FE-6 lists any placeholder still showing.
 
 ### Considered and rejected
 - **A new visual identity** (the sage, ochre and clay palette, or anything else). Owner reverted it once; not worth the risk in 3 weeks.
 - **Tailwind or a component library** (shadcn, Aceternity, Magic UI). Migration cost with no time to absorb it.
 - **Streaks, points, a virtual pet.** Adds pressure; see research notes.
-- **Hotlines or counselor alerts on result screens.** Owner chose plan changes and encouragement (Open 3 covers a quiet Help entry only).
+- **Hotlines or counselor alerts on result screens.** Owner chose plan changes and encouragement; contacts only appear in Me > Help and More.
 - **Clinical labels** ("High Stress", "Very Poor Well-being") anywhere a student sees them.
 - **A separate Tasks page in the navigation.** Tasks belong with the week they're due in.
 - **A multi-step onboarding wizard.** A skippable checklist on Today does the same job and never blocks the app.
@@ -310,7 +318,7 @@ Assumes the panel is around Nov 1, 2026; slide the dates if it isn't. "SR" means
 | **2** (Oct 19 to 25) | FE-3 Check-ins and Wellbeing, FE-4 Me, People, Notifications | SR Batch 7 (shared Modal) **before** FE-3, SR Batch 5 (session expiry, Opus review), SR Batch 4 (task share tags), SR Batch 8 server part with FE-4 |
 | **3** (Oct 26 to Nov 1) | FE-5 Public pages, FE-6 QA, a real phone pass with the owner | SR Batch 2 (forgot password) inside FE-5, SR Batch 11 (code splitting) if time, SR Batch 10 (delete-user script) if time |
 
-FE batches absorb these SR items, so don't do them twice: Batch 9 (dark surfaces) goes into FE-1; Batch 6 items B2, B10, B11, B17 go into FE-4 and FE-2; Batch 8 UI goes into FE-4; Batch 2 goes into FE-5.
+FE batches absorb these SR items, so don't do them twice: Batch 9 (dark surfaces) goes into FE-1; Batch 6 items B2, B3, B10, B11, B17 and R6 go into FE-2 and FE-4; R5 and D2 (Privacy Policy) go into FE-5; Batch 8 UI goes into FE-4; Batch 2 goes into FE-5.
 
 Must-have core (if time runs out, stop after these): FE-1, FE-2, FE-3, FE-6, plus SR Batches 1, 2, 3, 7.
 
@@ -398,7 +406,7 @@ Keep the existing polish-pass motion and its `prefers-reduced-motion` guard. Add
 
 ### FE-1 `design/tokens-and-shell` (Week 1)
 - [ ] **1. Tokens.** Add the role, type, space, radius and shadow tokens from section 11 to the top of `App.css` (`:root` and `.dark-theme`). Replace the hard-coded Karla and Fraunces `font-family` lines with `--font-ui` / `--font-display`. Include SR Batch 9 (B15): inline theme script in `client/index.html`, `color-scheme` on `:root` and `.dark-theme`, `body` background from `--bg-app`, and remove the red gradient from `index.css`.
-- [ ] **2. Color roles** (waits on Open 2). Point buttons, kickers, chips, links, the workload ring and the chart's "doesn't fit" at the new roles. Red is left only on the logo, the active nav marker, overdue, delete and errors. Re-measure any text pair you introduce (4.5:1 minimum).
+- [ ] **2. Color roles.** Point buttons, kickers, chips, links, the workload ring and the chart's "doesn't fit" at the new roles. Red is left only on the logo, the active nav marker, overdue, delete and errors. Re-measure any text pair you introduce (4.5:1 minimum).
 - [ ] **3. Shared components.** `PageHeader`, `Tabs`, `EmptyState` (section 11). Buttons and `.chip` as described.
 - [ ] **4. Shell.** Rebuild `Header.jsx`: 5 places, bell with count, user chip, and under 720px a top bar plus a bottom bar (labels, 48px plus safe area). Move the Guide button above the bottom bar. Remove the icon rail and the group labels. `Footer variant="app"` on signed-in pages.
 - [ ] **5. Routes.** `/friends` redirects to `/groups?tab=friends`, `/settings` to the own profile `#appearance`, unknown paths render `NotFound.jsx` (section 6).
@@ -408,7 +416,7 @@ Keep the existing polish-pass motion and its `prefers-reduced-motion` guard. Add
 - [ ] **0. One place for the week maths.** Today, Wellbeing and Schedule > Tasks all need the same data (profile, tasks, week overview, `buildWeek`, `computeWorkload`, survey status). Extract the loading and calculations from `Dashboard.jsx` into a `useWorkload()` hook (`client/src/utils/useWorkload.js`) and use it in each. Read the profile from `AuthContext`'s `userData` instead of fetching `/api/user/data` again (SR R7); refresh it with `getUserData()` after a check-in or a profile save.
 - [ ] **1. Tasks move to Schedule.** Add the Week | Tasks | Days off tabs to the open schedule (`Schedule.jsx`, `?tab=`). Move `TaskBoard` and the import-by-code form into Tasks as they are for now; move the holiday calendar into Days off. Make `/schedule` open the main schedule, and the old list `/schedule?view=all` (section 5).
 - [ ] **2. Task rows.** Rework `TaskBoard.jsx` into the compact rows from section 6 (done checkbox, due chip, overflow menu with Edit, Share code, Delete). Remove the numeric score and "Created on". The 7-day study plan sits beside the list on a laptop, in a disclosure on a phone. Done shows an encouraging toast (7.3). Include SR B11: task actions toast on failure, and "Moved... Undo" only after a successful move.
-- [ ] **3. Today.** Rebuild `Dashboard.jsx` in the order from section 6: banner, greeting, Today panel, This week card (words, two reasons, link to `/wellbeing`, ring in teal or amber, no number; band names wait on Open 1), Next step card (one item, rules in section 6), compact week strip (`WorkloadChart compact`), done-this-week line (after FE-3 adds `completedAt`; hide until then). Fix the next-exam wrap (SR B17). Remove `isExamWeek` (SR R6) while you're in there.
+- [ ] **3. Today.** Rebuild `Dashboard.jsx` in the order from section 6: banner, greeting, Today panel, This week card (words, two reasons, link to `/wellbeing`, ring in teal or amber, no number, band names from `BAND_LABEL` in section 8), Next step card (one item, rules in section 6), compact week strip (`WorkloadChart compact`), done-this-week line (after FE-3 adds `completedAt`; hide until then). Fix the next-exam wrap (SR B17). Remove `isExamWeek` (SR R6) while you're in there.
 - [ ] **4. Setup checklist** for new students (section 6), replacing the welcome hero. The "Your week" mini form saves to `PUT /api/user/profile`.
 - [ ] **5. Bedtime suggestion.** `client/src/utils/sleepPlan.js` (section 7.2) with tests in `server/tests/sleepPlan.test.js` (early class, no class, no usual bedtime, travel 0, midnight wrap). Wire it into the Next step card after 6 PM.
 - [ ] **6. Check.** Today with the seeded account is under about 2,400px tall at 375px. New account shows the checklist. Update the dashboard Guide steps.
@@ -422,7 +430,8 @@ Keep the existing polish-pass motion and its `prefers-reduced-motion` guard. Add
 - [ ] **6. Check.** Take both check-ins with the seeded account and a new one, on a phone and a laptop, light and dark. A stray tap outside no longer loses answers.
 
 ### FE-4 `redesign/me-and-people` (Week 2)
-- [ ] **1. Me.** Restructure `Profile.jsx` into the sections from section 6. Inline-editable "Your week" with one Save and a toast; on success call `getUserData()` so the sidebar name updates (SR B10). Appearance with Light / Dark / Match my device (add `setTheme` and a `system` mode to `ThemeContext.jsx`, following `prefers-color-scheme`; SR B2). Move `NotificationPreferences` here. Accurate Privacy and data text (SR B2). Remove Auth Provider, emoji, the hero.
+- [ ] **1. Me.** Restructure `Profile.jsx` into the sections from section 6. Inline-editable "Your week" with one Save and a toast; on success call `getUserData()` so the sidebar name updates (SR B10). Appearance with Light / Dark / Match my device (add `setTheme` and a `system` mode to `ThemeContext.jsx`, following `prefers-color-scheme`; SR B2). Move `NotificationPreferences` here. Accurate Privacy and data text (SR B2). Remove Auth Provider, emoji, the hero. Program becomes the two-option select from section 8. Add `client/src/utils/helpContacts.js` with placeholder details and render the "Talk to someone" block in Help and more (section 8; never fill in real numbers).
+- [ ] **1b. Pace (SR B3).** Relabel the wellbeing goal to Lighter / Balanced / Fuller pace with the hints from section 8. In `computeWorkload` (`workload.js`): `catch-up` adds +10, `high-performance` subtracts 10 only when the fresh check-ins aren't strained (PSS under 27 and WHO-5 at 50 or more, or none fresh). Make the two tips in `buildTips` say the same thing. Update `server/tests/workload.guidance.test.js` (both directions, and Fuller pace ignored when PSS is 27+), tick B3 in `system-review.md`, and fix the "Workload score" section of CLAUDE.md.
 - [ ] **2. Settings.** Delete `pages/Settings.jsx` once the redirect from FE-1 is in.
 - [ ] **3. People.** `/groups` gets the Groups | Friends tabs. Move the Friends page body into the Friends tab (extract it from `Friends.jsx`), with the friend code, a real add-friend form, Decline and sent requests (SR Batch 8 server part first), no emails, no cats, react-toastify only (SR R13). Fix the chat composer padding on phones.
 - [ ] **4. Notifications.** `PageHeader`, Today / Earlier groups, quiet icon actions, "Clear all" in an overflow menu with `ConfirmDialog`, link to Me `#notifications`.
@@ -430,14 +439,16 @@ Keep the existing polish-pass motion and its `prefers-reduced-motion` guard. Add
 
 ### FE-5 `redesign/public-pages` (Week 3)
 - [ ] **1. Sign-in.** New copy and layout (section 6), form first on phones, Forgot password (SR Batch 2, if not already merged).
-- [ ] **2. About.** Rewrite (section 6). Leave "who made it" out until Open 7 is answered.
+- [ ] **2. About.** Rewrite (section 6). Use the team-names placeholder from section 8.
 - [ ] **3. Study.** `PageHeader` on Reviewers, fix the list card title width.
 - [ ] **4. Remaining headers.** Swap any `.hero` left (Schedule list view, PublicProfile, legal pages if needed) for `PageHeader`. Remove CSS for the old hero panels only where nothing uses them (search first).
+- [ ] **5. Privacy Policy** (section 8, needs FE-3's `completedAt` merged first). In `client/src/pages/legal/legalContent.js`, add sleep target, usual bedtime and wake time, travel time, task completion times and check-in history to "What we collect". Bump `LEGAL_VERSION` in `server/utils/legal.js` and `LEGAL_UPDATED` in `legalContent.js` to the merge date, so everyone sees the Terms prompt once. Tick D2 and R5 in `system-review.md`.
 
 ### FE-6 `chore/frontend-qa` (Week 3)
 - [ ] Go through the pre-ship list in the global `docs/frontend.md` (no horizontal scroll, no broken links or buttons, mobile menu, favicon, page titles per route, meta description, footer links, custom 404, current copyright year, compressed images, success and error messages, no placeholder text, no dead nav items, logo links home, `mailto:` links) and fix what fails.
 - [ ] Every route at 320/375/768/1280, light and dark, with the seeded account and a new one. Contrast spot checks on anything new.
 - [ ] Run `impeccable detect` across `client/src`, then `impeccable polish` on Today, Wellbeing and the check-in flow.
+- [ ] List every placeholder still showing (search for `[` in `helpContacts.js` and About) and remind the owner to fill them in before the panel.
 - [ ] Ask the owner whether to record the result as a DESIGN.md (Impeccable's `document` command).
 - [ ] Write up what changed in CLAUDE.md (navigation, routes, Wellbeing, check-in results, tokens) and remove the stale notes (the "no frontend-plan" note, the sage/ochre/clay description).
 - [ ] Owner: a real phone pass on the deployed site (bottom bar, check-in stepper, safe areas on iPhone, keyboard over inputs).
