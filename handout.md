@@ -2,27 +2,29 @@
 
 Read this first after a `/clear`. It's the short "where we left off" note. `CLAUDE.md` has the full project reference, this file only has the current state.
 
-Last updated: 2026-10-12. `system-review.md` (PR #23) and `frontend-plan.md` + `PRODUCT.md` (PR #24) are merged into `main`. No app code changed. Branch from `main` for the next piece of work.
+Last updated: 2026-10-12, end of the Opus planning session. `system-review.md` (PR #23), `frontend-plan.md` + `PRODUCT.md` (PR #24) and the owner's answers (PR #25) are merged into `main`. No app code changed yet. **The owner is switching to Sonnet to start building: `next-prompt.md` holds the first task.** Branch from `main` for each batch.
 
 ## Frontend revamp plan (2026-10-12)
 - The owner asked for a full revamp plan (design, what each page shows, what to ask the user, which pages to add, move or remove) with instructions for Sonnet. It's `frontend-plan.md` at the project root. `PRODUCT.md` is the product context the Impeccable skill reads.
 - How it was made: walked every page in Chrome and in headless Chrome at 1280px and 375px, light and dark, against an in-memory API seeded with a 3rd-year BSIT student and a brand-new account; web research on calm UI, student stress apps, check-in feedback, streaks, crisis lines and mobile navigation; Dribbble for visual references.
 - Owner's answers (in the plan's Decided list): **OLFU IT students only**; check-in scores are for the system, so a bad result leads to plan changes, specific recommendations (sleep earlier) and encouragement, not hotlines; **the panel is under 3 weeks away**.
 - The big changes: 5 places in the nav with a phone bottom bar (Today, Schedule, Study, People, Me) plus a bell; the dashboard cut from about 13 phone screens to about 3 (tasks move to Schedule > Tasks, detail moves to a new Wellbeing page); check-ins become one question at a time and end with a real result screen; red only for the brand and for overdue/delete/errors; Settings folds into Me, Friends into People.
-- **Before Sonnet starts**: the owner answers the plan's Open list (section 8). Most don't block Week 1. Open 1 (band names) and Open 2 (red off buttons) each block one step.
+- **The owner answered every Open decision (2026-10-12)**, all recorded in the plan's section 8 Decided list: band names "Light / Steady / Full / Too much this week" on screen (internal names unchanged); red off buttons and labels (navy actions, red only for logo, overdue, delete, errors); a "Talk to someone" block in Me > Help with **placeholder** contacts in `client/src/utils/helpContacts.js` (owner will look them up, never fill them in); pace labels Lighter / Balanced / Fuller (Fuller only counts while check-ins look okay; settles system-review B3); Privacy Policy lists the sleep and other fields and `LEGAL_VERSION` gets bumped (FE-5; settles R5/D2); program select BSIT or BSCS; team names on About are a placeholder.
+- **Placeholders the owner still fills in before the panel**: OLFU Guidance office and crisis-line contacts, team names.
 - Order for the next 3 weeks (plan section 9): Week 1 FE-1 shell + FE-2 Today, with system-review Batches 1 and 3; Week 2 Batch 7 (Modal), FE-3 check-ins and Wellbeing, FE-4 Me/People/Notifications, Batches 5, 4, 8; Week 3 FE-5 public pages (with Batch 2 forgot password), FE-6 QA, a real phone test.
 
 ## System review (2026-10-12)
 - The owner asked for a full review (bugs, broken parts, redundancy) with instructions Sonnet can build from. It's in `system-review.md` at the project root: findings first, then 11 batches, each with a branch name, steps and tests.
 - Top items: password-reset codes can be guessed with no attempt limit (S1, High); there's no "Forgot password" screen at all (B1, High); unverified accounts can be claimed through Google linking (S2); removed group members can rejoin by group id (S3); check-in scores are trusted from the browser (S5).
-- Before Sonnet starts: get the owner's answers to the three decisions at the top of the work list (well-being goal direction, sleep fields, reset wording). Batches 1 and 5 touch auth, so Opus reviews those diffs before merging.
+- Owner decisions: B3 and R5/D2 are answered (see above). **S6 (reset wording) is still open**: ask when Batch 1 or 2 starts (recommended: neutral wording on reset only). Batches 1 and 5 touch auth, so Opus reviews those diffs before merging.
 - Checked while reviewing: 375/375 server tests pass, client builds (one 628 KB chunk), lint has 20 errors (mostly the known setState-in-effect pattern).
 
 ## Next up
-1. **Owner**: answer `frontend-plan.md` section 8 (Open) and the three decisions at the top of `system-review.md`'s work list.
-2. **Sonnet**: follow `frontend-plan.md` section 9 (it interleaves the system-review batches). Start with FE-1 `design/tokens-and-shell` and system-review Batch 1 `fix/auth-hardening`.
-3. **Real phone pass on the live site** (owner, or with them), after FE-6 at the latest.
-4. Owner's manual reviewer tests (end of `reviewer-report.md`).
+1. **Sonnet**: do `next-prompt.md` (FE-1, then FE-2, then system-review Batch 3), then keep following `frontend-plan.md` section 9 (it interleaves the system-review batches).
+2. **Switch back to Opus** to review system-review Batches 1 and 5 (auth) before they merge.
+3. **Owner**: fill in the placeholders (help contacts, team names) before the panel.
+4. **Real phone pass on the live site** (owner, or with them), after FE-6 at the latest.
+5. Owner's manual reviewer tests (end of `reviewer-report.md`).
 (The old page-by-page redesign list and the two 2026-10-11 small fixes are now inside the FE batches.)
 
 ## Dialogs, Guide button, mobile rule (2026-10-11, merged as PR #20)
