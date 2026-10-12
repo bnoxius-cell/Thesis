@@ -110,7 +110,7 @@ export default function SetupChecklist({ work, setup, onStartCheckIn, onHide }) 
       {open && (
         <form className="setup-form" onSubmit={save}>
           <label>Study hours a day
-            <input type="number" min="0.5" max="16" step="0.5" value={form.studyHoursPerDay} onChange={(e) => set("studyHoursPerDay", e.target.value)} required />
+            <input type="number" min="1" max="12" step="0.5" value={form.studyHoursPerDay} onChange={(e) => set("studyHoursPerDay", e.target.value)} required />
           </label>
           <label>Sleep you aim for (hours)
             <input type="number" min="4" max="12" step="0.5" value={form.sleepHours} onChange={(e) => set("sleepHours", e.target.value)} required />
@@ -122,7 +122,7 @@ export default function SetupChecklist({ work, setup, onStartCheckIn, onHide }) 
             <input type="time" value={form.usualWakeTime} onChange={(e) => set("usualWakeTime", e.target.value)} required />
           </label>
           <label>Travel to school and back (minutes a day)
-            <input type="number" min="0" max="480" step="5" value={form.travelMinutesPerDay} onChange={(e) => set("travelMinutesPerDay", e.target.value)} required />
+            <input type="number" min="0" max="240" step="5" value={form.travelMinutesPerDay} onChange={(e) => set("travelMinutesPerDay", e.target.value)} required />
           </label>
           <div className="setup-form-actions">
             <button type="submit" className="primary-button" disabled={saving}>{saving ? "Saving..." : "Save"}</button>

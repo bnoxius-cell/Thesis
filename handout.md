@@ -2,7 +2,7 @@
 
 Read this first after a `/clear`. It's the short "where we left off" note. `CLAUDE.md` has the full project reference, this file only has the current state.
 
-Last updated: 2026-10-13. FE-3 merged (see its section). Earlier: 2026-10-12. FE-1, FE-2 and system-review Batch 3 (`fix/server-checks`, 405 server tests) are merged into `main`. `next-prompt.md` is done and deleted. Branch from `main` for each batch.
+Last updated: 2026-10-13. FE-4 done on `redesign/me-and-people` (see its section). FE-3 merged. Earlier: 2026-10-12. FE-1, FE-2 and system-review Batch 3 (`fix/server-checks`, 405 server tests) are merged into `main`. `next-prompt.md` is done and deleted. Branch from `main` for each batch.
 
 ## Build session 2026-10-12 (Sonnet): FE-1 merged, FE-2 on `redesign/today`
 - **FE-1 merged into `main`** (tokens, shell, shared components, redirects, 404). Dark mode, bottom bar and Guide placement checked.
@@ -14,6 +14,11 @@ Last updated: 2026-10-13. FE-3 merged (see its section). Earlier: 2026-10-12. FE
 - **Batch 7 done** (`feature/shared-modal`, 2026-10-13): shared `Modal`/`ModalShell`, all dialogs switched, check-ins ask before closing. Builds clean; NOT tried in a browser (Chrome extension was disconnected), so click through a few dialogs (Escape, drag-select out, check-in leave prompt, Tab) before relying on it.
 - **Next**: FE-3 (check-ins and Wellbeing). Batches 1 and 5 (auth) need an Opus review before merging; ask the owner about S6 when Batch 1 or 2 starts.
 - **UI harness**: `node server/scripts/uiHarness.js` (API on 5070) plus `VITE_BACKEND_URL=http://localhost:5070 npx vite --port 5174 --strictPort` in `client/`; login `maria@student.fatima.edu.ph` / `Password123`. Start the harness once only (two runs on the same port duplicate the seed). Kill both when done. The Chrome extension screenshots time out often; retry, or measure with JS in a 375px iframe.
+
+## FE-4 Me, People, Notifications (2026-10-13, branch `redesign/me-and-people`)
+- Done: Me restructure (sections, Save forms, program select, pace labels), pace logic fixed (SR B3), `helpContacts.js` placeholders, Friends tab (Decline, Sent, Cancel, no emails, toasts), Notifications page, SR Batch 8 server part, dead CSS pruned. 450 server tests. Details in CLAUDE.md "FE-4".
+- Not checked: 320/768px, empty and new-account views, a real phone. Chrome extension would not connect, so screenshots came from headless Chrome.
+- Next: Batch 5 (auth, Opus review), Batch 4, FE-5 (public pages, Privacy Policy bump, forgot password), FE-6 QA. Owner: fill in `helpContacts.js` and the About team names.
 
 ## FE-3 check-ins and Wellbeing (2026-10-13, branch `feature/checkin-results`, merged into `main`)
 - Server: `completedAt` on tasks, `GET /api/surveys/history` (last 5 PSS and WHO). 434 server tests (`checkinResult.test.js`, `task.completed.test.js`, history tests in `survey.test.js`).

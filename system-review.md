@@ -207,9 +207,9 @@ The dashboard "Next exam" pill wraps into narrow columns at 375px (`.today-exam-
 - [ ] **P2** Move `axios.defaults.withCredentials = true` out of the component to the top of `client/src/main.jsx`.
 
 ## Batch 6: `fix/client-quick-wins` (UI, mobile rules apply)
-- [ ] **B2** In `ThemeContext.jsx` expose `setTheme`. In `Settings.jsx`, have the Light and Dark buttons set their own theme, add `aria-pressed`, swap the emoji for lucide `Sun` and `Moon` icons, and replace the "stored locally" paragraph with an accurate one ("Your account, tasks, schedules and check-ins are stored on StressCare's server so they're there on any device. See the Privacy Policy for what we keep and who can see it.") with a link to `/privacy-policy`. Remove "Data management (coming soon)" and the disabled export button, or leave them if the owner wants export later.
-- [ ] **B3** Apply the owner's decision in `workload.js` (`goal` and the two tips), update `server/tests/workload.guidance.test.js` and the "Workload score" section of CLAUDE.md.
-- [ ] **B10** In `Profile.jsx` `handleSave`: show `data.message` (or a plain error) in a toast on failure, a success toast on save, and call `getUserData()` after a successful save so the sidebar name updates.
+- [x] **B2** In `ThemeContext.jsx` expose `setTheme`. In `Settings.jsx`, have the Light and Dark buttons set their own theme, add `aria-pressed`, swap the emoji for lucide `Sun` and `Moon` icons, and replace the "stored locally" paragraph with an accurate one ("Your account, tasks, schedules and check-ins are stored on StressCare's server so they're there on any device. See the Privacy Policy for what we keep and who can see it.") with a link to `/privacy-policy`. Remove "Data management (coming soon)" and the disabled export button, or leave them if the owner wants export later.
+- [x] **B3** Apply the owner's decision in `workload.js` (`goal` and the two tips), update `server/tests/workload.guidance.test.js` and the "Workload score" section of CLAUDE.md.
+- [x] **B10** In `Profile.jsx` `handleSave`: show `data.message` (or a plain error) in a toast on failure, a success toast on save, and call `getUserData()` after a successful save so the sidebar name updates.
 - [ ] **B11** In `Dashboard.jsx`, make `updateTask` and `handleDeleteTask` return whether they worked and toast an error when they didn't. Only show the "Moved ... Undo" toast after a successful move.
 - [ ] **B17** Fix the `.today-exam-note` wrap at 375px (let the text wrap as one block next to the icon instead of becoming columns).
 - [ ] **R6** Remove `isExamWeek` from `Dashboard.jsx` and the `isExamWeek` parameter and branches from `computeWorkload` and `buildTips` in `workload.js`. Update tests that pass it.
@@ -229,10 +229,10 @@ The dashboard "Next exam" pill wraps into narrow columns at 375px (`.today-exam-
 - [x] **B7** Tick the "Rename schedule dialog doesn't close on Escape" to-do in CLAUDE.md and add a line under "Dialogs and the page Guide": new dialogs use `Modal`.
 
 ## Batch 8: `feature/friend-requests` (server and UI; good to combine with the Friends redesign on the to-do)
-- [ ] **B8 server** Add `DELETE /api/friends/request/:requestId` (the receiver declines or the sender cancels a pending request, nobody else) and `GET /api/friends/sent` (pending requests you sent). In `sendFriendRequest`, if the other person already sent you a pending request, accept it and notify them instead of answering "already sent". First tests for the friend controller in a new `friends.test.js`: send, accept, decline, cancel, mutual request, bad ids.
-- [ ] **B8 UI** On `Friends.jsx`: a Decline button next to Accept, a "Sent" list with Cancel, the add-friend dialog as a real `<form>` (Enter sends), toasts through react-toastify instead of `.success-toast` / `.error-toast` (R13), and the error shown once.
-- [ ] **B9** Use the `particle-1/2/3` classes on the three particles (or remove them if the redesign drops the button).
-- [ ] Decide with the owner whether friends' emails should still show on friend cards and requests (group member lists and public profiles already hide email).
+- [x] **B8 server** Add `DELETE /api/friends/request/:requestId` (the receiver declines or the sender cancels a pending request, nobody else) and `GET /api/friends/sent` (pending requests you sent). In `sendFriendRequest`, if the other person already sent you a pending request, accept it and notify them instead of answering "already sent". First tests for the friend controller in a new `friends.test.js`: send, accept, decline, cancel, mutual request, bad ids.
+- [x] **B8 UI** On `Friends.jsx`: a Decline button next to Accept, a "Sent" list with Cancel, the add-friend dialog as a real `<form>` (Enter sends), toasts through react-toastify instead of `.success-toast` / `.error-toast` (R13), and the error shown once.
+- [x] **B9** Use the `particle-1/2/3` classes on the three particles (or remove them if the redesign drops the button).
+- [x] (Decided in the plan: no emails on friend cards, done in FE-4) Decide with the owner whether friends' emails should still show on friend cards and requests (group member lists and public profiles already hide email).
 
 ## Batch 9: `fix/dark-mode-surfaces` (UI, mobile rules apply)
 - [ ] **B15** In `client/index.html`, add a tiny inline script before the app loads that reads `localStorage['stresscare-theme']` (inside try/catch) and adds `dark-theme` to `<html>`, so there's no light flash.
