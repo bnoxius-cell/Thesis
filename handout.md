@@ -2,7 +2,7 @@
 
 Read this first after a `/clear`. It's the short "where we left off" note. `CLAUDE.md` has the full project reference, this file only has the current state.
 
-Last updated: 2026-10-12. `system-review.md` is merged (PR #23). Branch `docs/frontend-plan` adds `frontend-plan.md` and `PRODUCT.md`. No app code changed.
+Last updated: 2026-10-12. `system-review.md` (PR #23) and `frontend-plan.md` + `PRODUCT.md` (PR #24) are merged into `main`. No app code changed. Branch from `main` for the next piece of work.
 
 ## Frontend revamp plan (2026-10-12)
 - The owner asked for a full revamp plan (design, what each page shows, what to ask the user, which pages to add, move or remove) with instructions for Sonnet. It's `frontend-plan.md` at the project root. `PRODUCT.md` is the product context the Impeccable skill reads.
