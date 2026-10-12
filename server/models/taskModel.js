@@ -12,6 +12,7 @@ const taskSchema = new mongoose.Schema({
     group: { type: mongoose.Schema.Types.ObjectId, ref: 'group', default: null },
     shareTag: { type: String, match: /^\d{6}$/ },
     isCompleted: { type: Boolean, default: false },
+    completedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 export default mongoose.models.task || mongoose.model('task', taskSchema);

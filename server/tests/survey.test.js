@@ -18,9 +18,9 @@ beforeAll(connectTestDB);
 beforeEach(clearTestDB);
 afterAll(closeTestDB);
 
-const signUp = async () => {
+const signUp = async (overrides = {}) => {
     const agent = request.agent(app);
-    await agent.post('/api/auth/register').send(validRegisterPayload());
+    await agent.post('/api/auth/register').send(validRegisterPayload(overrides));
     const me = await agent.get('/api/user/data');
     agent.id = me.body.userData._id;
     return agent;
@@ -111,5 +111,27 @@ describe('POST /api/surveys/who', () => {
             expect(res.status).toBe(400);
         }
         expect(await WHOResponse.countDocuments()).toBe(0);
+    });
+});
+
+describe('GET /api/surveys/history', () => {
+    test('returns the last 5 of each, newest first, only for the caller', async () => {
+        const alice = await signUp();
+        const bob = await signUp({ email: 'bob.student@student.fatima.edu.ph' });
+        for (let i = 0; i < 7; i += 1) {
+            await PSSResponse.create({ user: alice.id, score: i, responses: Array(10).fill(0), createdAt: new Date(2026, 0, i + 1) });
+        }
+        await WHOResponse.create({ user: alice.id, score: 60, responses: [3, 3, 3, 3, 3] });
+        await PSSResponse.create({ user: bob.id, score: 39, responses: Array(10).fill(0) });
+
+        const res = await alice.get('/api/surveys/history');
+        expect(res.status).toBe(200);
+        expect(res.body.pss.map((r) => r.score)).toEqual([6, 5, 4, 3, 2]);
+        expect(res.body.pss[0]).not.toHaveProperty('responses');
+        expect(res.body.who).toHaveLength(1);
+    });
+
+    test('needs a session', async () => {
+        expect((await request(app).get('/api/surveys/history')).body.success).toBe(false);
     });
 });

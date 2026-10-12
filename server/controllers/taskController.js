@@ -262,7 +262,11 @@ export const updateTask = async (req, res) => {
         const task = await taskModel.findOne({ _id: req.params.taskId, owner: req.userId });
         if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
+        const wasCompleted = task.isCompleted;
         Object.assign(task, updateFields);
+        if (updateFields.isCompleted !== undefined && updateFields.isCompleted !== wasCompleted) {
+            task.completedAt = updateFields.isCompleted ? new Date() : null;
+        }
 
         const detailFields = ['title', 'course', 'description', 'dueDate', 'hours', 'difficulty', 'importance'];
         const detailsChanged = detailFields.some((field) => updateFields[field] !== undefined);
