@@ -1,207 +1,217 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { UserPlus } from "lucide-react";
-import { useAuth } from "./authentication/AuthContext";
+import { Check, Copy, UserPlus, Users, X } from "lucide-react";
+import { toast } from "react-toastify";
 import axios from "axios";
+import { useAuth } from "./authentication/AuthContext";
 import UserAvatar from "../components/UserAvatar";
 import ConfirmDialog from "../components/ConfirmDialog";
+import EmptyState from "../components/EmptyState";
 import "../App.css";
-import Modal from "../components/Modal";
+
+const TAG_LENGTH = 6;
 
 // The Friends tab of People (/groups?tab=friends). It renders inside the Groups page.
 export default function Friends() {
-  const { backendUrl } = useAuth();
+  const { backendUrl, user } = useAuth();
   const [friends, setFriends] = useState([]);
-  const [pendingRequests, setPendingRequests] = useState([]);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [incoming, setIncoming] = useState([]);
+  const [sent, setSent] = useState([]);
   const [friendTag, setFriendTag] = useState("");
-  const [error, setError] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
+  const [sending, setSending] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [confirmRemove, setConfirmRemove] = useState(null); // the friend being removed
   const [removing, setRemoving] = useState(false);
 
-  const fetchData = async () => {
+  const myTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCase() : "");
+
+  const fetchData = useCallback(async () => {
     try {
-      const [friendsRes, pendingRes] = await Promise.all([
-        axios.get(`${backendUrl}/api/friends`, { withCredentials: true }),
-        axios.get(`${backendUrl}/api/friends/pending`, { withCredentials: true })
-      ]);
+      const get = (path) => axios.get(`${backendUrl}/api/friends${path}`, { withCredentials: true });
+      const [friendsRes, pendingRes, sentRes] = await Promise.all([get(""), get("/pending"), get("/sent")]);
       if (friendsRes.data.success) setFriends(friendsRes.data.friends);
-      if (pendingRes.data.success) setPendingRequests(pendingRes.data.requests);
+      if (pendingRes.data.success) setIncoming(pendingRes.data.requests);
+      if (sentRes.data.success) setSent(sentRes.data.requests);
     } catch (err) {
-      console.error("Failed to fetch data", err);
+      console.error("Failed to fetch friends", err);
+      toast.error("Couldn't load your friends. Try again in a moment.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [backendUrl]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
-  const handleSendRequest = async () => {
+  // Runs one friend action, then refreshes the lists. Shows the server's message once if it fails.
+  const act = async (request, doneText) => {
+    try {
+      const { data } = await request();
+      if (data.success) {
+        toast.success(doneText || data.message);
+        await fetchData();
+        return true;
+      }
+      toast.error(data.message || "That didn't work. Try again.");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "That didn't work. Try again.");
+    }
+    return false;
+  };
+
+  const sendRequest = async (event) => {
+    event.preventDefault();
     const tag = friendTag.trim().toUpperCase();
-    if (!tag) {
-      setError("Please enter a friend's profile tag (6 characters).");
-      setTimeout(() => setError(""), 3000);
+    if (tag.length !== TAG_LENGTH) {
+      toast.error(`A friend code has ${TAG_LENGTH} characters.`);
       return;
     }
-    try {
-      const { data } = await axios.post(
-        `${backendUrl}/api/friends/request`,
-        { profileTag: tag },
-        { withCredentials: true }
-      );
-      if (data.success) {
-        setFriendTag("");
-        setModalOpen(false);
-        setSuccessMsg("Friend request sent!");
-        setTimeout(() => setSuccessMsg(""), 3000);
-      } else {
-        setError(data.message);
-        setTimeout(() => setError(""), 3000);
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to send request.");
-      setTimeout(() => setError(""), 3000);
-    }
+    setSending(true);
+    const ok = await act(
+      () => axios.post(`${backendUrl}/api/friends/request`, { profileTag: tag }, { withCredentials: true }),
+    );
+    setSending(false);
+    if (ok) setFriendTag("");
   };
 
-  const acceptRequest = async (requestId) => {
-    try {
-      const { data } = await axios.put(`${backendUrl}/api/friends/accept/${requestId}`, {}, { withCredentials: true });
-      if (data.success) {
-        setSuccessMsg("Friend request accepted!");
-        setTimeout(() => setSuccessMsg(""), 3000);
-        fetchData(); // refresh both lists
-      } else {
-        setError("Failed to accept request.");
-        setTimeout(() => setError(""), 3000);
-      }
-    } catch (err) {
-      console.error(err);
-      setError("Failed to accept request.");
-      setTimeout(() => setError(""), 3000);
-    }
-  };
+  const accept = (id) => act(() => axios.put(`${backendUrl}/api/friends/accept/${id}`, {}, { withCredentials: true }), "Friend request accepted.");
+  const dropRequest = (id) => act(() => axios.delete(`${backendUrl}/api/friends/request/${id}`, { withCredentials: true }));
 
   const removeFriend = async () => {
     const friendId = confirmRemove?._id;
     if (!friendId) return;
     setRemoving(true);
+    await act(() => axios.delete(`${backendUrl}/api/friends/${friendId}`, { withCredentials: true }), "Friend removed.");
+    setRemoving(false);
+    setConfirmRemove(null);
+  };
+
+  const copyCode = async () => {
     try {
-      const { data } = await axios.delete(`${backendUrl}/api/friends/${friendId}`, { withCredentials: true });
-      if (data.success) {
-        setFriends(prev => prev.filter(f => f._id !== friendId));
-        setSuccessMsg("Friend removed.");
-        setTimeout(() => setSuccessMsg(""), 3000);
-      } else {
-        setError("Failed to remove friend.");
-        setTimeout(() => setError(""), 3000);
-      }
-    } catch (err) {
-      console.error(err);
-      setError("Failed to remove friend.");
-      setTimeout(() => setError(""), 3000);
-    } finally {
-      setRemoving(false);
-      setConfirmRemove(null);
+      await navigator.clipboard.writeText(myTag);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Couldn't copy that. Select the code and copy it by hand.");
     }
   };
 
+  const person = (p, extra) => (
+    <li key={p._id} className="person-row">
+      <UserAvatar name={p.name} src={p.avatar} size={44} />
+      <Link to={`/profile/${p._id}`} className="person-info" aria-label={`View ${p.name}'s profile`}>
+        <strong>{p.name}</strong>
+        <span>Code {p.profileTag}</span>
+      </Link>
+      <div className="person-actions">{extra}</div>
+    </li>
+  );
+
   return (
     <>
-        {successMsg && <div className="success-toast">{successMsg}</div>}
-        {error && <div className="error-toast">{error}</div>}
-
-        <div className="groups-actions">
-          <button className="primary-button" onClick={() => setModalOpen(true)}>
-            <UserPlus size={18} aria-hidden="true" /> Add a friend
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <span className="panel-kicker">Add friends</span>
+            <h2>Your friend code</h2>
+          </div>
+        </div>
+        <div className="me-code-row">
+          <code className="friend-code">{myTag}</code>
+          <button type="button" className="secondary-button small" onClick={copyCode}>
+            {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+            {copied ? "Copied" : "Copy"}
           </button>
         </div>
+        <small className="field-hint">Share it with a classmate so they can add you.</small>
 
-        {/* Pending Requests Section */}
-        {pendingRequests.length > 0 && (
-          <section className="panel">
-            <div className="panel-heading">
-              <div>
-                <span className="panel-kicker">Friend requests</span>
-                <h2>Pending ({pendingRequests.length})</h2>
-              </div>
-            </div>
-            <div className="friends-grid">
-              {pendingRequests.map((req) => (
-                <div key={req._id} className="friend-card">
-                  <UserAvatar name={req.user.name} src={req.user.avatar} size={48} />
-                  <Link to={`/profile/${req.user._id}`} className="friend-card-info">
-                    <strong>{req.user.name}</strong>
-                    <span className="friend-id">Tag: {req.user.profileTag}</span>
-                    <small>{req.user.email}</small>
-                  </Link>
-                  <button className="primary-button small" onClick={() => acceptRequest(req._id)}>Accept</button>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        <form className="add-friend-form" onSubmit={sendRequest}>
+          <label htmlFor="friend-code-input">Add a friend by their code</label>
+          <div className="add-friend-row">
+            <input
+              id="friend-code-input"
+              type="text"
+              maxLength={TAG_LENGTH}
+              autoCapitalize="characters"
+              autoComplete="off"
+              spellCheck={false}
+              value={friendTag}
+              onChange={(e) => setFriendTag(e.target.value.toUpperCase())}
+              placeholder="e.g. A3F9K2"
+            />
+            <button type="submit" className="primary-button" disabled={sending || friendTag.trim().length === 0}>
+              <UserPlus size={18} aria-hidden="true" /> {sending ? "Sending..." : "Send request"}
+            </button>
+          </div>
+        </form>
+      </section>
 
-        {/* Friends List */}
+      {incoming.length > 0 && (
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <span className="panel-kicker">Your network</span>
-              <h2>Friends ({friends.length})</h2>
+              <span className="panel-kicker">Requests</span>
+              <h2>Waiting for your answer ({incoming.length})</h2>
             </div>
           </div>
-          {loading ? (
-            <p className="schedule-empty">Loading friends...</p>
-          ) : friends.length === 0 ? (
-            <p className="schedule-empty">No friends added yet. Click the button above to add your first study buddy!</p>
-          ) : (
-            <div className="friends-grid">
-              {friends.map((friend) => (
-                <div key={friend._id} className="friend-card">
-                  <UserAvatar name={friend.name} src={friend.avatar} size={48} />
-                  <Link to={`/profile/${friend._id}`} className="friend-card-info" aria-label={`View ${friend.name}'s profile`}>
-                    <strong>{friend.name}</strong>
-                    <span className="friend-id">Tag: {friend.profileTag}</span>
-                    <small>{friend.email}</small>
-                  </Link>
-                  <button className="icon-btn remove-friend-btn" onClick={() => setConfirmRemove(friend)} aria-label={`Remove ${friend.name}`}>✕</button>
-                </div>
-              ))}
-            </div>
-          )}
+          <ul className="person-list">
+            {incoming.map((req) => person(req.user, (
+              <>
+                <button type="button" className="primary-button small" onClick={() => accept(req._id)}>Accept</button>
+                <button type="button" className="ghost-button small" onClick={() => dropRequest(req._id)}>Decline</button>
+              </>
+            )))}
+          </ul>
         </section>
-
-      {/* Add Friend Modal */}
-      {modalOpen && (
-        <Modal onClose={() => setModalOpen(false)}>
-            <div className="modal-header">
-              <h2>Add a new friend</h2>
-              <button className="modal-close" onClick={() => setModalOpen(false)}>×</button>
-            </div>
-            <div className="form-grid">
-              <div className="form-group full-span">
-                <label>Friend's 6‑character profile tag</label>
-                <input
-                  type="text"
-                  maxLength="6"
-                  value={friendTag}
-                  onChange={(e) => { setFriendTag(e.target.value.toUpperCase()); setError(""); }}
-                  placeholder="e.g., A3F9K2"
-                  autoFocus
-                />
-                {error && <p className="form-error">{error}</p>}
-              </div>
-              <div className="modal-actions">
-                <button className="secondary-button" onClick={() => setModalOpen(false)}>Cancel</button>
-                <button className="btn-create-task" onClick={handleSendRequest}>Send Request</button>
-              </div>
-            </div>
-        </Modal>
       )}
+
+      {sent.length > 0 && (
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <span className="panel-kicker">Sent</span>
+              <h2>Waiting for them ({sent.length})</h2>
+            </div>
+          </div>
+          <ul className="person-list">
+            {sent.map((req) => person(req.friend, (
+              <button type="button" className="ghost-button small" onClick={() => dropRequest(req._id)}>Cancel</button>
+            )))}
+          </ul>
+        </section>
+      )}
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <span className="panel-kicker">Your friends</span>
+            <h2>Friends ({friends.length})</h2>
+          </div>
+        </div>
+        {loading ? (
+          <p className="schedule-empty">Loading friends...</p>
+        ) : friends.length === 0 ? (
+          <EmptyState icon={Users} title="No friends yet">
+            Share your code, or type a classmate's code above, to add your first study buddy.
+          </EmptyState>
+        ) : (
+          <ul className="person-list">
+            {friends.map((friend) => person(friend, (
+              <button
+                type="button"
+                className="icon-action is-danger"
+                onClick={() => setConfirmRemove(friend)}
+                aria-label={`Remove ${friend.name}`}
+                title="Remove friend"
+              >
+                <X size={18} aria-hidden="true" />
+              </button>
+            )))}
+          </ul>
+        )}
+      </section>
 
       <ConfirmDialog
         open={Boolean(confirmRemove)}
@@ -214,7 +224,6 @@ export default function Friends() {
       >
         <p>You and <strong>{confirmRemove?.name}</strong> will no longer be friends. You can send a new request later.</p>
       </ConfirmDialog>
-
     </>
   );
 }

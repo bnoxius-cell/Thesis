@@ -269,7 +269,11 @@ export function computeWorkload({
   const base = weightSum ? weighted / weightSum : 0;
 
   // Adjustments that shift the score directly, in points.
-  const goal = profile.wellbeingGoal === "catch-up" ? -10 : profile.wellbeingGoal === "high-performance" ? 10 : 0;
+  // Lighter pace ("catch-up") flags a heavy week sooner. Fuller pace ("high-performance") allows a
+  // busier week, but only while the fresh check-ins look okay; a strained student isn't given
+  // extra room. Stale or missing check-ins are null here, so they never count as strained.
+  const strained = (hasPss && pssScore >= 27) || (hasWho && whoScore < 50);
+  const goal = profile.wellbeingGoal === "catch-up" ? 10 : profile.wellbeingGoal === "high-performance" && !strained ? -10 : 0;
   const examInfo = examPressure(exams, now);
   const exam = examInfo.points || (isExamWeek ? 15 : 0);
   const overduePoints = Math.min(10, overdue * 3);
@@ -526,8 +530,8 @@ function buildTips({
   } else if (isExamWeek) {
     add("watch", "Exam week", "Pause the non-essentials and put your energy into revision and sleep.");
   }
-  if (goal < 0) add("info", "Recovery mode", "Your goal is catching up, so the score is a little gentler and the tips favour rest.");
-  if (goal > 0) add("info", "High-performance mode", "Your goal is high performance, so the score allows a heavier load before it warns you.");
+  if (goal > 0) add("info", "Lighter pace", "You chose a lighter pace, so a heavy week is flagged a little sooner.");
+  if (goal < 0) add("info", "Fuller pace", "You chose a fuller pace, so a busier week is allowed before it's flagged. That stops if a check-in says you're struggling.");
 
   if (!tips.some((t) => t.tone === "alert" || t.tone === "watch" || t.tone === "good")) {
     add("good",

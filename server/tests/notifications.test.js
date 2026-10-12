@@ -107,7 +107,7 @@ describe('friends', () => {
         const bobInbox = await inbox(bob);
         expect(bobInbox.notifications[0].type).toBe('friend_request');
         expect(bobInbox.notifications[0].message).toContain('Alice');
-        expect(sendPushToUser).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ url: '/friends' }));
+        expect(sendPushToUser).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ url: '/groups?tab=friends' }));
 
         const pending = (await bob.agent.get('/api/friends/pending')).body.requests;
         await bob.agent.put(`/api/friends/accept/${pending[0]._id}`);

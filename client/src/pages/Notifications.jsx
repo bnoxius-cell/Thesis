@@ -1,12 +1,17 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  Bell, CalendarDays, ClipboardList, Clock, MessageSquare, UserCheck, UserPlus, Users,
+  Bell, CalendarDays, Check, CheckCheck, ClipboardList, Clock, MoreHorizontal, Settings, Trash2,
+  MessageSquare, UserCheck, UserPlus, Users,
 } from "lucide-react";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
-import NotificationPreferences from "../components/NotificationPreferences";
+import PageHeader from "../components/PageHeader";
+import Tabs from "../components/Tabs";
+import EmptyState from "../components/EmptyState";
 import ConfirmDialog from "../components/ConfirmDialog";
+import Menu, { MenuItem } from "../components/schedule/Menu";
+import { useAuth } from "./authentication/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
 import "../App.css";
 
@@ -38,8 +43,12 @@ const timeAgo = (iso) => {
   return new Date(iso).toLocaleDateString();
 };
 
+const stamp = (n) => n.activityAt || n.createdAt;
+const isToday = (iso) => new Date(iso).toDateString() === new Date().toDateString();
+
 export default function Notifications() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { notifications, unreadCount, loading, error, refresh, markRead, markAllRead, remove, clearAll } = useNotifications();
   const [filter, setFilter] = useState("all");
   const [clearConfirm, setClearConfirm] = useState(false);
@@ -49,6 +58,10 @@ export default function Notifications() {
     if (filter === "groups") return isGroupType(n.type);
     return true;
   });
+  const groups = [
+    ["Today", visible.filter((n) => isToday(stamp(n)))],
+    ["Earlier", visible.filter((n) => !isToday(stamp(n)))],
+  ].filter(([, items]) => items.length > 0);
 
   const open = (n) => {
     markRead(n._id);
@@ -62,7 +75,7 @@ export default function Notifications() {
 
   const emptyText = {
     all: "You're all caught up. New activity from your groups, friends and deadlines will show up here.",
-    unread: "Nothing unread. Nice.",
+    unread: "Nothing unread.",
     groups: "No group activity yet.",
   }[filter];
 
@@ -70,104 +83,93 @@ export default function Notifications() {
     <div className="app app-layout">
       <Header />
       <main className="dashboard">
-        <section className="hero" id="notifications-hero">
-          <div className="hero-copy">
-            <span className="eyebrow">Alerts & Updates</span>
-            <h1>Stay on top of things</h1>
-            <p>
-              Deadline reminders, group activity and friend updates land here. Choose what you hear about
-              below, and turn on device alerts to get them on your phone or computer even when StressCare is closed.
-            </p>
-          </div>
-          <aside className="hero-panel">
-            <h2>{unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}</h2>
-            <ul className="hero-list">
-              <li>Task deadline reminders</li>
-              <li>Group chat and shared tasks</li>
-              <li>Friend requests and shared schedules</li>
-            </ul>
-            <a className="secondary-button small" href="#notification-settings">Notification settings</a>
-          </aside>
-        </section>
-
-        <div className="panel">
-          <div className="panel-heading">
-            <div>
-              <span className="panel-kicker">Inbox</span>
-              <h2>Notifications {unreadCount > 0 && `(${unreadCount} unread)`}</h2>
-            </div>
-            <div className="notification-actions">
-              <button className="secondary-button" onClick={markAllRead} disabled={unreadCount === 0}>
-                Mark all read
+        <PageHeader
+          title="Notifications"
+          description={unreadCount > 0 ? `${unreadCount} unread. Deadline reminders, group activity and friend updates land here.` : "You're all caught up. Deadline reminders, group activity and friend updates land here."}
+          actions={(
+            <>
+              <button type="button" className="secondary-button" onClick={markAllRead} disabled={unreadCount === 0}>
+                <CheckCheck size={16} aria-hidden="true" /> Mark all read
               </button>
-              <button className="ghost-button" onClick={() => setClearConfirm(true)} disabled={notifications.length === 0}>
-                Clear all
-              </button>
-            </div>
-          </div>
-
-          <div className="notification-filter">
-            {[
-              ["all", "All"],
-              ["unread", `Unread${unreadCount > 0 ? ` (${unreadCount})` : ""}`],
-              ["groups", "Groups"],
-            ].map(([key, label]) => (
-              <button
-                key={key}
-                className={filter === key ? "primary-button small" : "secondary-button small"}
-                onClick={() => setFilter(key)}
+              <Link to={`/profile/${user?._id || ""}#notifications`} className="ghost-button">
+                <Settings size={16} aria-hidden="true" /> Settings
+              </Link>
+              <Menu
+                className="ghost-button icon-only"
+                label="More actions"
+                trigger={<MoreHorizontal size={18} aria-hidden="true" />}
               >
-                {label}
-              </button>
-            ))}
-          </div>
+                {(close) => (
+                  <MenuItem
+                    icon={Trash2}
+                    tone="danger"
+                    disabled={notifications.length === 0}
+                    onClick={() => { close(); setClearConfirm(true); }}
+                  >
+                    Clear all
+                  </MenuItem>
+                )}
+              </Menu>
+            </>
+          )}
+        />
 
+        <Tabs
+          label="Filter notifications"
+          tabs={[
+            { id: "all", label: "All" },
+            { id: "unread", label: "Unread", count: unreadCount },
+            { id: "groups", label: "Groups" },
+          ]}
+          value={filter}
+          onChange={setFilter}
+        />
+
+        <div role="tabpanel" id={`panel-${filter}`} aria-labelledby={`tab-${filter}`} className="notice-panel">
           {loading ? (
             <p className="schedule-empty">Loading your notifications...</p>
           ) : error && notifications.length === 0 ? (
             <p className="schedule-empty">
-              {error} <button className="ghost-button small" onClick={refresh}>Try again</button>
+              {error} <button type="button" className="ghost-button small" onClick={refresh}>Try again</button>
             </p>
           ) : visible.length === 0 ? (
-            <p className="schedule-empty">{emptyText}</p>
+            <EmptyState icon={Bell} title={filter === "all" ? "Nothing yet" : "Nothing here"}>{emptyText}</EmptyState>
           ) : (
-            <div className="notifications-list">
-              {visible.map((n) => {
-                const Icon = ICONS[n.type] || Bell;
-                return (
-                  <div key={n._id} className={`notification-card ${!n.isRead ? "unread" : ""}`}>
-                    <button type="button" className="notification-content notification-open" onClick={() => open(n)}>
-                      <span className="notification-icon"><Icon size={20} /></span>
-                      <span className="notification-details">
-                        <h4>{n.title || "StressCare"}</h4>
-                        <p>{n.message}</p>
-                        <small>{timeAgo(n.activityAt || n.createdAt)}</small>
-                      </span>
-                    </button>
-                    <div className="notification-actions-card">
-                      {!n.isRead && (
-                        <button className="mark-read-button" onClick={() => markRead(n._id)} title="Mark as read" aria-label="Mark as read">
-                          <svg className="done-svgIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M20 6L9 17l-5-5" />
-                          </svg>
+            groups.map(([label, items]) => (
+              <section key={label} className="notice-group" aria-label={label}>
+                <h2 className="notice-group-title">{label}</h2>
+                <ul className="notice-list">
+                  {items.map((n) => {
+                    const Icon = ICONS[n.type] || Bell;
+                    return (
+                      <li key={n._id} className={`notice${!n.isRead ? " is-unread" : ""}`}>
+                        <button type="button" className="notice-open" onClick={() => open(n)}>
+                          <span className="notice-dot" aria-hidden="true" />
+                          <span className="notice-icon" aria-hidden="true"><Icon size={18} /></span>
+                          <span className="notice-text">
+                            <strong>{n.title || "StressCare"}{!n.isRead && <span className="visually-hidden"> (unread)</span>}</strong>
+                            <span>{n.message}</span>
+                            <small>{timeAgo(stamp(n))}</small>
+                          </span>
                         </button>
-                      )}
-                      <button className="remove-button" onClick={() => remove(n._id)} title="Delete" aria-label="Delete notification">
-                        <svg className="remove-svgIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          <line x1="10" y1="11" x2="10" y2="17" />
-                          <line x1="14" y1="11" x2="14" y2="17" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                        <div className="notice-actions">
+                          {!n.isRead && (
+                            <button type="button" className="icon-action" onClick={() => markRead(n._id)} title="Mark as read" aria-label="Mark as read">
+                              <Check size={18} aria-hidden="true" />
+                            </button>
+                          )}
+                          <button type="button" className="icon-action is-danger" onClick={() => remove(n._id)} title="Delete" aria-label="Delete notification">
+                            <Trash2 size={18} aria-hidden="true" />
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))
           )}
         </div>
-
-        <NotificationPreferences />
       </main>
 
       <ConfirmDialog

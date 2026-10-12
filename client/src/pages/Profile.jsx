@@ -1,21 +1,44 @@
 import { useAuth } from "./authentication/AuthContext";
 import { useState, useEffect } from "react";
 import { useParams, Navigate, useLocation, Link } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { Check, Copy, LogOut } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import PageHeader from "../components/PageHeader";
 import PictureField from "../components/PictureField";
+import NotificationPreferences from "../components/NotificationPreferences";
 import PublicProfile from "./PublicProfile";
 import { useTheme } from "../context/ThemeContext";
+import { profileFromUser } from "../utils/useWorkload";
+import { HELP_CONTACTS, isPlaceholder } from "../utils/helpContacts";
+import { SUPPORT_EMAILS } from "./legal/legalContent";
 import "../App.css";
 
 // Helper to get optimized Google avatar URL
 const getOptimizedAvatarUrl = (avatar) => {
   if (!avatar) return null;
-  return avatar.replace('s96-c', 's150-c');
+  return avatar.replace("s96-c", "s150-c");
 };
+
+const PROGRAMS = ["BS Information Technology", "BS Computer Science"];
+
+const PACES = [
+  { value: "catch-up", label: "Lighter", hint: "Flags a heavy week sooner. Good when you're catching up or worn out." },
+  { value: "steady", label: "Balanced", hint: "The standard reading." },
+  { value: "high-performance", label: "Fuller", hint: "Allows a busier week before flagging it. It stops allowing that if a check-in says you're struggling." },
+];
+
+const SECTIONS = [
+  ["you", "You"],
+  ["your-week", "Your week"],
+  ["appearance", "Appearance"],
+  ["notifications", "Notifications"],
+  ["checkins", "Check-ins"],
+  ["privacy", "Privacy and data"],
+  ["help", "Help and more"],
+];
 
 const day = (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 const lastCheckIn = (u) => {
@@ -24,6 +47,8 @@ const lastCheckIn = (u) => {
   if (u?.lastWHOSubmission) bits.push(`well-being on ${day(u.lastWHOSubmission)}`);
   return bits.length ? `You last checked in: ${bits.join(", ")}.` : "You haven't taken a check-in yet.";
 };
+
+const sameValues = (a, b) => Object.keys(a).every((key) => String(a[key]) === String(b[key]));
 
 // Your own profile at /profile/:yourId, someone else's (a friend or groupmate) at any other id.
 export default function Profile() {
@@ -34,87 +59,96 @@ export default function Profile() {
 }
 
 function OwnProfile() {
-  const { user, backendUrl, getUserData, logout } = useAuth();
+  const { user } = useAuth();
   const { uid } = useParams();
+
+  if (!user) {
+    return (
+      <div className="app auth-layout">
+        <Header />
+        <main className="dashboard">
+          <p>Please log in to view your profile.</p>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if ((!uid || uid === "undefined") && user._id) {
+    return <Navigate to={`/profile/${user._id}`} replace />;
+  }
+
+  return <Me key={user._id} />;
+}
+
+function Me() {
+  const { user, backendUrl, getUserData, logout } = useAuth();
   const { mode, setTheme } = useTheme();
   const { hash } = useLocation();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [savingPicture, setSavingPicture] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-// Profile TAG
-const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCase() : "");
+  const shortTag = user.profileTag || (user._id ? user._id.slice(0, 6).toUpperCase() : "");
 
-  // Profile state
-  const [profile, setProfile] = useState({
-    studentName: "",
-    program: "BS Information Technology",
-    studyHoursPerDay: 4,
-    sleepHours: 8,
-    hasRegularSleepSchedule: true,
-    usualSleepStart: "23:00",
-    usualWakeTime: "07:00",
-    travelMinutesPerDay: 0,
-    wellbeingGoal: "steady",
-    bio: "",
-  });
-
-  const [editForm, setEditForm] = useState({ ...profile });
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const { data } = await axios.get(`${backendUrl}/api/user/data`, { withCredentials: true });
-        if (data.success && data.userData) {
-          const userData = data.userData;
-          const loaded = {
-            studentName: userData.name || "",
-            program: userData.program || "BS Information Technology",
-            studyHoursPerDay: userData.studyHoursPerDay || 4,
-            sleepHours: userData.sleepHours ?? 8,
-            hasRegularSleepSchedule: userData.hasRegularSleepSchedule !== false,
-            usualSleepStart: userData.usualSleepStart || "23:00",
-            usualWakeTime: userData.usualWakeTime || "07:00",
-            travelMinutesPerDay: userData.travelMinutesPerDay ?? 0,
-            wellbeingGoal: userData.wellbeingGoal || "steady",
-            bio: userData.bio || "",
-          };
-          setProfile(loaded);
-          setEditForm(loaded);
-        }
-      } catch (err) {
-        console.error("Failed to load profile", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, [backendUrl]);
-
-  const handleEditChange = (key, value) => {
-    setEditForm(prev => ({ ...prev, [key]: value }));
+  // The saved values, and what's in the two forms right now.
+  const saved = profileFromUser(user);
+  const savedYou = { studentName: saved.studentName, program: saved.program, bio: user.bio || "" };
+  const savedWeek = {
+    studyHoursPerDay: saved.studyHoursPerDay,
+    sleepHours: saved.sleepHours,
+    hasRegularSleepSchedule: saved.hasRegularSleepSchedule,
+    usualSleepStart: saved.usualSleepStart,
+    usualWakeTime: saved.usualWakeTime,
+    travelMinutesPerDay: saved.travelMinutesPerDay,
+    wellbeingGoal: saved.wellbeingGoal,
   };
+  const [you, setYou] = useState(savedYou);
+  const [week, setWeek] = useState(savedWeek);
+  const [savingYou, setSavingYou] = useState(false);
+  const [savingWeek, setSavingWeek] = useState(false);
 
-  const handleSave = async () => {
-    setSaving(true);
+  const youDirty = !sameValues(you, savedYou);
+  const weekDirty = !sameValues(week, savedWeek);
+  const programs = PROGRAMS.includes(you.program) ? PROGRAMS : [you.program, ...PROGRAMS];
+
+  // Saves part of the profile, refreshes the signed-in user (so the sidebar name updates) and
+  // says what happened.
+  const save = async (payload, setBusy, doneText) => {
+    setBusy(true);
     try {
-      const { data } = await axios.put(`${backendUrl}/api/user/profile`, editForm, { withCredentials: true });
+      const { data } = await axios.put(`${backendUrl}/api/user/profile`, payload, { withCredentials: true });
       if (data.success) {
-        setProfile({ ...editForm });
-        setIsEditing(false);
+        await getUserData();
+        toast.success(doneText);
       } else {
-        console.error("Update failed", data.message);
+        toast.error(data.message || "That didn't save. Try again.");
       }
     } catch (err) {
-      console.error("Error saving profile", err);
+      toast.error(err.response?.data?.message || "That didn't save. Try again.");
     } finally {
-      setSaving(false);
+      setBusy(false);
     }
   };
 
-  // A new photo is saved straight away, so it doesn't wait for "Save Changes" on the form.
+  const saveYou = (event) => {
+    event.preventDefault();
+    save({ studentName: you.studentName, program: you.program, bio: you.bio }, setSavingYou, "Your details are saved.");
+  };
+
+  const saveWeek = (event) => {
+    event.preventDefault();
+    save({
+      studyHoursPerDay: Number(week.studyHoursPerDay),
+      sleepHours: Number(week.sleepHours),
+      hasRegularSleepSchedule: week.hasRegularSleepSchedule,
+      usualSleepStart: week.usualSleepStart,
+      usualWakeTime: week.usualWakeTime,
+      travelMinutesPerDay: Number(week.travelMinutesPerDay),
+      wellbeingGoal: week.wellbeingGoal,
+    }, setSavingWeek, "Saved. Your plan uses these numbers now.");
+  };
+
+  // A new photo is saved straight away, so it doesn't wait for a Save button.
   const handlePictureChange = async (avatar) => {
     setSavingPicture(true);
     try {
@@ -132,104 +166,52 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
     }
   };
 
-  const handleCancel = () => {
-    setEditForm({ ...profile });
-    setIsEditing(false);
-  };
-
-  const copyProfileTag = async () => {
+  const copyFriendCode = async () => {
     if (!shortTag) return;
     try {
       await navigator.clipboard.writeText(shortTag);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Couldn't copy that. Select the code and copy it by hand.");
     }
   };
 
-  // Links like /profile/<id>#appearance should land on that section once the page has loaded.
+  // Links like /profile/<id>#appearance should land on that section.
   useEffect(() => {
-    if (loading || !hash) return;
+    if (!hash) return;
     document.getElementById(hash.slice(1))?.scrollIntoView({ block: "start" });
-  }, [loading, hash]);
+  }, [hash]);
 
-  if (!user) {
-    return (
-      <div className="app auth-layout">
-        <Header />
-        <main className="dashboard">
-          <p>Please log in to view your profile.</p>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if ((!uid || uid === 'undefined') && user?._id) {
-    return <Navigate to={`/profile/${user._id}`} replace />;
-  }
-
-  if (loading) {
-    return (
-      <div className="app app-layout">
-        <Header />
-        <main className="dashboard">
-          <div className="panel" style={{ textAlign: "center" }}>
-            <p>Loading profile...</p>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  const setYouField = (key, value) => setYou((prev) => ({ ...prev, [key]: value }));
+  const setWeekField = (key, value) => setWeek((prev) => ({ ...prev, [key]: value }));
+  const pace = PACES.find((p) => p.value === week.wellbeingGoal) || PACES[1];
+  const mailto = `mailto:${SUPPORT_EMAILS.join(",")}`;
 
   return (
     <div className="app app-layout">
       <Header />
-      <main className="dashboard">
-        <section className="hero" id="profile-hero">
-          <div className="hero-copy">
-            <span className="eyebrow">Your Account</span>
-            <h1>Profile &amp; Capacity Settings</h1>
-            <p>Manage your authentication and weekly study capacity.</p>
-            
-            {/* Profile Tag */}
-            <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-light)', paddingTop: '1rem' }}>
-              <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Your Profile Tag</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <div style={{
-                  background: 'var(--input-bg)',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '12px',
-                  fontFamily: 'monospace',
-                  fontSize: '1.2rem',
-                  fontWeight: 'bold',
-                  letterSpacing: '1px',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-light)',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                }}>
-                  {shortTag}
-                </div>
-                <button
-                  onClick={copyProfileTag}
-                  className="secondary-button"
-                  style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                >
-                  {copySuccess ? '✓ Copied!' : '📋 Copy Tag'}
-                </button>
-              </div>
-              <p style={{ fontSize: '0.75rem', marginTop: '0.5rem', color: 'var(--text-secondary)' }}>
-                Share this 6‑character tag to add friends.
-              </p>
-            </div>
-          </div>
+      <main className="dashboard me-page">
+        <PageHeader title="Me" description="Your details, the numbers your plan uses, and how the app looks and behaves." />
 
-          <aside className="hero-panel">
-            <h2>Account Info</h2>
-            <div className="profile-container">
-              <div className="profile-image">
+        <div className="me-layout">
+          <nav className="me-index" aria-label="On this page">
+            <ul>
+              {SECTIONS.map(([id, label]) => (
+                <li key={id}><a href={`#${id}`}>{label}</a></li>
+              ))}
+            </ul>
+          </nav>
+
+          <div className="me-sections">
+            <section className="panel" id="you">
+              <div className="panel-heading">
+                <div>
+                  <span className="panel-kicker">You</span>
+                  <h2>Your details</h2>
+                </div>
+              </div>
+              <div className="me-you">
                 <PictureField
                   key={user.avatar || "none"}
                   value={getOptimizedAvatarUrl(user.avatar) || ""}
@@ -239,164 +221,204 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
                   disabled={savingPicture}
                   chooseLabel="Add a photo"
                 />
+                <div className="me-friend-code">
+                  <span className="me-label">Friend code</span>
+                  <div className="me-code-row">
+                    <code className="friend-code">{shortTag}</code>
+                    <button type="button" className="secondary-button small" onClick={copyFriendCode}>
+                      {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+                      {copied ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                  <small className="field-hint">Share it so friends can add you. Signed in as {user.email}.</small>
+                </div>
               </div>
-              <div className="profile-info">
-                <h3>{user.name}</h3>
-                <p>Email: {user.email}</p>
-                <p>Auth Provider: {user.authProvider || 'google'}</p>
-                {user.isAccountVerified && <p>Account Verified: Yes</p>}
-              </div>
-            </div>
-          </aside>
-        </section>
 
-        <section className="panel form-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="panel-kicker">Student profile</span>
-              <h2>Set your weekly capacity</h2>
+              <form className="form-grid compact me-form" onSubmit={saveYou}>
+                <label>
+                  Name
+                  <input type="text" maxLength={60} value={you.studentName} onChange={(e) => setYouField("studentName", e.target.value)} placeholder="Juan Dela Cruz" required />
+                </label>
+                <label>
+                  Program
+                  <select value={you.program} onChange={(e) => setYouField("program", e.target.value)}>
+                    {programs.map((p) => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </label>
+                <label className="full-span">
+                  About you
+                  <textarea
+                    className="bio-input"
+                    rows={3}
+                    maxLength={200}
+                    placeholder="A line or two other students will see on your profile"
+                    value={you.bio}
+                    onChange={(e) => setYouField("bio", e.target.value)}
+                  />
+                  <small className="field-hint">{you.bio.length}/200</small>
+                </label>
+                <div className="me-save full-span">
+                  <button type="submit" className="primary-button" disabled={savingYou || !youDirty}>{savingYou ? "Saving..." : "Save"}</button>
+                </div>
+              </form>
+            </section>
+
+            <section className="panel" id="your-week">
+              <div className="panel-heading">
+                <div>
+                  <span className="panel-kicker">Your week</span>
+                  <h2>The numbers your plan uses</h2>
+                </div>
+              </div>
+              <form className="form-grid compact me-form" onSubmit={saveWeek}>
+                <label>
+                  Study hours a day
+                  <input type="number" min="1" max="12" step="0.5" value={week.studyHoursPerDay} onChange={(e) => setWeekField("studyHoursPerDay", e.target.value)} required />
+                </label>
+                <label>
+                  Sleep you aim for (hours)
+                  <input type="number" min="4" max="12" step="0.5" value={week.sleepHours} onChange={(e) => setWeekField("sleepHours", e.target.value)} required />
+                </label>
+                <label className="full-span sched-check">
+                  <input type="checkbox" checked={week.hasRegularSleepSchedule} onChange={(e) => setWeekField("hasRegularSleepSchedule", e.target.checked)} />
+                  I keep a regular sleep schedule
+                </label>
+                {week.hasRegularSleepSchedule && (
+                  <>
+                    <label>Usual bedtime
+                      <input type="time" value={week.usualSleepStart} onChange={(e) => setWeekField("usualSleepStart", e.target.value)} required />
+                    </label>
+                    <label>Usual wake time
+                      <input type="time" value={week.usualWakeTime} onChange={(e) => setWeekField("usualWakeTime", e.target.value)} required />
+                    </label>
+                  </>
+                )}
+                <label className="full-span">
+                  Travel on school days (minutes a day, both ways)
+                  <input type="number" min="0" max="240" step="5" value={week.travelMinutesPerDay} onChange={(e) => setWeekField("travelMinutesPerDay", e.target.value)} required />
+                  <small className="field-hint">Kept free when planning study time. It isn't added to your timetable.</small>
+                </label>
+
+                <fieldset className="full-span me-pace">
+                  <legend>How should we pace you?</legend>
+                  <div className="segmented" role="radiogroup" aria-label="Pace">
+                    {PACES.map((p) => (
+                      <button
+                        key={p.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={week.wellbeingGoal === p.value}
+                        className={`segmented-option ${week.wellbeingGoal === p.value ? "is-selected" : ""}`}
+                        onClick={() => setWeekField("wellbeingGoal", p.value)}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="me-pace-hint">{pace.hint}</p>
+                </fieldset>
+
+                <div className="me-save full-span">
+                  <button type="submit" className="primary-button" disabled={savingWeek || !weekDirty}>{savingWeek ? "Saving..." : "Save"}</button>
+                </div>
+              </form>
+            </section>
+
+            <section className="panel" id="appearance">
+              <div className="panel-heading">
+                <div>
+                  <span className="panel-kicker">Appearance</span>
+                  <h2>Light or dark</h2>
+                </div>
+              </div>
+              <div className="segmented" role="radiogroup" aria-label="Appearance">
+                {[["light", "Light"], ["dark", "Dark"], ["system", "Match my device"]].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={mode === value}
+                    className={`segmented-option ${mode === value ? "is-selected" : ""}`}
+                    onClick={() => setTheme(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <div id="notifications">
+              <NotificationPreferences />
             </div>
-            {!isEditing ? (
-              <button className="secondary-button" onClick={() => setIsEditing(true)}>
-                Edit Profile
+
+            <section className="panel" id="checkins">
+              <div className="panel-heading">
+                <div>
+                  <span className="panel-kicker">Check-ins</span>
+                  <h2>Your stress and well-being check-ins</h2>
+                </div>
+              </div>
+              <p>
+                {lastCheckIn(user)} Results, history and retakes are on the <Link to="/wellbeing#checkins">Wellbeing page</Link>.
+              </p>
+            </section>
+
+            <section className="panel" id="privacy">
+              <div className="panel-heading">
+                <div>
+                  <span className="panel-kicker">Privacy and data</span>
+                  <h2>What we keep</h2>
+                </div>
+              </div>
+              <p>
+                Your account, tasks, schedules and check-ins are stored on StressCare's server so they're there on any device.
+                The Privacy Policy says what we keep and who can see it.
+              </p>
+              <div className="me-links">
+                <Link to="/privacy-policy" className="secondary-button small">Privacy Policy</Link>
+                <Link to="/terms-of-service" className="secondary-button small">Terms of Service</Link>
+                <a
+                  href={`${mailto}?subject=${encodeURIComponent("Please delete my StressCare account")}`}
+                  className="ghost-button small"
+                >
+                  Ask us to delete your account
+                </a>
+              </div>
+            </section>
+
+            <section className="panel" id="help">
+              <div className="panel-heading">
+                <div>
+                  <span className="panel-kicker">Help</span>
+                  <h2>Help and more</h2>
+                </div>
+              </div>
+              <ul className="me-help-list">
+                <li>Today, Schedule, Study and Wellbeing have a Guide button at the bottom right. It walks you through the page.</li>
+                <li><Link to="/about">About StressCare</Link></li>
+                <li>Questions or problems? Email <a href={mailto}>{SUPPORT_EMAILS.join(" or ")}</a>.</li>
+              </ul>
+              <div className="me-talk">
+                <h3>Talk to someone</h3>
+                <p>If things feel like too much, you don't have to handle it alone. You can reach:</p>
+                <ul>
+                  {HELP_CONTACTS.map((c) => (
+                    <li key={c.name}>
+                      <strong>{c.name}</strong>
+                      <span className={isPlaceholder(c.detail) ? "me-placeholder" : ""}>{c.detail}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+
+            <section className="panel" id="sign-out">
+              <button type="button" className="secondary-button" onClick={logout}>
+                <LogOut size={16} aria-hidden="true" /> Sign out
               </button>
-            ) : (
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <button className="secondary-button" onClick={handleCancel} disabled={saving}>
-                  Cancel
-                </button>
-                <button className="primary-button" onClick={handleSave} disabled={saving}>
-                  {saving ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-            )}
+            </section>
           </div>
-
-          <div className="form-grid compact">
-            <label>
-              Student name
-              <input
-                type="text"
-                placeholder="Juan Dela Cruz"
-                value={isEditing ? editForm.studentName : profile.studentName}
-                onChange={(e) => handleEditChange("studentName", e.target.value)}
-                disabled={!isEditing}
-              />
-            </label>
-
-            <label>
-              Program
-              <input
-                type="text"
-                placeholder="e.g., BS Information Technology"
-                value={isEditing ? editForm.program : profile.program}
-                onChange={(e) => handleEditChange("program", e.target.value)}
-                disabled={!isEditing}
-              />
-            </label>
-
-            <label>
-              Study hours per day
-              <input
-                type="number"
-                min="1"
-                max="12"
-                value={isEditing ? editForm.studyHoursPerDay : profile.studyHoursPerDay}
-                onChange={(e) => handleEditChange("studyHoursPerDay", Number(e.target.value))}
-                disabled={!isEditing}
-              />
-            </label>
-
-            <label>
-              Sleep hours per day
-              <input type="number" min="6" max="12" step="0.5" value={isEditing ? editForm.sleepHours : profile.sleepHours} onChange={(e) => handleEditChange("sleepHours", Number(e.target.value))} disabled={!isEditing} />
-              <small className="field-hint">Planning allows a 6 hour minimum on especially heavy weeks.</small>
-            </label>
-
-            <label>
-              Travel time on school days (minutes)
-              <input type="number" min="0" max="240" step="5" value={isEditing ? editForm.travelMinutesPerDay : profile.travelMinutesPerDay} onChange={(e) => handleEditChange("travelMinutesPerDay", Number(e.target.value))} disabled={!isEditing} />
-              <small className="field-hint">Reserved for travel when planning study time; it is not added to your timetable.</small>
-            </label>
-
-            <label className="full-span sched-check">
-              <input type="checkbox" checked={isEditing ? editForm.hasRegularSleepSchedule : profile.hasRegularSleepSchedule} onChange={(e) => handleEditChange("hasRegularSleepSchedule", e.target.checked)} disabled={!isEditing} />
-              I have a regular sleep schedule
-            </label>
-            {(isEditing ? editForm.hasRegularSleepSchedule : profile.hasRegularSleepSchedule) && <>
-              <label>Usual bedtime<input type="time" value={isEditing ? editForm.usualSleepStart : profile.usualSleepStart} onChange={(e) => handleEditChange("usualSleepStart", e.target.value)} disabled={!isEditing} /></label>
-              <label>Usual wake time<input type="time" value={isEditing ? editForm.usualWakeTime : profile.usualWakeTime} onChange={(e) => handleEditChange("usualWakeTime", e.target.value)} disabled={!isEditing} /></label>
-            </>}
-
-            <label className="full-span">
-              About you
-              <textarea
-                className="bio-input"
-                rows={3}
-                maxLength={200}
-                placeholder="A line or two other students will see on your profile"
-                value={isEditing ? editForm.bio : profile.bio}
-                onChange={(e) => handleEditChange("bio", e.target.value)}
-                disabled={!isEditing}
-              />
-              {isEditing && <small className="field-hint">{editForm.bio.length}/200</small>}
-            </label>
-
-            <label className="full-span">
-              Wellbeing goal
-              <select
-                value={isEditing ? editForm.wellbeingGoal : profile.wellbeingGoal}
-                onChange={(e) => handleEditChange("wellbeingGoal", e.target.value)}
-                disabled={!isEditing}
-              >
-                <option value="steady">Stay balanced</option>
-                <option value="catch-up">Recover from backlog</option>
-                <option value="high-performance">Push for high performance</option>
-              </select>
-            </label>
-          </div>
-        </section>
-
-        <section className="panel" id="checkins">
-          <div className="panel-heading">
-            <div>
-              <span className="panel-kicker">Check-ins</span>
-              <h2>Your stress and well-being check-ins</h2>
-            </div>
-          </div>
-          <p>
-            {lastCheckIn(user)} Results, history and retakes are on the <Link to="/wellbeing#checkins">Wellbeing page</Link>.
-          </p>
-        </section>
-
-        <section className="panel" id="appearance">
-          <div className="panel-heading">
-            <div>
-              <span className="panel-kicker">Appearance</span>
-              <h2>Light or dark</h2>
-            </div>
-          </div>
-          <div className="segmented" role="radiogroup" aria-label="Appearance">
-            {[["light", "Light"], ["dark", "Dark"], ["system", "Match my device"]].map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={mode === value}
-                className={`segmented-option ${mode === value ? "is-selected" : ""}`}
-                onClick={() => setTheme(value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="panel" id="sign-out">
-          <button type="button" className="secondary-button" onClick={logout}>
-            <LogOut size={16} aria-hidden="true" /> Sign out
-          </button>
-        </section>
+        </div>
       </main>
       <Footer />
     </div>

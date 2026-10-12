@@ -11,7 +11,7 @@ export const getFriends = async (req, res) => {
         const friendships = await Friend.find({
             $or: [{ user: userId }, { friend: userId }],
             status: 'accepted',
-        }).populate('user friend', 'name email avatar profileTag');
+        }).populate('user friend', 'name avatar profileTag');
         
         const friends = friendships.map(f => 
             f.user._id.toString() === userId ? f.friend : f.user
@@ -51,6 +51,21 @@ export const sendFriendRequest = async (req, res) => {
                 return res.status(400).json({ success: false, message: 'Already friends.' });
             }
             if (existing.status === 'pending') {
+                // They already asked you: asking back means yes.
+                if (existing.friend.toString() === senderId) {
+                    existing.status = 'accepted';
+                    await existing.save();
+                    const accepter = await userModel.findById(senderId).select('name');
+                    await notify({
+                        recipients: [receiver._id],
+                        sender: senderId,
+                        type: 'friend_accepted',
+                        title: 'Friend request accepted',
+                        message: `${accepter?.name || 'Someone'} accepted your friend request.`,
+                        link: '/groups?tab=friends',
+                    });
+                    return res.json({ success: true, message: 'You are now friends.', accepted: true });
+                }
                 return res.status(400).json({ success: false, message: 'Friend request already sent.' });
             }
         }
@@ -69,7 +84,7 @@ export const sendFriendRequest = async (req, res) => {
             type: 'friend_request',
             title: 'New friend request',
             message: `${sender?.name || 'Someone'} wants to be your friend.`,
-            link: '/friends',
+            link: '/groups?tab=friends',
         });
         res.json({ success: true, message: 'Friend request sent.' });
     } catch (error) {
@@ -98,7 +113,7 @@ export const acceptFriendRequest = async (req, res) => {
             type: 'friend_accepted',
             title: 'Friend request accepted',
             message: `${accepter?.name || 'Someone'} accepted your friend request.`,
-            link: '/friends',
+            link: '/groups?tab=friends',
         });
         res.json({ success: true, message: 'Friend request accepted.' });
     } catch (error) {
@@ -134,9 +149,39 @@ export const getPendingRequests = async (req, res) => {
     try {
         const userId = req.userId;
         const requests = await Friend.find({ friend: userId, status: 'pending' })
-            .populate('user', 'name email avatar profileTag');
+            .populate('user', 'name avatar profileTag');
         res.json({ success: true, requests });
     } catch (error) {
         serverError(res, 'getPendingRequests error', error);
+    }
+};
+
+// Decline (receiver) or cancel (sender) a pending request. Nobody else can touch it.
+export const deleteFriendRequest = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { requestId } = req.params;
+        if (!isId(requestId)) return res.status(404).json({ success: false, message: 'Request not found.' });
+
+        const removed = await Friend.findOneAndDelete({
+            _id: requestId,
+            status: 'pending',
+            $or: [{ user: userId }, { friend: userId }],
+        });
+        if (!removed) return res.status(404).json({ success: false, message: 'Request not found.' });
+        res.json({ success: true, message: removed.user.toString() === userId ? 'Request cancelled.' : 'Request declined.' });
+    } catch (error) {
+        serverError(res, 'deleteFriendRequest error', error);
+    }
+};
+
+// Pending requests you sent
+export const getSentRequests = async (req, res) => {
+    try {
+        const requests = await Friend.find({ user: req.userId, status: 'pending' })
+            .populate('friend', 'name avatar profileTag');
+        res.json({ success: true, requests });
+    } catch (error) {
+        serverError(res, 'getSentRequests error', error);
     }
 };

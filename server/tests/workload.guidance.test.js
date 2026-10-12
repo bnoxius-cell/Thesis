@@ -16,7 +16,6 @@ const daysAgo = (n) => new Date(NOW.getTime() - n * 86400000).toISOString();
 const task = (overrides = {}) => ({
     _id: 't1', title: 'Essay', course: 'ENG 101', dueDate: isoDay(3), hours: 4, difficulty: 3, importance: 3, ...overrides,
 });
-const profile = { studyHoursPerDay: 4, wellbeingGoal: 'steady' };
 
 // A week overview like the server sends it, with the given entries on day 0 and 1.
 const overview = (today = [], tomorrow = []) => ({
@@ -33,7 +32,8 @@ const overview = (today = [], tomorrow = []) => ({
 });
 const cls = (title, startTime, endTime) => ({ kind: 'class', title, startTime, endTime });
 
-const run = ({ tasks = [], entries = [[], []], pss = null, who = null, pssLast = null, whoLast = null } = {}) => {
+const run = ({ tasks = [], entries = [[], []], pss = null, who = null, pssLast = null, whoLast = null, goal = 'steady' } = {}) => {
+    const profile = { studyHoursPerDay: 4, wellbeingGoal: goal };
     const week = buildWeek(tasks, profile, entries ? overview(...entries) : null, NOW);
     const p = surveyStatus(pss, pssLast, PSS_VALID_DAYS, NOW);
     const w = surveyStatus(who, whoLast, WHO_VALID_DAYS, NOW);
@@ -72,6 +72,52 @@ describe('check-ins that are out of date', () => {
         const tip = result.tips.find((t) => t.title === 'Time for a fresh check-in');
         expect(tip.text).toContain('40 days old');
         expect(result.tips.some((t) => t.title === 'Stress is running high')).toBe(false);
+    });
+});
+
+describe('pace', () => {
+    const tasks = [task({ hours: 6 })];
+
+    test('lighter pace adds 10 points, so a heavy week is flagged sooner', () => {
+        const steady = run({ tasks });
+        const lighter = run({ tasks, goal: 'catch-up' });
+        expect(lighter.adjustments.goal).toBe(10);
+        expect(lighter.workloadScore).toBe(Math.min(100, steady.workloadScore + 10));
+        expect(lighter.tips.some((t) => t.title === 'Lighter pace')).toBe(true);
+    });
+
+    test('fuller pace takes 10 points off when there is no strain', () => {
+        const steady = run({ tasks });
+        const fuller = run({ tasks, goal: 'high-performance' });
+        expect(fuller.adjustments.goal).toBe(-10);
+        expect(fuller.workloadScore).toBe(Math.max(0, steady.workloadScore - 10));
+        expect(fuller.tips.some((t) => t.title === 'Fuller pace')).toBe(true);
+    });
+
+    test('fuller pace still applies with fresh check-ins that look okay', () => {
+        const fuller = run({ tasks, goal: 'high-performance', pss: 14, pssLast: daysAgo(2), who: 70, whoLast: daysAgo(2) });
+        expect(fuller.adjustments.goal).toBe(-10);
+    });
+
+    test('fuller pace is ignored when PSS is 27 or more', () => {
+        const fuller = run({ tasks, goal: 'high-performance', pss: 27, pssLast: daysAgo(2) });
+        expect(fuller.adjustments.goal).toBe(0);
+        expect(fuller.tips.some((t) => t.title === 'Fuller pace')).toBe(false);
+    });
+
+    test('fuller pace is ignored when WHO-5 is under 50', () => {
+        const fuller = run({ tasks, goal: 'high-performance', who: 48, whoLast: daysAgo(2) });
+        expect(fuller.adjustments.goal).toBe(0);
+    });
+
+    test('an expired strained check-in no longer blocks fuller pace', () => {
+        const fuller = run({ tasks, goal: 'high-performance', pss: 35, pssLast: daysAgo(60) });
+        expect(fuller.adjustments.goal).toBe(-10);
+    });
+
+    test('lighter pace still applies when the student is strained', () => {
+        const lighter = run({ tasks, goal: 'catch-up', pss: 35, pssLast: daysAgo(2) });
+        expect(lighter.adjustments.goal).toBe(10);
     });
 });
 
