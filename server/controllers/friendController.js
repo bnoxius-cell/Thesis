@@ -1,3 +1,4 @@
+import { isId, serverError } from '../utils/httpErrors.js';
 import mongoose from 'mongoose';
 import Friend from '../models/Friend.js';
 import userModel from '../models/userModel.js';
@@ -17,7 +18,7 @@ export const getFriends = async (req, res) => {
         );
         res.json({ success: true, friends });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'getFriends error', error);
     }
 };
 
@@ -72,7 +73,7 @@ export const sendFriendRequest = async (req, res) => {
         });
         res.json({ success: true, message: 'Friend request sent.' });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'sendFriendRequest error', error);
     }
 };
 
@@ -81,6 +82,7 @@ export const acceptFriendRequest = async (req, res) => {
     try {
         const userId = req.userId;
         const { requestId } = req.params;
+        if (!isId(requestId)) return res.status(404).json({ success: false, message: 'Request not found.' });
 
         const friendRequest = await Friend.findOne({ _id: requestId, friend: userId, status: 'pending' });
         if (!friendRequest) {
@@ -100,7 +102,7 @@ export const acceptFriendRequest = async (req, res) => {
         });
         res.json({ success: true, message: 'Friend request accepted.' });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'acceptFriendRequest error', error);
     }
 };
 
@@ -109,6 +111,7 @@ export const removeFriend = async (req, res) => {
     try {
         const userId = req.userId;
         const { friendId } = req.params;
+        if (!isId(friendId)) return res.status(404).json({ success: false, message: 'Friendship not found.' });
 
         const friendship = await Friend.findOneAndDelete({
             $or: [
@@ -122,7 +125,7 @@ export const removeFriend = async (req, res) => {
         }
         res.json({ success: true, message: 'Friend removed.' });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'removeFriend error', error);
     }
 };
 
@@ -134,6 +137,6 @@ export const getPendingRequests = async (req, res) => {
             .populate('user', 'name email avatar profileTag');
         res.json({ success: true, requests });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'getPendingRequests error', error);
     }
 };

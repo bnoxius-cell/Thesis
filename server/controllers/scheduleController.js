@@ -238,7 +238,7 @@ const cleanEntry = (body = {}) => {
         if (!isRealDate(body.date)) return { error: 'That date is not valid.' };
         entry.date = body.date;
     } else {
-        const days = [...new Set((body.days || []).map(Number))];
+        const days = [...new Set((Array.isArray(body.days) ? body.days : []).map(Number))];
         if (!days.length || days.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) {
             return { error: 'Pick at least one day, or set a specific date.' };
         }
@@ -827,9 +827,10 @@ export const shareWithFriend = async (req, res) => {
         const sender = await userModel.findById(req.userId).select('name');
         const senderName = sender?.name || 'A friend';
         const link = `/schedule?s=${schedule._id}`;
+        let announcement = null;
         if (!existing) {
             schedule.collaborators.push({ user: userId, role });
-            await notify({
+            announcement = {
                 recipients: [userId],
                 sender: req.userId,
                 type: 'schedule_share',
@@ -838,10 +839,10 @@ export const shareWithFriend = async (req, res) => {
                     ? `${senderName} added you to the schedule "${schedule.title}". You can change it, and everyone on it is told when you do.`
                     : `${senderName} shared the schedule "${schedule.title}" with you. You'll see changes as they happen, and you can make your own copy.`,
                 link,
-            });
+            };
         } else if (existing.role !== role) {
             existing.role = role;
-            await notify({
+            announcement = {
                 recipients: [userId],
                 sender: req.userId,
                 type: 'schedule_share',
@@ -850,9 +851,10 @@ export const shareWithFriend = async (req, res) => {
                     ? `${senderName} let you edit "${schedule.title}".`
                     : `${senderName} changed your access to "${schedule.title}" to view only.`,
                 link,
-            });
+            };
         }
         await schedule.save();
+        if (announcement) await notify(announcement);
         res.json({ success: true, schedule: await serialize(schedule, actorRole, req.userId) });
     } catch (error) {
         fail(res, 500, error.message);
@@ -1000,13 +1002,13 @@ export const joinByCode = async (req, res) => {
             else schedule.collaborators.push({ user: req.userId, role: codeRole });
             role = codeRole;
             const person = await userModel.findById(req.userId).select('name');
+            await schedule.save();
             await notify({
                 recipients: [schedule.owner], sender: req.userId, type: 'schedule_change',
                 title: `"${schedule.title}" was changed`,
                 message: `${person?.name || 'Someone'} joined with the share code${role === 'editor' ? ' and can edit it' : ''}.`,
                 link: `/schedule?s=${schedule._id}`, collapseLink: true,
             });
-            await schedule.save();
         }
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {

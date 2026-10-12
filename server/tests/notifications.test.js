@@ -279,17 +279,23 @@ describe('preferences', () => {
 });
 
 describe('task reminders', () => {
-    const hoursFromNow = (h) => new Date(Date.now() + h * 60 * 60 * 1000);
+    // A task is due at 23:59 Philippine time on its due day, which is 15:59 UTC of that date.
+    const HOUR = 60 * 60 * 1000;
+    const NOW = new Date('2026-10-12T00:00:00.000Z');
+    const END_OF_DAY = 15 * HOUR + 59 * 60 * 1000;
+    // A due date whose actual due moment is `h` hours after NOW.
+    const dueIn = (h) => new Date(NOW.getTime() + h * HOUR - END_OF_DAY);
     const makeTask = (owner, overrides = {}) => taskModel.create({
-        title: 'Capstone report', course: 'CS 499', dueDate: hoursFromNow(10), owner, ...overrides,
+        title: 'Capstone report', course: 'CS 499', dueDate: dueIn(10), owner, ...overrides,
     });
+    const run = () => runTaskReminders(NOW);
 
     test('a task due inside the window gets one reminder, however often the job runs', async () => {
         const alice = await signUp('Alice');
         await makeTask(alice.id);
 
-        await runTaskReminders();
-        await runTaskReminders();
+        await run();
+        await run();
 
         const { notifications } = await inbox(alice);
         expect(notifications).toHaveLength(1);
@@ -300,11 +306,11 @@ describe('task reminders', () => {
 
     test('ignores far-off, finished and already-late tasks', async () => {
         const alice = await signUp('Alice');
-        await makeTask(alice.id, { dueDate: hoursFromNow(30) });
+        await makeTask(alice.id, { dueDate: dueIn(30) });
         await makeTask(alice.id, { isCompleted: true });
-        await makeTask(alice.id, { dueDate: hoursFromNow(-2) });
+        await makeTask(alice.id, { dueDate: dueIn(-2) });
 
-        await runTaskReminders();
+        await run();
         expect((await inbox(alice)).notifications).toHaveLength(0);
     });
 
@@ -313,10 +319,10 @@ describe('task reminders', () => {
         const bob = await signUp('Bob');
         await alice.agent.put('/api/notifications/preferences').send({ reminderLeadHours: 48 });
         await bob.agent.put('/api/notifications/preferences').send({ taskReminders: false });
-        await makeTask(alice.id, { dueDate: hoursFromNow(40) });
+        await makeTask(alice.id, { dueDate: dueIn(40) });
         await makeTask(bob.id);
 
-        await runTaskReminders();
+        await run();
         expect((await inbox(alice)).notifications).toHaveLength(1);
         expect((await inbox(bob)).notifications).toHaveLength(0);
     });
@@ -324,12 +330,30 @@ describe('task reminders', () => {
     test('changing the due date reminds again', async () => {
         const alice = await signUp('Alice');
         const task = await makeTask(alice.id);
-        await runTaskReminders();
+        await run();
 
-        task.dueDate = hoursFromNow(12);
+        task.dueDate = dueIn(12);
         await task.save();
-        await runTaskReminders();
+        await run();
         expect((await inbox(alice)).notifications).toHaveLength(2);
+    });
+
+    test('a task due today is still reminded until 23:59 Philippine time', async () => {
+        const alice = await signUp('Alice');
+        // Due 12 Oct, stored as midnight UTC. At 00:30 UTC it is 08:30 in Manila, 15 hours to go.
+        await makeTask(alice.id, { dueDate: new Date('2026-10-12T00:00:00.000Z') });
+
+        await runTaskReminders(new Date('2026-10-12T00:30:00.000Z'));
+        expect((await inbox(alice)).notifications).toHaveLength(1);
+    });
+
+    test('no reminder once the due day has ended in the Philippines', async () => {
+        const alice = await signUp('Alice');
+        await makeTask(alice.id, { dueDate: new Date('2026-10-12T00:00:00.000Z') });
+
+        // 16:00 UTC is 00:00 on the 13th in Manila.
+        await runTaskReminders(new Date('2026-10-12T16:00:00.000Z'));
+        expect((await inbox(alice)).notifications).toHaveLength(0);
     });
 });
 

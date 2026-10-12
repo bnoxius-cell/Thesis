@@ -6,6 +6,8 @@ import { LEGAL_VERSION } from '../utils/legal.js';
 import { isValidPicture } from '../utils/images.js';
 
 const MAX_BIO_LENGTH = 200;
+const MAX_NAME_LENGTH = 60;
+const MAX_PROGRAM_LENGTH = 80;
 
 export const getUserData = async (req, res) => {
     try {
@@ -63,20 +65,47 @@ export const updateProfile = async (req, res) => {
             }
             updateFields.bio = String(bio).trim();
         }
-        if (studentName !== undefined) updateFields.name = studentName;
-        if (program !== undefined) updateFields.program = program;
-        if (studyHoursPerDay !== undefined) updateFields.studyHoursPerDay = studyHoursPerDay;
-        if (sleepHours !== undefined) updateFields.sleepHours = sleepHours;
+        if (studentName !== undefined) {
+            const name = typeof studentName === 'string' ? studentName.trim() : '';
+            if (!name) return res.json({ success: false, message: 'Please enter your name.' });
+            if (name.length > MAX_NAME_LENGTH) {
+                return res.json({ success: false, message: `Your name can be up to ${MAX_NAME_LENGTH} characters.` });
+            }
+            updateFields.name = name;
+        }
+        if (program !== undefined) {
+            const value = typeof program === 'string' ? program.trim() : '';
+            if (!value || value.length > MAX_PROGRAM_LENGTH) {
+                return res.json({ success: false, message: `Your program can be up to ${MAX_PROGRAM_LENGTH} characters.` });
+            }
+            updateFields.program = value;
+        }
+        const numberInRange = (value, min, max, label) => {
+            const number = Number(value);
+            if (value === '' || value === null || !Number.isFinite(number) || number < min || number > max) {
+                return { error: `${label} must be between ${min} and ${max}.` };
+            }
+            return { number };
+        };
+        for (const [key, value, min, max, label] of [
+            ['studyHoursPerDay', studyHoursPerDay, 1, 12, 'Study hours per day'],
+            ['sleepHours', sleepHours, 4, 12, 'Sleep hours'],
+            ['travelMinutesPerDay', travelMinutesPerDay, 0, 240, 'Travel minutes per day'],
+        ]) {
+            if (value === undefined) continue;
+            const { number, error } = numberInRange(value, min, max, label);
+            if (error) return res.json({ success: false, message: error });
+            updateFields[key] = number;
+        }
         if (hasRegularSleepSchedule !== undefined) updateFields.hasRegularSleepSchedule = Boolean(hasRegularSleepSchedule);
         if (usualSleepStart !== undefined) updateFields.usualSleepStart = usualSleepStart;
         if (usualWakeTime !== undefined) updateFields.usualWakeTime = usualWakeTime;
-        if (travelMinutesPerDay !== undefined) updateFields.travelMinutesPerDay = travelMinutesPerDay;
         if (wellbeingGoal !== undefined) updateFields.wellbeingGoal = wellbeingGoal;
 
         const updatedUser = await userModel.findByIdAndUpdate(
             userId,
             updateFields,
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         ).populate('friends', 'name email avatar');
 
         if (!updatedUser) {

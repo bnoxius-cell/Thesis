@@ -2,7 +2,7 @@
 
 Read this first after a `/clear`. It's the short "where we left off" note. `CLAUDE.md` has the full project reference, this file only has the current state.
 
-Last updated: 2026-10-12, end of the Sonnet build session. FE-1 and FE-2 are merged into `main` (see the build session section below). `next-prompt.md` stays until SR Batch 3 is done or dropped. Branch from `main` for each batch.
+Last updated: 2026-10-12, end of the Sonnet build session. FE-1, FE-2 and system-review Batch 3 (`fix/server-checks`, 405 server tests) are merged into `main`. `next-prompt.md` is done and deleted. Branch from `main` for each batch.
 
 ## Build session 2026-10-12 (Sonnet): FE-1 merged, FE-2 on `redesign/today`
 - **FE-1 merged into `main`** (tokens, shell, shared components, redirects, 404). Dark mode, bottom bar and Guide placement checked.
@@ -10,7 +10,8 @@ Last updated: 2026-10-12, end of the Sonnet build session. FE-1 and FE-2 are mer
 - **A first cut of `/wellbeing` exists** (`pages/Wellbeing.jsx`) so Today's "See what's behind this" link works and the removed Today content (drivers, full chart, all tips, move ideas, sleep) still has a home. FE-3 still has to add: check-in cards and history, "How this works", the stepper and the result screen, `completedAt`.
 - Not eyeballed: the new-account setup checklist (use `ana@student.fatima.edu.ph`), Wellbeing and Tasks tab on a real phone. Seen: Today and the Tasks tab on a laptop in the owner's Chrome; Today at 375px is 1,845px tall with no horizontal scroll.
 - Old `TaskBoard` CSS (`.task-card`, `.edit-button` etc.) is now unused; remove it in FE-6 after a search.
-- **Next**: system-review Batch 3 (`fix/server-checks`, server only; S5 first), then FE-3 (needs SR Batch 7's `Modal`). Ask before Batch 3 if unsure.
+- **Batch 3 done** (`fix/server-checks`, details in CLAUDE.md "Server checks"): S3, S5 (server scores check-ins, so FE-3 can show the result from the response), S7, B5, B12, B13, B14, B16. Not done on purpose: B13 has no failing-save test (the order is checked by the join-by-code test only).
+- **Next**: SR Batch 7 (`feature/shared-modal`), then FE-3. Batches 1 and 5 (auth) need an Opus review before merging; ask the owner about S6 when Batch 1 or 2 starts.
 - **UI harness**: `node server/scripts/uiHarness.js` (API on 5070) plus `VITE_BACKEND_URL=http://localhost:5070 npx vite --port 5174 --strictPort` in `client/`; login `maria@student.fatima.edu.ph` / `Password123`. Start the harness once only (two runs on the same port duplicate the seed). Kill both when done. The Chrome extension screenshots time out often; retry, or measure with JS in a 375px iframe.
 
 ## Frontend revamp plan (2026-10-12)
