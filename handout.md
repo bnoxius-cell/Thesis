@@ -2,7 +2,7 @@
 
 Read this first after a `/clear`. It's the short "where we left off" note. `CLAUDE.md` has the full project reference, this file only has the current state.
 
-Last updated: 2026-10-12, end of the Opus planning session. `system-review.md` (PR #23), `frontend-plan.md` + `PRODUCT.md` (PR #24) and the owner's answers (PR #25) are merged into `main`. No app code changed yet. **The owner is switching to Sonnet to start building: `next-prompt.md` holds the first task.** Branch from `main` for each batch.
+Last updated: 2026-10-12, end of the Sonnet build session. FE-1 and FE-2 are merged into `main` (see the build session section below). `next-prompt.md` stays until SR Batch 3 is done or dropped. Branch from `main` for each batch.
 
 ## Build session 2026-10-12 (Sonnet): FE-1 merged, FE-2 on `redesign/today`
 - **FE-1 merged into `main`** (tokens, shell, shared components, redirects, 404). Dark mode, bottom bar and Guide placement checked.
