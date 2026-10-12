@@ -2,7 +2,7 @@
 
 Read this first after a `/clear`. It's the short "where we left off" note. `CLAUDE.md` has the full project reference, this file only has the current state.
 
-Last updated: 2026-10-12, end of the Sonnet build session. FE-1, FE-2 and system-review Batch 3 (`fix/server-checks`, 405 server tests) are merged into `main`. `next-prompt.md` is done and deleted. Branch from `main` for each batch.
+Last updated: 2026-10-13. FE-3 merged (see its section). Earlier: 2026-10-12. FE-1, FE-2 and system-review Batch 3 (`fix/server-checks`, 405 server tests) are merged into `main`. `next-prompt.md` is done and deleted. Branch from `main` for each batch.
 
 ## Build session 2026-10-12 (Sonnet): FE-1 merged, FE-2 on `redesign/today`
 - **FE-1 merged into `main`** (tokens, shell, shared components, redirects, 404). Dark mode, bottom bar and Guide placement checked.
@@ -14,6 +14,13 @@ Last updated: 2026-10-12, end of the Sonnet build session. FE-1, FE-2 and system
 - **Batch 7 done** (`feature/shared-modal`, 2026-10-13): shared `Modal`/`ModalShell`, all dialogs switched, check-ins ask before closing. Builds clean; NOT tried in a browser (Chrome extension was disconnected), so click through a few dialogs (Escape, drag-select out, check-in leave prompt, Tab) before relying on it.
 - **Next**: FE-3 (check-ins and Wellbeing). Batches 1 and 5 (auth) need an Opus review before merging; ask the owner about S6 when Batch 1 or 2 starts.
 - **UI harness**: `node server/scripts/uiHarness.js` (API on 5070) plus `VITE_BACKEND_URL=http://localhost:5070 npx vite --port 5174 --strictPort` in `client/`; login `maria@student.fatima.edu.ph` / `Password123`. Start the harness once only (two runs on the same port duplicate the seed). Kill both when done. The Chrome extension screenshots time out often; retry, or measure with JS in a 375px iframe.
+
+## FE-3 check-ins and Wellbeing (2026-10-13, branch `feature/checkin-results`, merged into `main`)
+- Server: `completedAt` on tasks, `GET /api/surveys/history` (last 5 PSS and WHO). 434 server tests (`checkinResult.test.js`, `task.completed.test.js`, history tests in `survey.test.js`).
+- Client: `CheckInStepper.jsx` (one question per screen, auto-advance on tap/click, Back/Next, leave prompt), `CheckInResult.jsx` (4 blocks from `utils/checkinResult.js`), PSS/WHO modals are thin configs of the stepper, `CheckInCards.jsx` + "How this works" + Guide on `/wellbeing`, "Done this week" line on Today, Profile's survey cards replaced by a link line (Me gets the real restructure in FE-4).
+- Checked in headless Chrome against the harness (1280 and 375px, light only): full PSS flow to the result and back to the cards. Not checked: dark mode, WHO flow in a browser, a brand-new account, a real phone, keyboard-only use.
+- Left out on purpose: the "you got through [exam]" encouragement line (the week overview has no past exams); plan item 6 "check" is only partly done (see above). FE-3 item 5 (Privacy Policy `completedAt` wording) belongs to FE-5.
+- Next: FE-4 (Me, People, Notifications) on `redesign/me-and-people`. Then batches 5, 4, 8, FE-5, FE-6.
 
 ## Frontend revamp plan (2026-10-12)
 - The owner asked for a full revamp plan (design, what each page shows, what to ask the user, which pages to add, move or remove) with instructions for Sonnet. It's `frontend-plan.md` at the project root. `PRODUCT.md` is the product context the Impeccable skill reads.

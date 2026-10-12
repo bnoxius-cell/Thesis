@@ -15,6 +15,7 @@ import JoinLink from "../components/schedule/JoinLink";
 import { CalendarDays, MapPin, CircleCheck, Plus, Sprout } from "lucide-react";
 import { formatTime, fromISODate } from "../utils/scheduleUtils";
 import useWorkload from "../utils/useWorkload";
+import { finishedThisWeek } from "../utils/doneThisWeek";
 import { BAND_MESSAGE, bandLabel, topReasons } from "../utils/weekReasons";
 import "../App.css";
 
@@ -91,6 +92,7 @@ const Dashboard = () => {
   if (work.loading || !work.userData) return <div className="app app-layout"><Header /><main className="dashboard"><div className="panel" style={{ textAlign: "center" }}><p>Loading your day...</p></div></main><Footer /></div>;
 
   const { insights, today, focus, nextExam, hasSchedule, week, userId, profile } = work;
+  const doneCount = finishedThisWeek(work.tasks, work.now).length;
   const firstName = profile.studentName?.split(" ")[0];
   const showTodayEntries = focus.happeningNow.length + focus.laterToday.length > 0;
   const dueNow = focus.dueSoon.slice(0, MAX_DUE_SOON);
@@ -264,6 +266,12 @@ const Dashboard = () => {
                 <WorkloadChart schedule={week} hasSchedule={hasSchedule} compact />
               </Link>
             </section>
+
+            {doneCount > 0 && (
+              <p className="done-this-week">
+                {doneCount === 1 ? "You finished 1 task in the last 7 days." : `You finished ${doneCount} tasks in the last 7 days.`} That counts.
+              </p>
+            )}
           </>
         )}
       </main>
@@ -273,7 +281,7 @@ const Dashboard = () => {
       {/* Mounted only while open, so each one starts from a clean slate. */}
       {showPSSModal && (
         <PSSSurveyModal
-          isOpen={showPSSModal}
+
           isFirstTime={work.pssNeverTaken}
           onClose={() => setShowPSSModal(false)}
           onComplete={() => { setShowPSSModal(false); work.refreshUser(); }}
@@ -283,7 +291,7 @@ const Dashboard = () => {
 
       {showWHOModal && (
         <WHOSurveyModal
-          isOpen={showWHOModal}
+
           isFirstTime={work.whoNeverTaken}
           onClose={() => setShowWHOModal(false)}
           onComplete={() => { setShowWHOModal(false); work.refreshUser(); }}

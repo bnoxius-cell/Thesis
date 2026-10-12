@@ -51,3 +51,17 @@ export const submitWHO = async (req, res) => {
         serverError(res, 'Submit WHO error', error);
     }
 };
+
+// Last 5 results of each check-in, newest first, for the Wellbeing page.
+export const getHistory = async (req, res) => {
+    try {
+        const pick = (rows) => rows.map((row) => ({ score: row.score, createdAt: row.createdAt }));
+        const [pss, who] = await Promise.all([
+            PSSResponse.find({ user: req.userId }).sort({ createdAt: -1 }).limit(5).lean(),
+            WHOResponse.find({ user: req.userId }).sort({ createdAt: -1 }).limit(5).lean(),
+        ]);
+        res.json({ success: true, pss: pick(pss), who: pick(who) });
+    } catch (error) {
+        serverError(res, 'Survey history error', error);
+    }
+};

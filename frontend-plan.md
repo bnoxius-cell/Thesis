@@ -422,11 +422,11 @@ Keep the existing polish-pass motion and its `prefers-reduced-motion` guard. Add
 - [~] **6. Check.** (Today at 375px is 1,845px tall, no horizontal scroll on Today, Tasks tab or Wellbeing; the new-account checklist was not eyeballed)  Today with the seeded account is under about 2,400px tall at 375px. New account shows the checklist. Update the dashboard Guide steps.
 
 ### FE-3 `feature/checkin-results` (Week 2, after SR Batch 7's `Modal` and SR Batch 3's S5)
-- [ ] **1. Server.** `completedAt` on tasks and `GET /api/surveys/history` (section 10), with tests.
-- [ ] **2. Stepper.** Rebuild `PSSSurveyModal.jsx` and `WHOSurveyModal.jsx` on `Modal`: one question per screen, big answer rows, progress, Back, auto-advance, confirm before closing with answers started, citation kept on the first screen. Same scoring and payload as now.
-- [ ] **3. Result screen.** `client/src/utils/checkinResult.js` (`buildCheckInResult`, section 7.1) with tests in `server/tests/checkinResult.test.js` (each band for both scales, better/same/worse, strained with and without a suggestion, encouragement with and without finished tasks). Render it as the dialog's last step. "Move it" reuses the dashboard's apply and undo.
-- [ ] **4. Wellbeing page.** `pages/Wellbeing.jsx` at `/wellbeing` with the 8 sections from section 6, built on `useWorkload()`, moving the drivers, full chart and tips out of `Dashboard.jsx` and `SuggestionsPanel` into its own file (`components/SuggestionsPanel.jsx`; Today keeps showing only its first item), and the survey cards out of `Profile.jsx`. Check-in history from the new endpoint. Add a Guide for it in `tours.js`.
-- [ ] **5. Done this week** on Today from `completedAt` (7.3).
+- [x] **1. Server.** `completedAt` on tasks and `GET /api/surveys/history` (section 10), with tests.
+- [x] **2. Stepper.** Rebuild `PSSSurveyModal.jsx` and `WHOSurveyModal.jsx` on `Modal`: one question per screen, big answer rows, progress, Back, auto-advance, confirm before closing with answers started, citation kept on the first screen. Same scoring and payload as now.
+- [x] **3. Result screen.** `client/src/utils/checkinResult.js` (`buildCheckInResult`, section 7.1) with tests in `server/tests/checkinResult.test.js` (each band for both scales, better/same/worse, strained with and without a suggestion, encouragement with and without finished tasks). Render it as the dialog's last step. "Move it" reuses the dashboard's apply and undo.
+- [x] **4. Wellbeing page.** `pages/Wellbeing.jsx` at `/wellbeing` with the 8 sections from section 6, built on `useWorkload()`, moving the drivers, full chart and tips out of `Dashboard.jsx` and `SuggestionsPanel` into its own file (`components/SuggestionsPanel.jsx`; Today keeps showing only its first item), and the survey cards out of `Profile.jsx`. Check-in history from the new endpoint. Add a Guide for it in `tours.js`.
+- [x] **5. Done this week** on Today from `completedAt` (7.3).
 - [ ] **6. Check.** Take both check-ins with the seeded account and a new one, on a phone and a laptop, light and dark. A stray tap outside no longer loses answers.
 
 ### FE-4 `redesign/me-and-people` (Week 2)

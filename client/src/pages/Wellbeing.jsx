@@ -6,10 +6,13 @@ import Footer from "../components/layout/Footer";
 import PageHeader from "../components/PageHeader";
 import WorkloadChart from "../components/WorkloadChart";
 import SuggestionsPanel from "../components/SuggestionsPanel";
+import CheckInCards from "../components/CheckInCards";
+import PageTour from "../components/PageTour";
 import useWorkload from "../utils/useWorkload";
 import { BAND_MESSAGE, bandLabel } from "../utils/weekReasons";
 import { sleepPlan, firstStartOf } from "../utils/sleepPlan";
 import { formatTime } from "../utils/scheduleUtils";
+import { WELLBEING_TOUR } from "../utils/tours";
 import "../App.css";
 
 const TIP_ICON = { alert: AlertTriangle, watch: Eye, info: Lightbulb, good: Sparkles };
@@ -102,6 +105,12 @@ export default function Wellbeing() {
           </>
         )}
 
+        <section className="panel" id="checkins" data-tour="well-checkins">
+          <div className="panel-heading"><div><h2>Check-ins</h2></div></div>
+          <p className="checkin-intro-line">These two short check-ins tell the app how you're doing, so it can fit your plan to you. They aren't a diagnosis.</p>
+          <CheckInCards work={work} />
+        </section>
+
         <section className="panel" id="sleep" data-tour="well-sleep">
           <div className="panel-heading"><div><h2>Sleep</h2></div></div>
           <p className="wellbeing-sleep">
@@ -112,8 +121,31 @@ export default function Wellbeing() {
             {plan ? plan.text : "Nothing early tomorrow, so keep your usual bedtime."}
           </p>
         </section>
+
+        <section className="panel" id="how" data-tour="well-how">
+          <details className="how-works">
+            <summary><h2>How this works</h2></summary>
+            <p>
+              Your workload score (0 to 100) is a weighted average of what the app knows about your week: how
+              soon your deadlines are and how much work they hold, your busiest day, how full your timetable is,
+              how important and difficult your tasks are, and your two check-ins. Anything missing, like a
+              check-in you haven't taken, is left out and the rest is rescaled, so nothing is guessed.
+            </p>
+            <p>
+              A stress check-in counts for 30 days and a well-being check-in for 14. After that they stop
+              affecting the score until you take them again. If you're stressed, low on energy or facing a heavy
+              week, the app speaks up sooner and offers more ideas for moving work.
+            </p>
+            <p className="how-sources">
+              Stress: Perceived Stress Scale (PSS-10), Cohen, Kamarck &amp; Mermelstein, 1983. Well-being: WHO-5
+              Well-Being Index, World Health Organization, 1998. Both are widely used questionnaires. The app
+              uses them to adjust your plan, not to diagnose anything.
+            </p>
+          </details>
+        </section>
       </main>
-      <Footer />
+      <Footer variant="app" />
+      <PageTour page="wellbeing" title="Wellbeing" steps={WELLBEING_TOUR} />
     </div>
   );
 }
