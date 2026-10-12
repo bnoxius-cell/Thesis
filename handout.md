@@ -2,7 +2,15 @@
 
 Read this first after a `/clear`. It's the short "where we left off" note. `CLAUDE.md` has the full project reference, this file only has the current state.
 
-Last updated: 2026-10-12. Branch `docs/system-review` holds a new `system-review.md` (not committed yet). No app code changed.
+Last updated: 2026-10-12. `system-review.md` (PR #23) and `frontend-plan.md` + `PRODUCT.md` (PR #24) are merged into `main`. No app code changed. Branch from `main` for the next piece of work.
+
+## Frontend revamp plan (2026-10-12)
+- The owner asked for a full revamp plan (design, what each page shows, what to ask the user, which pages to add, move or remove) with instructions for Sonnet. It's `frontend-plan.md` at the project root. `PRODUCT.md` is the product context the Impeccable skill reads.
+- How it was made: walked every page in Chrome and in headless Chrome at 1280px and 375px, light and dark, against an in-memory API seeded with a 3rd-year BSIT student and a brand-new account; web research on calm UI, student stress apps, check-in feedback, streaks, crisis lines and mobile navigation; Dribbble for visual references.
+- Owner's answers (in the plan's Decided list): **OLFU IT students only**; check-in scores are for the system, so a bad result leads to plan changes, specific recommendations (sleep earlier) and encouragement, not hotlines; **the panel is under 3 weeks away**.
+- The big changes: 5 places in the nav with a phone bottom bar (Today, Schedule, Study, People, Me) plus a bell; the dashboard cut from about 13 phone screens to about 3 (tasks move to Schedule > Tasks, detail moves to a new Wellbeing page); check-ins become one question at a time and end with a real result screen; red only for the brand and for overdue/delete/errors; Settings folds into Me, Friends into People.
+- **Before Sonnet starts**: the owner answers the plan's Open list (section 8). Most don't block Week 1. Open 1 (band names) and Open 2 (red off buttons) each block one step.
+- Order for the next 3 weeks (plan section 9): Week 1 FE-1 shell + FE-2 Today, with system-review Batches 1 and 3; Week 2 Batch 7 (Modal), FE-3 check-ins and Wellbeing, FE-4 Me/People/Notifications, Batches 5, 4, 8; Week 3 FE-5 public pages (with Batch 2 forgot password), FE-6 QA, a real phone test.
 
 ## System review (2026-10-12)
 - The owner asked for a full review (bugs, broken parts, redundancy) with instructions Sonnet can build from. It's in `system-review.md` at the project root: findings first, then 11 batches, each with a branch name, steps and tests.
@@ -11,11 +19,11 @@ Last updated: 2026-10-12. Branch `docs/system-review` holds a new `system-review
 - Checked while reviewing: 375/375 server tests pass, client builds (one 628 KB chunk), lint has 20 errors (mostly the known setState-in-effect pattern).
 
 ## Next up
-Start with `system-review.md` (above). Older list, still valid:
-1. **Real phone pass on the live site** (owner, or with them): the Guide's bottom sheet, the new confirm dialogs, login sticking after the API proxy change, the schedule workspace, a reviewer upload. All are only checked at phone width in a desktop browser so far.
-2. Small fixes seen on 2026-10-11, not done: the dashboard's "Next exam" pill wraps into narrow columns at 375px; the Rename schedule dialog doesn't close on Escape.
-3. The page-by-page redesign list in CLAUDE.md (Profile, Friends, Groups, Notifications, Settings, About, Auth). Read `mobile-rules.md` first: every UI change is also done for mobile in the same change.
+1. **Owner**: answer `frontend-plan.md` section 8 (Open) and the three decisions at the top of `system-review.md`'s work list.
+2. **Sonnet**: follow `frontend-plan.md` section 9 (it interleaves the system-review batches). Start with FE-1 `design/tokens-and-shell` and system-review Batch 1 `fix/auth-hardening`.
+3. **Real phone pass on the live site** (owner, or with them), after FE-6 at the latest.
 4. Owner's manual reviewer tests (end of `reviewer-report.md`).
+(The old page-by-page redesign list and the two 2026-10-11 small fixes are now inside the FE batches.)
 
 ## Dialogs, Guide button, mobile rule (2026-10-11, merged as PR #20)
 - **Merged into `main` as PR #20 and live** (checked: the Vercel bundle has the Guide). No server changes. Branch from `main` for the next piece of work.
@@ -73,14 +81,15 @@ Start with `system-review.md` (above). Older list, still valid:
 ## Owner's standing rules (from global CLAUDE.md, easy to forget)
 - Branch before editing code. When starting new, distinct work, commit, push and merge the old branch into `main` automatically, but never delete branches.
 - Never spawn subagents without asking first.
-- **This project has no `frontend-plan.md` on purpose.** Don't ask for one. Follow the current design system, and only ask questions about architecture, not design.
+- **`frontend-plan.md` exists since 2026-10-12.** UI work follows it. The only design questions to ask are the ones in its Open list.
 - No `Co-Authored-By` lines in commits or PRs.
 - Docs: after each task, update `CLAUDE.md` and `handout.md`. Anything still in progress or unfinished goes in `handout.md`; if nothing is pending, just `CLAUDE.md`.
 - Writing style: plain sentences, no em-dashes as connectors, no "not just X, it's Y". No emojis in UI (use lucide-react).
 
 ## Gotchas
 - **Chrome extension quirks (2026-10-11)**: clicking by `ref` sometimes misses small or animated buttons (the friend ✕, Notifications "Clear all"); click by coordinates from a screenshot, or `.click()` in page JS. A `key` press acts on whatever is under the mouse (an ArrowRight with the cursor over the Guide button closed the guide), so `hover` somewhere empty first. Screenshots time out while the tab is hidden; retry once it's in front. Typing into the login form can silently do nothing in a background tab, so sign in with `fetch('/api/auth/login', { credentials: 'include' })` from the page and reload.
-- **UI test harness**: a Node script that starts `mongodb-memory-server`, imports `server/app.js`, listens on 5070, registers an account through the API, sets `isAccountVerified` + `termsVersion` directly on the model, and seeds tasks, a schedule and a ready reviewer. Run Vite with `VITE_BACKEND_URL=http://localhost:5070 npx vite --port 5174 --strictPort`. The 2026-10-11 script lived in that session's scratchpad (gone now); rebuild it from this description, or ask the owner if it should live in `server/scripts/`.
+- **UI test harness**: a Node script that starts `mongodb-memory-server`, imports `server/app.js`, listens on 5070, registers an account through the API, sets `isAccountVerified` + `termsVersion` directly on the model, and seeds tasks, a schedule and a ready reviewer. Run Vite with `VITE_BACKEND_URL=http://localhost:5070 npx vite --port 5174 --strictPort`. The 2026-10-11 script lived in that session's scratchpad (gone now); rebuild it from this description, or ask the owner if it should live in `server/scripts/`. 2026-10-12 version: imports the server's own packages by absolute file URL (`server/node_modules/mongoose/index.js` etc.) so it can run from a scratch folder, sets `process.env` (JWT_SECRET, CLIENT_URL=http://localhost:5174, NODE_ENV=development, no GEMINI key) **before** importing `app.js`, creates verified users straight on the model with a bcrypt hash (skips the OTP email), then logs in over HTTP and seeds through the real API: a main schedule (6 classes, 2 exams, an event), 6 tasks, PSS 22 and WHO 48, an accepted friend and a pending request, 2 groups with chat and a shared task, plus a ready reviewer written straight to the model. Also a fourth, empty account for the new-student view.
+- **Screenshots of every page**: when the Chrome extension's screenshots keep timing out (they did on 2026-10-12, every first capture after a navigation), use headless Chrome over CDP (see below) with `Emulation.setDeviceMetricsOverride` at 1280 and 375 and `Page.captureScreenshot` with a `clip` per 860px or 812px slice. Full-page captures of a 10,000px page are unreadable once scaled.
 - **When the Chrome extension isn't connected** (owner away, remote control), drive headless Chrome over CDP instead: start `chrome.exe --headless=new --remote-debugging-port=9333 --user-data-dir=<scratch>` and talk to it from a Node script with Node 24's built-in `WebSocket` (`Runtime.evaluate`, `Page.captureScreenshot`, `Emulation.setDeviceMetricsOverride` for 375px, `Input.dispatchKeyEvent` for keys). No downloads needed. Files can be handed to an `<input type=file>` with `DataTransfer` in page JS. Kill the Vite child process afterwards (`npx vite` leaves `node vite.js` running).
 - **Port 5000 is the owner's real dev server** (nodemon, real Atlas database), usually running along with Vite on 5173. Never run test servers on 5000. Also avoid 5060 and 5061 for test servers: Chrome blocks them as unsafe ports ("Failed to fetch"). 5070 works. New accounts need email verification before the app lets them in; a test harness has to mark `isAccountVerified` itself. For manual UI testing, use an in-memory MongoDB (`mongodb-memory-server`) on another port, with `VITE_BACKEND_URL` pointing at it. Windows lets two processes bind the same port, which silently sends requests to the wrong server.
 - **Restart the dev server** to pick up the notification changes (new model fields, routes, reminder job).
