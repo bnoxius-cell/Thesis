@@ -161,12 +161,13 @@ The dashboard "Next exam" pill wraps into narrow columns at 375px (`.today-exam-
 4. Never start test servers on port 5000 (the owner's real dev server). Use an in-memory MongoDB on another port, like 5070 (see `handout.md`, Gotchas).
 5. Batches marked **Opus review** touch auth or security. Stop before merging and ask the owner to have Opus review the diff.
 6. Items marked **Ask the owner first** need a decision. Ask in one short question, then continue with the rest.
-7. Design follows the current system (tokens in `App.css`, `.panel`, `.primary-button`). Don't ask design questions. Don't spawn subagents without asking.
+7. UI work follows `frontend-plan.md` (added 2026-10-12). Don't ask design questions beyond its Open list. Don't spawn subagents without asking.
 8. Tick the boxes here as items are done, and add a line to CLAUDE.md for anything that changes how the app behaves.
+9. **Order**: `frontend-plan.md` section 9 merges these batches with the frontend revamp over the next 3 weeks. Batch 9 is done inside FE-1; B2, B10, B11, B17 and R6 from Batch 6 inside FE-2 and FE-4; Batch 8's UI inside FE-4; Batch 2 inside FE-5. Don't do those twice. Must-have before the panel: Batches 1, 2, 3, 7.
 
 ## Owner decisions to collect first
-- [ ] **B3**: which way should the well-being goal work? Recommended: "catch up" (recovering) warns *sooner* (+10) and "high performance" tolerates more (-10), with the tip text matching. The other option is to keep the numbers and rewrite both tips.
-- [ ] **R5 / D2**: keep the sleep schedule fields (and use them, for example in the "early start" tip, and list them in the Privacy Policy), or remove them? Recommended: remove the three unused ones, and add sleep hours and travel time to the Privacy Policy. Ask whether to bump `LEGAL_VERSION` for that.
+- [ ] **B3**: which way should the well-being goal work? Recommended: "catch up" (recovering) warns *sooner* (+10) and "high performance" tolerates more (-10), with the tip text matching. The other option is to keep the numbers and rewrite both tips. (`frontend-plan.md` Open 4 proposes new labels for the same choice: "Go easy on me", "Keep it balanced", "I can take on more".)
+- [ ] **R5 / D2**: keep the sleep schedule fields (and use them, for example in the "early start" tip, and list them in the Privacy Policy), or remove them? **Half answered 2026-10-12:** the owner wants the app to suggest sleeping earlier when sleep isn't enough, so the fields stay and get used (bedtime suggestion, `frontend-plan.md` section 7.2). Still to ask: list them (plus travel time and task completion times) in the Privacy Policy and whether to bump `LEGAL_VERSION` (`frontend-plan.md` Open 5).
 - [ ] **S6**: keep "User not found" on login and reset, or switch to a neutral "If that email has an account, we sent a code"? Recommended: neutral wording on reset only.
 
 ## Batch 1: `fix/auth-hardening` (Opus review)
