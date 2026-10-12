@@ -11,6 +11,14 @@
     <meta name="apple-mobile-web-app-title" content="StressCare" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>StressCare</title>
+    <script>
+      // Set the theme before the first paint so a dark-mode visitor never sees a white flash.
+      try {
+        var saved = localStorage.getItem('stresscare-theme');
+        var dark = saved === 'dark' || (saved === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.classList.add('dark-theme');
+      } catch (e) {}
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

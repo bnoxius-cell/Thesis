@@ -1,6 +1,7 @@
 import { useAuth } from "./authentication/AuthContext";
 import { useState, useEffect } from "react";
-import { useParams, Navigate } from "react-router-dom";
+import { useParams, Navigate, useLocation } from "react-router-dom";
+import { LogOut } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import Header from "../components/layout/Header";
@@ -9,6 +10,7 @@ import PSSSurveyModal from "../components/PSSSurveyModal";
 import WHOSurveyModal from "../components/WHOSurveyModal";
 import PictureField from "../components/PictureField";
 import PublicProfile from "./PublicProfile";
+import { useTheme } from "../context/ThemeContext";
 import { surveyStatus, PSS_VALID_DAYS, WHO_VALID_DAYS } from "../utils/workload";
 import "../App.css";
 
@@ -27,8 +29,10 @@ export default function Profile() {
 }
 
 function OwnProfile() {
-  const { user, backendUrl, getUserData } = useAuth();
+  const { user, backendUrl, getUserData, logout } = useAuth();
   const { uid } = useParams();
+  const { mode, setTheme } = useTheme();
+  const { hash } = useLocation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPicture, setSavingPicture] = useState(false);
@@ -163,6 +167,12 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
     setLastWHOSubmission(new Date().toISOString());
     setShowWHOModal(false);
   };
+
+  // Links like /profile/<id>#appearance should land on that section once the page has loaded.
+  useEffect(() => {
+    if (loading || !hash) return;
+    document.getElementById(hash.slice(1))?.scrollIntoView({ block: "start" });
+  }, [loading, hash]);
 
   if (!user) {
     return (
@@ -454,6 +464,35 @@ const shortTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCa
           <p style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
             Your responses help personalize your workload recommendations. You can retake any survey at any time.
           </p>
+        </section>
+
+        <section className="panel" id="appearance">
+          <div className="panel-heading">
+            <div>
+              <span className="panel-kicker">Appearance</span>
+              <h2>Light or dark</h2>
+            </div>
+          </div>
+          <div className="segmented" role="radiogroup" aria-label="Appearance">
+            {[["light", "Light"], ["dark", "Dark"], ["system", "Match my device"]].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={mode === value}
+                className={`segmented-option ${mode === value ? "is-selected" : ""}`}
+                onClick={() => setTheme(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="panel" id="sign-out">
+          <button type="button" className="secondary-button" onClick={logout}>
+            <LogOut size={16} aria-hidden="true" /> Sign out
+          </button>
         </section>
       </main>
       <Footer />

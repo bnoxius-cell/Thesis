@@ -64,7 +64,7 @@ export default function LegalPage({ kind }) {
           </article>
         </div>
       </main>
-      <Footer />
+      <Footer variant="full" />
     </div>
   );
 }

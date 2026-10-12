@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { UserPlus } from "lucide-react";
 import { useAuth } from "./authentication/AuthContext";
 import axios from "axios";
 import UserAvatar from "../components/UserAvatar";
 import ConfirmDialog from "../components/ConfirmDialog";
-import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
 import "../App.css";
 
+// The Friends tab of People (/groups?tab=friends). It renders inside the Groups page.
 export default function Friends() {
   const { backendUrl } = useAuth();
   const [friends, setFriends] = useState([]);
@@ -110,83 +110,13 @@ export default function Friends() {
   };
 
   return (
-    <div className="app app-layout">
-      <Header />
-      <main className="dashboard">
+    <>
         {successMsg && <div className="success-toast">{successMsg}</div>}
         {error && <div className="error-toast">{error}</div>}
 
-        <section className="hero" id="friends-hero">
-          <div className="hero-copy">
-            <span className="eyebrow">Study Buddies</span>
-            <h1>Connect with classmates</h1>
-            <p>Add friends by their 6‑character profile tag to share tasks and collaborate on group projects.</p>
-          </div>
-          <aside className="hero-panel">
-            <h2>Friends</h2>
-            <ul className="hero-list">
-              <li>Share tasks directly</li>
-              <li>Create study groups</li>
-              <li>Track team progress</li>
-            </ul>
-          </aside>
-        </section>
-
-        {/* Animated Add Friend Button – fully original with kittens */}
-        <div style={{ display: "flex", justifyContent: "center", margin: "2rem 0" }}>
-          <button className="friend-request-button" onClick={() => setModalOpen(true)}>
-            {/* Floating particles */}
-            <div className="particle left-12 top-0 text-red-300">✦</div>
-            <div className="particle right-16 top-2 text-orange-300" style={{ animationDelay: "0.7s" }}>🌸</div>
-            <div className="particle left-1/2 top-4 text-blue-300" style={{ animationDelay: "1.2s" }}>✨</div>
-
-            {/* Left kitten */}
-            <svg className="kitten-left" viewBox="0 0 50 50">
-              <path d="M8 42C2 35 2 20 8 15" stroke="#fcd34d" strokeWidth="4" strokeLinecap="round" fill="none" />
-              <path d="M10 45C10 30 15 15 25 15C35 15 40 30 40 45" fill="#fbbf24" />
-              <path d="M15 18L8 5L22 15Z" fill="#fbbf24" />
-              <path d="M15 18L11 9L19 15Z" fill="#fda4af" />
-              <path d="M35 18L42 5L28 15Z" fill="#fbbf24" />
-              <path d="M35 18L39 9L31 15Z" fill="#fda4af" />
-              <g className="kitten-eyes">
-                <circle cx="20" cy="28" r="3" fill="white" />
-                <circle cx="20" cy="28" r="1.5" fill="#334155" />
-                <circle cx="30" cy="28" r="3" fill="white" />
-                <circle cx="30" cy="28" r="1.5" fill="#334155" />
-              </g>
-              <circle cx="16" cy="34" r="2" fill="#fda4af" opacity="0.6" />
-              <circle cx="34" cy="34" r="2" fill="#fda4af" opacity="0.6" />
-            </svg>
-
-            {/* Right kitten */}
-            <svg className="kitten-right" viewBox="0 0 50 50">
-              <path d="M10 45C10 30 15 15 25 15C35 15 40 30 40 45" fill="#fef3c7" />
-              <path d="M15 18L8 8L22 15Z" fill="#fef3c7" />
-              <path d="M35 18L42 8L28 15Z" fill="#fef3c7" />
-              <g className="kitten-blink">
-                <circle cx="20" cy="28" r="1.8" fill="#92400e" />
-                <circle cx="30" cy="28" r="1.8" fill="#92400e" />
-              </g>
-              <circle cx="15" cy="33" r="2.5" fill="#fecaca" opacity="0.5" />
-              <circle cx="35" cy="33" r="2.5" fill="#fecaca" opacity="0.5" />
-            </svg>
-
-            {/* Button content */}
-            <div className="friend-button-content">
-              <div className="friend-text-wrapper">
-                <span className="friend-badge">Find a friend</span>
-                <span className="friend-title">Add a Friend</span>
-              </div>
-              <div className="friend-icon">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="16" r="3.5" />
-                  <circle cx="8" cy="11" r="2" />
-                  <circle cx="12" cy="8" r="2" />
-                  <circle cx="16" cy="11" r="2" />
-                </svg>
-              </div>
-            </div>
-            <div className="friend-button-backdrop"></div>
+        <div className="groups-actions">
+          <button className="primary-button" onClick={() => setModalOpen(true)}>
+            <UserPlus size={18} aria-hidden="true" /> Add a friend
           </button>
         </div>
 
@@ -243,7 +173,6 @@ export default function Friends() {
             </div>
           )}
         </section>
-      </main>
 
       {/* Add Friend Modal */}
       {modalOpen && (
@@ -287,7 +216,6 @@ export default function Friends() {
         <p>You and <strong>{confirmRemove?.name}</strong> will no longer be friends. You can send a new request later.</p>
       </ConfirmDialog>
 
-      <Footer />
-    </div>
+    </>
   );
 }
