@@ -45,7 +45,7 @@ export default function PublicProfile({ uid }) {
     try {
       const { data } = await request();
       if (data.success) {
-        toast.success(doneMessage);
+        toast.success(typeof doneMessage === "function" ? doneMessage(data) : doneMessage);
         await load();
       } else {
         toast.error(data.message || "Something went wrong.");
@@ -60,7 +60,7 @@ export default function PublicProfile({ uid }) {
 
   const sendRequest = () => act(
     () => axios.post(`${backendUrl}/api/friends/request`, { userId: uid }, { withCredentials: true }),
-    "Friend request sent."
+    (data) => (data.accepted ? "You're now friends." : "Friend request sent.")
   );
   const acceptRequest = () => act(
     () => axios.put(`${backendUrl}/api/friends/accept/${profile.requestId}`, {}, { withCredentials: true }),

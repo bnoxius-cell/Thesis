@@ -120,7 +120,7 @@ The dashboard "Next exam" pill wraps into narrow columns at 375px (`.today-exam-
 
 - **R1.** `client/src/services/auth.service.ts` and `client/src/interfaces/user.interface.ts` are never imported. They describe a localStorage bearer-token login the app doesn't use and call `/api/auth/profile`, which doesn't exist. They're the only reason `rxjs` is installed.
 - **R2.** Unused client dependencies: `rxjs`, `tailwindcss`, `autoprefixer`, `postcss` (Tailwind was never wired up), and `@types/react-router-dom` (types for v5, the app uses v6).
-- **R3.** Unused files: `client/src/assets/hero.png`, `react.svg`, `vite.svg`, `client/public/favicon.svg`, `client/public/icons.svg`, and the Vite boilerplate `client/README.md`.
+- **R3.** Unused files: `client/src/assets/hero.png`, `react.svg`, `vite.svg`, `client/public/favicon.svg`, `client/public/icons.svg`, and the Vite boilerplate `client/README.md`. Update 2026-10-13: the five asset files were removed by FE-6; only `client/README.md` is left.
 - **R4.** `server/controllers/wellbeingController.js` and `server/routes/wellbeingRoutes.js`: still dead (nothing imports them). Already on the to-do.
 - **R5.** Dead model fields: `group.recentMessages` (chat lives in `groupMessage`), `user.friends` (friendships live in the `Friend` collection; `getUserData` populates an array that is always empty), Friend status `'blocked'` (never set), notification type `group_invite` (never sent), `task.group` (never set). Also `hasRegularSleepSchedule`, `usualSleepStart` and `usualWakeTime`: the Profile page collects them but nothing uses them (see D2).
 - **R6.** `isExamWeek` on the dashboard is hardcoded `false`, and its branches in `workload.js` are dead now that real exams from the schedule drive exam pressure.
@@ -141,7 +141,7 @@ The dashboard "Next exam" pill wraps into narrow columns at 375px (`.today-exam-
 
 ## Performance and build
 
-- **P1 (Low).** One 628 KB JS bundle (183 KB gzipped) for every page, plus a 139 KB `logo.svg` used as favicon, header and footer logo. Slow on a phone on mobile data.
+- **P1 (Low).** One 628 KB JS bundle (183 KB gzipped) for every page, plus a 139 KB `logo.svg` used as favicon, header and footer logo. Slow on a phone on mobile data. Update 2026-10-13: the logo half is done by FE-6 (now `logo.png`, with PNG icons in `client/public/`); the bundle half is still open (Batch 11).
 - **P2 (Low).** `AuthContext.jsx` line 9 sets `axios.defaults.withCredentials = true` inside the component, on every render (a lint error). It belongs at module level. The other 19 lint errors are the known setState-in-effect pattern; lint can't be used as a check until they're dealt with.
 
 ## Known limits (not bugs, just worth knowing)
@@ -213,7 +213,7 @@ The dashboard "Next exam" pill wraps into narrow columns at 375px (`.today-exam-
 - [ ] **B11** In `Dashboard.jsx`, make `updateTask` and `handleDeleteTask` return whether they worked and toast an error when they didn't. Only show the "Moved ... Undo" toast after a successful move.
 - [ ] **B17** Fix the `.today-exam-note` wrap at 375px (let the text wrap as one block next to the icon instead of becoming columns).
 - [ ] **R6** Remove `isExamWeek` from `Dashboard.jsx` and the `isExamWeek` parameter and branches from `computeWorkload` and `buildTips` in `workload.js`. Update tests that pass it.
-- [ ] **R1, R2, R3** Delete `client/src/services/`, `client/src/interfaces/`, the unused assets in R3 and `client/README.md`, then `npm uninstall rxjs tailwindcss autoprefixer postcss @types/react-router-dom` in `client/`. Update the Stack line in CLAUDE.md (Tailwind is gone). Build must pass.
+- [ ] **R1, R2, R3** (R3's asset files are already gone, FE-6; `client/README.md` remains) Delete `client/src/services/`, `client/src/interfaces/`, the unused assets in R3 and `client/README.md`, then `npm uninstall rxjs tailwindcss autoprefixer postcss @types/react-router-dom` in `client/`. Update the Stack line in CLAUDE.md (Tailwind is gone). Build must pass.
 - [ ] **R4** Delete `server/controllers/wellbeingController.js` and `server/routes/wellbeingRoutes.js` (nothing imports them, checked 2026-10-12). Tick the matching CLAUDE.md to-do and remove the paragraph about them from Notes.
 - [ ] **R11** Bring both `.env.example` files in line with the env var list in CLAUDE.md (server: add `BREVO_API_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, set `NODE_ENV=development`; client: explain that local dev uses `http://localhost:5000` and production uses the Vercel URL through the `/api` proxy).
 - [ ] **R12** Remove the leftover comments listed in R12. Leave the email template colors unless the owner asks.
@@ -242,7 +242,7 @@ The dashboard "Next exam" pill wraps into narrow columns at 375px (`.today-exam-
 - [ ] **D3** Add `server/scripts/deleteUser.js` (`npm run delete-user -- someone@example.com`). It prints what it would remove and only deletes with `--yes`. It removes the user and everything tied to them: tasks, task share templates they created, owned schedules, their entries in other schedules' `collaborators`, group messages they sent, groups they own (deleted along with their messages; members notified with `notify`) and their membership and admin entries in other groups, friendships, notifications sent to them, push subscriptions, PSS and WHO responses, reviewers and attempts, and AI request rows. Test it against the in-memory database (`server/tests/deleteUser.test.js`) by calling an exported function, not the CLI. Document it in CLAUDE.md next to the Privacy Policy notes.
 
 ## Batch 11: `perf/code-splitting`
-- [ ] **P1** In `client/src/App.jsx`, load the pages with `React.lazy` and one `Suspense` fallback that matches the existing boot message (keep `AuthPage` and `Dashboard` in the main bundle since most visits start there). Shrink `client/src/assets/logo.svg` (run it through SVGO or export a small PNG for the favicon and header). Confirm the 500 KB build warning is gone and the deep links (`?s=`, `?g=`, `?r=`, `?code=`) still work after a reload.
+- [ ] **P1** In `client/src/App.jsx`, load the pages with `React.lazy` and one `Suspense` fallback that matches the existing boot message (keep `AuthPage` and `Dashboard` in the main bundle since most visits start there). (The logo shrink is done, FE-6.) Confirm the 500 KB build warning is gone and the deep links (`?s=`, `?g=`, `?r=`, `?code=`) still work after a reload.
 
 ## Later, only if the owner wants
 - [x] **R5** Remove the dead model fields once the owner decides on the sleep fields (Batch 6 or its own small branch).
