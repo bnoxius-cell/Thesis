@@ -282,6 +282,10 @@ Pure function `sleepPlan()` in `client/src/utils/sleepPlan.js`:
 
 - **One Profile link, next to Notifications and Sign out** (owner, 2026-10-13): the sidebar showed both the first name and "Me" for the same page. "Me" is gone from the main places and the link is labelled "Profile" everywhere (sidebar footer, phone top bar avatar, page title).
 
+- **Plan the parked features too** (owner, 2026-10-13): breather, daily check-in, focus timer, chat "load older" and reviewer links (exam link and "reviewer ready" notification). Specs and order in `build-queue.md` Q8 to Q13, after the pre-panel batches.
+- **The daily check-in doesn't change the workload score** (Opus, delegated, 2026-10-13). The score stays built on PSS-10 and WHO-5, the validated instruments the thesis describes. Mood and hours slept feed the sleep advice, one "short night" tip and the Wellbeing sleep row. Mood is never labelled as a clinical measure.
+- **Focus time is shown, not scored** (Opus, delegated, 2026-10-13). Task cards show "1.5 of 3h done"; the workload score keeps using the estimated hours, so the formula doesn't change.
+
 Answered by the owner on 2026-10-12 (these were the Open list):
 - **Student-facing band names** (owner: "you suggest"): "Light week", "Steady week", "Full week", "Too much this week" on screen. The code and the thesis keep Light/Moderate/Heavy Workload and Critical Overload: add a display map (`BAND_LABEL` in `workload.js`) and rename nothing, since `isStrained` and the tests compare the internal names.
 - **Red off buttons and labels** (owner: "sure, fix the restored red"): navy (`--accent`) for primary and secondary actions, slate (`--text-muted`) for kickers, red (`--brand`, `--danger`) only for the logo, the active nav marker, overdue, delete and errors. "Doesn't fit" and Full weeks use amber (`--watch`).
@@ -460,6 +464,8 @@ Keep the existing polish-pass motion and its `prefers-reduced-motion` guard. Add
 ---
 
 ## 13. Parked (after the panel, or if a week finishes early)
+
+Update 2026-10-13: the breather, daily check-in, focus timer, chat "load older", reviewer exam link and "reviewer ready" notification are now planned in `build-queue.md` (Q8 to Q13). What's still parked: splitting `App.css`, Taglish copy, weak topics on Wellbeing, sharing a reviewer to a group.
 
 - **Breather**: a 1 to 5 minute guided cyclic-sighing exercise (Balban et al. 2023), offered as "one thing for today" after a high-stress result and from Wellbeing. Client only, about a day of work.
 - **Daily check-in**: one tap for mood and one for last night's sleep, on Today. Needs a new model and endpoint. Would let "sleep earlier" use real sleep, not just the target.
