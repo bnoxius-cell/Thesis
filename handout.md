@@ -2,7 +2,7 @@
 
 Main session only: read this first after a `/clear` (subagents skip it unless their brief says otherwise). It's the short "where we left off" note: current state, open items and next steps. Rules are in `CLAUDE.md`, feature notes in `.claude/docs/`, older session notes in `handout-archive.md`.
 
-Last updated: 2026-10-13 (end of session). **Frontend is done, reviewed and fixed. Next is system-review Batch 1 (forgot password), blocked on one owner answer (S6, below).** 450 server tests pass, client builds clean, `main` is clean and pushed. Branch from `main` for each batch.
+Last updated: 2026-10-13 (planning session). **Everything left is planned in `build-queue.md` (Q1 to Q14). Next: spawn `builder` on Q1.** Nothing is blocked on the owner. 450 server tests pass, client builds clean, `main` is clean and pushed. Branch from `main` for each batch.
 
 ## Subagent workflow (set up 2026-10-13, made global the same day)
 - The agents are global, in `~/.claude/agents/`, and apply to every project: `builder` (Sonnet 5.5, high effort), `code-reviewer` (Opus 5.5, high, read-only) and `Explore` (Haiku 5.5, replaces the built-in one and skips CLAUDE.md). The rules are in the global CLAUDE.md and `~/.claude/docs/subagents.md`; this project's specifics are in CLAUDE.md "Workflow". The owner dropped the ask-before-spawning rule. The first, project-only copies in `.claude/agents/` were removed so they can't override the global ones.
@@ -10,13 +10,13 @@ Last updated: 2026-10-13 (end of session). **Frontend is done, reviewed and fixe
 - **First real `builder` run worked (2026-10-13)**: review items 2 to 6 on `fix/fe-review-items`, about 13 minutes. It followed the brief, ran the checks, committed without merging and wrote a useful report. Two lessons: a brief that names one file gets only that file (it left the same bug in Profile when told "Friends"), so name every place; and its process cleanup killed every `vite.js` by name, which can stop the owner's dev server (now a note in `testing-and-gotchas.md`; say "stop only what you started" in briefs).
 
 ## Where to pick up (read this first)
-- **Next: system-review Batch 1** (forgot password and reset codes). Why now: FE-5 put the forgot-password screen live before the server half. The server accepts any non-empty new password (only the client checks 8), a failed "password changed" email shows an error after the password already changed (retry then says "Invalid OTP"), codes have no attempt limit (S1), and the forgot screen toasts "User not found." (S6).
-  - **Blocked on the owner, S6**: on an unregistered email, keep "User not found" or switch to the neutral "If that email has an account, we sent a code"? Ask first, record the answer in `system-review.md`, then brief `builder` on Batch 1 and run `code-reviewer` before merging (CLAUDE.md requires it for Batches 1 and 5).
-- After that: auth Batch 5 (review before merging), Batch 4 (task share tags), Batch 6 rest, Batch 10 (delete-user script), Batch 11 (code splitting, 645 KB bundle). Full list in `system-review.md`.
-- Small gap found 2026-10-13: opening `/terms-of-service#section` (or privacy) directly doesn't scroll to the section, since `LegalPage.jsx` has no hash handling. Contents links work. Fold into a later UI batch.
-- Done 2026-10-13: navbar now has one **Profile** link next to Notifications and Sign out ("Me" left the main nav; phone: top bar avatar, bottom bar has 4 places; decision in `frontend-plan.md` Decided). Review items 2 to 6 fixed and merged (details archived in `handout-archive.md`). Not checked: Safari for the Profile hash re-scroll.
-- Owner to-do: fill in `client/src/utils/helpContacts.js` and the About team names (visible placeholders), real phone pass on the deployed site, say whether to record a DESIGN.md, manual reviewer tests, real Google sign-in on the live site.
-- Not verified: the forgot-password flow end to end (needs real email), a real phone, the Chrome extension (headless Chrome over CDP was used instead).
+- **`build-queue.md` is the plan.** Each Q section is a full brief. Spawn: `Build Q<n> from build-queue.md. Branch: <branch>. Read that section and the files it points to. Stop only the processes you started.` Then review (when marked), merge, push, tick, update docs. One builder at a time.
+- **Next: Q1 `fix/auth-hardening`** (SR Batch 1 plus S6 and S4), then `code-reviewer` before merging. Q2 (session expiry) must come after Q1, same middleware.
+- Before the panel: Q1 to Q7 (auth, session expiry, share tags, npm audit, cleanup, delete-user script, code splitting). After: Q8 to Q14 (reviewer ready notification, chat history, breather, daily check-in, focus timer, reviewer exam link, nodemailer and controller tests).
+- Owner answers 2026-10-13: S6 neutral wording on reset only; S4 yes (reset ends other sessions); R4 delete the dead wellbeing files; plan all parked features. Opus decided (recorded in `frontend-plan.md` Decided): the daily check-in and focus time don't change the workload score.
+- Checked against the code 2026-10-13: SR B11, B17 and Batch 9 had already landed in the FE batches (now ticked); R6 is half done (Q5 finishes it).
+- Keeping usage low: run 2 or 3 queue items, update this file, then `/clear`. The queue and this file carry the state.
+- Owner to-do: fill in `client/src/utils/helpContacts.js` and the About team names (visible placeholders), real phone pass on the deployed site, say whether to record a DESIGN.md, manual reviewer tests, real Google sign-in on the live site, and a real reset email after Q1 deploys.
 - Lint has a few known `set-state-in-effect` / `react-refresh` errors, an existing pattern, left alone.
 
 ## Not verified yet (needs a human)
