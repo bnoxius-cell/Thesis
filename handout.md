@@ -1,8 +1,13 @@
 # Session handout
 
-Read this first after a `/clear`. It's the short "where we left off" note. `CLAUDE.md` has the full project reference, this file only has the current state.
+Main session only: read this first after a `/clear` (subagents skip it unless their brief says otherwise). It's the short "where we left off" note: current state, open items and next steps. Rules are in `CLAUDE.md`, feature notes in `.claude/docs/`, older session notes in `handout-archive.md`.
 
-Last updated: 2026-10-13. **All frontend batches (FE-1 to FE-6) are done and merged into `main`, and Opus has reviewed FE-4 to FE-6 (findings below, nothing fixed yet).** 450 server tests pass, client builds clean. Branch from `main` for each batch.
+Last updated: 2026-10-13. **All frontend batches (FE-1 to FE-6) are done and merged into `main`, and Opus has reviewed FE-4 to FE-6 (findings below, nothing fixed yet).** 450 server tests pass, client builds clean. The subagent workflow is set up (next section). Branch from `main` for each batch.
+
+## Subagent workflow (set up 2026-10-13)
+- Agents in `.claude/agents/` (committed): `builder` (Sonnet 5.5, high effort), `code-reviewer` (Opus 5.5, high, read-only) and `Explore` (Haiku 5.5, replaces the built-in one and skips CLAUDE.md). When and how to use them: CLAUDE.md "Workflow". The owner dropped the ask-before-spawning rule.
+- `CLAUDE.md` went from 68 KB to 12 KB. Its feature notes moved unchanged into `.claude/docs/` (gitignored, like CLAUDE.md), the to-do list into `.claude/docs/todo.md`, and a full copy of the old file is in `.claude/docs/old/`. Older handout sections moved unchanged into `handout-archive.md`; the gotchas now live in `.claude/docs/testing-and-gotchas.md`.
+- Not tried yet: a real builder run. Claude Code loads the agents after a restart (the `.claude/agents/` folder is new). A good first run: review items 2 to 6 below as one fix list on one UI branch.
 
 ## Opus review of FE-4 to FE-6 (2026-10-13)
 Scope: commits `438931b` (FE-4), `c068a31` (FE-5), `ee5510a` (FE-6). Re-ran: 450/450 server tests, client build (645 KB chunk, as before), lint on the changed files (only the 3 known `set-state-in-effect` errors). Nothing was tried in a browser.
@@ -20,132 +25,18 @@ Scope: commits `438931b` (FE-4), `c068a31` (FE-5), `ee5510a` (FE-6). Re-ran: 450
 - Not verified: the forgot-password flow end to end (needs real email), a real phone, the Chrome extension (it never connected this session; headless Chrome was used).
 - Lint has a few known `set-state-in-effect` / `react-refresh` errors, an existing pattern, left alone.
 
-## Build session 2026-10-12 (Sonnet): FE-1 merged, FE-2 on `redesign/today`
-- **FE-1 merged into `main`** (tokens, shell, shared components, redirects, 404). Dark mode, bottom bar and Guide placement checked.
-- **FE-2 done on `redesign/today`** (merged at the end of this session): `utils/useWorkload.js` (one place for tasks, week overview, profile from `AuthContext`, workload, check-in due flags, task actions with failure toasts), Schedule opens the main schedule with Week / Tasks / Days off tabs (`?tab=`; the list is `?view=all`), `components/schedule/TasksTab.jsx` (compact rows, due chips, overflow menu, study plan beside it or in a disclosure on phones, "Add from code"), new Today (`pages/Dashboard.jsx`: banner, greeting, Today panel, "This week" card with `BAND_LABEL` words and two reasons, Next step card, compact week strip), `components/today/SetupChecklist.jsx` and `NextStepCard.jsx`, `utils/sleepPlan.js` (+ `server/tests/sleepPlan.test.js`), `utils/weekReasons.js`, `utils/moveSuggestions.jsx`, `components/SuggestionsPanel.jsx`.
-- **A first cut of `/wellbeing` exists** (`pages/Wellbeing.jsx`) so Today's "See what's behind this" link works and the removed Today content (drivers, full chart, all tips, move ideas, sleep) still has a home. FE-3 still has to add: check-in cards and history, "How this works", the stepper and the result screen, `completedAt`.
-- Not eyeballed: the new-account setup checklist (use `ana@student.fatima.edu.ph`), Wellbeing and Tasks tab on a real phone. Seen: Today and the Tasks tab on a laptop in the owner's Chrome; Today at 375px is 1,845px tall with no horizontal scroll.
-- Old `TaskBoard` CSS (`.task-card`, `.edit-button` etc.) is now unused; remove it in FE-6 after a search.
-- **Batch 3 done** (`fix/server-checks`, details in CLAUDE.md "Server checks"): S3, S5 (server scores check-ins, so FE-3 can show the result from the response), S7, B5, B12, B13, B14, B16. Not done on purpose: B13 has no failing-save test (the order is checked by the join-by-code test only).
-- **Batch 7 done** (`feature/shared-modal`, 2026-10-13): shared `Modal`/`ModalShell`, all dialogs switched, check-ins ask before closing. Builds clean; NOT tried in a browser (Chrome extension was disconnected), so click through a few dialogs (Escape, drag-select out, check-in leave prompt, Tab) before relying on it.
-- **Next**: FE-3 (check-ins and Wellbeing). Batches 1 and 5 (auth) need an Opus review before merging; ask the owner about S6 when Batch 1 or 2 starts.
-- **UI harness**: `node server/scripts/uiHarness.js` (API on 5070) plus `VITE_BACKEND_URL=http://localhost:5070 npx vite --port 5174 --strictPort` in `client/`; login `maria@student.fatima.edu.ph` / `Password123`. Start the harness once only (two runs on the same port duplicate the seed). Kill both when done. The Chrome extension screenshots time out often; retry, or measure with JS in a 375px iframe.
-
-## FE-6 QA (2026-10-13, branch `chore/frontend-qa`)
-- All frontend batches (FE-1 to FE-6) are now done. Owner still has to: fill in `helpContacts.js` and the About team names, do a real phone pass on the deployed site, decide on a DESIGN.md, and run the Opus review of everything (FE-4 to FE-6, plus auth batches 1 and 5 when they're built).
-- System-review work still open: Batches 1 (auth hardening, S6 question), 4, 5, 6 rest, 10, 11. Batch 11 (code splitting) would shrink the 645 KB bundle.
-
-## FE-5 public pages (2026-10-13, branch `redesign/public-pages`)
-- Done: sign-in rewrite with forgot-password flow, About rewrite, Study and Schedule-list headers, Privacy Policy list plus `LEGAL_VERSION` bump. 450 server tests pass.
-- Next: FE-6 (QA pass, impeccable detect, placeholder list, CLAUDE.md cleanup). Opus review later covers everything at once (owner's call): FE-4, FE-5 and the auth batches 1 and 5.
-
-## FE-4 Me, People, Notifications (2026-10-13, branch `redesign/me-and-people`)
-- Done: Me restructure (sections, Save forms, program select, pace labels), pace logic fixed (SR B3), `helpContacts.js` placeholders, Friends tab (Decline, Sent, Cancel, no emails, toasts), Notifications page, SR Batch 8 server part, dead CSS pruned. 450 server tests. Details in CLAUDE.md "FE-4".
-- Not checked: 320/768px, empty and new-account views, a real phone. Chrome extension would not connect, so screenshots came from headless Chrome.
-- Next: Batch 5 (auth, Opus review), Batch 4, FE-5 (public pages, Privacy Policy bump, forgot password), FE-6 QA. Owner: fill in `helpContacts.js` and the About team names.
-
-## FE-3 check-ins and Wellbeing (2026-10-13, branch `feature/checkin-results`, merged into `main`)
-- Server: `completedAt` on tasks, `GET /api/surveys/history` (last 5 PSS and WHO). 434 server tests (`checkinResult.test.js`, `task.completed.test.js`, history tests in `survey.test.js`).
-- Client: `CheckInStepper.jsx` (one question per screen, auto-advance on tap/click, Back/Next, leave prompt), `CheckInResult.jsx` (4 blocks from `utils/checkinResult.js`), PSS/WHO modals are thin configs of the stepper, `CheckInCards.jsx` + "How this works" + Guide on `/wellbeing`, "Done this week" line on Today, Profile's survey cards replaced by a link line (Me gets the real restructure in FE-4).
-- Checked in headless Chrome against the harness (1280 and 375px, light only): full PSS flow to the result and back to the cards. Not checked: dark mode, WHO flow in a browser, a brand-new account, a real phone, keyboard-only use.
-- Left out on purpose: the "you got through [exam]" encouragement line (the week overview has no past exams); plan item 6 "check" is only partly done (see above). FE-3 item 5 (Privacy Policy `completedAt` wording) belongs to FE-5.
-- Next: FE-4 (Me, People, Notifications) on `redesign/me-and-people`. Then batches 5, 4, 8, FE-5, FE-6.
-
-## Frontend revamp plan (2026-10-12)
-- The owner asked for a full revamp plan (design, what each page shows, what to ask the user, which pages to add, move or remove) with instructions for Sonnet. It's `frontend-plan.md` at the project root. `PRODUCT.md` is the product context the Impeccable skill reads.
-- How it was made: walked every page in Chrome and in headless Chrome at 1280px and 375px, light and dark, against an in-memory API seeded with a 3rd-year BSIT student and a brand-new account; web research on calm UI, student stress apps, check-in feedback, streaks, crisis lines and mobile navigation; Dribbble for visual references.
-- Owner's answers (in the plan's Decided list): **OLFU IT students only**; check-in scores are for the system, so a bad result leads to plan changes, specific recommendations (sleep earlier) and encouragement, not hotlines; **the panel is under 3 weeks away**.
-- The big changes: 5 places in the nav with a phone bottom bar (Today, Schedule, Study, People, Me) plus a bell; the dashboard cut from about 13 phone screens to about 3 (tasks move to Schedule > Tasks, detail moves to a new Wellbeing page); check-ins become one question at a time and end with a real result screen; red only for the brand and for overdue/delete/errors; Settings folds into Me, Friends into People.
-- **The owner answered every Open decision (2026-10-12)**, all recorded in the plan's section 8 Decided list: band names "Light / Steady / Full / Too much this week" on screen (internal names unchanged); red off buttons and labels (navy actions, red only for logo, overdue, delete, errors); a "Talk to someone" block in Me > Help with **placeholder** contacts in `client/src/utils/helpContacts.js` (owner will look them up, never fill them in); pace labels Lighter / Balanced / Fuller (Fuller only counts while check-ins look okay; settles system-review B3); Privacy Policy lists the sleep and other fields and `LEGAL_VERSION` gets bumped (FE-5; settles R5/D2); program select BSIT or BSCS; team names on About are a placeholder.
-- **Placeholders the owner still fills in before the panel**: OLFU Guidance office and crisis-line contacts, team names.
-- Order for the next 3 weeks (plan section 9): Week 1 FE-1 shell + FE-2 Today, with system-review Batches 1 and 3; Week 2 Batch 7 (Modal), FE-3 check-ins and Wellbeing, FE-4 Me/People/Notifications, Batches 5, 4, 8; Week 3 FE-5 public pages (with Batch 2 forgot password), FE-6 QA, a real phone test.
-
-## System review (2026-10-12)
-- The owner asked for a full review (bugs, broken parts, redundancy) with instructions Sonnet can build from. It's in `system-review.md` at the project root: findings first, then 11 batches, each with a branch name, steps and tests.
-- Top items: password-reset codes can be guessed with no attempt limit (S1, High); there's no "Forgot password" screen at all (B1, High); unverified accounts can be claimed through Google linking (S2); removed group members can rejoin by group id (S3); check-in scores are trusted from the browser (S5).
-- Owner decisions: B3 and R5/D2 are answered (see above). **S6 (reset wording) is still open**: ask when Batch 1 or 2 starts (recommended: neutral wording on reset only). Batches 1 and 5 touch auth, so Opus reviews those diffs before merging.
-- Checked while reviewing: 375/375 server tests pass, client builds (one 628 KB chunk), lint has 20 errors (mostly the known setState-in-effect pattern).
-
-## Next up
-1. **Opus**: FE-4 to FE-6 review done (see "Opus review" at the top). Next, build and review system-review Batches 1 and 5 (auth) before they merge; ask the owner about S6 first.
-2. **Sonnet**: remaining non-auth system-review batches (4, 6 rest, 10, 11).
-3. **Owner**: fill in the placeholders (help contacts, team names) before the panel.
-4. **Real phone pass on the live site** (owner, or with them), after FE-6 at the latest.
-5. Owner's manual reviewer tests (end of `reviewer-report.md`).
-(The old page-by-page redesign list and the two 2026-10-11 small fixes are now inside the FE batches.)
-
-## Dialogs, Guide button, mobile rule (2026-10-11, merged as PR #20)
-- **Merged into `main` as PR #20 and live** (checked: the Vercel bundle has the Guide). No server changes. Branch from `main` for the next piece of work.
-- What changed (details in CLAUDE.md, "Dialogs and the page Guide"): every confirm in the app now uses `ConfirmDialog` (TaskBoard mark as done and delete, task-tag copy fallback, Friends remove, Notifications clear all; the old `.confirm-card` CSS is gone). New bottom-right **Guide** button on Dashboard, Schedule and Reviewers with step-by-step help that outlines each section. New `mobile-rules.md` (root) with the "do it for mobile in the same change" rule, pointed to from CLAUDE.md.
-- **Tested in the owner's Chrome** (extension) against an in-memory API on 5070 + Vite on 5174 (real DB untouched): all four dialogs (mark done, delete, remove friend, clear all, plus the forced copy fallback), every Guide step on all three pages and their views (dashboard 7 steps, schedule list 4 and open schedule 4, reviewer list 3, open reviewer 5, Learning Mode 1), Escape/arrow keys, no console errors. Phone widths via a same-origin iframe at 375px and 320px: bottom sheet, 44px tap targets, no horizontal scroll, button clears the footer and Learning Mode's Submit. Contrast measured in light and dark (panel text 6:1 or better, icon 3.7:1 in dark).
-- Decision made without asking (architecture, easy to change): "guide seen" is stored per browser (localStorage), not on the server, since it only controls the small dot.
-- Not checked: a real phone. Seen while testing, not touched: on a 375px phone the dashboard's "Next exam" pill wraps into narrow columns; the Rename schedule dialog doesn't close on Escape.
-
-## AI reviewer test and fix pass (2026-10-11, branch `test/ai-reviewer-finalize`)
-- The owner asked for a full test, debug and finalize pass on the reviewer feature. Full write-up for the thesis: `reviewer-report.md` (architecture, files, env vars, endpoints, every test, problems fixed, limitations, manual tests).
-- Fixed: empty/cut-off Gemini answers and timeouts now retried; bad key/model gives "Reviewers aren't working on our side" instead of "try a different PDF"; a failed "New questions" keeps the old set (status back to `ready` with `error`); the last answer closes and scores the session (refresh before results no longer loses it); double-submitted uploads return the first reviewer; questions without explanations dropped; long unbroken words no longer widen the reviewer past a phone screen; Gemini timeout 100s to 150s and stuck cutoff 9 to 12 min (a real targeted request on a long PDF took 99.7s).
-- Verified: 375 server tests pass (new: `reviewer.workflow`, `reviewer.e2e`, `gemini.http`, fake Gemini helper, Chrome-made handout fixture). Headless Chrome against a test server at 320/375/768/1280px, light and dark. Real Gemini on the handout and on a 74-page, 301k-character PDF (3 parts, recovered from two 503s). No key in the code, git history, local build or live bundle.
-- Still for the owner (also in the report): a real upload on the live site, a real phone, a real scanned and a real password-protected PDF, several students at once, and a subject expert checking answer accuracy.
-
-## AI reviewers (merged as PR #17, live 2026-10-11)
-- **Merged into `main` and live.** The owner set `GEMINI_API_KEY` on Render. Checked after the merge: Render answers the new routes (`/api/reviewers/:id/targeted` returns JSON), the Vercel bundle has the new UI, and `/api/reviewers` answers through the Vercel proxy. Not yet done: a real upload in production (needs a signed-in account), so the owner should try one.
-- What it does: PDF upload, Gemini-written reviewer (title, summary, key points, key terms, topics, multiple-choice questions with difficulty), Learning Mode one question at a time with server-side grading, results with per-topic breakdown, weak-topic practice, resume, new questions from the stored text. Page `/reviewers`, sidebar under Plan. Details in CLAUDE.md, "AI reviewers".
-- **2026-10-11: the owner asked to check the original spec prompt against the code and fill what was missing.** Added: targeted review (`POST /api/reviewers/:id/targeted`, new questions on 1-3 chosen topics, added as a batch, practised on their own), chunking for long PDFs (up to 3 parts of 120k chars, sent at once and merged), select-then-Submit in Learning Mode, plain 500 messages (`serverError`), the AI writes the title when the student leaves it blank, and a third retry (30s) since the free tier often answers 503 for a minute. Kept on purpose: plain CSS instead of Tailwind (Tailwind isn't wired in this project), answers stored as `correctIndex` not answer text.
-- **Real Gemini works.** The owner put `GEMINI_API_KEY` in `server/.env`. The smoke script and a headless-Chrome run of the real UI (against an in-memory API) both used real Gemini: 10/10 questions kept, 3 topics, 3/5/2 difficulty mix, AI title, 5/5 targeted questions. Server tests 316 passing, client builds.
-- **Heads-up**: on 2026-10-11 `gemini-3.8-flash` (the default) timed out with 504 for a while even on one-word prompts, then recovered. `gemini-3.5-flash` answered when it didn't. If production sees "The AI service is busy" a lot, set `GEMINI_MODEL` on Render.
-- **Next**: the owner tries an upload on the live site. (The long-PDF split path has now been run against real Gemini, see the test pass above.) Everyone will see the Terms prompt once (the `LEGAL_VERSION` bump).
-- **Gemini tier**: the owner has Google AI Pro, but that's the Gemini app subscription and doesn't make an API key paid. The key is free tier unless a billing account is linked to its project (AI Studio shows the tier next to the key). The Privacy Policy keeps the free-tier wording until that's confirmed.
-- **Decisions made earlier (owner said "you decide")**: keep the extracted text (now capped at 360k chars) so "New questions" and targeted review work without re-uploading; reviewers are private (no sharing yet). Free-tier privacy wording was written, and `LEGAL_VERSION` was bumped to `2026-10-10` (everyone re-accepts once after deploy; one-line revert in `server/utils/legal.js` + `LEGAL_UPDATED` if unwanted).
-- Pre-existing, not touched: `npm audit` shows 5 issues in the server (nodemailer, mongoose, proxy-addr, qs, body-parser), none from the new packages. Dark-mode palette gaps noted in CLAUDE.md (Design system).
-
-## Where things stand (before AI reviewers)
-- **Schedule workspace (2026-10-10), branch `feature/schedule-workspace`, merged into `main` as PR #15 and live on Vercel and Render (checked: new bundle served, `/stamp` route answers).** Create Task page removed (tasks are added from the schedule, in its theme, and show on their due day), Philippine-only holidays on a month calendar with range selection, Google Docs-style sharing (viewer/editor roles, editors-can-share setting, general access by code or link, make private, make a copy), online class links with Join buttons, 4-second live updates, and deep links that survive a reload or login. Details in CLAUDE.md, "Schedule workspace". Server tests 258 passing, client builds.
-- Checked in a browser against an in-memory server (desktop width, plus a 375px iframe probe): task form and due chips, Add/More/Theme menus, Info section with meeting link, holiday calendar (range select, name, remove a public holiday), share dialog (code on, role switch, editors-can-share, make private), live update from another user (about 2s), opening a share link while signed out, viewer details card with Join, make a copy, dashboard Join button. Contrast of the new pieces measured at 4.5:1 or better in all 6 themes, light and dark. **Not eyeballed**: dark mode by screenshot (only measured), a real phone, the week view's per-day day-off button after the calendar change.
-- The sharing wording change in Terms/Privacy is now covered by the `LEGAL_VERSION` bump on the AI reviewer branch.
-- **Next up**: try it on a real phone; then the page-by-page redesign list in CLAUDE.md (Profile, Friends, Groups, Notifications, Settings, About, Auth). Branch from `main` for new work.
-- All earlier branches (`feature/shared-schedule-editing`, `feature/main-schedule-exams-suggestions`, etc.) are merged into `main`. Older notes below are history.
-
-## Vercel fix (2026-09-29)
-- Every git-triggered Vercel build had failed since Sep 18 (`vite: command not found`, exit 127). Cause: Root Directory was `./`, should be `client`. Set it to `client` in the dashboard and redeployed `main` (`0e15609`, PR #12 already merged). Live site now serves the latest build.
-- Google OAuth origin for the Vercel URL was already present, no change needed. A real Google sign-in on the live site is still untried.
-- Possible leftover: a second Vercel project named `client` (domain `client-indol-theta-46.vercel.app`) from an old CLI deploy. Harmless, delete in the dashboard if wanted.
-- Heads-up (2026-10-10): this machine's `client/.vercel/project.json` is linked to that leftover `client` project, not `stresscare`. Git pushes still deploy correctly, but a manual `vercel` CLI deploy from `client/` would go to the wrong project. Run `vercel link` and pick `stresscare` before deploying by hand. (The Vercel CLI isn't installed on this machine right now, and the Vercel connector has no access to the `art-8707` team.)
-
-## Mobile login fix (2026-09-29, needs a phone test)
-- Login didn't stick on phones: the cookie was third-party (site on vercel.app, API on onrender.com). Fix merged as PR #13 on branch `fix/mobile-login-cookie`: `client/vercel.json` proxies `/api/*` to Render, and Production `VITE_BACKEND_URL` was set to `https://stresscare-art-8707.vercel.app`, then redeployed.
-- Verified: live bundle has the Vercel URL baked in (no onrender or localhost), and `/api/*` on the Vercel domain returns the API's JSON.
-- **Not verified: an actual login on a phone** (email and Google). If it still bounces back to the login page, ask which phone and browser, then look at the cookie options in `authController.js` (`sameSite`, `secure`, and whether `trust proxy` is needed on Express behind Render and Vercel).
-- Current branch is `fix/mobile-login-cookie` (already merged into `main`). Branch from `main` for the next piece of work.
-
 ## Not verified yet (needs a human)
 - **Actual OS push alert.** Chrome's permission prompt can't be clicked by automation. Click "Turn on" under "On this device" on the Notifications page, allow it, then have another account post in a shared group while the tab is in the background or closed.
 - **Phone.** Needs the deployed HTTPS site. On iPhone: Add to Home Screen first.
-
-## Next up
-1. **Set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` on Render** (copy from `server/.env`). Without them push is off in production, the in-app inbox still works.
-2. Try the push flow above, then commit, push and merge when moving to the next piece of work.
-3. Look at the auth page in a browser (eye toggle, new copy, mobile width), still unchecked from the last task.
-4. Existing to-do list in `CLAUDE.md` (page-by-page design rollout, Google OAuth origin for the Vercel URL, etc.) is unchanged.
+- **Web Push in production.** Nobody has confirmed that `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` are set on Render (an old "Next up" item, now in `handout-archive.md`). Without them the inbox still works but phone and PC alerts stay off. Check the Render dashboard.
 
 ## Owner's standing rules (from global CLAUDE.md, easy to forget)
 - Branch before editing code. When starting new, distinct work, commit, push and merge the old branch into `main` automatically, but never delete branches.
-- Never spawn subagents without asking first.
+- Subagents: spawn them without asking (owner's call, 2026-10-13), the way CLAUDE.md "Workflow" describes.
 - **`frontend-plan.md` exists since 2026-10-12.** UI work follows it. The only design questions to ask are the ones in its Open list.
 - No `Co-Authored-By` lines in commits or PRs.
-- Docs: after each task, update `CLAUDE.md` and `handout.md`. Anything still in progress or unfinished goes in `handout.md`; if nothing is pending, just `CLAUDE.md`.
+- Docs: after each task, put feature facts in the matching `.claude/docs/` file (CLAUDE.md only gets rules and pointers), tick `.claude/docs/todo.md` and the plan, and put anything still in progress in `handout.md`.
 - Writing style: plain sentences, no em-dashes as connectors, no "not just X, it's Y". No emojis in UI (use lucide-react).
 
 ## Gotchas
-- **Chrome extension quirks (2026-10-11)**: clicking by `ref` sometimes misses small or animated buttons (the friend ✕, Notifications "Clear all"); click by coordinates from a screenshot, or `.click()` in page JS. A `key` press acts on whatever is under the mouse (an ArrowRight with the cursor over the Guide button closed the guide), so `hover` somewhere empty first. Screenshots time out while the tab is hidden; retry once it's in front. Typing into the login form can silently do nothing in a background tab, so sign in with `fetch('/api/auth/login', { credentials: 'include' })` from the page and reload.
-- **UI test harness**: a Node script that starts `mongodb-memory-server`, imports `server/app.js`, listens on 5070, registers an account through the API, sets `isAccountVerified` + `termsVersion` directly on the model, and seeds tasks, a schedule and a ready reviewer. Run Vite with `VITE_BACKEND_URL=http://localhost:5070 npx vite --port 5174 --strictPort`. The 2026-10-11 script lived in that session's scratchpad (gone now); rebuild it from this description, or ask the owner if it should live in `server/scripts/`. 2026-10-12 version: imports the server's own packages by absolute file URL (`server/node_modules/mongoose/index.js` etc.) so it can run from a scratch folder, sets `process.env` (JWT_SECRET, CLIENT_URL=http://localhost:5174, NODE_ENV=development, no GEMINI key) **before** importing `app.js`, creates verified users straight on the model with a bcrypt hash (skips the OTP email), then logs in over HTTP and seeds through the real API: a main schedule (6 classes, 2 exams, an event), 6 tasks, PSS 22 and WHO 48, an accepted friend and a pending request, 2 groups with chat and a shared task, plus a ready reviewer written straight to the model. Also a fourth, empty account for the new-student view.
-- **Screenshots of every page**: when the Chrome extension's screenshots keep timing out (they did on 2026-10-12, every first capture after a navigation), use headless Chrome over CDP (see below) with `Emulation.setDeviceMetricsOverride` at 1280 and 375 and `Page.captureScreenshot` with a `clip` per 860px or 812px slice. Full-page captures of a 10,000px page are unreadable once scaled.
-- **When the Chrome extension isn't connected** (owner away, remote control), drive headless Chrome over CDP instead: start `chrome.exe --headless=new --remote-debugging-port=9333 --user-data-dir=<scratch>` and talk to it from a Node script with Node 24's built-in `WebSocket` (`Runtime.evaluate`, `Page.captureScreenshot`, `Emulation.setDeviceMetricsOverride` for 375px, `Input.dispatchKeyEvent` for keys). No downloads needed. Files can be handed to an `<input type=file>` with `DataTransfer` in page JS. Kill the Vite child process afterwards (`npx vite` leaves `node vite.js` running).
-- **Port 5000 is the owner's real dev server** (nodemon, real Atlas database), usually running along with Vite on 5173. Never run test servers on 5000. Also avoid 5060 and 5061 for test servers: Chrome blocks them as unsafe ports ("Failed to fetch"). 5070 works. New accounts need email verification before the app lets them in; a test harness has to mark `isAccountVerified` itself. For manual UI testing, use an in-memory MongoDB (`mongodb-memory-server`) on another port, with `VITE_BACKEND_URL` pointing at it. Windows lets two processes bind the same port, which silently sends requests to the wrong server.
-- **Restart the dev server** to pick up the notification changes (new model fields, routes, reminder job).
-- Page wrapper class is `app app-layout` (not `app-container`), or the sidebar renders full width.
-- Deep links (`?s=`, `?g=`, `?code=`) now survive a full reload and a login (fixed 2026-10-10).
-- The browser `resize_window` tool doesn't work here. Probe mobile layouts with a fixed-width iframe instead. Screenshots of a hidden tab can time out, so retry or check computed styles. Typing into a background tab can silently do nothing: set React inputs through the native value setter plus an `input` event. The open schedule page skips its live check while `document.hidden`, so override that when testing live updates.
-- Global CSS styles bare `label`, `input`, `select` (column flex, width 100%). New form rows need explicit `flex-direction` and `width` overrides.
-- The Bash tool choked on a long heredoc containing apostrophes. Use the Write or Edit tools for big files.
-- Lint: `react-hooks/set-state-in-effect` on fetch-in-effect is an existing pattern (Groups, Friends, NotificationContext), not something new.
-- `CLAUDE.md` is gitignored in this repo, so edits to it stay local.
+Moved to `.claude/docs/testing-and-gotchas.md`: UI harness quick start, headless Chrome, Chrome extension quirks, ports.
