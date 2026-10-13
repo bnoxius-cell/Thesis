@@ -184,7 +184,7 @@ The dashboard "Next exam" pill wraps into narrow columns at 375px (`.today-exam-
 - [ ] **S8** Run `npm audit fix` (no `--force`) in `server/` and `client/`, then `npm test` and `npx vite build`. Leave the `nodemailer` major upgrade for a separate change, and note it in CLAUDE.md.
 
 ## Batch 2: `feature/forgot-password` (UI, mobile rules apply)
-- [ ] **B1** In `client/src/pages/authentication/AuthPage.jsx` add a "Forgot password?" link under the password field on the login form. Flow: enter email, then call `POST /api/auth/send-reset-otp`; then a step with the same 6-box code input used for verification, a new password field with the show/hide eye, and a confirm field; submit calls `POST /api/auth/reset-password { email, otp, password }`. On success, show a toast and go back to the login form with the email filled in. Respect the server's resend gap with the same countdown the verify step uses. Note on the step that Google accounts sign in with Google. Check at 320 and 375px, light and dark.
+- [x] **B1** In `client/src/pages/authentication/AuthPage.jsx` add a "Forgot password?" link under the password field on the login form. Flow: enter email, then call `POST /api/auth/send-reset-otp`; then a step with the same 6-box code input used for verification, a new password field with the show/hide eye, and a confirm field; submit calls `POST /api/auth/reset-password { email, otp, password }`. On success, show a toast and go back to the login form with the email filled in. Respect the server's resend gap with the same countdown the verify step uses. Note on the step that Google accounts sign in with Google. Check at 320 and 375px, light and dark.
 
 ## Batch 3: `fix/server-checks`
 - [x] **S3** In `joinGroup`, remove the `groupId` branch so a join code is required. Test in `group.roles.test.js`: a removed member posting `{ groupId }` gets "Group not found" and isn't added.
@@ -245,7 +245,7 @@ The dashboard "Next exam" pill wraps into narrow columns at 375px (`.today-exam-
 - [ ] **P1** In `client/src/App.jsx`, load the pages with `React.lazy` and one `Suspense` fallback that matches the existing boot message (keep `AuthPage` and `Dashboard` in the main bundle since most visits start there). Shrink `client/src/assets/logo.svg` (run it through SVGO or export a small PNG for the favicon and header). Confirm the 500 KB build warning is gone and the deep links (`?s=`, `?g=`, `?r=`, `?code=`) still work after a reload.
 
 ## Later, only if the owner wants
-- [ ] **R5** Remove the dead model fields once the owner decides on the sleep fields (Batch 6 or its own small branch).
+- [x] **R5** Remove the dead model fields once the owner decides on the sleep fields (Batch 6 or its own small branch).
 - [ ] **R10** Remove the unused CSS classes during the page-by-page redesign.
 - [ ] **D4** A real `README.md` (what StressCare is, how to run it, where the docs are).
 - [ ] "Load older messages" in group chat, and turning the schedule version error into a friendly "Someone else just changed this, try again" (see Known limits).
