@@ -4,10 +4,10 @@ Main session only: read this first after a `/clear` (subagents skip it unless th
 
 Last updated: 2026-10-13. **All frontend batches (FE-1 to FE-6) are done and merged into `main`, and Opus has reviewed FE-4 to FE-6 (findings below, nothing fixed yet).** 450 server tests pass, client builds clean. The subagent workflow is set up (next section). Branch from `main` for each batch.
 
-## Subagent workflow (set up 2026-10-13)
-- Agents in `.claude/agents/` (committed): `builder` (Sonnet 5.5, high effort), `code-reviewer` (Opus 5.5, high, read-only) and `Explore` (Haiku 5.5, replaces the built-in one and skips CLAUDE.md). When and how to use them: CLAUDE.md "Workflow". The owner dropped the ask-before-spawning rule.
+## Subagent workflow (set up 2026-10-13, made global the same day)
+- The agents are global, in `~/.claude/agents/`, and apply to every project: `builder` (Sonnet 5.5, high effort), `code-reviewer` (Opus 5.5, high, read-only) and `Explore` (Haiku 5.5, replaces the built-in one and skips CLAUDE.md). The rules are in the global CLAUDE.md and `~/.claude/docs/subagents.md`; this project's specifics are in CLAUDE.md "Workflow". The owner dropped the ask-before-spawning rule. The first, project-only copies in `.claude/agents/` were removed so they can't override the global ones.
 - `CLAUDE.md` went from 68 KB to 12 KB. Its feature notes moved unchanged into `.claude/docs/` (gitignored, like CLAUDE.md), the to-do list into `.claude/docs/todo.md`, and a full copy of the old file is in `.claude/docs/old/`. Older handout sections moved unchanged into `handout-archive.md`; the gotchas now live in `.claude/docs/testing-and-gotchas.md`.
-- Not tried yet: a real builder run. Claude Code loads the agents after a restart (the `.claude/agents/` folder is new). A good first run: review items 2 to 6 below as one fix list on one UI branch.
+- Not tried yet: a real builder run. Claude Code loads the agents after a restart (`~/.claude/agents/` is a new folder). A good first run: review items 2 to 6 below as one fix list on one UI branch.
 
 ## Opus review of FE-4 to FE-6 (2026-10-13)
 Scope: commits `438931b` (FE-4), `c068a31` (FE-5), `ee5510a` (FE-6). Re-ran: 450/450 server tests, client build (645 KB chunk, as before), lint on the changed files (only the 3 known `set-state-in-effect` errors). Nothing was tried in a browser.
@@ -32,7 +32,7 @@ Scope: commits `438931b` (FE-4), `c068a31` (FE-5), `ee5510a` (FE-6). Re-ran: 450
 
 ## Owner's standing rules (from global CLAUDE.md, easy to forget)
 - Branch before editing code. When starting new, distinct work, commit, push and merge the old branch into `main` automatically, but never delete branches.
-- Subagents: spawn them without asking (owner's call, 2026-10-13), the way CLAUDE.md "Workflow" describes.
+- Subagents: spawn them without asking (owner's call, 2026-10-13), the way the global CLAUDE.md and `~/.claude/docs/subagents.md` describe.
 - **`frontend-plan.md` exists since 2026-10-12.** UI work follows it. The only design questions to ask are the ones in its Open list.
 - No `Co-Authored-By` lines in commits or PRs.
 - Docs: after each task, put feature facts in the matching `.claude/docs/` file (CLAUDE.md only gets rules and pointers), tick `.claude/docs/todo.md` and the plan, and put anything still in progress in `handout.md`.
