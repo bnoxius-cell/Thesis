@@ -2,7 +2,7 @@
 
 Main session only: read this first after a `/clear` (subagents skip it unless their brief says otherwise). It's the short "where we left off" note: current state, open items and next steps. Rules are in `CLAUDE.md`, feature notes in `.claude/docs/`, older session notes in `handout-archive.md`.
 
-Last updated: 2026-10-13 (planning session). **Everything left is planned in `build-queue.md` (Q1 to Q14). Next: spawn `builder` on Q1.** Nothing is blocked on the owner. 450 server tests pass, client builds clean, `main` is clean and pushed. Branch from `main` for each batch.
+Last updated: 2026-10-13 (end of planning session; owner continues 2026-10-14). **Everything left is planned in `build-queue.md` (Q1 to Q14). Next: spawn `builder` on Q1.** Nothing is blocked on the owner. 450 server tests pass, client builds clean, `main` is clean and pushed. Branch from `main` for each batch.
 
 ## Subagent workflow (set up 2026-10-13, made global the same day)
 - The agents are global, in `~/.claude/agents/`, and apply to every project: `builder` (Sonnet 5.5, high effort), `code-reviewer` (Opus 5.5, high, read-only) and `Explore` (Haiku 5.5, replaces the built-in one and skips CLAUDE.md). The rules are in the global CLAUDE.md and `~/.claude/docs/subagents.md`; this project's specifics are in CLAUDE.md "Workflow". The owner dropped the ask-before-spawning rule. The first, project-only copies in `.claude/agents/` were removed so they can't override the global ones.
