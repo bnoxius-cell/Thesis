@@ -2,7 +2,7 @@
 
 Read this first after a `/clear`. It's the short "where we left off" note. `CLAUDE.md` has the full project reference, this file only has the current state.
 
-Last updated: 2026-10-13. FE-5 done on `redesign/public-pages` (see CLAUDE.md "FE-5"). FE-4 done on `redesign/me-and-people` (see its section). FE-3 merged. Earlier: 2026-10-12. FE-1, FE-2 and system-review Batch 3 (`fix/server-checks`, 405 server tests) are merged into `main`. `next-prompt.md` is done and deleted. Branch from `main` for each batch.
+Last updated: 2026-10-13. FE-6 done on `chore/frontend-qa` (see CLAUDE.md "FE-6"). FE-5 done on `redesign/public-pages` (see CLAUDE.md "FE-5"). FE-4 done on `redesign/me-and-people` (see its section). FE-3 merged. Earlier: 2026-10-12. FE-1, FE-2 and system-review Batch 3 (`fix/server-checks`, 405 server tests) are merged into `main`. `next-prompt.md` is done and deleted. Branch from `main` for each batch.
 
 ## Build session 2026-10-12 (Sonnet): FE-1 merged, FE-2 on `redesign/today`
 - **FE-1 merged into `main`** (tokens, shell, shared components, redirects, 404). Dark mode, bottom bar and Guide placement checked.
@@ -14,6 +14,10 @@ Last updated: 2026-10-13. FE-5 done on `redesign/public-pages` (see CLAUDE.md "F
 - **Batch 7 done** (`feature/shared-modal`, 2026-10-13): shared `Modal`/`ModalShell`, all dialogs switched, check-ins ask before closing. Builds clean; NOT tried in a browser (Chrome extension was disconnected), so click through a few dialogs (Escape, drag-select out, check-in leave prompt, Tab) before relying on it.
 - **Next**: FE-3 (check-ins and Wellbeing). Batches 1 and 5 (auth) need an Opus review before merging; ask the owner about S6 when Batch 1 or 2 starts.
 - **UI harness**: `node server/scripts/uiHarness.js` (API on 5070) plus `VITE_BACKEND_URL=http://localhost:5070 npx vite --port 5174 --strictPort` in `client/`; login `maria@student.fatima.edu.ph` / `Password123`. Start the harness once only (two runs on the same port duplicate the seed). Kill both when done. The Chrome extension screenshots time out often; retry, or measure with JS in a 375px iframe.
+
+## FE-6 QA (2026-10-13, branch `chore/frontend-qa`)
+- All frontend batches (FE-1 to FE-6) are now done. Owner still has to: fill in `helpContacts.js` and the About team names, do a real phone pass on the deployed site, decide on a DESIGN.md, and run the Opus review of everything (FE-4 to FE-6, plus auth batches 1 and 5 when they're built).
+- System-review work still open: Batches 1 (auth hardening, S6 question), 4, 5, 6 rest, 10, 11. Batch 11 (code splitting) would shrink the 645 KB bundle.
 
 ## FE-5 public pages (2026-10-13, branch `redesign/public-pages`)
 - Done: sign-in rewrite with forgot-password flow, About rewrite, Study and Schedule-list headers, Privacy Policy list plus `LEGAL_VERSION` bump. 450 server tests pass.

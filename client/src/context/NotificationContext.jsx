@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { pageTitle } from "../utils/pageTitles";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useAuth } from "../pages/authentication/AuthContext";
@@ -8,7 +9,6 @@ import { syncPush } from "../utils/pushClient";
 const NotificationContext = createContext(null);
 
 const POLL_MS = 20000;
-const BASE_TITLE = "StressCare";
 
 // Owns the inbox for the whole app: polls the server while the tab is visible, pops an
 // in-app toast for anything new, keeps the unread count on the tab title and app icon,
@@ -17,6 +17,7 @@ const BASE_TITLE = "StressCare";
 export function NotificationProvider({ children }) {
   const { backendUrl, isLoggedin, userData } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -103,10 +104,11 @@ export function NotificationProvider({ children }) {
   // Unread count on the tab title and, where supported, the installed app icon.
   useEffect(() => {
     const count = isLoggedin ? unreadCount : 0;
-    document.title = count > 0 ? `(${count}) ${BASE_TITLE}` : BASE_TITLE;
+    const title = pageTitle(pathname);
+    document.title = count > 0 ? `(${count}) ${title}` : title;
     if (count > 0) navigator.setAppBadge?.(count)?.catch?.(() => {});
     else navigator.clearAppBadge?.()?.catch?.(() => {});
-  }, [unreadCount, isLoggedin]);
+  }, [unreadCount, isLoggedin, pathname]);
 
   const markRead = useCallback(async (id) => {
     const target = notifications.find((n) => n._id === id);
