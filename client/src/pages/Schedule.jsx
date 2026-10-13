@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import PageHeader from "../components/PageHeader";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PageTour from "../components/PageTour";
 import TaskImportDialog from "../components/TaskImportDialog";
@@ -907,27 +908,13 @@ export default function Schedule() {
     <div className="app app-layout">
       <Header />
       <main className="dashboard">
-        <section className="hero" id="schedule-hero" data-tour="sched-intro">
-          <div className="hero-copy">
-            <span className="eyebrow">Plan your week</span>
-            <h1>Your schedule</h1>
-            <p>
-              Your classes, exams and tasks in one week. Your main schedule is what the dashboard plans around.
-              Extra schedules hold anything else, and shared ones work like a Google Doc: whoever can edit changes it for everyone.
-            </p>
-          </div>
-          <aside className="hero-panel">
-            <h2>What you can do</h2>
-            <ul className="hero-list">
-              <li>Add classes, exams, tasks and events</li>
-              <li>Put Google Meet or Zoom links on online classes</li>
-              <li>Mark days off on a Philippine holiday calendar</li>
-              <li>Share with viewers or editors, or keep it private</li>
-              <li>Make a copy of any schedule you can see</li>
-              <li>Pick a theme that suits light or dark mode</li>
-            </ul>
-          </aside>
-        </section>
+        <div data-tour="sched-intro">
+          <PageHeader
+            kicker="Plan your week"
+            title="Your schedules"
+            description="Your main schedule is what Today plans around. Extra schedules hold anything else. Shared ones work like a Google Doc: whoever can edit changes it for everyone."
+          />
+        </div>
 
         <div className="groups-actions" data-tour="sched-list-actions">
           <button className="primary-button" onClick={() => { setFormError(""); setNewTitle(""); setCreateOpen(true); }}>

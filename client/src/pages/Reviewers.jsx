@@ -4,6 +4,7 @@ import axios from "axios";
 import { BookOpenCheck, FileText, FileUp, LoaderCircle, Info } from "lucide-react";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import PageHeader from "../components/PageHeader";
 import UploadReviewerDialog from "../components/reviewer/UploadReviewerDialog";
 import ReviewerView from "../components/reviewer/ReviewerView";
 import PageTour from "../components/PageTour";
@@ -74,24 +75,23 @@ export default function Reviewers() {
     <div className="app app-layout">
       <Header />
       <main className="dashboard reviewer-page">
-        <section className="reviewer-intro" data-tour="rev-intro">
-          <div>
-            <span className="panel-kicker"><BookOpenCheck size={15} aria-hidden="true" /> Study</span>
-            <h1>Reviewers</h1>
-            <p>
-              Upload your notes, a handout or a module as a PDF. You'll get a short reviewer, key terms and practice
-              questions, and you'll see which topics need more of your time.
-            </p>
-          </div>
-          <div className="reviewer-intro-actions" data-tour="rev-upload">
-            <button type="button" className="primary-button" onClick={() => setUploadOpen(true)} disabled={!canUpload}>
-              <FileUp size={18} aria-hidden="true" /> Upload a PDF
-            </button>
-            {data?.enabled && left !== null && left <= 3 && (
-              <small>{left === 0 ? "You've reached today's limit. You can make more tomorrow." : `You can make ${left} more today.`}</small>
+        <div data-tour="rev-intro">
+          <PageHeader
+            kicker="Study"
+            title="Reviewers"
+            description="Upload your notes, a handout or a module as a PDF. You'll get a short reviewer, key terms and practice questions, and you'll see which topics need more of your time."
+            actions={(
+              <div className="reviewer-intro-actions" data-tour="rev-upload">
+                <button type="button" className="primary-button" onClick={() => setUploadOpen(true)} disabled={!canUpload}>
+                  <FileUp size={18} aria-hidden="true" /> Upload a PDF
+                </button>
+                {data?.enabled && left !== null && left <= 3 && (
+                  <small>{left === 0 ? "You've reached today's limit. You can make more tomorrow." : `You can make ${left} more today.`}</small>
+                )}
+              </div>
             )}
-          </div>
-        </section>
+          />
+        </div>
 
         {data && !data.enabled && (
           <p className="reviewer-note" role="status">

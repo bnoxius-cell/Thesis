@@ -438,11 +438,11 @@ Keep the existing polish-pass motion and its `prefers-reduced-motion` guard. Add
 - [ ] **5. Check.** All four views on a phone and a laptop, light and dark. Update Guide steps where sections moved.
 
 ### FE-5 `redesign/public-pages` (Week 3)
-- [ ] **1. Sign-in.** New copy and layout (section 6), form first on phones, Forgot password (SR Batch 2, if not already merged).
-- [ ] **2. About.** Rewrite (section 6). Use the team-names placeholder from section 8.
-- [ ] **3. Study.** `PageHeader` on Reviewers, fix the list card title width.
-- [ ] **4. Remaining headers.** Swap any `.hero` left (Schedule list view, PublicProfile, legal pages if needed) for `PageHeader`. Remove CSS for the old hero panels only where nothing uses them (search first).
-- [ ] **5. Privacy Policy** (section 8, needs FE-3's `completedAt` merged first). In `client/src/pages/legal/legalContent.js`, add sleep target, usual bedtime and wake time, travel time, task completion times and check-in history to "What we collect". Bump `LEGAL_VERSION` in `server/utils/legal.js` and `LEGAL_UPDATED` in `legalContent.js` to the merge date, so everyone sees the Terms prompt once. Tick D2 and R5 in `system-review.md`.
+- [x] **1. Sign-in.** New copy and layout (section 6), form first on phones, Forgot password (SR Batch 2, if not already merged).
+- [x] **2. About.** Rewrite (section 6). Use the team-names placeholder from section 8.
+- [x] **3. Study.** `PageHeader` on Reviewers, fix the list card title width.
+- [x] **4. Remaining headers.** Swap any `.hero` left (Schedule list view, PublicProfile, legal pages if needed) for `PageHeader`. Remove CSS for the old hero panels only where nothing uses them (search first).
+- [x] **5. Privacy Policy** (section 8, needs FE-3's `completedAt` merged first). In `client/src/pages/legal/legalContent.js`, add sleep target, usual bedtime and wake time, travel time, task completion times and check-in history to "What we collect". Bump `LEGAL_VERSION` in `server/utils/legal.js` and `LEGAL_UPDATED` in `legalContent.js` to the merge date, so everyone sees the Terms prompt once. Tick D2 and R5 in `system-review.md`.
 
 ### FE-6 `chore/frontend-qa` (Week 3)
 - [ ] Go through the pre-ship list in the global `docs/frontend.md` (no horizontal scroll, no broken links or buttons, mobile menu, favicon, page titles per route, meta description, footer links, custom 404, current copyright year, compressed images, success and error messages, no placeholder text, no dead nav items, logo links home, `mailto:` links) and fix what fails.

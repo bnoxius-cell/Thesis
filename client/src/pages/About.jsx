@@ -1,7 +1,34 @@
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import PageHeader from "../components/PageHeader";
 import { useAuth } from "./authentication/AuthContext";
+import { SUPPORT_EMAILS } from "./legal/legalContent";
+import { PSS_VALID_DAYS, WHO_VALID_DAYS } from "../utils/workload";
 import "../App.css";
+
+const STEPS = [
+  ["Add your classes", "Build your timetable once. Exams, activities and days off go on it too."],
+  ["Add your tasks", "Give each one a due date, the hours it needs, and how hard and important it is."],
+  ["Take the check-ins", "Two short questionnaires, one about stress and one about well-being. They take a couple of minutes."],
+  ["Follow the plan", "StressCare shows how full your week is, which day is the heaviest, and what to move or do next."],
+];
+
+const BANDS = [
+  ["Light week", "0 to 30", "There's room. A good week to get ahead or rest."],
+  ["Steady week", "31 to 60", "A normal load. Keep your routine."],
+  ["Full week", "61 to 80", "A lot on. Worth moving something or protecting your sleep."],
+  ["Too much this week", "81 to 100", "More than fits. The app suggests what to move, and when."],
+];
+
+const INPUTS = [
+  "Deadlines against the study time you actually have free each day",
+  "The busiest single day",
+  "How much of the week classes and activities already take",
+  "Your latest stress check-in",
+  "Your latest well-being check-in",
+  "How much of your task time is high importance",
+  "How much of your task time is difficult",
+];
 
 export default function About() {
   const { isLoggedin } = useAuth();
@@ -9,123 +36,122 @@ export default function About() {
   return (
     <div className={`app ${isLoggedin ? "app-layout" : "auth-layout"}`}>
       <Header />
-      <main className="dashboard">
-        {/* Hero Section */}
-        <section className="hero" id="about-hero">
-          <div className="hero-copy">
-            <span className="eyebrow">About StressCare</span>
-            <h1>Web‑Based Stress Management Support System</h1>
-            <p>
-              Designed specifically for IT students of Our Lady of Fatima University.
-              StressCare helps you understand and manage academic stress through data‑driven
-              workload analysis.
-            </p>
-          </div>
-          <aside className="hero-panel">
-            <h2>At a glance</h2>
-            <ul className="hero-list">
-              <li>Workload Indicator Algorithm</li>
-              <li>Real‑time stress classification</li>
-              <li>Personalized recommendations</li>
-              <li>Task & deadline tracking</li>
-              <li>Weekly pressure forecast</li>
-            </ul>
-          </aside>
-        </section>
-
-        {/* Main content grid */}
-        <section className="grid">
-          <section className="panel">
-            <div className="panel-heading">
-              <div>
-                <span className="panel-kicker">Our approach</span>
-                <h2>Beyond subjective self‑assessments</h2>
-              </div>
-            </div>
-            <p>
-              Unlike traditional stress management tools that rely solely on subjective
-              self‑assessments, StressCare introduces a <strong>Workload Indicator Algorithm</strong>.
-              It estimates stress levels based on measurable academic factors:
-            </p>
-            <ul style={{ marginTop: "1rem", paddingLeft: "1.5rem" }}>
-              <li>Task load and estimated hours</li>
-              <li>Study hours per day</li>
-              <li>Deadline proximity</li>
-              <li>Sleep patterns</li>
-            </ul>
-            <p style={{ marginTop: "1rem" }}>
-              This allows the system to provide a more structured and objective representation of
-              student workload pressure.
-            </p>
-          </section>
-
-          <section className="panel">
-            <div className="panel-heading">
-              <div>
-                <span className="panel-kicker">How it helps</span>
-                <h2>Real‑time feedback & smart planning</h2>
-              </div>
-            </div>
-            <p>
-              The system generates real‑time stress level classifications (Low, Moderate, High)
-              and provides corresponding recommendations to help students manage their time,
-              improve productivity, and reduce academic overload.
-            </p>
-            <p style={{ marginTop: "1rem" }}>
-              These suggestions support students in developing better study habits and
-              maintaining a balanced academic lifestyle.
-            </p>
-          </section>
-        </section>
+      <main className="dashboard about-page">
+        <PageHeader
+          kicker="About"
+          title="About StressCare"
+          description="A planner for OLFU IT students that shows how full your week is and helps you keep it manageable."
+        />
 
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <span className="panel-kicker">Important note</span>
-              <h2>Decision‑support & awareness tool</h2>
+              <span className="panel-kicker">What it is</span>
+              <h2>Your classes, deadlines and check-ins in one place</h2>
             </div>
           </div>
           <p>
-            StressCare <strong>is not intended to diagnose or treat psychological conditions</strong>.
-            Instead, it serves as a decision‑support and awareness tool that helps students
-            better understand how their academic responsibilities may contribute to stress.
-          </p>
-          <p style={{ marginTop: "1rem" }}>
-            By visualizing workload and offering structured feedback, the system encourages
-            proactive stress management and improved academic planning.
+            StressCare puts your timetable, tasks and two short check-ins together. It works out how heavy the
+            week is from real numbers, such as hours of work against hours you have free, instead of guessing.
+            When a week is too full, it suggests what to move and when to rest.
           </p>
         </section>
 
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <span className="panel-kicker">Why IT students?</span>
-              <h2>Built for Fatima’s computing community</h2>
+              <span className="panel-kicker">How it works</span>
+              <h2>Four steps</h2>
+            </div>
+          </div>
+          <ol className="about-steps">
+            {STEPS.map(([title, text]) => (
+              <li key={title}>
+                <strong>{title}</strong>
+                <span>{text}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <span className="panel-kicker">The workload score</span>
+              <h2>How we work out how full your week is</h2>
+            </div>
+          </div>
+          <p>The score runs from 0 to 100 and is built from these, each weighted by how much it matters:</p>
+          <ul className="about-list">
+            {INPUTS.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+          <p>
+            Anything you haven't filled in is left out, and the rest count for more. It never pretends a missing
+            check-in is average. A stress check-in counts for {PSS_VALID_DAYS} days and a well-being check-in for{" "}
+            {WHO_VALID_DAYS} days, because an old result may not describe you any more.
+          </p>
+          <p>Your score lands in one of four weeks:</p>
+          <dl className="about-bands">
+            {BANDS.map(([name, range, text]) => (
+              <div key={name}>
+                <dt>{name} <span>{range}</span></dt>
+                <dd>{text}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <span className="panel-kicker">The check-ins</span>
+              <h2>Two questionnaires researchers already use</h2>
+            </div>
+          </div>
+          <ul className="about-list">
+            <li>
+              <strong>Stress:</strong> the Perceived Stress Scale (PSS-10), Cohen, Kamarck and Mermelstein, 1983.
+            </li>
+            <li>
+              <strong>Well-being:</strong> the WHO-5 Well-Being Index, World Health Organization, 1998.
+            </li>
+          </ul>
+          <p>
+            The scores help StressCare know you and adjust your plan. They aren't shown to other students.
+          </p>
+        </section>
+
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <span className="panel-kicker">What it isn't</span>
+              <h2>Not a diagnosis, not treatment</h2>
             </div>
           </div>
           <p>
-            This system is particularly relevant for IT students who often experience heavy
-            workloads due to programming tasks, projects, and deadlines. Through StressCare,
-            students are given a simple yet effective way to monitor their academic pressure
-            and make informed decisions about their workload management.
+            StressCare is a planning and awareness tool. It doesn't diagnose or treat anything. If things feel
+            like too much, you can find people to talk to under Me, in Help and more.
           </p>
-          <div className="hero-metrics" style={{ marginTop: "1.5rem" }}>
-            <div className="metric-card">
-              <span>Algorithm basis</span>
-              <strong>Workload</strong>
-              <p>Task hours + difficulty + importance + urgency</p>
-            </div>
-            <div className="metric-card">
-              <span>Stress bands</span>
-              <strong>Balanced · Watchlist · High Pressure</strong>
-              <p>Actionable insights for each level</p>
-            </div>
-            <div className="metric-card">
-              <span>Target audience</span>
-              <strong>Fatima IT students</strong>
-              <p>School email domain required</p>
+        </section>
+
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <span className="panel-kicker">Who made it</span>
+              <h2>A thesis project</h2>
             </div>
           </div>
+          <p>
+            Made by <span className="about-placeholder">[team member names]</span> as a thesis project at Our Lady of
+            Fatima University.
+          </p>
+          <p>
+            Questions or problems? Email{" "}
+            {SUPPORT_EMAILS.map((e, i) => (
+              <span key={e}>{i > 0 && " or "}<a href={`mailto:${e}`}>{e}</a></span>
+            ))}
+            .
+          </p>
         </section>
       </main>
       <Footer variant="full" />

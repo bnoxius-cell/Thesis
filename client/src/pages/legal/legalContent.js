@@ -3,7 +3,7 @@
 // should re-accept, bump LEGAL_VERSION in server/utils/legal.js as well, so everyone
 // sees the consent prompt again.
 
-export const LEGAL_UPDATED = "October 10, 2026";
+export const LEGAL_UPDATED = "October 13, 2026";
 export const SUPPORT_EMAILS = [
   "tkishore1434val@student.fatima.edu.ph",
   "amreniva0131val@student.fatima.edu.ph",
@@ -149,9 +149,9 @@ export const PRIVACY = {
       blocks: [
         { ul: [
           "Account details: your name, your email and a scrambled (hashed) version of your password. If you use Google sign-in, we get your name, email and profile picture from Google.",
-          "Profile details you add: bio, program, the hours you can study per day, your well-being goal and a picture.",
-          "Check-in results: your answers and scores for the PSS-10 stress scale and the WHO-5 well-being index, with dates.",
-          "Your tasks: titles, courses, descriptions, due dates, estimated hours, difficulty and importance.",
+          "Profile details you add: bio, program, the hours you can study per day, how much sleep you aim for, your usual bedtime and wake time, your travel time on school days, your pace setting (lighter, balanced or fuller) and a picture.",
+          "Check-in results: your answers and scores for the PSS-10 stress scale and the WHO-5 well-being index, with dates, and a short history of your recent results.",
+          "Your tasks: titles, courses, descriptions, due dates, estimated hours, difficulty and importance, and the time you mark a task as done.",
           "Your schedules: classes and activities with times, places, online class links and notes, any pictures you attach, days you mark off, who you share each one with, and a short log of recent changes on shared schedules.",
           "Social features: friend connections, groups you belong to, group messages and tasks shared in groups.",
           "Reviewers: the text taken from PDFs you upload (we don't keep the PDF file itself), the reviewer and questions made from it, and your Learning Mode answers and scores.",

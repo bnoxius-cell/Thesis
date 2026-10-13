@@ -6,7 +6,7 @@ import "../../App.css";
 import { toast } from "react-toastify";
 import { useAuth } from "./AuthContext";
 import { GoogleLogin } from '@react-oauth/google';
-import { Eye, EyeOff } from 'lucide-react';
+import { ArrowLeftRight, BookOpenCheck, CalendarDays, Eye, EyeOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { SUPPORT_EMAILS } from '../legal/legalContent';
@@ -24,6 +24,7 @@ const AuthPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -151,6 +152,79 @@ const AuthPage = () => {
     setAuthMode('login');
   };
 
+  // Forgot password: ask for a code by email, then set a new password with it.
+  const sendResetCode = async (e) => {
+    e?.preventDefault();
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      toast.error('Enter the email you signed up with.');
+      return;
+    }
+    if (resendTimer > 0 || busy) return;
+    setBusy(true);
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/auth/send-reset-otp`, { email: normalizedEmail });
+      if (data.success) {
+        toast.success('We sent a code to your email.');
+        setOtp(Array(OTP_LENGTH).fill(''));
+        setPassword('');
+        setConfirmPassword('');
+        setResendTimer(RESEND_COOLDOWN_SECONDS);
+        setAuthMode('reset');
+      } else {
+        toast.error(data.message || "We couldn't send a code. Try again.");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "We couldn't send a code. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onResetSubmit = async (e) => {
+    e.preventDefault();
+    const otpCode = otp.join('');
+    if (otpCode.length !== OTP_LENGTH) {
+      toast.error('Please enter the full 6-digit code.');
+      return;
+    }
+    if (password.length < 8) {
+      toast.error('Your new password needs at least 8 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error("Those two passwords don't match.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/auth/reset-password`, {
+        email: email.trim().toLowerCase(), otp: otpCode, password,
+      });
+      if (data.success) {
+        toast.success('Password changed. Sign in with your new one.');
+        setPassword('');
+        setConfirmPassword('');
+        setOtp(Array(OTP_LENGTH).fill(''));
+        setResendTimer(0);
+        setAuthMode('login');
+      } else {
+        toast.error(data.message || "That didn't work. Try again.");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "That didn't work. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const goTo = (mode) => {
+    setPassword('');
+    setConfirmPassword('');
+    setResendTimer(0);
+    setAuthMode(mode);
+  };
+
   const handleGoogleSuccess = async (credentialResponse) => {
     if (!credentialResponse?.credential) {
       toast.error('Google Login Failed');
@@ -180,6 +254,65 @@ const AuthPage = () => {
     }
   };
 
+  const otpRow = (
+    <div className="otp-input-row">
+      {otp.map((digit, index) => (
+        <input
+          key={index}
+          type="text"
+          inputMode="numeric"
+          autoComplete={index === 0 ? 'one-time-code' : 'off'}
+          aria-label={`Digit ${index + 1} of ${OTP_LENGTH}`}
+          maxLength="1"
+          value={digit}
+          onChange={(e) => handleOtpChange(e, index)}
+          onKeyDown={(e) => handleOtpKeyDown(e, index)}
+          onPaste={(e) => handleOtpPaste(e, index)}
+          // Selecting on focus lets a typed digit replace the one already there.
+          onFocus={(e) => e.target.select()}
+          ref={(el) => (inputRefs.current[index] = el)}
+          className="otp-input"
+          required
+        />
+      ))}
+    </div>
+  );
+  const countdown = `${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}`;
+
+  const passwordInput = (value, onChange, { label, autoComplete, placeholder }) => (
+    <label>
+      {label}
+      <div className="password-field">
+        <input
+          onChange={onChange}
+          value={value}
+          type={showPassword ? 'text' : 'password'}
+          autoComplete={autoComplete}
+          minLength={autoComplete === 'new-password' ? 8 : undefined}
+          placeholder={placeholder}
+          required
+        />
+        <button
+          type="button"
+          className="password-toggle"
+          onClick={() => setShowPassword(v => !v)}
+          aria-label={showPassword ? 'Hide password' : 'Show password'}
+          aria-pressed={showPassword}
+        >
+          {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+        </button>
+      </div>
+    </label>
+  );
+
+  const header = {
+    login: ['Welcome back', 'Sign in', 'Sign in with your email, or continue with a Fatima Google account.'],
+    register: ['Create profile', 'Student signup', 'Sign up with any email. Google sign-up is for Fatima student accounts only.'],
+    verify: ['Verify account', 'Check your email', `Enter the 6-digit code we emailed to ${userData?.email || 'your email'}. It's valid for 20 minutes.`],
+    forgot: ['Forgot password', 'Reset your password', "Enter the email you signed up with and we'll send you a 6-digit code. If you signed up with Google, use the Google button on the sign-in page instead."],
+    reset: ['Reset password', 'Choose a new password', `Enter the code we emailed to ${email.trim() || 'your email'} and pick a new password. The code is valid for 20 minutes.`],
+  }[authMode];
+
   if (loading) {
     return (
       <div className="app auth-layout">
@@ -200,61 +333,31 @@ const AuthPage = () => {
       <main className="auth-page">
         <section className="auth-shell" id="login">
           <div className="auth-copy">
-            <span className="eyebrow">Student workload system</span>
-            <h1>Plan personal tasks and group work from one dashboard.</h1>
+            <span className="eyebrow">For OLFU IT students</span>
+            <h1>See your week clearly and keep it manageable.</h1>
             <p>
-              Make a StressCare account with any email to plan your tasks, share group work
-              with classmates, and keep your week manageable.
+              StressCare puts your classes, deadlines and quick check-ins together, then helps you spread
+              the work so no day is too much. Made for OLFU IT students.
             </p>
-            <div className="auth-preview">
-              <span>Email or Google sign-in</span>
-              <span>Personal task board</span>
-              <span>Group-ready workflow</span>
-            </div>
+            <ul className="auth-points">
+              <li><CalendarDays size={20} aria-hidden="true" /> Your timetable and deadlines in one week</li>
+              <li><ArrowLeftRight size={20} aria-hidden="true" /> A plan that moves work off your heaviest days</li>
+              <li><BookOpenCheck size={20} aria-hidden="true" /> Practice questions from your own notes</li>
+            </ul>
           </div>
 
           <div className="auth-card">
             <div className="auth-card-header">
-              <span className="panel-kicker">
-                {authMode === 'login' ? 'Welcome back' : authMode === 'register' ? 'Create profile' : 'Verify account'}
-              </span>
-              <h2>
-                {authMode === 'login' ? 'Sign in' : authMode === 'register' ? 'Student signup' : 'Check your email'}
-              </h2>
-              <p>
-                {authMode === 'login'
-                  ? 'Sign in with your email, or continue with a Fatima Google account.'
-                  : authMode === 'register'
-                  ? 'Sign up with any email. Google sign-up is for Fatima student accounts only.'
-                  : `Enter the 6-digit code we emailed to ${userData?.email || 'your email'}. It's valid for 20 minutes.`}
-              </p>
+              <span className="panel-kicker">{header[0]}</span>
+              <h2>{header[1]}</h2>
+              <p>{header[2]}</p>
             </div>
 
             {authMode === 'verify' ? (
               <form className="auth-form" onSubmit={onVerifySubmit}>
-                <div className="otp-input-row">
-                  {otp.map((digit, index) => (
-                    <input
-                      key={index}
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete={index === 0 ? 'one-time-code' : 'off'}
-                      aria-label={`Digit ${index + 1} of ${OTP_LENGTH}`}
-                      maxLength="1"
-                      value={digit}
-                      onChange={(e) => handleOtpChange(e, index)}
-                      onKeyDown={(e) => handleOtpKeyDown(e, index)}
-                      onPaste={(e) => handleOtpPaste(e, index)}
-                      // Selecting on focus lets a typed digit replace the one already there.
-                      onFocus={(e) => e.target.select()}
-                      ref={(el) => (inputRefs.current[index] = el)}
-                      className="otp-input"
-                      required
-                    />
-                  ))}
-                </div>
+                {otpRow}
                 <button type="submit" className="primary-button" disabled={busy}>
-                  {busy ? 'Checking...' : 'Verify Email'}
+                  {busy ? 'Checking...' : 'Verify email'}
                 </button>
                 <button
                   type="button"
@@ -263,7 +366,48 @@ const AuthPage = () => {
                   style={{ marginTop: '10px' }}
                   disabled={resendTimer > 0 || busy}
                 >
-                  {resendTimer > 0 ? `Resend Code in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend Code'}
+                  {resendTimer > 0 ? `Resend code in ${countdown}` : 'Resend code'}
+                </button>
+              </form>
+            ) : authMode === 'forgot' ? (
+              <form className="auth-form" onSubmit={sendResetCode}>
+                <label>
+                  Email
+                  <input
+                    onChange={e => setEmail(e.target.value)}
+                    value={email}
+                    type="email"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    placeholder="you@example.com"
+                    required
+                  />
+                </label>
+                <button type="submit" className="primary-button" disabled={busy}>
+                  {busy ? 'Sending...' : 'Send code'}
+                </button>
+              </form>
+            ) : authMode === 'reset' ? (
+              <form className="auth-form" onSubmit={onResetSubmit}>
+                {otpRow}
+                {passwordInput(password, e => setPassword(e.target.value), { label: 'New password', autoComplete: 'new-password', placeholder: 'At least 8 characters' })}
+                <label>
+                  Confirm new password
+                  <input
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    value={confirmPassword}
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    placeholder="Type it again"
+                    required
+                  />
+                </label>
+                <button type="submit" className="primary-button" disabled={busy}>
+                  {busy ? 'Saving...' : 'Change password'}
+                </button>
+                <button type="button" className="ghost-button" onClick={sendResetCode} disabled={resendTimer > 0 || busy}>
+                  {resendTimer > 0 ? `Send a new code in ${countdown}` : 'Send a new code'}
                 </button>
               </form>
             ) : (
@@ -294,41 +438,18 @@ const AuthPage = () => {
                     required
                   />
                 </label>
-                <label>
-                  Password
-                  <div className="password-field">
-                    <input
-                      onChange={e => setPassword(e.target.value)}
-                      value={password}
-                      type={showPassword ? 'text' : 'password'}
-                      autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
-                      minLength={authMode === 'register' ? 8 : undefined}
-                      placeholder={authMode === 'register' ? 'At least 8 characters' : '••••••••'}
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="password-toggle"
-                      onClick={() => setShowPassword(v => !v)}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      aria-pressed={showPassword}
-                    >
-                      {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
-                    </button>
-                  </div>
-                </label>
+                {passwordInput(password, e => setPassword(e.target.value), {
+                  label: 'Password',
+                  autoComplete: authMode === 'login' ? 'current-password' : 'new-password',
+                  placeholder: authMode === 'register' ? 'At least 8 characters' : '••••••••',
+                })}
                 {authMode === 'login' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      id="rememberMe"
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      style={{ width: '16px', height: '16px', padding: 0, margin: 0, cursor: 'pointer' }}
-                    />
-                    <label htmlFor="rememberMe" style={{ display: 'inline', fontWeight: 'normal', cursor: 'pointer', fontSize: '0.9rem' }}>
+                  <div className="auth-login-extras">
+                    <label className="remember-me" htmlFor="rememberMe">
+                      <input id="rememberMe" type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
                       Remember me
                     </label>
+                    <button type="button" className="link-button" onClick={() => goTo('forgot')}>Forgot password?</button>
                   </div>
                 )}
                 {authMode === 'register' && (
@@ -343,12 +464,12 @@ const AuthPage = () => {
                 <button type="submit" className="primary-button" disabled={busy}>
                   {busy
                     ? (authMode === 'login' ? 'Signing in...' : 'Creating account...')
-                    : (authMode === 'login' ? 'Sign In' : 'Create Account')}
+                    : (authMode === 'login' ? 'Sign in' : 'Create account')}
                 </button>
               </form>
             )}
 
-            {authMode !== 'verify' && (
+            {(authMode === 'login' || authMode === 'register') && (
               <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '10px' }}>
                   <hr style={{ flex: 1, border: 'none', borderTop: '1px solid var(--input-border)' }} />
@@ -374,12 +495,16 @@ const AuthPage = () => {
             <div className="auth-actions">
               {authMode === 'verify' ? (
                 <button type="button" onClick={handleBackToLogin} className="secondary-button" disabled={busy}>
-                  Back to login
+                  Back to sign in
+                </button>
+              ) : authMode === 'forgot' || authMode === 'reset' ? (
+                <button type="button" onClick={() => goTo('login')} className="secondary-button" disabled={busy}>
+                  Back to sign in
                 </button>
               ) : (
                 <button
                   type="button"
-                  onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
+                  onClick={() => goTo(authMode === 'login' ? 'register' : 'login')}
                   className="secondary-button"
                   disabled={busy}
                 >
