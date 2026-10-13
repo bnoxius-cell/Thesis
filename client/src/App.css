@@ -326,19 +326,6 @@ h2, h3 {
   padding-top: 24px;
   border-top: 1px solid var(--border-light);
 }
-.sidepanel-user {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 12px;
-  font-weight: 600;
-  color: var(--user-info-color);
-}
-.user-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .sidepanel-logout {
   display: flex;
   align-items: center;
@@ -5985,15 +5972,6 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   margin-top: var(--space-5);
   padding-top: var(--space-3);
 }
-a.sidepanel-user {
-  min-height: 48px;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-sm);
-  text-decoration: none;
-}
-a.sidepanel-user:hover {
-  background: var(--surface-2);
-}
 .sidepanel-logout {
   justify-content: flex-start;
   min-height: 44px;
@@ -6043,6 +6021,13 @@ a.sidepanel-user:hover {
   width: 44px;
   height: 44px;
   border-radius: var(--radius-pill);
+}
+.topbar-avatar:hover,
+.topbar-avatar.active {
+  background: var(--surface-2);
+}
+.topbar-avatar.active .ua {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
 }
 
 /* One-line footer for signed-in pages */
@@ -6126,7 +6111,7 @@ a.sidepanel-user:hover {
     bottom: 0;
     z-index: 100;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     padding-bottom: env(safe-area-inset-bottom);
     background: var(--surface);
     border-top: 1px solid var(--border);

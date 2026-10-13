@@ -5,7 +5,7 @@ const TITLES = {
   "/schedule": "Schedule",
   "/reviewers": "Study",
   "/groups": "People",
-  "/profile": "Me",
+  "/profile": "Profile",
   "/wellbeing": "Wellbeing",
   "/notifications": "Notifications",
   "/about": "About",
