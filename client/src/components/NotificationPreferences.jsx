@@ -52,7 +52,8 @@ function Switch({ label, hint, checked, onChange, disabled }) {
   );
 }
 
-export default function NotificationPreferences() {
+// onReady fires once the panel has its final shape (loaded, or failed), so a page can re-scroll to a hash.
+export default function NotificationPreferences({ onReady }) {
   const { backendUrl, userData } = useAuth();
   const userId = userData?._id;
 
@@ -130,6 +131,11 @@ export default function NotificationPreferences() {
       setDeviceBusy(false);
     }
   };
+
+  const settled = Boolean(prefs) || Boolean(loadError);
+  useEffect(() => {
+    if (settled) onReady?.();
+  }, [settled, onReady]);
 
   if (loadError) {
     return (

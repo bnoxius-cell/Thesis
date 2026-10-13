@@ -47,7 +47,7 @@ export default function MemberDialog({ group, member, onClose, onGroupUpdated })
     try {
       const { data } = await request();
       if (data.success) {
-        toast.success(doneMessage);
+        toast.success(typeof doneMessage === "function" ? doneMessage(data) : doneMessage);
         if (data.group) onGroupUpdated(data.group);
         if (closeAfter) onClose();
         else if (!refreshGroup) await loadProfile();
@@ -64,7 +64,7 @@ export default function MemberDialog({ group, member, onClose, onGroupUpdated })
 
   const addFriend = () => run(
     () => axios.post(`${backendUrl}/api/friends/request`, { userId: member._id }, { withCredentials: true }),
-    "Friend request sent."
+    (data) => (data.accepted ? "You're now friends." : "Friend request sent.")
   );
   const acceptFriend = () => run(
     () => axios.put(`${backendUrl}/api/friends/accept/${profile.requestId}`, {}, { withCredentials: true }),

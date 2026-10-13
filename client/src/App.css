@@ -7280,3 +7280,13 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
     min-height: 44px;
   }
 }
+
+/* Hash links on phones: leave room for the sticky 56px top bar. */
+@media (max-width: 720px) {
+  .me-sections > section,
+  .me-sections > div,
+  .dashboard section.panel:is(#week, #checkins, #sleep, #how),
+  .legal-doc section {
+    scroll-margin-top: calc(56px + env(safe-area-inset-top) + var(--space-3));
+  }
+}

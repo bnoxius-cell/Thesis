@@ -1,5 +1,5 @@
 import { useAuth } from "./authentication/AuthContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Navigate, useLocation, Link } from "react-router-dom";
 import { Check, Copy, LogOut } from "lucide-react";
 import axios from "axios";
@@ -87,8 +87,10 @@ function Me() {
   const { hash } = useLocation();
   const [savingPicture, setSavingPicture] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [prefsReady, setPrefsReady] = useState(false);
+  const onPrefsReady = useCallback(() => setPrefsReady(true), []);
 
-  const shortTag = user.profileTag || (user._id ? user._id.slice(0, 6).toUpperCase() : "");
+  const shortTag = user.profileTag || "";
 
   // The saved values, and what's in the two forms right now.
   const saved = profileFromUser(user);
@@ -177,11 +179,12 @@ function Me() {
     }
   };
 
-  // Links like /profile/<id>#appearance should land on that section.
+  // Links like /profile/<id>#appearance should land on that section. Scroll again once the
+  // notification panel has loaded, because it changes height and moves everything below it.
   useEffect(() => {
     if (!hash) return;
     document.getElementById(hash.slice(1))?.scrollIntoView({ block: "start" });
-  }, [hash]);
+  }, [hash, prefsReady]);
 
   const setYouField = (key, value) => setYou((prev) => ({ ...prev, [key]: value }));
   const setWeekField = (key, value) => setWeek((prev) => ({ ...prev, [key]: value }));
@@ -223,14 +226,18 @@ function Me() {
                 />
                 <div className="me-friend-code">
                   <span className="me-label">Friend code</span>
-                  <div className="me-code-row">
-                    <code className="friend-code">{shortTag}</code>
-                    <button type="button" className="secondary-button small" onClick={copyFriendCode}>
-                      {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
-                      {copied ? "Copied" : "Copy"}
-                    </button>
-                  </div>
-                  <small className="field-hint">Share it so friends can add you. Signed in as {user.email}.</small>
+                  {shortTag ? (
+                    <div className="me-code-row">
+                      <code className="friend-code">{shortTag}</code>
+                      <button type="button" className="secondary-button small" onClick={copyFriendCode}>
+                        {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+                        {copied ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                  ) : null}
+                  <small className="field-hint">
+                    {shortTag ? "Share it so friends can add you." : "Your friend code isn't ready yet. Try again in a moment."} Signed in as {user.email}.
+                  </small>
                 </div>
               </div>
 
@@ -348,7 +355,7 @@ function Me() {
             </section>
 
             <div id="notifications">
-              <NotificationPreferences />
+              <NotificationPreferences onReady={onPrefsReady} />
             </div>
 
             <section className="panel" id="checkins">

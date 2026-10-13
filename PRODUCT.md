@@ -28,7 +28,7 @@ The workload score is computed from the student's own timetable (class hours, Ph
 - Deadline: the revamp must be presentable within 3 weeks of 2026-10-12.
 
 ## Brand Commitments
-- Name: StressCare. Logo: `client/src/assets/logo.svg` (heart mark).
+- Name: StressCare. Logo: `client/src/assets/logo.png` (heart mark).
 - The owner restored the slate and red palette after a sage redesign (commits `405f65d`, `fa649bb`): red stays the brand color.
 - Fonts in use: Karla (UI) and Fraunces (display).
 - Voice: plain, warm, student to student; no emoji in the UI (lucide icons instead); no em-dash connectors.

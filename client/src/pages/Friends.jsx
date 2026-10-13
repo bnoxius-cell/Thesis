@@ -24,7 +24,7 @@ export default function Friends() {
   const [confirmRemove, setConfirmRemove] = useState(null); // the friend being removed
   const [removing, setRemoving] = useState(false);
 
-  const myTag = user?.profileTag || (user?._id ? user._id.slice(0, 6).toUpperCase() : "");
+  const myTag = user?.profileTag || "";
 
   const fetchData = useCallback(async () => {
     try {
@@ -118,14 +118,20 @@ export default function Friends() {
             <h2>Your friend code</h2>
           </div>
         </div>
-        <div className="me-code-row">
-          <code className="friend-code">{myTag}</code>
-          <button type="button" className="secondary-button small" onClick={copyCode}>
-            {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
-            {copied ? "Copied" : "Copy"}
-          </button>
-        </div>
-        <small className="field-hint">Share it with a classmate so they can add you.</small>
+        {myTag ? (
+          <>
+            <div className="me-code-row">
+              <code className="friend-code">{myTag}</code>
+              <button type="button" className="secondary-button small" onClick={copyCode}>
+                {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <small className="field-hint">Share it with a classmate so they can add you.</small>
+          </>
+        ) : (
+          <small className="field-hint">Your friend code isn't ready yet. Try again in a moment.</small>
+        )}
 
         <form className="add-friend-form" onSubmit={sendRequest}>
           <label htmlFor="friend-code-input">Add a friend by their code</label>
