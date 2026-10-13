@@ -102,6 +102,8 @@ What I looked up and what it changed in this plan. Most design sources are pract
 | 4 | People | `Users` | `/groups` (URL unchanged) | Groups, Friends (tabs) |
 | 5 | Me | `CircleUser` | `/profile/:id` (URL unchanged) | Profile, your week, appearance, notifications, privacy, help, sign out |
 
+**Changed 2026-10-13 (owner):** "Me" left the main places and is now labelled **Profile**. Laptop: the sidebar has the 4 places, and its footer has Notifications, Profile (avatar plus "Profile") and Sign out. Phone: the bottom bar has the 4 places; Profile is the avatar in the top bar next to the bell. The page title is "Profile" too. The bullets below describe the original 5-place layout.
+
 Plus a **bell** (`Bell`, unread count) that opens `/notifications`, and **Wellbeing** (`/wellbeing`, new), reached from the Today "This week" card and from Me.
 
 - **Laptop (over 720px):** left sidebar, 232px, with the 5 places. At the bottom of the sidebar: the bell with its count, then the student's avatar and first name (links to Me). Group labels (Plan / Together / You) go away; 5 items don't need them.
@@ -277,6 +279,8 @@ Pure function `sleepPlan()` in `client/src/utils/sleepPlan.js`:
 - **URLs stay** (`/dashboard`, `/reviewers`, `/groups`, `/profile/:id`); only labels change. Old links in notifications and chats keep working. (Opus, delegated)
 - **Numbers one tap deeper**: Today shows words only; Wellbeing shows the workload score and check-in scores. (Opus, delegated, follows the owner's "scores are for the system")
 - **Fraunces only for page titles (h1) and the Today greeting**; everything else, including panel titles, in Karla. The app is a tool; a display serif on every card title reads as decoration. (Opus, delegated)
+
+- **One Profile link, next to Notifications and Sign out** (owner, 2026-10-13): the sidebar showed both the first name and "Me" for the same page. "Me" is gone from the main places and the link is labelled "Profile" everywhere (sidebar footer, phone top bar avatar, page title).
 
 Answered by the owner on 2026-10-12 (these were the Open list):
 - **Student-facing band names** (owner: "you suggest"): "Light week", "Steady week", "Full week", "Too much this week" on screen. The code and the thesis keep Light/Moderate/Heavy Workload and Critical Overload: add a display map (`BAND_LABEL` in `workload.js`) and rename nothing, since `isStrained` and the tests compare the internal names.

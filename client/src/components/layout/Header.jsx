@@ -1,18 +1,18 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Bell, CalendarDays, BookOpenCheck, House, Users, CircleUser, LogOut } from 'lucide-react';
+import { Bell, CalendarDays, BookOpenCheck, House, Users, LogOut } from 'lucide-react';
 import { useAuth } from '../../pages/authentication/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import UserAvatar from '../UserAvatar';
 import Logo from '../../assets/logo.png';
 
-// The five places in the app (frontend-plan.md section 5). `match` decides when a place is the
+// The main places in the app (frontend-plan.md section 5). `match` decides when a place is the
 // current one, so related pages (Wellbeing under Today, /friends under People) keep it lit.
+// Profile isn't one of them: it sits with Notifications and Sign out (sidebar footer, phone top bar).
 const PLACES = [
   { key: 'today', label: 'Today', Icon: House, to: () => '/dashboard', match: (p) => p === '/dashboard' || p === '/wellbeing' },
   { key: 'schedule', label: 'Schedule', Icon: CalendarDays, to: () => '/schedule', match: (p) => p === '/schedule' },
   { key: 'study', label: 'Study', Icon: BookOpenCheck, to: () => '/reviewers', match: (p) => p === '/reviewers' },
   { key: 'people', label: 'People', Icon: Users, to: () => '/groups', match: (p) => p === '/groups' || p === '/friends' },
-  { key: 'me', label: 'Me', Icon: CircleUser, to: (user) => (user?._id ? `/profile/${user._id}` : '/profile'), match: (p) => p.startsWith('/profile') || p === '/settings' },
 ];
 
 function BellLink({ unreadCount, active }) {
@@ -48,8 +48,9 @@ export default function Header() {
     );
   }
 
-  const firstName = user?.name?.split(' ')[0] || 'Student';
-  const meTarget = PLACES[4].to(user);
+  const profileTarget = user?._id ? `/profile/${user._id}` : '/profile';
+  // Only your own profile lights it up, not another student's.
+  const onProfile = pathname === profileTarget || pathname === '/settings';
   const onNotifications = pathname === '/notifications';
 
   return (
@@ -93,9 +94,12 @@ export default function Header() {
                 <span className="nav-badge" aria-label={`${unreadCount} unread`}>{unreadCount > 99 ? '99+' : unreadCount}</span>
               )}
             </Link>
-            <Link to={meTarget} className="sidepanel-user" title="Open Me">
-              <UserAvatar name={user?.name} src={user?.avatar} size={32} />
-              <span className="user-name">{firstName}</span>
+            <Link
+              to={profileTarget}
+              className={`sidepanel-link sidepanel-profile ${onProfile ? 'active' : ''}`}
+              aria-current={onProfile ? 'page' : undefined}
+            >
+              <UserAvatar name={user?.name} src={user?.avatar} size={22} /> <span>Profile</span>
             </Link>
             <button type="button" onClick={logout} className="sidepanel-logout">
               <LogOut size={16} aria-hidden="true" />
@@ -113,7 +117,12 @@ export default function Header() {
         </Link>
         <div className="topbar-actions">
           <BellLink unreadCount={unreadCount} active={onNotifications} />
-          <Link to={meTarget} className="topbar-avatar" aria-label="Open Me">
+          <Link
+            to={profileTarget}
+            className={`topbar-avatar ${onProfile ? 'active' : ''}`}
+            aria-label="Profile"
+            aria-current={onProfile ? 'page' : undefined}
+          >
             <UserAvatar name={user?.name} src={user?.avatar} size={32} />
           </Link>
         </div>
@@ -121,8 +130,8 @@ export default function Header() {
 
       <nav className="bottombar" aria-label="Main">
         {PLACES.map((place) => {
-              const { key, label, to, match } = place;
-              const Icon = place.Icon;
+          const { key, label, to, match } = place;
+          const Icon = place.Icon;
           const active = match(pathname);
           return (
             <Link

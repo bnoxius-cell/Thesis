@@ -20,6 +20,7 @@ Scope: commits `438931b` (FE-4), `c068a31` (FE-5), `ee5510a` (FE-6). Re-ran: 450
 - **6 (Docs)**: `PRODUCT.md` still says the logo is `logo.svg` (the Impeccable skill reads it); `system-review.md` R3 and the logo half of P1 are done by FE-6 but not ticked.
 
 ## Where to pick up (read this first)
+- 2026-10-13: navbar change on `redesign/nav-profile` (merged): "Me" left the main nav and is now "Profile", next to Notifications and Sign out (phone: top bar avatar, bottom bar has 4 places). Checked at 1280 and 375, light and dark. The "tab title says Me on another student's profile" nit in item 5 is moot now (it says "Profile").
 - Frontend is finished and reviewed. Next: fix review items 2 to 6 (small, one UI branch), then Batch 1 (item 1, needs the S6 answer), then auth Batch 5 (Opus review before merging); Batch 4 (task share tags); Batch 6 rest; Batch 10 (delete-user script); Batch 11 (code splitting, 645 KB bundle). Full list in `system-review.md`.
 - Owner to-do: fill in `client/src/utils/helpContacts.js` and the About team names (visible placeholders), real phone pass on the deployed site, say whether to record a DESIGN.md, manual reviewer tests, real Google sign-in on the live site.
 - Not verified: the forgot-password flow end to end (needs real email), a real phone, the Chrome extension (it never connected this session; headless Chrome was used).

@@ -192,7 +192,7 @@ function Me() {
     <div className="app app-layout">
       <Header />
       <main className="dashboard me-page">
-        <PageHeader title="Me" description="Your details, the numbers your plan uses, and how the app looks and behaves." />
+        <PageHeader title="Profile" description="Your details, the numbers your plan uses, and how the app looks and behaves." />
 
         <div className="me-layout">
           <nav className="me-index" aria-label="On this page">
