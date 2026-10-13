@@ -1474,76 +1474,6 @@ input[type="range"] {
 }
 
 /* Animated task action buttons (Edit / Done / Delete) */
-.task-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.edit-button,
-.done-button,
-.remove-button {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: rgb(20, 20, 20);
-  border: none;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.164);
-  cursor: pointer;
-  transition-duration: 0.3s;
-  overflow: hidden;
-  position: relative;
-  flex-shrink: 0;
-}
-.edit-svgIcon,
-.done-svgIcon,
-.remove-svgIcon {
-  width: 18px;
-  transition-duration: 0.3s;
-}
-.edit-svgIcon path { fill: white; }
-.edit-button:hover,
-.done-button:hover,
-.remove-button:hover {
-  width: 110px;
-  border-radius: 50px;
-  transition-duration: 0.3s;
-  gap: 6px;
-}
-.edit-button:hover .edit-svgIcon,
-.done-button:hover .done-svgIcon,
-.remove-button:hover .remove-svgIcon {
-  width: 20px;
-  transition-duration: 0.3s;
-  transform: rotate(360deg);
-}
-.edit-button::before,
-.done-button::before,
-.remove-button::before {
-  display: none;
-  content: "";
-  color: white;
-  transition-duration: 0.3s;
-  font-size: 2px;
-}
-.edit-button:hover::before,
-.done-button:hover::before,
-.remove-button:hover::before {
-  display: inline-block;
-  padding-right: 6px;
-  font-size: 13px;
-  opacity: 1;
-  transform: translateY(0px);
-  transition-duration: 0.3s;
-  font-weight: 500;
-}
-.edit-button:hover {
-  background-color: #6b7280;
-}
-.edit-button:hover::before { content: "Edit"; }
 
 /* ==========================================================================
    MODALS & CONFIRM DIALOGS (shared)
@@ -2685,21 +2615,6 @@ input[type="range"] {
   }
   .panel-heading h2 {
     font-size: 1.05rem;
-  }
-  .task-actions {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-  .edit-button,
-  .done-button,
-  .remove-button {
-    width: 32px;
-    height: 32px;
-  }
-  .edit-svgIcon,
-  .done-svgIcon,
-  .remove-svgIcon {
-    width: 15px;
   }
 }
 
@@ -7333,5 +7248,50 @@ a.sidepanel-user:hover {
   .about-steps,
   .about-bands {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Tap targets: at least 44px tall on phones (FE-6). */
+@media (max-width: 720px) {
+  .primary-button.small,
+  .secondary-button.small,
+  .ghost-button.small,
+  .group-actions .remove-friend-btn,
+  .sched-back {
+    min-height: 44px;
+  }
+  .site-header .logo-link,
+  .topbar .logo-link,
+  .header-auth .logo-link {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 720px) {
+  .pref-group select,
+  .pref-group input:not([type="checkbox"]):not([type="radio"]) {
+    min-height: 44px;
+  }
+  .site-footer-socials a {
+    display: inline-grid;
+    place-items: center;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .site-footer-column a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .legal-back,
+  .legal-toc a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .me-help-list a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
   }
 }

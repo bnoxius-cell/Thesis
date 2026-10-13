@@ -445,12 +445,12 @@ Keep the existing polish-pass motion and its `prefers-reduced-motion` guard. Add
 - [x] **5. Privacy Policy** (section 8, needs FE-3's `completedAt` merged first). In `client/src/pages/legal/legalContent.js`, add sleep target, usual bedtime and wake time, travel time, task completion times and check-in history to "What we collect". Bump `LEGAL_VERSION` in `server/utils/legal.js` and `LEGAL_UPDATED` in `legalContent.js` to the merge date, so everyone sees the Terms prompt once. Tick D2 and R5 in `system-review.md`.
 
 ### FE-6 `chore/frontend-qa` (Week 3)
-- [ ] Go through the pre-ship list in the global `docs/frontend.md` (no horizontal scroll, no broken links or buttons, mobile menu, favicon, page titles per route, meta description, footer links, custom 404, current copyright year, compressed images, success and error messages, no placeholder text, no dead nav items, logo links home, `mailto:` links) and fix what fails.
-- [ ] Every route at 320/375/768/1280, light and dark, with the seeded account and a new one. Contrast spot checks on anything new.
-- [ ] Run `impeccable detect` across `client/src`, then `impeccable polish` on Today, Wellbeing and the check-in flow.
-- [ ] List every placeholder still showing (search for `[` in `helpContacts.js` and About) and remind the owner to fill them in before the panel.
+- [x] Go through the pre-ship list in the global `docs/frontend.md` (no horizontal scroll, no broken links or buttons, mobile menu, favicon, page titles per route, meta description, footer links, custom 404, current copyright year, compressed images, success and error messages, no placeholder text, no dead nav items, logo links home, `mailto:` links) and fix what fails.
+- [x] Every route at 320/375/768/1280, light and dark, with the seeded account and a new one. Contrast spot checks on anything new.
+- [x] Run `impeccable detect` across `client/src`, then `impeccable polish` on Today, Wellbeing and the check-in flow.
+- [x] List every placeholder still showing (search for `[` in `helpContacts.js` and About) and remind the owner to fill them in before the panel.
 - [ ] Ask the owner whether to record the result as a DESIGN.md (Impeccable's `document` command).
-- [ ] Write up what changed in CLAUDE.md (navigation, routes, Wellbeing, check-in results, tokens) and remove the stale notes (the "no frontend-plan" note, the sage/ochre/clay description).
+- [x] Write up what changed in CLAUDE.md (navigation, routes, Wellbeing, check-in results, tokens) and remove the stale notes (the "no frontend-plan" note, the sage/ochre/clay description).
 - [ ] Owner: a real phone pass on the deployed site (bottom bar, check-in stepper, safe areas on iPhone, keyboard over inputs).
 
 ---

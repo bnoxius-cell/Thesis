@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Github, Mail } from 'lucide-react';
-import Logo from '../../assets/logo.svg';
+import Logo from '../../assets/logo.png';
 import { useAuth } from '../../pages/authentication/AuthContext';
 import { SUPPORT_EMAILS } from '../../pages/legal/legalContent';
 import './Footer.css';

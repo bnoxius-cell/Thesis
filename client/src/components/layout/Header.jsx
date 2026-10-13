@@ -3,7 +3,7 @@ import { Bell, CalendarDays, BookOpenCheck, House, Users, CircleUser, LogOut } f
 import { useAuth } from '../../pages/authentication/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import UserAvatar from '../UserAvatar';
-import Logo from '../../assets/logo.svg';
+import Logo from '../../assets/logo.png';
 
 // The five places in the app (frontend-plan.md section 5). `match` decides when a place is the
 // current one, so related pages (Wellbeing under Today, /friends under People) keep it lit.
