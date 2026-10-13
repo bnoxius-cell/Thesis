@@ -2,10 +2,20 @@
 
 Read this first after a `/clear`. It's the short "where we left off" note. `CLAUDE.md` has the full project reference, this file only has the current state.
 
-Last updated: 2026-10-13. **All frontend batches (FE-1 to FE-6) are done and merged into `main` (last merge `7e0b677`, pushed).** 450 server tests pass, client builds clean. Nothing since FE-3 has had the Opus review yet (owner's call: review everything at once). `next-prompt.md` is done and deleted. Branch from `main` for each batch.
+Last updated: 2026-10-13. **All frontend batches (FE-1 to FE-6) are done and merged into `main`, and Opus has reviewed FE-4 to FE-6 (findings below, nothing fixed yet).** 450 server tests pass, client builds clean. Branch from `main` for each batch.
+
+## Opus review of FE-4 to FE-6 (2026-10-13)
+Scope: commits `438931b` (FE-4), `c068a31` (FE-5), `ee5510a` (FE-6). Re-ran: 450/450 server tests, client build (645 KB chunk, as before), lint on the changed files (only the 3 known `set-state-in-effect` errors). Nothing was tried in a browser.
+- **Fine as is**: friend routes (only the two people on a request can drop it, bad ids 404, tested), emails gone from friend lists, pace logic matches the owner's decision and is tested, no raw colors added, none of the deleted CSS is still used, the reset form posts `{ email, otp, password }` and its "20 minutes" matches the server, `LEGAL_VERSION` and `LEGAL_UPDATED` both bumped.
+- **1 (Medium, do before the panel)**: FE-5 put the forgot-password screen live before Batch 1's server half. Now reachable from the UI: the server accepts any non-empty new password (only the client checks 8); if the "password changed" email fails, the password is already changed but the student sees an error, and a retry says "Invalid OTP" because the code was cleared; no attempt limit on codes (S1); the forgot screen toasts "User not found." (S6). Fix = Batch 1. Ask the owner S6 first.
+- **2 (Low, phones)**: on 720px and under, the sticky top bar is 56px but section `scroll-margin-top` is 24px, so hash links land with the section heading under the bar: Me (`#help` from the footer, `#notifications` from the Notifications page, `#appearance` from `/settings`), Wellbeing (`#checkins`, `#how`) and the legal page sections. Fix: in the 720px block, `scroll-margin-top: calc(56px + env(safe-area-inset-top) + var(--space-3))` on `.me-sections > *`, the Wellbeing sections and `.legal-doc section`.
+- **3 (Low)**: Me scrolls to the hash once on mount, before `NotificationPreferences` has loaded. When that panel fills in, everything below it (`#checkins`, `#privacy`, `#help`) moves down. Chrome's scroll anchoring probably hides it; Safari may not. Fix: same as Wellbeing (scroll again once the panel has loaded, e.g. an `onReady` prop).
+- **4 (Low, thesis accuracy)**: About lists the seven weighted parts of the score but not the point adjustments (exam within 7 days +8 or within 2 days +15, overdue tasks +3 each up to +10, pace +10 / -10). One sentence fixes it.
+- **5 (Nits)**: Add friend from `PublicProfile` / `MemberDialog` toasts "Friend request sent." even when the server auto-accepted (use `data.accepted`); the tab title says "Me" on another student's profile (`pageTitles.js`); Friends copies Profile's fallback code (`_id.slice(0, 6)`), which isn't a real friend code (rare: the pre-save hook gives everyone a `profileTag`).
+- **6 (Docs)**: `PRODUCT.md` still says the logo is `logo.svg` (the Impeccable skill reads it); `system-review.md` R3 and the logo half of P1 are done by FE-6 but not ticked.
 
 ## Where to pick up (read this first)
-- Frontend is finished. Not yet done by anyone: Opus review of FE-4 to FE-6; auth Batches 1 and 5 (need Opus review before merging, and the owner's answer on S6 "User not found" wording); Batch 4 (task share tags); Batch 6 rest; Batch 10 (delete-user script); Batch 11 (code splitting, 645 KB bundle). Full list in `system-review.md`.
+- Frontend is finished and reviewed. Next: fix review items 2 to 6 (small, one UI branch), then Batch 1 (item 1, needs the S6 answer), then auth Batch 5 (Opus review before merging); Batch 4 (task share tags); Batch 6 rest; Batch 10 (delete-user script); Batch 11 (code splitting, 645 KB bundle). Full list in `system-review.md`.
 - Owner to-do: fill in `client/src/utils/helpContacts.js` and the About team names (visible placeholders), real phone pass on the deployed site, say whether to record a DESIGN.md, manual reviewer tests, real Google sign-in on the live site.
 - Not verified: the forgot-password flow end to end (needs real email), a real phone, the Chrome extension (it never connected this session; headless Chrome was used).
 - Lint has a few known `set-state-in-effect` / `react-refresh` errors, an existing pattern, left alone.
@@ -57,7 +67,7 @@ Last updated: 2026-10-13. **All frontend batches (FE-1 to FE-6) are done and mer
 - Checked while reviewing: 375/375 server tests pass, client builds (one 628 KB chunk), lint has 20 errors (mostly the known setState-in-effect pattern).
 
 ## Next up
-1. **Opus**: review everything from FE-4 to FE-6 at once. Then build and review system-review Batches 1 and 5 (auth) before they merge; ask the owner about S6 first.
+1. **Opus**: FE-4 to FE-6 review done (see "Opus review" at the top). Next, build and review system-review Batches 1 and 5 (auth) before they merge; ask the owner about S6 first.
 2. **Sonnet**: remaining non-auth system-review batches (4, 6 rest, 10, 11).
 3. **Owner**: fill in the placeholders (help contacts, team names) before the panel.
 4. **Real phone pass on the live site** (owner, or with them), after FE-6 at the latest.
