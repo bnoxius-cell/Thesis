@@ -92,7 +92,7 @@ export default function About() {
           </p>
           <p>
             A few things then move the score by a set number of points: an exam within 7 days adds 8 (15 if it is
-            within 2 days or you have two in that week), each overdue task adds 3 up to 10, and your pace setting adds 10
+            within 2 days or you have two in that week, and 15 for a week your schedule marks as exam week), each overdue task adds 3 up to 10, and your pace setting adds 10
             for Lighter or takes off 10 for Fuller, unless a check-in says you're struggling.
           </p>
           <p>Your score lands in one of four weeks:</p>

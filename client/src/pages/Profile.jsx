@@ -90,7 +90,7 @@ function Me() {
   const [prefsReady, setPrefsReady] = useState(false);
   const onPrefsReady = useCallback(() => setPrefsReady(true), []);
 
-  const shortTag = user.profileTag || (user._id ? user._id.slice(0, 6).toUpperCase() : "");
+  const shortTag = user.profileTag || "";
 
   // The saved values, and what's in the two forms right now.
   const saved = profileFromUser(user);
@@ -226,14 +226,18 @@ function Me() {
                 />
                 <div className="me-friend-code">
                   <span className="me-label">Friend code</span>
-                  <div className="me-code-row">
-                    <code className="friend-code">{shortTag}</code>
-                    <button type="button" className="secondary-button small" onClick={copyFriendCode}>
-                      {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
-                      {copied ? "Copied" : "Copy"}
-                    </button>
-                  </div>
-                  <small className="field-hint">Share it so friends can add you. Signed in as {user.email}.</small>
+                  {shortTag ? (
+                    <div className="me-code-row">
+                      <code className="friend-code">{shortTag}</code>
+                      <button type="button" className="secondary-button small" onClick={copyFriendCode}>
+                        {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+                        {copied ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                  ) : null}
+                  <small className="field-hint">
+                    {shortTag ? "Share it so friends can add you." : "Your friend code isn't ready yet. Try again in a moment."} Signed in as {user.email}.
+                  </small>
                 </div>
               </div>
 
