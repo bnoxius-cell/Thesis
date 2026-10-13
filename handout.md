@@ -2,7 +2,13 @@
 
 Read this first after a `/clear`. It's the short "where we left off" note. `CLAUDE.md` has the full project reference, this file only has the current state.
 
-Last updated: 2026-10-13. FE-6 done on `chore/frontend-qa` (see CLAUDE.md "FE-6"). FE-5 done on `redesign/public-pages` (see CLAUDE.md "FE-5"). FE-4 done on `redesign/me-and-people` (see its section). FE-3 merged. Earlier: 2026-10-12. FE-1, FE-2 and system-review Batch 3 (`fix/server-checks`, 405 server tests) are merged into `main`. `next-prompt.md` is done and deleted. Branch from `main` for each batch.
+Last updated: 2026-10-13. **All frontend batches (FE-1 to FE-6) are done and merged into `main` (last merge `7e0b677`, pushed).** 450 server tests pass, client builds clean. Nothing since FE-3 has had the Opus review yet (owner's call: review everything at once). `next-prompt.md` is done and deleted. Branch from `main` for each batch.
+
+## Where to pick up (read this first)
+- Frontend is finished. Not yet done by anyone: Opus review of FE-4 to FE-6; auth Batches 1 and 5 (need Opus review before merging, and the owner's answer on S6 "User not found" wording); Batch 4 (task share tags); Batch 6 rest; Batch 10 (delete-user script); Batch 11 (code splitting, 645 KB bundle). Full list in `system-review.md`.
+- Owner to-do: fill in `client/src/utils/helpContacts.js` and the About team names (visible placeholders), real phone pass on the deployed site, say whether to record a DESIGN.md, manual reviewer tests, real Google sign-in on the live site.
+- Not verified: the forgot-password flow end to end (needs real email), a real phone, the Chrome extension (it never connected this session; headless Chrome was used).
+- Lint has a few known `set-state-in-effect` / `react-refresh` errors, an existing pattern, left alone.
 
 ## Build session 2026-10-12 (Sonnet): FE-1 merged, FE-2 on `redesign/today`
 - **FE-1 merged into `main`** (tokens, shell, shared components, redirects, 404). Dark mode, bottom bar and Guide placement checked.
@@ -51,8 +57,8 @@ Last updated: 2026-10-13. FE-6 done on `chore/frontend-qa` (see CLAUDE.md "FE-6"
 - Checked while reviewing: 375/375 server tests pass, client builds (one 628 KB chunk), lint has 20 errors (mostly the known setState-in-effect pattern).
 
 ## Next up
-1. **Sonnet**: do `next-prompt.md` (FE-1, then FE-2, then system-review Batch 3), then keep following `frontend-plan.md` section 9 (it interleaves the system-review batches).
-2. **Switch back to Opus** to review system-review Batches 1 and 5 (auth) before they merge.
+1. **Opus**: review everything from FE-4 to FE-6 at once. Then build and review system-review Batches 1 and 5 (auth) before they merge; ask the owner about S6 first.
+2. **Sonnet**: remaining non-auth system-review batches (4, 6 rest, 10, 11).
 3. **Owner**: fill in the placeholders (help contacts, team names) before the panel.
 4. **Real phone pass on the live site** (owner, or with them), after FE-6 at the latest.
 5. Owner's manual reviewer tests (end of `reviewer-report.md`).
