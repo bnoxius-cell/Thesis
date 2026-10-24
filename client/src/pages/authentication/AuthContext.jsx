@@ -5,10 +5,12 @@ import { detachPush } from "../../utils/pushClient";
 
 export const AppContext = createContext();
 
-export const AppContextProvider = (props) => {
-  axios.defaults.withCredentials = true;
+// In production, use Vercel's same-origin /api rewrite so the session cookie
+// stays first-party. Local development still talks directly to Express.
+axios.defaults.withCredentials = true;
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+export const AppContextProvider = (props) => {
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV ? "http://localhost:5000" : "");
   const [isLoggedin, setIsLoggedin] = useState(false);
   const [userData, setUserData] = useState(null); // null = not loaded
   const [loading, setLoading] = useState(true);
