@@ -9,7 +9,15 @@ Last updated: 2026-10-13 (end of planning session; owner continues 2026-10-14). 
 - `CLAUDE.md` went from 68 KB to 12 KB. Its feature notes moved unchanged into `.claude/docs/` (gitignored, like CLAUDE.md), the to-do list into `.claude/docs/todo.md`, and a full copy of the old file is in `.claude/docs/old/`. Older handout sections moved unchanged into `handout-archive.md`; the gotchas now live in `.claude/docs/testing-and-gotchas.md`.
 - **First real `builder` run worked (2026-10-13)**: review items 2 to 6 on `fix/fe-review-items`, about 13 minutes. It followed the brief, ran the checks, committed without merging and wrote a useful report. Two lessons: a brief that names one file gets only that file (it left the same bug in Profile when told "Friends"), so name every place; and its process cleanup killed every `vite.js` by name, which can stop the owner's dev server (now a note in `testing-and-gotchas.md`; say "stop only what you started" in briefs).
 
-## Where to pick up (read this first)
+## REVAMP (started 2026-10-27, read this first)
+- Opus tester, Opus code-reviewer and Jo Anne Ferrer's expert evaluation (verdict: major revisions) are merged into `.claude/docs/revamp/`. Start at `README.md`, then `04-revamp-backlog.md` (workstreams W1 security, W2 algorithm, W3 wording and consent, W4 frontend, W5 cleanup) and `05-frontend-revamp.md`.
+- Nothing was built yet. Open owner decisions are listed at the top of `04-revamp-backlog.md` (sign-up domain, Guidance Office details, referral on low scores, score split, research consent, frontend questions).
+- More psychologist feedback is coming: add it as `01b-...md` and merge items into `04`.
+- Suggested next step: planner on W1 (`fix/auth-hardening`, overlaps build-queue Q1), code-reviewer before merge.
+- **Frontend plan written 2026-10-28: `.claude/docs/revamp/06-frontend-plan-v2.md`** (Figtree, calmer slate-blue palette, 3 schedule presets, Guide in header, cascade layers; batches FE-0 to FE-10, one branch each `redesign/v2-feN-...`). Owner answered O1 (task course optional), O2 (one shared project email, address not given yet), O3 (Guide opens on first visit of each page). Next: tag `pre-frontend-v2`, then builder-sonnet high on FE-0. Dev servers run on 5173/5000 (real Atlas). W2 planner must adopt the `toWeekReading` shape (plan O5).
+- This section takes priority over the build-queue order below.
+
+## Where to pick up (older, build-queue)
 - **`build-queue.md` is the plan.** Each Q section is a full brief. Spawn: `Build Q<n> from build-queue.md. Branch: <branch>. Read that section and the files it points to. Stop only the processes you started.` Then review (when marked), merge, push, tick, update docs. One builder at a time.
 - **Next: Q1 `fix/auth-hardening`** (SR Batch 1 plus S6 and S4), then `code-reviewer` before merging. Q2 (session expiry) must come after Q1, same middleware.
 - Before the panel: Q1 to Q7 (auth, session expiry, share tags, npm audit, cleanup, delete-user script, code splitting). After: Q8 to Q14 (reviewer ready notification, chat history, breather, daily check-in, focus timer, reviewer exam link, nodemailer and controller tests).
