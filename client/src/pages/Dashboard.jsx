@@ -9,14 +9,18 @@ import CheckInBanner from "../components/CheckInBanner";
 import EmptyState from "../components/EmptyState";
 import SetupChecklist, { setupState } from "../components/today/SetupChecklist";
 import NextStepCard from "../components/today/NextStepCard";
+import WeekCard from "../components/today/WeekCard";
+import TodayCard from "../components/today/TodayCard";
+import ComingUp from "../components/today/ComingUp";
+import WeekProgress from "../components/today/WeekProgress";
+import TodayLayout from "../components/today/TodayLayout";
+import { TODAY_MAX_ROWS } from "../components/today/TodayCard";
 import { DASHBOARD_TOUR } from "../utils/tours";
-import JoinLink from "../components/schedule/JoinLink";
-import { CalendarDays, MapPin, CircleCheck, Plus, Sprout } from "lucide-react";
-import { formatTime, fromISODate } from "../utils/scheduleUtils";
+import { Plus, Sprout } from "lucide-react";
 import useWorkload from "../utils/useWorkload";
 import { finishedThisWeek } from "../utils/doneThisWeek";
-import { BAND_MESSAGE, bandLabel, topReasons } from "../utils/weekReasons";
-import "../App.css";
+import { toWeekReading } from "../utils/weekReading";
+import "../styles/pages/today.css";
 
 // "Tuesday, Sep 29. 2 classes left today and 2 tasks due soon."
 function summarizeDay(day, focus) {
@@ -34,52 +38,11 @@ function summarizeDay(day, focus) {
   return bits.length ? `${date}. ${sentence.charAt(0).toUpperCase()}${sentence.slice(1)}.` : `${date}. Nothing pressing today.`;
 }
 
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
-}
+// The greeting and the "Today" card read the same clock (phaseFor in todayFocus.js).
+const GREETING = { morning: "Good morning", afternoon: "Good afternoon", evening: "Good evening", night: "Good evening" };
 
-// The ring is teal while the week is Light or Steady and amber once it's Full or worse. Never red.
-const BAND_SEVERITY = {
-  "Light Workload": "calm",
-  "Moderate Workload": "steady",
-  "Heavy Workload": "full",
-  "Critical Overload": "a-lot",
-};
-
-// Shown when nothing is on and nothing is due, worded for the time of day.
-const QUIET_MESSAGE = {
-  morning: "A clear morning. A good time to get ahead on something, or just to breathe.",
-  afternoon: "Nothing on and nothing due. Enjoy the breathing room.",
-  evening: "Nothing left for today. You can switch off.",
-  night: "Nothing left for today. Time to rest.",
-};
-
-const shortDate = (iso) => fromISODate(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-const MAX_DUE_SOON = 3;
 const SETUP_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
-
-function EntryList({ entries, label, live = false }) {
-  return (
-    <ul className="today-list today-classes" aria-label={label}>
-      {entries.map((entry, i) => (
-        <li key={`${entry.title}-${entry.startTime}-${i}`} className={`today-item${live ? " is-live" : ""}`}>
-          <span className={`today-dot ${entry.kind || "class"}`} aria-hidden="true" />
-          <div>
-            <strong>{entry.title}{live && <span className="today-now-pill">Now</span>}{entry.kind === "exam" && <span className="today-exam-pill">Exam</span>}{entry.kind === "event" && <span className="today-event-pill">Event</span>}</strong>
-            <span className="today-meta">
-              {formatTime(entry.startTime)} to {formatTime(entry.endTime)}
-              {entry.location && <> · <MapPin size={12} aria-hidden="true" /> {entry.location}</>}
-            </span>
-          </div>
-          {entry.meetingUrl && <JoinLink url={entry.meetingUrl} className={`today-join${live ? " is-live" : ""}`} />}
-        </li>
-      ))}
-    </ul>
-  );
-}
+const COMING_UP_DAYS = 7;
 
 const Dashboard = () => {
   const work = useWorkload();
@@ -90,16 +53,19 @@ const Dashboard = () => {
   if (!work.isLoggedin) return <AppShell variant="public"><p>Please log in to view your dashboard.</p></AppShell>;
   if (work.loading || !work.userData) return <AppShell><PageSkeleton label="Loading your day" /></AppShell>;
 
-  const { insights, today, focus, nextExam, hasSchedule, week, userId, profile } = work;
-  const doneCount = finishedThisWeek(work.tasks, work.now).length;
+  const { insights, today, focus, nextExam, hasSchedule, week, userId, profile, now } = work;
+  const doneCount = finishedThisWeek(work.tasks, now).length;
   const firstName = profile.studentName?.split(" ")[0];
-  const showTodayEntries = focus.happeningNow.length + focus.laterToday.length > 0;
-  const dueNow = focus.dueSoon.slice(0, MAX_DUE_SOON);
-  const dueMore = focus.dueSoon.length - dueNow.length;
+
+  // Open tasks: due today or overdue go in the Today card, the next 7 days in Coming up.
+  const todayTasks = work.enrichedTasks.filter((task) => task.daysLeft <= 0).sort((a, b) => a.daysLeft - b.daysLeft);
+  const comingTasks = work.enrichedTasks
+    .filter((task) => task.daysLeft >= 1 && task.daysLeft <= COMING_UP_DAYS)
+    .sort((a, b) => a.daysLeft - b.daysLeft || b.workload - a.workload);
 
   const setup = setupState({ userData: work.userData, hasSchedule, taskCount: work.tasks.length, profile });
   const createdAt = work.userData.createdAt ? new Date(work.userData.createdAt).getTime() : 0;
-  const recentAccount = createdAt > 0 && work.now.getTime() - createdAt < SETUP_WINDOW_MS;
+  const recentAccount = createdAt > 0 && now.getTime() - createdAt < SETUP_WINDOW_MS;
   const hideSetup = setupHidden ?? setup.hidden;
   const showSetup = !setup.complete && !hideSetup && (insights.isNewUser || recentAccount);
 
@@ -108,168 +74,85 @@ const Dashboard = () => {
     setSetupHidden(true);
   };
 
-  const dueThisWeek = work.plannedTasks.filter((task) => {
-    const days = Math.round((new Date(task.dueDate) - work.now) / 86400000);
-    return days <= 6;
-  }).length;
-  const reasons = topReasons(insights.parts, dueThisWeek);
+  const todayEntryCount = focus.happeningNow.length + focus.laterToday.length;
+  const reading = toWeekReading({ insights, plannedTasks: work.plannedTasks, now });
+
+  const checkIn = (
+    <CheckInBanner
+      isOpen
+      pssDue={work.pssDue}
+      whoDue={work.whoDue}
+      onSelectPSS={() => setShowPSSModal(true)}
+      onSelectWHO={() => setShowWHOModal(true)}
+      onDismiss={() => {
+        work.snooze(...[work.pssDue && "PSS", work.whoDue && "WHO"].filter(Boolean));
+        // The notice unmounts with the focused button, so put focus on the page instead of <body>.
+        document.getElementById("main")?.focus({ preventScroll: true });
+      }}
+    />
+  );
 
   return (
     <AppShell tour={{ page: "dashboard", title: "Today", steps: DASHBOARD_TOUR }}>
-        <CheckInBanner
-          isOpen
-          pssDue={work.pssDue}
-          whoDue={work.whoDue}
-          onSelectPSS={() => setShowPSSModal(true)}
-          onSelectWHO={() => setShowWHOModal(true)}
-          onDismiss={() => work.snooze(...[work.pssDue && "PSS", work.whoDue && "WHO"].filter(Boolean))}
-        />
-
-        <section className="greeting" id="dashboard" data-tour="dash-greeting">
-          <h1>{getGreeting()}{firstName ? `, ${firstName}` : ""}.</h1>
-          <p>{insights.isNewUser ? "Here's your space. Let's get it set up." : summarizeDay(today, focus)}</p>
+        <section className="today-head" id="dashboard" data-tour="dash-greeting">
+          <div>
+            <h1>{GREETING[focus.phase]}{firstName ? `, ${firstName}` : ""}.</h1>
+            <p>{insights.isNewUser ? "Here's your space. Let's get it set up." : summarizeDay(today, focus)}</p>
+          </div>
+          {!insights.isNewUser && (
+            <Link to="/schedule?task=new" className="primary-button"><Plus size={16} aria-hidden="true" />Add task</Link>
+          )}
         </section>
 
         {insights.isNewUser ? (
-          showSetup ? (
-            <SetupChecklist work={work} setup={setup} onStartCheckIn={() => setShowPSSModal(true)} onHide={hideSetupCard} />
-          ) : (
-            <section className="panel">
-              <EmptyState icon={Sprout} title="Nothing here yet">
-                Add a task or your classes and your week starts to take shape.
-                <span className="empty-state-actions">
-                  <Link to="/schedule?task=new" className="primary-button">Add a task</Link>
-                  <Link to="/schedule" className="secondary-button">Open schedule</Link>
-                </span>
-              </EmptyState>
-            </section>
-          )
-        ) : (
-          <>
-            <section className="grid today-grid">
-              <section className="panel" data-tour="dash-today">
-                <div className="panel-heading"><div><span className="panel-kicker">{focus.kicker}</span><h2>{focus.heading}</h2></div></div>
-
-                {today.holiday && (
-                  <p className="today-holiday"><CalendarDays size={16} aria-hidden="true" /> {today.holiday}. Classes that skip holidays are off today.</p>
-                )}
-
-                {nextExam && nextExam.daysLeft > 0 && (
-                  <p className="today-exam-note">
-                    <CalendarDays size={16} aria-hidden="true" />
-                    <span>Next exam: <strong>{nextExam.title}</strong>, {shortDate(nextExam.date)} at {formatTime(nextExam.startTime)}</span>
-                  </p>
-                )}
-
-                {focus.happeningNow.length > 0 && <EntryList entries={focus.happeningNow} label="Happening now" live />}
-
-                {focus.laterToday.length > 0 && (
-                  <>
-                    {focus.happeningNow.length > 0 && <h3 className="today-subhead">Later today</h3>}
-                    <EntryList entries={focus.laterToday} label="Later today" />
-                  </>
-                )}
-
-                {focus.finishedCount > 0 && (
-                  <p className="today-finished">{focus.finishedCount} finished earlier today</p>
-                )}
-
-                {dueNow.length > 0 && (
-                  <>
-                    {(showTodayEntries || focus.finishedCount > 0) && <h3 className="today-subhead">Due soon</h3>}
-                    <ul className="today-list">
-                      {dueNow.map((task) => (
-                        <li key={task._id} className="today-item">
-                          <span className={`today-dot ${task.status.toLowerCase().replace(/\s+/g, "-")}`} aria-hidden="true" />
-                          <div>
-                            <strong>{task.title}</strong>
-                            <span className="today-meta">{task.course} · {task.daysLeft < 0 ? "overdue" : task.daysLeft === 0 ? "due today" : "due tomorrow"}</span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                    {dueMore > 0 && <Link to="/schedule?tab=tasks" className="today-more">+{dueMore} more in Tasks</Link>}
-                  </>
-                )}
-
-                {focus.caughtUp ? (
-                  <div className="caught-up">
-                    <CircleCheck size={22} aria-hidden="true" />
-                    <div>
-                      <strong>You're all caught up</strong>
-                      <p>No open tasks right now. Enjoy it, or use the time to plan ahead.</p>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {focus.dueSoon.length === 0 && focus.nextTask && (
-                      <p className="today-next">
-                        Nothing due right now. Next up is <strong>{focus.nextTask.title}</strong>, due in {focus.nextTask.daysLeft} days.
-                      </p>
-                    )}
-                    {focus.dueSoon.length === 0 && !showTodayEntries && focus.finishedCount === 0 && (
-                      <p className="today-empty">{today.holiday ? "A day off, and nothing due. Enjoy it." : QUIET_MESSAGE[focus.phase]}</p>
-                    )}
-                  </>
-                )}
-
-                {focus.tomorrow && (
-                  <>
-                    <h3 className="today-subhead">Tomorrow</h3>
-                    {focus.tomorrow.holiday && (
-                      <p className="today-holiday"><CalendarDays size={16} aria-hidden="true" /> {focus.tomorrow.holiday}. A day off.</p>
-                    )}
-                    {focus.tomorrow.entries.length > 0 ? (
-                      <>
-                        <EntryList entries={focus.tomorrow.entries} label="Tomorrow" />
-                        {focus.tomorrow.moreEntries > 0 && <p className="today-finished">and {focus.tomorrow.moreEntries} more</p>}
-                      </>
-                    ) : !focus.tomorrow.holiday && (
-                      <p className="today-finished">Nothing scheduled tomorrow.</p>
-                    )}
-                  </>
-                )}
-
-                <div className="today-actions">
-                  <Link to="/schedule?task=new" className="ghost-button today-add"><Plus size={16} aria-hidden="true" /> Add task</Link>
-                  <Link to="/schedule" className="ghost-button today-add"><CalendarDays size={16} aria-hidden="true" /> {hasSchedule ? "Open schedule" : "Add your classes"}</Link>
-                </div>
-              </section>
-
-              <aside className="hero-panel week-card" data-tour="dash-doing">
-                <span className="week-card-kicker">This week</span>
-                <div className={`stress-ring ${BAND_SEVERITY[insights.band]}`}>
-                  <div className="stress-ring-inner">
-                    <strong>{bandLabel(insights.band)}</strong>
-                  </div>
-                </div>
-                <p className="week-card-message">{BAND_MESSAGE[insights.band]}</p>
-                <ul className="week-card-reasons">
-                  {reasons.map((reason) => <li key={reason}>{reason}</li>)}
-                </ul>
-                <Link to="/wellbeing" className="week-card-link">See what's behind this</Link>
-              </aside>
-            </section>
-
+          <div className="today-stack">
             {showSetup ? (
+              <SetupChecklist work={work} setup={setup} onStartCheckIn={() => setShowPSSModal(true)} onHide={hideSetupCard} />
+            ) : (
+              <section className="panel">
+                <EmptyState icon={Sprout} title="Nothing here yet">
+                  Add a task or your classes and your week starts to take shape.
+                  <span className="empty-state-actions">
+                    <Link to="/schedule?task=new" className="primary-button">Add a task</Link>
+                    <Link to="/schedule" className="secondary-button">Open schedule</Link>
+                  </span>
+                </EmptyState>
+              </section>
+            )}
+            {checkIn}
+          </div>
+        ) : (
+          <TodayLayout
+            sizes={{
+              todayRows: Math.min(TODAY_MAX_ROWS, todayEntryCount + todayTasks.length),
+              comingRows: Math.min(5, comingTasks.length),
+              nextHeight: showSetup ? 420 : 220,
+              hasNotice: work.pssDue || work.whoDue,
+            }}
+            week={<WeekCard reading={reading} />}
+            today={<TodayCard focus={focus} today={today} tasks={todayTasks} now={now} nextExam={nextExam} hasSchedule={hasSchedule} />}
+            coming={<ComingUp tasks={comingTasks} now={now} />}
+            next={showSetup ? (
               <SetupChecklist work={work} setup={setup} onStartCheckIn={() => setShowPSSModal(true)} onHide={hideSetupCard} />
             ) : (
               <NextStepCard work={work} />
             )}
-
-            <section className="panel week-strip" data-tour="dash-week">
-              <div className="panel-heading"><div><span className="panel-kicker">The next 7 days</span><h2>How your week adds up</h2></div></div>
-              <Link to="/wellbeing#week" className="week-strip-link" aria-label="See your week in detail">
-                <WorkloadChart schedule={week} hasSchedule={hasSchedule} compact />
-              </Link>
-            </section>
-
-            {doneCount > 0 && (
-              <p className="done-this-week">
-                {doneCount === 1 ? "You finished 1 task in the last 7 days." : `You finished ${doneCount} tasks in the last 7 days.`} That counts.
-              </p>
+            strip={(
+              <section className="panel week-strip" data-tour="dash-week" aria-labelledby="week-strip-title">
+                <h2 id="week-strip-title">The next 7 days</h2>
+                <Link to="/wellbeing#week" className="week-strip-link" aria-label="See your week in detail">
+                  <WorkloadChart schedule={week} hasSchedule={hasSchedule} compact />
+                </Link>
+                <WeekProgress tasks={work.tasks} now={now} />
+                {doneCount > 0 && (
+                  <p className="today-quiet">
+                    {doneCount === 1 ? "You finished 1 task in the last 7 days." : `You finished ${doneCount} tasks in the last 7 days.`} That counts.
+                  </p>
+                )}
+              </section>
             )}
-          </>
+            notice={checkIn}
+          />
         )}
       <ShellOverlays>
         {/* Mounted only while open, so each one starts from a clean slate. */}

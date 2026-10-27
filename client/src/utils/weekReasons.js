@@ -17,16 +17,29 @@ const REASON = {
   wellbeing: { low: "Your well-being check-in looks good", moderate: "Your well-being check-in is middling", high: "Your well-being check-in is low" },
 };
 
-// The top two things shaping the week, in words. `dueThisWeek` is how many open tasks and exams
-// fall within the next 7 days, so the deadline line can say how many.
-export function topReasons(parts = [], dueThisWeek = 0, count = 2) {
-  return [...parts]
+// Light and Steady weeks must not read as a warning. For those bands anything that sounds like strain
+// is left out (a heavy part, or a stress or well-being check-in that isn't calm), so the reasons never
+// argue with the sentence above them. Full and Very full weeks keep every honest reason.
+const CALM_BANDS = new Set(["Light Workload", "Moderate Workload"]);
+const CHECKIN_KEYS = new Set(["stress", "wellbeing"]);
+const isStrainReason = (part) => part.level === "high" || (CHECKIN_KEYS.has(part.key) && part.level !== "low");
+
+// Shown when a calm week has nothing left to list.
+const CALM_FALLBACK = "Nothing is piling up right now";
+
+// The top things shaping the week, in words. `dueThisWeek` is how many open tasks and exams
+// fall within the next 7 days, so the deadline line can say how many. `band` is the internal band name.
+export function topReasons(parts = [], dueThisWeek = 0, count = 2, band = "") {
+  const calm = CALM_BANDS.has(band);
+  const picked = [...parts]
+    .filter((part) => !(calm && isStrainReason(part)))
     .sort((a, b) => b.value - a.value)
     .slice(0, count)
     .map((part) => {
       const text = REASON[part.key]?.[part.level] || part.label;
       return part.key === "time" && dueThisWeek > 0
-        ? `${text}: ${dueThisWeek} ${dueThisWeek === 1 ? "thing" : "things"} due this week`
+        ? `${text}: ${dueThisWeek} ${dueThisWeek === 1 ? "thing" : "things"} due in the next 7 days`
         : text;
     });
+  return picked.length === 0 && calm ? [CALM_FALLBACK] : picked;
 }

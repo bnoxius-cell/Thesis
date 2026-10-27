@@ -96,9 +96,13 @@ export default function ModalShell({
       const at = stack.indexOf(token);
       if (at >= 0) stack.splice(at, 1);
       unlockScroll();
-      if (opener && opener !== document.body && document.contains(opener)) {
-        opener.focus({ preventScroll: true });
-      }
+      // Back to the opener. If it is gone (a dialog opened by a link on another page, like Today's
+      // "Add task", or a button that left the page when its dialog finished), land on <main> instead
+      // of dropping to <body>.
+      const back = opener && opener !== document.body && document.contains(opener)
+        ? opener
+        : document.getElementById("main");
+      back?.focus({ preventScroll: true });
     };
   }, [open, requestClose, initialFocusRef, opener]);
 

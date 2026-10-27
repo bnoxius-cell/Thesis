@@ -1,9 +1,8 @@
-import { MessageCircle, BarChart3, HeartPulse } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 
-// A dismissible, non-blocking banner that nudges the user toward a due
-// survey without covering the page like a modal would. Replaces the old
-// SurveyPriorityModal, which forced a choice before the user could do
-// anything else on first login.
+// A slim, dismissible nudge toward a due check-in. Not a modal, so it never stops the student from
+// using the page. One "Start" button opens the stress check-in first when both are due; the
+// well-being one follows once that is done.
 export default function CheckInBanner({
   isOpen,
   onSelectPSS,
@@ -15,7 +14,6 @@ export default function CheckInBanner({
   if (!isOpen || (!pssDue && !whoDue)) return null;
 
   const bothDue = pssDue && whoDue;
-
   const message = bothDue
     ? "Two quick check-ins are ready, one on stress and one on how you've been feeling."
     : pssDue
@@ -23,28 +21,14 @@ export default function CheckInBanner({
     : "Your well-being check-in is ready when you are.";
 
   return (
-    <div className="checkin-banner" role="status" data-tour="dash-checkin">
-      <div className="checkin-banner-text">
-        <span className="checkin-banner-icon" aria-hidden="true"><MessageCircle size={20} /></span>
-        <div>
-          <strong>Time for a check-in</strong>
-          <p>{message}</p>
+    <div className="notice is-info checkin-notice" role="status" data-tour="dash-checkin">
+      <MessageCircle size={16} aria-hidden="true" />
+      <div className="checkin-notice-body">
+        <p><strong>Time for a check-in.</strong> {message}</p>
+        <div className="checkin-notice-actions">
+          <button type="button" className="tonal-button" onClick={pssDue ? onSelectPSS : onSelectWHO}>Start</button>
+          <button type="button" className="ghost-button" onClick={onDismiss}>Not today</button>
         </div>
-      </div>
-      <div className="checkin-banner-actions">
-        {pssDue && (
-          <button type="button" className="primary-button small" onClick={onSelectPSS}>
-            <BarChart3 size={15} /> Stress check-in
-          </button>
-        )}
-        {whoDue && (
-          <button type="button" className="secondary-button small" onClick={onSelectWHO}>
-            <HeartPulse size={15} /> Well-being check-in
-          </button>
-        )}
-        <button type="button" className="checkin-banner-dismiss" onClick={onDismiss}>
-          Not today
-        </button>
       </div>
     </div>
   );

@@ -1,0 +1,524 @@
+/* ==========================================================================
+   TODAY (FE-3). Everything the Today page owns: greeting, week card, Today list, Coming up,
+   Next step, setup checklist, the 7-day strip and the check-in notice.
+   Plain role tokens only (frontend plan v2, section B). Shared pieces (.panel, .chip, .notice,
+   .progress, the button family) come from App.css and components.css.
+   ========================================================================== */
+@layer pages {
+  /* ---- Greeting ---- */
+  .today-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+  }
+  .today-head h1 {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-3xl);
+    line-height: var(--text-3xl-lh);
+    text-wrap: balance;
+  }
+  .today-head p {
+    margin: 0;
+    max-width: 65ch;
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+    line-height: var(--lh-body);
+  }
+
+  /* ---- Layout ----
+     TodayLayout.jsx owns the order: one column in phone order below 760px of content width (the sidebar
+     eats 240px, so a viewport query would split too early), two columns above it. */
+  .today-layout,
+  .today-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .today-layout.is-wide {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: start;
+    gap: var(--space-5);
+  }
+  .today-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+
+  /* ---- Card titles on Today ---- */
+  .today-card-head,
+  .week-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .today-card-head { margin-bottom: var(--space-3); }
+  .today-card h2,
+  .week-card h2,
+  .week-strip h2,
+  .next-step-card h2,
+  .setup-card h2 {
+    margin: 0;
+    font-size: var(--text-md);
+    line-height: var(--text-md-lh);
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--text-primary);
+  }
+
+  /* ---- Week card: the week in words. The lead card: a soft accent wash, a larger sentence. ---- */
+  .week-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    border-color: transparent;
+    background: var(--accent-soft);
+  }
+  .week-card-headline {
+    margin: 0;
+    max-width: 28ch;
+    font-size: var(--text-xl);
+    line-height: var(--text-xl-lh);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    text-wrap: balance;
+  }
+  .week-card-reasons {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+    color: var(--text-secondary);
+  }
+  .week-card-reasons li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  .week-card-reasons svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--accent);
+  }
+  .week-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  /* On the wash, the action is a white button so it still reads as one. */
+  .week-card .tonal-button {
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+  }
+  .week-card-note {
+    margin: var(--space-1) 0 0;
+    padding-top: var(--space-3);
+    border-top: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs-lh);
+    color: var(--text-secondary);
+  }
+
+  /* ---- Today and Coming up: rows with dividers, no boxes inside the card ---- */
+  .row-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .row-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    min-height: 56px;
+    padding: var(--space-3) 0;
+    border-top: 1px solid var(--border);
+  }
+  .row-item:first-child {
+    border-top-color: transparent;
+    padding-top: 0;
+  }
+  .row-main {
+    flex: 1 1 12rem;
+    min-width: 0;
+  }
+  .row-main strong {
+    display: block;
+    font-size: var(--text-md);
+    line-height: var(--text-md-lh);
+    font-weight: 500;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .row-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px var(--space-1);
+    margin-top: 2px;
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+  .row-meta svg {
+    flex: none;
+  }
+  .row-end {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  /* The class that is on right now: a soft accent wash, the only highlight on the list. */
+  .row-item.is-live {
+    margin: 0 calc(var(--space-3) * -1);
+    padding: var(--space-3);
+    border-top-color: transparent;
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
+  }
+  .row-item.is-live:first-child {
+    padding-top: var(--space-3);
+  }
+  .row-item.is-live + .row-item {
+    border-top-color: transparent;
+  }
+  .row-item.is-live .row-meta {
+    color: var(--text-primary);
+  }
+  .row-item .tonal-button {
+    gap: var(--space-1);
+  }
+
+  .today-note {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+    color: var(--text-primary);
+  }
+  .today-note svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--text-secondary);
+  }
+  .today-note span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .today-quiet {
+    margin: var(--space-3) 0 0;
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+    color: var(--text-secondary);
+  }
+  .today-quiet strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .today-empty {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+    color: var(--text-secondary);
+  }
+  .today-empty svg {
+    flex: none;
+    margin-top: 1px;
+    color: var(--good);
+  }
+  .today-empty strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .today-more {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .today-card-foot {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border);
+  }
+  .today-card-foot .ghost-button {
+    margin-left: calc(var(--space-3) * -1);
+  }
+
+  /* ---- Next step ---- */
+  .next-step-card {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .next-step {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+  .next-step-icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .next-step strong {
+    display: block;
+    font-size: var(--text-md);
+    line-height: var(--text-md-lh);
+    font-weight: 600;
+  }
+  .next-step p {
+    margin: var(--space-1) 0 0;
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+    color: var(--text-secondary);
+  }
+  .next-step .suggestion-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+  }
+
+  /* ---- The next 7 days: a compact strip, then one progress line ---- */
+  .week-strip {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .week-strip-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    border-radius: var(--radius-md);
+  }
+  .week-strip-link:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 4px;
+  }
+  .week-strip .chart-shell {
+    gap: 0;
+  }
+  .week-strip .chart-grid {
+    min-height: 0;
+    gap: var(--space-2);
+  }
+  .week-strip .chart-column {
+    gap: var(--space-1);
+  }
+  .week-strip .chart-bar-track {
+    height: 72px;
+    padding: 0;
+    border-radius: var(--radius-sm);
+    background: var(--chart-track);
+  }
+  .week-strip .chart-bar {
+    background: var(--chart-task);
+    border-radius: 2px;
+  }
+  .week-strip .chart-bar.chart-busy {
+    background: var(--chart-busy);
+  }
+  /* Tasks that don't fit: a soft amber bar with a darker amber cap. Never red, never brown. */
+  .week-strip .chart-bar.overloaded {
+    background: var(--watch-soft);
+    border-top: 3px solid var(--chart-over);
+  }
+  .week-strip .chart-capacity {
+    left: 0;
+    right: 0;
+    border-top: 1px dashed var(--chart-line);
+    opacity: 1;
+  }
+  .week-strip .chart-date {
+    display: none;
+  }
+  .week-strip .chart-value,
+  .week-strip .chart-column strong {
+    font-size: var(--text-xs);
+    line-height: var(--text-xs-lh);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .week-strip .chart-column strong {
+    font-weight: 500;
+  }
+  .week-strip .chart-column.is-holiday strong {
+    color: var(--watch);
+  }
+  .week-progress {
+    display: grid;
+    gap: var(--space-2);
+  }
+  .week-progress p {
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  /* Grows once when the page arrives; base.css switches it off under reduced motion. */
+  .week-progress .progress > span {
+    animation: grow-x 400ms var(--ease-out) backwards;
+  }
+  .week-strip > .today-quiet {
+    margin: 0;
+  }
+
+  /* ---- Check-in notice: slim, last in the right column ---- */
+  .checkin-notice-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .checkin-notice-body p {
+    margin: 0;
+  }
+  .checkin-notice-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+  .checkin-notice-actions .ghost-button {
+    margin-left: calc(var(--space-2) * -1);
+  }
+
+  /* ---- Setup checklist (new students) ---- */
+  .setup-card {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .setup-lead {
+    margin: 0;
+    color: var(--text-secondary);
+  }
+  .setup-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .setup-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 56px;
+    padding: var(--space-2) 0;
+    border-top: 1px solid var(--border);
+  }
+  .setup-row:first-child {
+    border-top-color: transparent;
+  }
+  .setup-row .ghost-button {
+    margin-left: auto;
+    flex: none;
+  }
+  .setup-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 500;
+  }
+  .setup-row.is-done .setup-label {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+  .setup-tick {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--border-input);
+    color: var(--on-accent);
+  }
+  .setup-row.is-done .setup-tick {
+    background: var(--good);
+    border-color: var(--good);
+  }
+  .setup-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+  }
+  .setup-form label {
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+  .setup-form-actions {
+    grid-column: 1 / -1;
+  }
+  .setup-hide {
+    justify-self: start;
+  }
+
+  /* ---- Phones ---- */
+  @media (max-width: 720px) {
+    .today-head {
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .today-head h1 {
+      font-size: var(--text-2xl);
+      line-height: var(--text-2xl-lh);
+    }
+    .today-head p {
+      font-size: var(--text-sm);
+      line-height: var(--text-sm-lh);
+    }
+    .week-card-headline {
+      max-width: none;
+    }
+    .row-item {
+      min-height: 48px;
+    }
+    .row-item:not(:first-child, .is-live) {
+      padding-block: var(--space-2);
+    }
+    .row-item.is-live {
+      margin: 0 calc(var(--space-2) * -1);
+      padding: var(--space-2);
+    }
+    .row-item.is-live:first-child {
+      padding-top: var(--space-2);
+    }
+    .week-card-note {
+      margin-top: 0;
+      padding-top: var(--space-2);
+    }
+    .setup-form {
+      grid-template-columns: minmax(0, 1fr);
+      padding: var(--space-3);
+    }
+  }
+}

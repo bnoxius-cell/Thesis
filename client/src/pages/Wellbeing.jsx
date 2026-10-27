@@ -9,6 +9,7 @@ import SuggestionsPanel from "../components/SuggestionsPanel";
 import CheckInCards from "../components/CheckInCards";
 import useWorkload from "../utils/useWorkload";
 import { BAND_MESSAGE, bandLabel } from "../utils/weekReasons";
+import { WORKLOAD_NOTE } from "../utils/weekReading";
 import { sleepPlan, firstStartOf } from "../utils/sleepPlan";
 import { formatTime } from "../utils/scheduleUtils";
 import { WELLBEING_TOUR } from "../utils/tours";
@@ -53,7 +54,7 @@ export default function Wellbeing() {
           title={insights.isNewUser ? "How you're doing" : bandLabel(insights.band)}
           description={insights.isNewUser ? "Add a task or your classes and this page fills in." : BAND_MESSAGE[insights.band]}
         >
-          {!insights.isNewUser && <p className="wellbeing-score">Workload score {insights.workloadScore} of 100</p>}
+          {!insights.isNewUser && <p className="wellbeing-score">Workload score {insights.workloadScore} of 100. {WORKLOAD_NOTE}</p>}
         </PageHeader>
 
         {!insights.isNewUser && (

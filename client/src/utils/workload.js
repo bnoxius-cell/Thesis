@@ -53,7 +53,7 @@ export const BAND_LABEL = {
   "Light Workload": "Light week",
   "Moderate Workload": "Steady week",
   "Heavy Workload": "Full week",
-  "Critical Overload": "Too much this week",
+  "Critical Overload": "Very full week",
 };
 
 export const bandFor = (score) => BANDS.find((b) => score <= b.max).name;
@@ -424,7 +424,7 @@ function buildTips({
         ? "Work in 25-minute blocks with a 5-minute break, and choose one task a day that has to get done. The rest can wait its turn."
         : "Your week isn't heavy, so this stress may be coming from somewhere else. A friend, a walk or the guidance office can all help.");
   } else if (stress === "moderate") {
-    add("info", "Some stress showing",
+    add("info", "Go easy on yourself",
       hasTasks ? "Tackle one thing at a time and take short breaks between study blocks." : "A short walk or a break from screens goes a long way while things are calm.");
   } else if (stress === "low" && heavyWeek && mood !== "low" && mood !== "very-low") {
     add("good", "You're handling it well", "Your check-in shows low stress, so a full week is manageable. Keep your sleep and meals steady.");

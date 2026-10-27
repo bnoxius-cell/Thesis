@@ -5,6 +5,7 @@ import PageHeader from "../components/PageHeader";
 import { useAuth } from "./authentication/AuthContext";
 import { SUPPORT_EMAILS } from "./legal/legalContent";
 import { PSS_VALID_DAYS, WHO_VALID_DAYS } from "../utils/workload";
+import { WORKLOAD_NOTE } from "../utils/weekReading";
 import "../App.css";
 
 const STEPS = [
@@ -18,7 +19,7 @@ const BANDS = [
   ["Light week", "0 to 30", "There's room. A good week to get ahead or rest."],
   ["Steady week", "31 to 60", "A normal load. Keep your routine."],
   ["Full week", "61 to 80", "A lot on. Worth moving something or protecting your sleep."],
-  ["Too much this week", "81 to 100", "More than fits. The app suggests what to move, and when."],
+  ["Very full week", "81 to 100", "More than fits. The app suggests what to move, and when."],
 ];
 
 const INPUTS = [
@@ -109,6 +110,7 @@ export default function About() {
               </div>
             ))}
           </dl>
+          <p>{WORKLOAD_NOTE}</p>
         </section>
 
         <section className="panel">
