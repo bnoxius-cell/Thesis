@@ -27,12 +27,19 @@
   }
   @media (hover: hover) and (pointer: fine) {
     .tonal-button:hover:not(:disabled) {
-      background: color-mix(in srgb, var(--accent) 16%, var(--accent-soft));
+      background: color-mix(in srgb, var(--accent) 10%, var(--accent-soft));
+      color: var(--accent-press);
     }
   }
   .tonal-button:active:not(:disabled) {
-    background: color-mix(in srgb, var(--accent) 24%, var(--accent-soft));
+    background: color-mix(in srgb, var(--accent) 16%, var(--accent-soft));
+    color: var(--accent-press);
     transform: scale(0.98);
+  }
+  @media (max-width: 720px), (pointer: coarse) {
+    .tonal-button {
+      min-height: 44px;
+    }
   }
   .tonal-button:focus-visible {
     outline: 2px solid var(--focus-ring);
@@ -59,6 +66,19 @@
   }
   .ghost-button.is-danger:disabled {
     color: var(--text-muted);
+  }
+
+  /* Filled danger (confirm dialogs): darker on hover and press in light, lighter in dark,
+     by mixing toward the text colour. */
+  @media (hover: hover) and (pointer: fine) {
+    .danger-button:hover:not(:disabled),
+    .primary-button.confirm-danger:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--danger) 85%, var(--text-primary));
+    }
+  }
+  .danger-button:active:not(:disabled),
+  .primary-button.confirm-danger:active:not(:disabled) {
+    background: color-mix(in srgb, var(--danger) 70%, var(--text-primary));
   }
 
   .icon-action.is-active {
@@ -252,11 +272,30 @@
       border-radius: var(--radius-xl) var(--radius-xl) 0 0;
       animation: sheet-in var(--dur-3) var(--ease-out);
     }
+    /* Header and actions stay on screen and only the form between them scrolls. They are
+       sticky inside the sheet (which is the scroll container), so this works whether the
+       markup is a form or a plain div, and the negative margins let their background and
+       divider run edge to edge over the sheet's padding. */
+    .modal-overlay .modal-header {
+      position: sticky;
+      top: calc(-1 * var(--space-4)); /* sticky offsets are measured inside the sheet's padding */
+      z-index: 2;
+      margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) var(--space-3);
+      padding: var(--space-4) var(--space-4) var(--space-2);
+      background: var(--s-surface, var(--surface));
+    }
     /* Actions stack full width with the primary first (it is last in the markup) */
     .modal-overlay .modal-actions {
+      position: sticky;
+      bottom: calc(-1 * (var(--space-4) + env(safe-area-inset-bottom, 0px)));
+      z-index: 2;
       flex-direction: column-reverse;
       align-items: stretch;
       gap: var(--space-2);
+      margin: var(--space-4) calc(-1 * var(--space-4)) calc(-1 * (var(--space-4) + env(safe-area-inset-bottom, 0px)));
+      padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid var(--s-line, var(--border));
+      background: var(--s-surface, var(--surface));
     }
     .modal-overlay .modal-actions > * {
       width: 100%;

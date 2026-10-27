@@ -931,9 +931,6 @@ input[type="range"] {
     background: var(--surface-2);
     color: var(--text-primary);
   }
-  .danger-button:hover:where(:not(:disabled)) {
-    filter: brightness(0.92);
-  }
 }
 .primary-button:active:where(:not(:disabled)) {
   background: var(--accent-press);
@@ -1533,11 +1530,6 @@ input[type="range"] {
 .primary-button.confirm-danger:not(:disabled) {
   background: var(--danger);
   color: var(--on-danger);
-}
-@media (hover: hover) and (pointer: fine) {
-  .primary-button.confirm-danger:hover:not(:disabled) {
-    filter: brightness(0.92);
-  }
 }
 .confirm-dialog-code {
   margin-top: 12px;
@@ -4821,6 +4813,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
 .share-modal { max-width: 600px; }
 .share-block {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   padding: 16px 0;
   border-top: 1px solid var(--s-line, var(--border-light));
@@ -4851,7 +4844,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   background: color-mix(in srgb, var(--s-accent, var(--sage)) 18%, transparent);
   color: var(--s-accent-text, var(--sage));
 }
-.share-general-body { flex: 1; min-width: 0; display: grid; gap: 8px; }
+.share-general-body { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .share-general-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .share-general-row select:first-child { flex: 1 1 200px; width: auto; min-width: 0; }
 .share-code-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
