@@ -15,6 +15,8 @@ Last updated: 2026-10-13 (end of planning session; owner continues 2026-10-14). 
 - More psychologist feedback is coming: add it as `01b-...md` and merge items into `04`.
 - Suggested next step: planner on W1 (`fix/auth-hardening`, overlaps build-queue Q1), code-reviewer before merge.
 - **Frontend plan written 2026-10-28: `.claude/docs/revamp/06-frontend-plan-v2.md`** (Figtree, calmer slate-blue palette, 3 schedule presets, Guide in header, cascade layers; batches FE-0 to FE-10, one branch each `redesign/v2-feN-...`). Owner answered O1 (task course optional), O2 (one shared project email, address not given yet), O3 (Guide opens on first visit of each page). Next: tag `pre-frontend-v2`, then builder-sonnet high on FE-0. Dev servers run on 5173/5000 (real Atlas). W2 planner must adopt the `toWeekReading` shape (plan O5).
+- **Owner decisions answered 2026-10-28** are at the top of `.claude/docs/revamp/04-revamp-backlog.md`. Merge policy: passing batches go into one branch, `redesign/v2-integration`; nothing goes to `main` until the owner has tested it locally.
+- **Overnight run (owner chose option 1, 2026-10-28):** FE-0, FE-1, FE-2, FE-3, FE-4, FE-5, FE-7, FE-8, FE-9, then W1 auth (with code-reviewer and security-review). Each batch: builder, tester, fix round if needed, merge into `redesign/v2-integration` (branch it from `main` after FE-0 passes). Never merge or push to `main`. Two failed rounds on a batch: park it and move on. Skills per plan "Skills" section. In the morning: W2, W3, FE-6, FE-3b, FE-10, W5. Progress per batch is logged below.
 - This section takes priority over the build-queue order below.
 
 ## Where to pick up (older, build-queue)

@@ -1,6 +1,8 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import './styles/tokens.css'
+import './styles/base.css'
 import AppContent from './App.jsx'
 import { AppContextProvider } from './pages/authentication/AuthContext.jsx'
 import { GoogleOAuthProvider } from '@react-oauth/google'

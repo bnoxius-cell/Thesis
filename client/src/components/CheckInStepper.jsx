@@ -104,7 +104,7 @@ export default function CheckInStepper({ config, isFirstTime = false, onClose, o
         <div className="checkin-step">
           <div className="checkin-progress" aria-live="polite">
             <div className="survey-progress-track" aria-hidden="true">
-              <div className="survey-progress-fill" style={{ width: `${((step + 1) / questions.length) * 100}%` }} />
+              <div className="survey-progress-fill" style={{ transform: `scaleX(${(step + 1) / questions.length})` }} />
             </div>
             <span>Question {step + 1} of {questions.length}</span>
           </div>

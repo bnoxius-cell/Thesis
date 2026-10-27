@@ -136,7 +136,7 @@ export default function LearningMode({ reviewerId, title, session, onFinished, o
         aria-valuemax={questions.length}
         aria-valuenow={answeredCount}
       >
-        <span style={{ width: `${(answeredCount / questions.length) * 100}%` }} />
+        <span style={{ transform: `scaleX(${answeredCount / questions.length})` }} />
       </div>
 
       <article className="panel learning-card" key={question._id}>
