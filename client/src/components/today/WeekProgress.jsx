@@ -26,9 +26,11 @@ export default function WeekProgress({ tasks, now }) {
   return (
     <div className="week-progress">
       <p>{done} of {due.length} {due.length === 1 ? "task" : "tasks"} due this week {due.length === 1 ? "is" : "are"} done.</p>
-      <div className={`progress${allDone ? " is-good" : ""}`} aria-hidden="true">
-        <span style={{ transform: `scaleX(${done / due.length})` }} />
-      </div>
+      {done > 0 && (
+        <div className={`progress${allDone ? " is-good" : ""}`} aria-hidden="true">
+          <span style={{ transform: `scaleX(${done / due.length})` }} />
+        </div>
+      )}
     </div>
   );
 }

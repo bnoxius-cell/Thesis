@@ -5,6 +5,7 @@ import PageHeader from "../components/PageHeader";
 import { useAuth } from "./authentication/AuthContext";
 import { SUPPORT_EMAILS } from "./legal/legalContent";
 import { PSS_VALID_DAYS, WHO_VALID_DAYS } from "../utils/workload";
+import { WORKLOAD_NOTE } from "../utils/weekReading";
 import "../App.css";
 
 const STEPS = [
@@ -109,6 +110,7 @@ export default function About() {
               </div>
             ))}
           </dl>
+          <p>{WORKLOAD_NOTE}</p>
         </section>
 
         <section className="panel">

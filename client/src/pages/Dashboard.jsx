@@ -13,6 +13,8 @@ import WeekCard from "../components/today/WeekCard";
 import TodayCard from "../components/today/TodayCard";
 import ComingUp from "../components/today/ComingUp";
 import WeekProgress from "../components/today/WeekProgress";
+import TodayLayout from "../components/today/TodayLayout";
+import { TODAY_MAX_ROWS } from "../components/today/TodayCard";
 import { DASHBOARD_TOUR } from "../utils/tours";
 import { Plus, Sprout } from "lucide-react";
 import useWorkload from "../utils/useWorkload";
@@ -72,6 +74,7 @@ const Dashboard = () => {
     setSetupHidden(true);
   };
 
+  const todayEntryCount = focus.happeningNow.length + focus.laterToday.length;
   const reading = toWeekReading({ insights, plannedTasks: work.plannedTasks, now });
 
   const checkIn = (
@@ -81,7 +84,11 @@ const Dashboard = () => {
       whoDue={work.whoDue}
       onSelectPSS={() => setShowPSSModal(true)}
       onSelectWHO={() => setShowWHOModal(true)}
-      onDismiss={() => work.snooze(...[work.pssDue && "PSS", work.whoDue && "WHO"].filter(Boolean))}
+      onDismiss={() => {
+        work.snooze(...[work.pssDue && "PSS", work.whoDue && "WHO"].filter(Boolean));
+        // The notice unmounts with the focused button, so put focus on the page instead of <body>.
+        document.getElementById("main")?.focus({ preventScroll: true });
+      }}
     />
   );
 
@@ -97,7 +104,6 @@ const Dashboard = () => {
           )}
         </section>
 
-        <div className="today-wrap">
         {insights.isNewUser ? (
           <div className="today-stack">
             {showSetup ? (
@@ -116,18 +122,22 @@ const Dashboard = () => {
             {checkIn}
           </div>
         ) : (
-          <div className="today-layout">
-            <div className="today-col">
-              <TodayCard focus={focus} today={today} tasks={todayTasks} now={now} nextExam={nextExam} hasSchedule={hasSchedule} />
-              <ComingUp tasks={comingTasks} now={now} />
-            </div>
-            <div className="today-col">
-              <WeekCard reading={reading} />
-              {showSetup ? (
-                <SetupChecklist work={work} setup={setup} onStartCheckIn={() => setShowPSSModal(true)} onHide={hideSetupCard} />
-              ) : (
-                <NextStepCard work={work} />
-              )}
+          <TodayLayout
+            sizes={{
+              todayRows: Math.min(TODAY_MAX_ROWS, todayEntryCount + todayTasks.length),
+              comingRows: Math.min(5, comingTasks.length),
+              nextHeight: showSetup ? 420 : 220,
+              hasNotice: work.pssDue || work.whoDue,
+            }}
+            week={<WeekCard reading={reading} />}
+            today={<TodayCard focus={focus} today={today} tasks={todayTasks} now={now} nextExam={nextExam} hasSchedule={hasSchedule} />}
+            coming={<ComingUp tasks={comingTasks} now={now} />}
+            next={showSetup ? (
+              <SetupChecklist work={work} setup={setup} onStartCheckIn={() => setShowPSSModal(true)} onHide={hideSetupCard} />
+            ) : (
+              <NextStepCard work={work} />
+            )}
+            strip={(
               <section className="panel week-strip" data-tour="dash-week" aria-labelledby="week-strip-title">
                 <h2 id="week-strip-title">The next 7 days</h2>
                 <Link to="/wellbeing#week" className="week-strip-link" aria-label="See your week in detail">
@@ -140,11 +150,10 @@ const Dashboard = () => {
                   </p>
                 )}
               </section>
-              {checkIn}
-            </div>
-          </div>
+            )}
+            notice={checkIn}
+          />
         )}
-        </div>
       <ShellOverlays>
         {/* Mounted only while open, so each one starts from a clean slate. */}
         {showPSSModal && (

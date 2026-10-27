@@ -104,7 +104,7 @@ export default function TodayCard({ focus, today, tasks, now, nextExam, hasSched
 
       {hidden > 0 && (
         <Link to={hiddenIsTasks ? "/schedule?tab=tasks" : "/schedule"} className="today-more">
-          +{hidden} more{hiddenIsTasks ? " in Tasks" : " in your schedule"}
+          +{hidden} more
         </Link>
       )}
 

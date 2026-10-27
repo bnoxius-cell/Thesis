@@ -29,7 +29,12 @@ export function toWeekReading({ insights, plannedTasks = [], now = new Date() })
   const band = BAND_KEY[insights.band] || "light";
 
   const overdue = plannedTasks.filter((task) => task.dueDate && differenceInDays(task.dueDate, now) < 0).length;
-  const dueThisWeek = plannedTasks.filter((task) => task.dueDate && differenceInDays(task.dueDate, now) <= 6).length;
+  // Things due today through the next 6 days (a rolling 7 days). Overdue ones have their own button.
+  const dueSoon = plannedTasks.filter((task) => {
+    if (!task.dueDate) return false;
+    const days = differenceInDays(task.dueDate, now);
+    return days >= 0 && days <= 6;
+  }).length;
 
   const action = overdue > 0
     ? { label: "See overdue tasks", to: "/schedule?tab=tasks" }
@@ -39,7 +44,7 @@ export function toWeekReading({ insights, plannedTasks = [], now = new Date() })
     band,
     label: bandLabel(insights.band),
     headline: BAND_MESSAGE[insights.band] || "",
-    reasons: topReasons(insights.parts, dueThisWeek, MAX_REASONS).slice(0, MAX_REASONS),
+    reasons: topReasons(insights.parts, dueSoon, MAX_REASONS, insights.band).slice(0, MAX_REASONS),
     actions: [action],
     note: WORKLOAD_NOTE,
     score: insights.workloadScore ?? 0,

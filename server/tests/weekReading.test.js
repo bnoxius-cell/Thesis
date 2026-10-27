@@ -50,10 +50,44 @@ describe('toWeekReading', () => {
         expect(WORKLOAD_NOTE).toBe('This is a workload estimate, not a measure of your stress.');
     });
 
-    test('the deadline reason says how many things are due this week', () => {
-        const plannedTasks = [{ dueDate: isoDay(1) }, { dueDate: isoDay(3) }, { dueDate: isoDay(20) }];
+    test('the deadline reason counts a rolling 7 days: not overdue, not later', () => {
+        const plannedTasks = [{ dueDate: isoDay(1) }, { dueDate: isoDay(3) }, { dueDate: isoDay(20) }, { dueDate: isoDay(-2) }];
         const reading = toWeekReading({ insights: insightsFor('Heavy Workload'), plannedTasks, now: NOW });
-        expect(reading.reasons.some((r) => r.includes('2 things due this week'))).toBe(true);
+        expect(reading.reasons.some((r) => r.includes('2 things due in the next 7 days'))).toBe(true);
+    });
+
+    const STRAIN = /strain|high side|is low|middling|heavy|fill most/i;
+    const strainedParts = [
+        { key: 'time', label: 'Deadlines', value: 20, level: 'low' },
+        { key: 'schedule', label: 'Classes and activities', value: 25, level: 'low' },
+        { key: 'stress', label: 'Stress check-in', value: 35, level: 'moderate' },
+        { key: 'wellbeing', label: 'Well-being check-in', value: 60, level: 'moderate' },
+    ];
+
+    test.each(['Light Workload', 'Moderate Workload'])('a %s never shows a strain reason, even with strained check-ins', (name) => {
+        const reading = toWeekReading({ insights: insightsFor(name, { parts: strainedParts }), plannedTasks: [], now: NOW });
+        expect(reading.reasons.length).toBeGreaterThan(0);
+        for (const reason of reading.reasons) expect(reason).not.toMatch(STRAIN);
+    });
+
+    test('a calm week with nothing positive to say still gets a plain line, not an empty list', () => {
+        const parts = [{ key: 'stress', label: 'Stress check-in', value: 40, level: 'moderate' }];
+        const reading = toWeekReading({ insights: insightsFor('Light Workload', { parts }), plannedTasks: [], now: NOW });
+        expect(reading.reasons).toEqual(['Nothing is piling up right now']);
+    });
+
+    test('a Very full week keeps its heavy reasons', () => {
+        const parts = [
+            { key: 'time', label: 'Deadlines', value: 90, level: 'high' },
+            { key: 'schedule', label: 'Classes and activities', value: 75, level: 'high' },
+            { key: 'stress', label: 'Stress check-in', value: 70, level: 'high' },
+        ];
+        const reading = toWeekReading({ insights: insightsFor('Critical Overload', { parts }), plannedTasks: [], now: NOW });
+        expect(reading.reasons).toEqual([
+            expect.stringContaining('Deadlines are heavy'),
+            'Classes and activities fill most of your week',
+            'Your stress check-in is on the high side',
+        ]);
     });
 
     test('one action: overdue tasks lead to the task list, otherwise to Wellbeing', () => {

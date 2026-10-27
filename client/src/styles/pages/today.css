@@ -28,50 +28,25 @@
   }
 
   /* ---- Layout ----
-     One column on phones and narrow laptops, two from 760px of content width (the sidebar eats
-     240px, so a viewport query would split too early). The columns are wrappers only to build the
-     two-column grid; below that they disappear (display: contents) and `order` sets the phone
-     sequence: week card, Today, Coming up, Next step, the 7-day strip, check-in notice. */
-  .today-wrap {
-    container-type: inline-size;
-  }
+     TodayLayout.jsx owns the order: one column in phone order below 760px of content width (the sidebar
+     eats 240px, so a viewport query would split too early), two columns above it. */
   .today-layout,
   .today-stack {
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
   }
-  .today-col {
-    display: contents;
+  .today-layout.is-wide {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: start;
+    gap: var(--space-5);
   }
-  .today-layout .week-card { order: 1; }
-  .today-layout .today-card { order: 2; }
-  .today-layout .coming-up { order: 3; }
-  .today-layout .next-step-card,
-  .today-layout .setup-card { order: 4; }
-  .today-layout .week-strip { order: 5; }
-  .today-layout .checkin-notice { order: 6; }
-
-  @container (min-width: 760px) {
-    .today-layout {
-      display: grid;
-      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-      align-items: start;
-      gap: var(--space-5);
-    }
-    .today-col {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-5);
-      min-width: 0;
-    }
-    .today-layout .today-card,
-    .today-layout .coming-up,
-    .today-layout .week-card,
-    .today-layout .next-step-card,
-    .today-layout .setup-card,
-    .today-layout .week-strip,
-    .today-layout .checkin-notice { order: 0; }
+  .today-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-width: 0;
   }
 
   /* ---- Card titles on Today ---- */
@@ -96,18 +71,21 @@
     color: var(--text-primary);
   }
 
-  /* ---- Week card: the week in words ---- */
+  /* ---- Week card: the week in words. The lead card: a soft accent wash, a larger sentence. ---- */
   .week-card {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
+    border-color: transparent;
+    background: var(--accent-soft);
   }
   .week-card-headline {
     margin: 0;
-    max-width: 34ch;
-    font-size: var(--text-lg);
-    line-height: var(--text-lg-lh);
+    max-width: 28ch;
+    font-size: var(--text-xl);
+    line-height: var(--text-xl-lh);
     font-weight: 600;
+    letter-spacing: -0.01em;
     color: var(--text-primary);
     text-wrap: balance;
   }
@@ -129,7 +107,7 @@
   .week-card-reasons svg {
     flex: none;
     margin-top: 2px;
-    color: var(--text-muted);
+    color: var(--accent);
   }
   .week-card-actions {
     display: flex;
@@ -137,13 +115,18 @@
     align-items: center;
     gap: var(--space-2);
   }
+  /* On the wash, the action is a white button so it still reads as one. */
+  .week-card .tonal-button {
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+  }
   .week-card-note {
     margin: var(--space-1) 0 0;
     padding-top: var(--space-3);
-    border-top: 1px solid var(--border);
+    border-top: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
     font-size: var(--text-xs);
     line-height: var(--text-xs-lh);
-    color: var(--text-muted);
+    color: var(--text-secondary);
   }
 
   /* ---- Today and Coming up: rows with dividers, no boxes inside the card ---- */
@@ -363,9 +346,10 @@
   .week-strip .chart-bar.chart-busy {
     background: var(--chart-busy);
   }
-  /* Amber for tasks that don't fit. Never red, never brown. */
+  /* Tasks that don't fit: a soft amber bar with a darker amber cap. Never red, never brown. */
   .week-strip .chart-bar.overloaded {
-    background: var(--chart-over);
+    background: var(--watch-soft);
+    border-top: 3px solid var(--chart-over);
   }
   .week-strip .chart-capacity {
     left: 0;
