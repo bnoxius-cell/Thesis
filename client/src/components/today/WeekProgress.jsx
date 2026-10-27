@@ -1,7 +1,7 @@
 import { toISODate, taskDueIso } from "../../utils/scheduleUtils";
 
 // Monday to Sunday of the week `now` falls in, as ISO dates.
-export function weekBounds(now) {
+function weekBounds(now) {
   const start = new Date(now);
   start.setHours(0, 0, 0, 0);
   start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
