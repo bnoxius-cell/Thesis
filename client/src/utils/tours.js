@@ -22,12 +22,17 @@ export const DASHBOARD_TOUR = [
   {
     target: "dash-today",
     title: "Today",
-    text: "What's happening now, what's later and what's due soon. Online classes get a Join button. Later in the day it looks ahead to tomorrow.",
+    text: "Your classes happening now and later, plus anything due today or overdue, in one short list. Online classes get a Join button.",
+  },
+  {
+    target: "dash-coming",
+    title: "Coming up",
+    text: "Tasks due in the next 7 days, soonest first, so nothing sneaks up on you.",
   },
   {
     target: "dash-doing",
     title: "This week",
-    text: "How heavy your week is, in words, and the two things adding the most. See what's behind this opens the full picture.",
+    text: "How full your week is, in words, with the few things adding the most. It's an estimate of workload, not of your stress. See details has the full picture.",
   },
   {
     target: "dash-next",
@@ -37,7 +42,7 @@ export const DASHBOARD_TOUR = [
   {
     target: "dash-week",
     title: "The next 7 days",
-    text: "Each day's study time next to your classes and activities, so heavy days stand out early. Tap it for the details.",
+    text: "Each day's study time next to your classes and activities, so heavy days stand out early, plus how many of this week's tasks are done. Tap it for the details.",
   },
 ];
 

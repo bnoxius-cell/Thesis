@@ -76,24 +76,19 @@ export default function SetupChecklist({ work, setup, onStartCheckIn, onHide }) 
   };
 
   const rows = [
-    { key: "classes", label: "Add your classes", action: <Link to="/schedule" className="ghost-button small">Open schedule</Link> },
+    { key: "classes", label: "Add your classes", action: <Link to="/schedule" className="ghost-button">Open schedule</Link> },
     {
       key: "week",
       label: "Tell us about your week",
-      action: <button type="button" className="ghost-button small" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? "Close" : "Fill in"}</button>,
+      action: <button type="button" className="ghost-button" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? "Close" : "Fill in"}</button>,
     },
-    { key: "checkin", label: "Take your first check-in", action: <button type="button" className="ghost-button small" onClick={onStartCheckIn}>Start</button> },
-    { key: "task", label: "Add a task", action: <Link to="/schedule?task=new" className="ghost-button small">Add task</Link> },
+    { key: "checkin", label: "Take your first check-in", action: <button type="button" className="ghost-button" onClick={onStartCheckIn}>Start</button> },
+    { key: "task", label: "Add a task", action: <Link to="/schedule?task=new" className="ghost-button">Add task</Link> },
   ];
 
   return (
     <section className="panel setup-card" data-tour="dash-setup">
-      <div className="panel-heading">
-        <div>
-          <span className="panel-kicker">Getting started</span>
-          <h2>Let's set up your week</h2>
-        </div>
-      </div>
+      <h2>Let's set up your week</h2>
       <p className="setup-lead">Four small steps and StressCare can plan around you. Nothing here is urgent.</p>
       <ol className="setup-list">
         {rows.map((row) => (
@@ -131,7 +126,7 @@ export default function SetupChecklist({ work, setup, onStartCheckIn, onHide }) 
         </form>
       )}
 
-      <button type="button" className="ghost-button small setup-hide" onClick={onHide}>Hide this card</button>
+      <button type="button" className="ghost-button setup-hide" onClick={onHide}>Hide this card</button>
     </section>
   );
 }

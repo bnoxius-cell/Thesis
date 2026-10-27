@@ -199,20 +199,6 @@
   font-size: var(--text-3xl);
   margin-bottom: 6px;
 }
-.hero-panel {
-  padding: var(--space-5);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  color: var(--hero-panel-text);
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-.hero-panel h2 {
-  color: inherit;
-  margin: 0;
-}
 .profile-info p {
   overflow-wrap: anywhere;
 }
@@ -233,271 +219,6 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   color: inherit;
-}
-
-/* ==========================================================================
-   CHECK-IN BANNER (Dashboard)
-   Dismissible, non-blocking nudge — deliberately not a modal, so it never
-   stops a user from using the rest of the page while it's showing.
-   ========================================================================== */
-.checkin-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: var(--space-4) var(--space-5);
-  margin: 0 0 var(--space-5);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  border: 1px solid var(--border);
-}
-.checkin-banner-text {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  min-width: 0;
-}
-.checkin-banner-icon {
-  font-size: var(--text-xl);
-  line-height: 1;
-}
-.checkin-banner-text strong {
-  display: block;
-  margin-bottom: 2px;
-  color: var(--text-primary);
-}
-.checkin-banner-text p {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-}
-.checkin-banner-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.checkin-banner-dismiss {
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  line-height: 1;
-  cursor: pointer;
-  min-height: 40px;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-md);
-  white-space: nowrap;
-  transition: background-color var(--dur-1) ease, color var(--dur-1) ease;
-}
-@media (hover: hover) and (pointer: fine) {
-  .checkin-banner-dismiss:hover {
-    background: var(--surface-2);
-    color: var(--text-primary);
-  }
-}
-.checkin-banner-dismiss:active {
-  background: var(--surface-3);
-}
-@media (max-width: 720px), (pointer: coarse) {
-  .checkin-banner-dismiss {
-    min-height: 44px;
-  }
-}
-
-/* ==========================================================================
-   WELCOME PANEL (Dashboard — new / empty-data accounts)
-   Shown instead of the full metrics snapshot until there's real data to
-   summarize, so a brand-new account doesn't open on a wall of zeroes.
-   ========================================================================== */
-.welcome-panel p {
-  color: inherit;
-  line-height: 1.6;
-}
-.welcome-panel .welcome-hint {
-  font-size: var(--text-sm);
-  opacity: 0.8;
-  margin-top: 4px;
-}
-.welcome-panel .primary-button {
-  align-self: flex-start;
-  /* Sits on the dark sage-deep hero panel — invert so it stays visible
-     instead of using the default (also sage-deep) primary-button fill. */
-  background: #f3efe1;
-  color: var(--sage-deep);
-  box-shadow: none;
-}
-.welcome-panel .primary-button:hover {
-  background: #fff;
-}
-.welcome-hero .hero-copy h2 {
-  margin: 10px 0 16px;
-  font-size: var(--text-3xl);
-  line-height: 1.15;
-  max-width: 18ch;
-}
-.welcome-hero .hero-copy .primary-button {
-  margin-top: 10px;
-  display: inline-flex;
-}
-
-/* ==========================================================================
-   GREETING + TODAY (Dashboard, returning users)
-   ========================================================================== */
-.greeting {
-  padding: 4px 4px 0;
-}
-.greeting h1 {
-  margin: 0 0 6px;
-  font-size: var(--text-3xl);
-}
-.greeting p {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--text-md);
-}
-.today-grid {
-  grid-template-columns: 1.5fr 1fr;
-  align-items: stretch;
-}
-.today-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-}
-.today-item {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 12px;
-}
-.today-item strong {
-  display: block;
-  color: var(--text-primary);
-  font-weight: 600;
-}
-.today-meta {
-  display: block;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  margin-top: 2px;
-}
-.today-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-pill);
-  margin-top: 7px;
-  flex-shrink: 0;
-  background: var(--sage);
-}
-.today-dot.critical,
-.today-dot.overdue {
-  background: var(--clay);
-}
-.today-dot.upcoming {
-  background: var(--ochre);
-}
-.today-dot.class {
-  background: var(--chart-busy);
-}
-.today-dot.activity {
-  background: transparent;
-  box-shadow: inset 0 0 0 2px var(--chart-busy);
-}
-.today-classes {
-  margin-bottom: 18px;
-}
-.today-subhead {
-  margin: 0 0 12px;
-  font-family: var(--font-ui);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-.today-meta svg {
-  vertical-align: -1px;
-}
-.today-holiday {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 16px;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  background: var(--ochre-soft);
-  color: var(--text-primary);
-  font-size: var(--text-md);
-}
-.today-empty {
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-.today-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 18px;
-}
-.today-add,
-.welcome-actions .ghost-button {
-  color: var(--text-primary);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  text-decoration: none;
-}
-.welcome-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-top: 10px;
-}
-.welcome-actions .primary-button {
-  margin-top: 0;
-}
-
-/* "How you're doing" — a calm badge, not a percentage meter */
-.stress-ring {
-  width: 132px;
-  height: 132px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 4px auto 4px;
-  border: 10px solid var(--surface-3);
-  background: var(--surface-2);
-  transition: border-color 0.4s ease;
-}
-.stress-ring.calm,
-.stress-ring.steady { border-color: var(--good); }
-.stress-ring.full,
-.stress-ring.a-lot { border-color: var(--watch); }
-.stress-ring-inner {
-  text-align: center;
-  padding: 0 14px;
-}
-.stress-ring-inner strong {
-  display: block;
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: var(--text-md);
-  line-height: 1.25;
-  color: inherit;
-}
-.stress-ring-score {
-  display: block;
-  margin-top: 4px;
-  font-size: var(--text-xs);
-  opacity: 0.75;
 }
 .driver-list {
   list-style: none;
@@ -1984,36 +1705,15 @@ input[type="range"] {
     height: 140px;
     padding: 8px;
   }
-
-  /* Hero/greeting headings use vw-based clamp() sizing tuned for the full
-     viewport width, but on mobile the sidebar rail eats a fixed chunk of
-     that width, leaving the text column much narrower than the clamp
-     assumes — so short headings were wrapping into three or four ragged
-     lines. Give them fixed, smaller sizes instead of scaling with vw. */
-  .greeting h1 {
-    font-size: var(--text-2xl);
-    line-height: 1.25;
-  }
-  .greeting p {
-    font-size: var(--text-md);
-  }
   .hero h1 {
     font-size: var(--text-3xl);
     line-height: 1.22;
-    max-width: none;
-  }
-  .welcome-hero .hero-copy h2 {
-    font-size: var(--text-xl);
-    line-height: 1.25;
     max-width: none;
   }
   .auth-copy h1 {
     font-size: var(--text-3xl);
     line-height: 1.2;
     max-width: none;
-  }
-  .hero-panel h2 {
-    font-size: var(--text-xl);
   }
   .metric-card strong {
     font-size: var(--text-lg);
@@ -2023,13 +1723,6 @@ input[type="range"] {
   }
   .metric-card p {
     font-size: var(--text-sm);
-  }
-
-  /* Profile's Account Info card: a 150px avatar stacked above the name
-     was eating most of the column's height and width on mobile. Move it
-     beside the name instead, at a size that fits the rail. */
-  .hero-panel {
-    padding: var(--space-4);
   }
   .profile-image {
     display: flex;
@@ -2070,17 +1763,6 @@ input[type="range"] {
     font-size: var(--text-xs);
   }
 
-  /* Check-in banner: stack the icon above the text instead of beside it,
-     so the message gets the full column width to wrap in rather than
-     losing ~30px to the icon + gap on an already-narrow screen. */
-  .checkin-banner-text {
-    flex-direction: column;
-    gap: 6px;
-  }
-  .checkin-banner-text strong {
-    font-size: var(--text-md);
-  }
-
 }
 
 /* Extra-narrow devices/windows (below any real phone's width, but the
@@ -2095,39 +1777,16 @@ input[type="range"] {
   .auth-card {
     padding: 14px;
   }
-  .greeting h1 {
-    font-size: var(--text-lg);
-    line-height: 1.25;
-  }
-  .greeting p {
-    font-size: var(--text-sm);
-  }
   .hero h1 {
     font-size: var(--text-3xl);
     line-height: 1.2;
-  }
-  .welcome-hero .hero-copy h2 {
-    font-size: var(--text-lg);
-    line-height: 1.25;
   }
   .auth-copy h1 {
     font-size: var(--text-3xl);
     line-height: 1.2;
   }
-  .hero-panel h2 {
-    font-size: var(--text-lg);
-  }
   .metric-card strong {
     font-size: var(--text-md);
-  }
-  .checkin-banner {
-    padding: 12px 14px;
-  }
-  .checkin-banner-text strong {
-    font-size: var(--text-md);
-  }
-  .checkin-banner-text p {
-    font-size: var(--text-xs);
   }
   .panel-heading h2 {
     font-size: var(--text-md);
@@ -2855,7 +2514,6 @@ input[type="range"] {
    ========================================================================== */
 .chart-value,
 .chart-date,
-.stress-ring-score,
 .nav-badge,
 .driver-word,
 .schedule-day-head span {
@@ -3424,7 +3082,7 @@ html {
 }
 
 /* ==========================================================================
-   AVATARS, PROFILES, GROUP ROLES, TODAY FOCUS
+   AVATARS, PROFILES, GROUP ROLES
    ========================================================================== */
 .visually-hidden {
   position: absolute;
@@ -3830,78 +3488,6 @@ html {
   font-size: var(--text-sm);
 }
 
-/* Dashboard: today focus */
-.today-item.is-live {
-  padding: 10px 12px;
-  margin: 0 -12px;
-  border-radius: var(--radius-md);
-  background: var(--sage-soft);
-}
-.today-now-pill {
-  margin-left: 8px;
-  padding: 1px 8px;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  vertical-align: 1px;
-}
-.today-finished {
-  margin: 0 0 14px;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
-.today-next {
-  margin: 0 0 14px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-.today-next strong {
-  color: var(--text-primary);
-}
-.caught-up {
-  display: flex;
-  gap: 14px;
-  padding: 16px 18px;
-  border-radius: var(--radius-lg);
-  background: var(--sage-soft);
-}
-.caught-up > svg {
-  flex: none;
-  margin-top: 2px;
-  color: var(--sage);
-}
-.caught-up strong {
-  display: block;
-  font-family: var(--font-ui);
-  font-size: var(--text-lg);
-  color: var(--text-primary);
-}
-.caught-up p {
-  margin: 4px 0 0;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-.caught-up-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.panel .today-subhead {
-  margin-top: 20px;
-}
-.panel .panel-heading + .today-subhead {
-  margin-top: 0;
-}
-
-.hero-panel .ua-fallback {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
 /* ==========================================================================
    MAIN SCHEDULE, EXAMS, SUGGESTIONS
    ========================================================================== */
@@ -3947,37 +3533,6 @@ html {
   color: var(--text-primary);
   font-size: var(--text-xs);
   font-weight: 700;
-}
-.today-dot.exam {
-  background: var(--ochre);
-}
-.today-dot.event {
-  background: var(--sage);
-}
-.today-exam-pill,
-.today-event-pill {
-  margin-left: 8px;
-  padding: 1px 8px;
-  border-radius: var(--radius-pill);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  vertical-align: 1px;
-  background: var(--ochre-soft);
-  color: var(--text-primary);
-}
-.today-event-pill {
-  background: var(--sage-soft);
-}
-.today-exam-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 16px;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  background: var(--ochre-soft);
-  color: var(--text-primary);
-  font-size: var(--text-md);
 }
 
 /* Smart suggestions */
@@ -4589,26 +4144,6 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
 .share-footer { justify-content: flex-end; }
 .share-copy-link { margin-right: auto; display: inline-flex; align-items: center; gap: 6px; }
 .imp-open-bar { background: color-mix(in srgb, var(--sage) 14%, transparent); }
-
-/* ---- Dashboard: Join button on today's online classes ---- */
-.today-join {
-  margin-left: auto;
-  align-self: center;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--btn-secondary-border);
-  background: var(--btn-secondary-bg);
-  color: var(--sage);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  text-decoration: none;
-}
-.today-join:hover { background: var(--sage-soft); }
-.today-join.is-live { background: var(--accent); border-color: var(--sage-deep); color: var(--on-accent); }
-.today-join:focus-visible { outline: 2px solid var(--sage); outline-offset: 2px; }
 
 @media (max-width: 640px) {
   .sched-cal-row,
@@ -5422,116 +4957,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   .tasks-tab { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
   .task-row { gap: var(--space-2); padding: var(--space-2); }
 }
-
-/* ===== TODAY (FE-2) ===== */
-.week-card { gap: var(--space-3); }
-.week-card-kicker { font-size: var(--text-xs); font-weight: 600; opacity: 0.8; }
-.week-card .stress-ring { margin: var(--space-2) auto; }
-.week-card .stress-ring-inner strong { font-size: var(--text-md); }
-.week-card-message { margin: 0; font-size: var(--text-md); line-height: 1.5; }
-.week-card-reasons {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-}
-.week-card-reasons li { padding-left: var(--space-4); position: relative; }
-.week-card-reasons li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.55em;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.6;
-}
-.week-card-link {
-  align-self: flex-start;
-  color: inherit;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-}
-.today-more {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  font-weight: 600;
-  color: var(--accent);
-}
-.today-exam-note { align-items: flex-start; }
-.today-exam-note svg { flex: 0 0 auto; margin-top: 2px; }
-.today-exam-note span { min-width: 0; overflow-wrap: anywhere; }
-.next-step-card { display: grid; gap: var(--space-3); }
-.next-step { display: flex; gap: var(--space-3); align-items: flex-start; }
-.next-step-icon {
-  flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-sm);
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-.next-step strong { display: block; font-size: var(--text-md); }
-.next-step p { margin: var(--space-1) 0 var(--space-3); color: var(--text-secondary); line-height: 1.5; }
-.next-step .suggestion-actions { margin-top: var(--space-2); }
-.week-strip-link { display: block; color: inherit; text-decoration: none; border-radius: var(--radius-md); }
-.week-strip-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
-.chart-shell.is-compact .chart-grid { min-height: 0; gap: var(--space-2); }
-.chart-shell.is-compact .chart-bar-track { height: 72px; padding: 4px; border-radius: var(--radius-sm); }
-.chart-shell.is-compact .chart-date { display: none; }
-.chart-shell.is-compact .chart-value { font-size: var(--text-xs); }
-
-.setup-card { display: grid; gap: var(--space-3); }
-.setup-lead { margin: 0; color: var(--text-secondary); }
-.setup-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
-.setup-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  min-height: 52px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-}
-.setup-row .ghost-button { margin-left: auto; flex: 0 0 auto; }
-.setup-label { flex: 1 1 auto; min-width: 0; font-weight: 600; }
-.setup-row.is-done .setup-label { color: var(--text-muted); font-weight: 500; text-decoration: line-through; }
-.setup-tick {
-  flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 2px solid var(--text-muted);
-  color: var(--surface);
-}
-.setup-row.is-done .setup-tick { background: var(--good); border-color: var(--good); }
-.setup-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-}
-.setup-form label { font-size: var(--text-sm); font-weight: 600; gap: var(--space-1); }
-.setup-form-actions { grid-column: 1 / -1; }
-.setup-hide { justify-self: start; }
 .empty-state-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: center; margin-top: var(--space-3); }
-@media (max-width: 720px) {
-  .setup-form { grid-template-columns: minmax(0, 1fr); padding: var(--space-3); }
-}
 .wellbeing-score { margin: var(--space-1) 0 0; font-size: var(--text-sm); color: var(--text-muted); }
 .wellbeing-sleep { margin: 0 0 var(--space-2); color: var(--text-secondary); line-height: 1.5; }
 .driver-note { grid-column: 1 / -1; color: var(--text-secondary); font-size: var(--text-sm); }
@@ -5566,8 +4992,6 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
 @media (max-width: 720px) {
   .checkin-cards { grid-template-columns: minmax(0, 1fr); }
 }
-
-.done-this-week { margin: 0; color: var(--text-muted); font-size: var(--text-sm); text-align: center; }
 
 /* ==========================================================================
    ME, FRIENDS AND NOTIFICATIONS (FE-4)

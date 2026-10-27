@@ -53,7 +53,7 @@ export const BAND_LABEL = {
   "Light Workload": "Light week",
   "Moderate Workload": "Steady week",
   "Heavy Workload": "Full week",
-  "Critical Overload": "Too much this week",
+  "Critical Overload": "Very full week",
 };
 
 export const bandFor = (score) => BANDS.find((b) => score <= b.max).name;
