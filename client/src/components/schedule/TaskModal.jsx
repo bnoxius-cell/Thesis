@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Minus, Plus, Ticket, CircleCheck, RotateCcw } from "lucide-react";
 import { toISODate, addDays, taskDueIso } from "../../utils/scheduleUtils";
 import Modal from "../Modal";
+import BusySpinner from "../BusySpinner";
 
 const DIFFICULTY = ["Very easy", "Easy", "Medium", "Hard", "Very hard"];
 const IMPORTANCE = ["Low", "Minor", "Normal", "Important", "Critical"];
@@ -183,7 +184,7 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
           <div className="form-group full-span">
             <span className="sched-field-label" id="task-hours-label">How long will it take?</span>
             <div className="task-stepper" role="group" aria-labelledby="task-hours-label">
-              <button type="button" className="sched-icon-button" onClick={() => stepHours(-0.5)} disabled={Number(form.hours) <= MIN_HOURS} aria-label="Half an hour less">
+              <button type="button" className="icon-action" onClick={() => stepHours(-0.5)} disabled={Number(form.hours) <= MIN_HOURS} aria-label="Half an hour less">
                 <Minus size={16} aria-hidden="true" />
               </button>
               <label className="task-stepper-value">
@@ -198,7 +199,7 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
                 />
                 <span>hours</span>
               </label>
-              <button type="button" className="sched-icon-button" onClick={() => stepHours(0.5)} disabled={Number(form.hours) >= MAX_HOURS} aria-label="Half an hour more">
+              <button type="button" className="icon-action" onClick={() => stepHours(0.5)} disabled={Number(form.hours) >= MAX_HOURS} aria-label="Half an hour more">
                 <Plus size={16} aria-hidden="true" />
               </button>
             </div>
@@ -243,7 +244,7 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
 
         <div className="modal-actions sched-modal-actions">
           {onDelete && (
-            <button type="button" className="remove-friend-btn" onClick={onDelete} disabled={saving}>Delete</button>
+            <button type="button" className="ghost-button is-danger" onClick={onDelete} disabled={saving}>Delete</button>
           )}
           {onToggleDone && (
             <button type="button" className="secondary-button" onClick={onToggleDone} disabled={saving}>
@@ -251,7 +252,7 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
             </button>
           )}
           <button type="button" className="secondary-button" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="submit" className="primary-button" disabled={saving}>
+          <button type="submit" className="primary-button" disabled={saving} aria-busy={saving}>{saving && <BusySpinner />}
             {saving ? "Saving..." : task ? "Save changes" : "Add task"}
           </button>
         </div>

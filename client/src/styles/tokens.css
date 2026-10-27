@@ -151,7 +151,7 @@
     --status-pill-critical-bg: var(--danger-soft);
     --status-pill-upcoming-bg: var(--watch-soft);
     --status-pill-overdue-bg: var(--danger-soft);
-    --card-shadow: var(--shadow-1);
+    --card-shadow: none;
 
     /* Workload tones */
     --tone-watch-fg: var(--watch);

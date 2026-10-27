@@ -14,6 +14,7 @@ import {
   LEVEL_LABEL, formatDate, errorMessage, listNames,
 } from "./reviewerUtils";
 import Modal from "../Modal";
+import BusySpinner from "../BusySpinner";
 
 const STATUS_POLL_MS = 3000;
 // How long a failed "New questions" stays mentioned on the reviewer.
@@ -342,7 +343,7 @@ export default function ReviewerView({ reviewerId, onBack }) {
           <h2>We couldn't make this reviewer</h2>
           <p>{reviewer.error || "Something went wrong. Try again."}</p>
           <div className="reviewer-button-row">
-            <button type="button" className="primary-button" onClick={() => regenerate(reviewer.questionTarget)} disabled={busy}>
+            <button type="button" className="primary-button" onClick={() => regenerate(reviewer.questionTarget)} disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
               <RotateCcw size={17} aria-hidden="true" /> Try again
             </button>
             <button type="button" className="secondary-button" onClick={() => setDialog("delete")} disabled={busy}>
@@ -552,7 +553,7 @@ function RenameDialog({ reviewer, busy, onSave, onClose }) {
         </div>
         <div className="modal-actions reviewer-actions">
           <button type="button" className="secondary-button" onClick={onClose} disabled={busy}>Cancel</button>
-          <button type="submit" className="primary-button" disabled={busy || !title.trim()}>{busy ? "Saving..." : "Save"}</button>
+          <button type="submit" className="primary-button" disabled={busy || !title.trim()} aria-busy={busy}>{busy && <BusySpinner />}{busy ? "Saving..." : "Save"}</button>
         </div>
     </Modal>
   );
@@ -580,7 +581,7 @@ function RegenerateDialog({ reviewer, busy, onConfirm, onClose }) {
         </div>
         <div className="modal-actions reviewer-actions">
           <button type="button" className="secondary-button" onClick={onClose} disabled={busy}>Cancel</button>
-          <button type="button" className="primary-button" onClick={() => onConfirm(count)} disabled={busy}>{busy ? "Starting..." : "Make new questions"}</button>
+          <button type="button" className="primary-button" onClick={() => onConfirm(count)} disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}{busy ? "Starting..." : "Make new questions"}</button>
         </div>
     </Modal>
   );
@@ -635,7 +636,7 @@ function TargetedDialog({ reviewer, progress, busy, onConfirm, onClose }) {
         </p>
         <div className="modal-actions reviewer-actions">
           <button type="button" className="secondary-button" onClick={onClose} disabled={busy}>Cancel</button>
-          <button type="submit" className="primary-button" disabled={busy || !picked.length}>{busy ? "Starting..." : "Write questions"}</button>
+          <button type="submit" className="primary-button" disabled={busy || !picked.length} aria-busy={busy}>{busy && <BusySpinner />}{busy ? "Starting..." : "Write questions"}</button>
         </div>
     </Modal>
   );

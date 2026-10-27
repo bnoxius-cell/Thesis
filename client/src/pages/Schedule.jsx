@@ -33,6 +33,7 @@ import {
 import { SCHEDULE_TOUR } from "../utils/tours";
 import "../App.css";
 import Modal from "../components/Modal";
+import BusySpinner from "../components/BusySpinner";
 
 // How often an open schedule checks for changes made by others. The check is tiny; the full
 // schedule is only downloaded again when it says something changed.
@@ -723,7 +724,7 @@ export default function Schedule() {
                         )}
                       </Menu>
                     )}
-                    <Menu trigger={<MoreHorizontal size={18} aria-hidden="true" />} label="More options" className="sched-icon-button sched-more">
+                    <Menu trigger={<MoreHorizontal size={18} aria-hidden="true" />} label="More options" className="icon-action sched-more">
                       {(close) => (
                         <>
                           <MenuItem icon={Copy} hint="A private copy that's all yours" onClick={() => { close(); makeCopy(); }}>Make a copy</MenuItem>
@@ -894,7 +895,7 @@ export default function Schedule() {
                 {formError && <p className="form-error" role="alert">{formError}</p>}
                 <div className="modal-actions sched-modal-actions">
                   <button type="button" className="secondary-button" onClick={closeForms}>Cancel</button>
-                  <button type="submit" className="primary-button" disabled={submitting}>{submitting ? "Saving..." : "Save"}</button>
+                  <button type="submit" className="primary-button" disabled={submitting} aria-busy={submitting}>{submitting && <BusySpinner />}{submitting ? "Saving..." : "Save"}</button>
                 </div>
             </Modal>
           )}
@@ -1063,7 +1064,7 @@ export default function Schedule() {
               {formError && <p className="form-error" role="alert">{formError}</p>}
               <div className="modal-actions sched-modal-actions">
                 <button type="button" className="secondary-button" onClick={closeForms}>Cancel</button>
-                <button type="submit" className="primary-button" disabled={submitting}>{submitting ? "Creating..." : "Create"}</button>
+                <button type="submit" className="primary-button" disabled={submitting} aria-busy={submitting}>{submitting && <BusySpinner />}{submitting ? "Creating..." : "Create"}</button>
               </div>
           </Modal>
         )}
@@ -1091,7 +1092,7 @@ export default function Schedule() {
               {formError && <p className="form-error" role="alert">{formError}</p>}
               <div className="modal-actions sched-modal-actions">
                 <button type="button" className="secondary-button" onClick={closeForms}>Cancel</button>
-                <button type="submit" className="primary-button" disabled={submitting}>Continue</button>
+                <button type="submit" className="primary-button" disabled={submitting} aria-busy={submitting}>{submitting && <BusySpinner />}Continue</button>
               </div>
           </Modal>
         )}

@@ -16,6 +16,7 @@ import Friends from "./Friends";
 import { useAuth } from "./authentication/AuthContext";
 import "../App.css";
 import Modal from "../components/Modal";
+import BusySpinner from "../components/BusySpinner";
 
 const GROUP_REFRESH_MS = 10000;
 
@@ -290,7 +291,7 @@ export default function Groups() {
                     {group.members.map((member) => (
                       <li key={member._id}>
                         <Link to={`/profile/${member._id}`} className="member-chip">
-                          <UserAvatar name={member.name} src={member.avatar} size={22} />
+                          <UserAvatar name={member.name} src={member.avatar} size={28} />
                           {member.name} {member._id === myId && "(you)"}
                         </Link>
                       </li>
@@ -302,7 +303,7 @@ export default function Groups() {
                     <MessageSquare size={16} aria-hidden="true" /> Open chat
                   </button>
                   <button
-                    className="remove-friend-btn"
+                    className="ghost-button is-danger"
                     onClick={() => setConfirm({ kind: isOwner(group) ? "delete" : "leave", group })}
                   >
                     {isOwner(group) ? "Delete group" : "Leave group"}
@@ -366,7 +367,7 @@ export default function Groups() {
                 <button type="button" className="secondary-button" onClick={closeModals}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-create-task" style={{ width: "auto" }} disabled={submitting}>
+                <button type="submit" className="primary-button" disabled={submitting} aria-busy={submitting}>{submitting && <BusySpinner />}
                   {submitting ? "Creating..." : "Create group"}
                 </button>
               </div>
@@ -402,7 +403,7 @@ export default function Groups() {
                 <button type="button" className="secondary-button" onClick={closeModals}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-create-task" style={{ width: "auto" }} disabled={submitting}>
+                <button type="submit" className="primary-button" disabled={submitting} aria-busy={submitting}>{submitting && <BusySpinner />}
                   {submitting ? "Joining..." : "Join group"}
                 </button>
               </div>

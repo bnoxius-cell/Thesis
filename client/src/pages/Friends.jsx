@@ -8,6 +8,7 @@ import UserAvatar from "../components/UserAvatar";
 import ConfirmDialog from "../components/ConfirmDialog";
 import EmptyState from "../components/EmptyState";
 import "../App.css";
+import BusySpinner from "../components/BusySpinner";
 
 const TAG_LENGTH = 6;
 
@@ -147,7 +148,7 @@ export default function Friends() {
               onChange={(e) => setFriendTag(e.target.value.toUpperCase())}
               placeholder="e.g. A3F9K2"
             />
-            <button type="submit" className="primary-button" disabled={sending || friendTag.trim().length === 0}>
+            <button type="submit" className="primary-button" disabled={sending || friendTag.trim().length === 0} aria-busy={sending}>{sending && <BusySpinner />}
               <UserPlus size={18} aria-hidden="true" /> {sending ? "Sending..." : "Send request"}
             </button>
           </div>

@@ -75,11 +75,11 @@ export default function WeekView({
     <section className="sched-week" aria-label="Weekly schedule" data-tour="sched-week">
       <div className="sched-week-bar">
         <div className="sched-week-nav">
-          <button type="button" className="sched-icon-button" onClick={() => onShiftWeek(-1)} aria-label="Previous week">
+          <button type="button" className="icon-action" onClick={() => onShiftWeek(-1)} aria-label="Previous week">
             <ChevronLeft size={18} aria-hidden="true" />
           </button>
           <h2>{rangeLabel(weekStart)}</h2>
-          <button type="button" className="sched-icon-button" onClick={() => onShiftWeek(1)} aria-label="Next week">
+          <button type="button" className="icon-action" onClick={() => onShiftWeek(1)} aria-label="Next week">
             <ChevronRight size={18} aria-hidden="true" />
           </button>
           <button type="button" className="secondary-button small" onClick={onToday} disabled={isThisWeek}>This week</button>
@@ -112,10 +112,10 @@ export default function WeekView({
                 <div className="sched-day-tools">
                   {canEdit && (
                     <>
-                      <button type="button" className="sched-icon-button" onClick={() => onAddEntry(iso)} aria-label={`Add something on ${label}`}>
+                      <button type="button" className="icon-action" onClick={() => onAddEntry(iso)} aria-label={`Add something on ${label}`}>
                         <Plus size={16} aria-hidden="true" />
                       </button>
-                      <button type="button" className="sched-icon-button" onClick={() => onMarkDay(iso)} aria-label={`Day off settings for ${label} ${day.getDate()}`}>
+                      <button type="button" className="icon-action" onClick={() => onMarkDay(iso)} aria-label={`Day off settings for ${label} ${day.getDate()}`}>
                         <CalendarOff size={16} aria-hidden="true" />
                       </button>
                     </>

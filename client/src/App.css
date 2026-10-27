@@ -105,12 +105,12 @@
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: var(--menu-item-color);
   text-decoration: none;
   font-weight: 600;
   font-size: var(--text-md);
-  transition: all 0.2s ease;
+  transition: background-color var(--dur-2) ease, color var(--dur-2) ease;
 }
 .sidepanel-link:hover,
 .sidepanel-link.active {
@@ -131,13 +131,13 @@
   justify-content: center;
   gap: 8px;
   padding: 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--logout-btn-border);
   background: var(--logout-btn-bg);
   color: var(--logout-btn-color);
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color var(--dur-2) ease, color var(--dur-2) ease, border-color var(--dur-2) ease;
   width: 100%;
 }
 .sidepanel-logout:hover {
@@ -267,7 +267,7 @@
 .hero,
 .panel {
   border: 1px solid var(--border-light);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--card-bg);
   box-shadow: var(--card-shadow);
 }
@@ -326,7 +326,7 @@
   padding: 30px;
   background: var(--auth-card-bg);
   border: 1px solid var(--border-light);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--card-shadow);
 }
 .auth-card-header {
@@ -371,7 +371,7 @@
   height: 34px;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
@@ -394,20 +394,19 @@
   text-align: center;
   font-size: 1.5rem; /* fixed: OTP digit boxes */
   font-weight: 700;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--input-border);
   background-color: var(--input-bg);
   color: var(--text-primary);
 }
 .form-error {
-  margin-bottom: 16px;
-  padding: 12px 14px;
-  color: var(--clay);
-  background: var(--clay-soft);
-  border: 1px solid rgba(177, 84, 60, 0.25);
-  border-radius: 10px;
-  font-size: var(--text-md);
-  font-weight: 700;
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
 }
 .hero-metrics {
   display: grid;
@@ -417,7 +416,7 @@
 }
 .metric-card {
   padding: 18px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--metric-card-bg);
   border: 1px solid var(--border-light);
   box-shadow: var(--card-shadow);
@@ -438,9 +437,10 @@
   margin-bottom: 6px;
 }
 .hero-panel {
-  padding: 26px;
-  border-radius: 20px;
-  background: var(--hero-panel-bg);
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
   color: var(--hero-panel-text);
   display: flex;
   flex-direction: column;
@@ -483,13 +483,11 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 16px 22px;
-  margin: 0 0 20px;
-  border-radius: 14px;
-  background: var(--card-bg);
-  border: 1px solid var(--border-light);
-  border-left: 4px solid var(--ochre);
-  box-shadow: var(--card-shadow);
+  padding: var(--space-4) var(--space-5);
+  margin: 0 0 var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 .checkin-banner-text {
   display: flex;
@@ -527,14 +525,25 @@
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
-  padding: 10px 12px;
-  border-radius: 6px;
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
   white-space: nowrap;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background-color var(--dur-1) ease, color var(--dur-1) ease;
 }
-.checkin-banner-dismiss:hover {
-  background: var(--ochre-soft);
-  color: #a8701f;
+@media (hover: hover) and (pointer: fine) {
+  .checkin-banner-dismiss:hover {
+    background: var(--surface-2);
+    color: var(--text-primary);
+  }
+}
+.checkin-banner-dismiss:active {
+  background: var(--surface-3);
+}
+@media (max-width: 720px), (pointer: coarse) {
+  .checkin-banner-dismiss {
+    min-height: 44px;
+  }
 }
 
 /* ==========================================================================
@@ -620,7 +629,7 @@
 .today-dot {
   width: 10px;
   height: 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   margin-top: 7px;
   flex-shrink: 0;
   background: var(--sage);
@@ -658,7 +667,7 @@
   gap: 8px;
   margin: 0 0 16px;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--ochre-soft);
   color: var(--text-primary);
   font-size: var(--text-md);
@@ -746,7 +755,7 @@
 .driver-track {
   grid-column: 1 / -1;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   overflow: hidden;
 }
@@ -812,98 +821,162 @@ input,
 select,
 textarea {
   width: 100%;
-  padding: 13px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--input-border);
-  background: var(--input-bg);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-input);
+  background: var(--surface);
   color: var(--text-primary);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-size: var(--text-md);
+  line-height: var(--lh-body);
+  transition: border-color var(--dur-2) ease, box-shadow var(--dur-2) ease, background-color var(--dur-2) ease;
 }
 textarea {
   resize: vertical;
   min-height: 110px;
+  padding: 10px var(--space-3);
   font: inherit;
+  font-size: var(--text-md);
+}
+@media (hover: hover) and (pointer: fine) {
+  input:hover:where(:not(:disabled):not(:focus)),
+  select:hover:where(:not(:disabled):not(:focus)),
+  textarea:hover:where(:not(:disabled):not(:focus)) {
+    border-color: var(--text-muted);
+  }
 }
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--sage);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+select {
+  appearance: none;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a94a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
 }
 input[type="range"] {
   padding: 0;
-  accent-color: var(--sage);
+  min-height: 0;
+  accent-color: var(--accent);
 }
 .range-value {
   color: var(--text-secondary);
   font-size: var(--text-xs);
 }
 
-/* Buttons */
+/* Buttons (frontend plan v2, B5): 40px tall on laptops, 44px on phones and touch */
 .primary-button,
 .ghost-button,
-.secondary-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: none;
-  border-radius: 10px;
-  padding: 14px 18px;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: none;
-  transition: background-color var(--dur-2) ease, color var(--dur-2) ease, border-color var(--dur-2) ease, transform var(--dur-1) var(--ease-out);
-}
-.primary-button {
-  background: var(--accent);
-  color: var(--on-accent);
-  box-shadow: var(--shadow-1);
-}
-.secondary-button {
-  background: var(--accent-soft);
-  color: var(--accent);
-  border: 1px solid var(--btn-secondary-border);
-}
-.secondary-button:hover {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
+.secondary-button,
 .danger-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  border: none;
-  border-radius: 10px;
-  padding: 14px 18px;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
   font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
+  text-decoration: none;
+  transition: background-color var(--dur-1) ease, color var(--dur-1) ease, border-color var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+}
+.primary-button {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.secondary-button {
+  background: var(--surface);
+  color: var(--text-primary);
+  border-color: var(--border-input);
+}
+.danger-button {
   background: var(--danger);
-  color: var(--surface);
-}
-.dark-theme .danger-button {
-  color: #450a0a;
-}
-.primary-button:active,
-.secondary-button:active,
-.ghost-button:active {
-  transform: translateY(1px) scale(0.98);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-.primary-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
-  transform: none;
+  color: var(--on-danger);
 }
 .ghost-button {
-  background: var(--btn-ghost-bg);
-  color: var(--accent);
+  background: transparent;
+  color: var(--text-secondary);
 }
-.ghost-button:hover {
-  background: var(--accent-soft);
-  box-shadow: none;
+/* Hover only where there is a pointer to hover with (a tap would leave it stuck on phones) */
+@media (hover: hover) and (pointer: fine) {
+  .primary-button:hover:where(:not(:disabled)) {
+    background: var(--accent-hover);
+  }
+  .secondary-button:hover:where(:not(:disabled)) {
+    background: var(--surface-2);
+  }
+  .ghost-button:hover:where(:not(:disabled)) {
+    background: var(--surface-2);
+    color: var(--text-primary);
+  }
+  .danger-button:hover:where(:not(:disabled)) {
+    filter: brightness(0.92);
+  }
+}
+.primary-button:active:where(:not(:disabled)) {
+  background: var(--accent-press);
+}
+.secondary-button:active:where(:not(:disabled)),
+.ghost-button:active:where(:not(:disabled)) {
+  background: var(--surface-3);
+}
+.primary-button:active:where(:not(:disabled)),
+.secondary-button:active:where(:not(:disabled)),
+.ghost-button:active:where(:not(:disabled)),
+.danger-button:active:where(:not(:disabled)) {
+  transform: scale(0.98);
+}
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.ghost-button:focus-visible,
+.danger-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+/* Disabled is a flat grey fill with muted text, never an opacity trick (keeps 4.5:1) */
+.primary-button:disabled,
+.secondary-button:disabled,
+.danger-button:disabled {
+  background: var(--surface-3);
+  border-color: transparent;
+  color: var(--text-muted);
+  cursor: not-allowed;
+  transform: none;
+}
+.ghost-button:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  transform: none;
+}
+@media (max-width: 720px), (pointer: coarse) {
+  .primary-button,
+  .ghost-button,
+  .secondary-button,
+  .danger-button {
+    min-height: 44px;
+  }
 }
 
 /* ==========================================================================
@@ -940,7 +1013,7 @@ input[type="range"] {
   align-items: flex-end;
   justify-content: center;
   padding: 12px;
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   background: var(--chart-track-bg);
 }
 .chart-stack {
@@ -955,7 +1028,7 @@ input[type="range"] {
 .chart-bar {
   width: 100%;
   min-height: 4px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   /* A day that fits is calm teal. Only tasks that don't fit earn the warning color. */
   background: var(--chart-task);
 }
@@ -989,7 +1062,7 @@ input[type="range"] {
   width: 12px;
   height: 12px;
   display: inline-block;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--chart-task);
   margin-right: 8px;
 }
@@ -1020,14 +1093,14 @@ input[type="range"] {
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  padding: 16px;
-  border-radius: 12px;
-  background: var(--insight-card-bg);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
 }
 .insight-dot {
   width: 12px;
   height: 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--ochre);
   margin-top: 7px;
   flex-shrink: 0;
@@ -1073,7 +1146,7 @@ input[type="range"] {
 .task-card,
 .schedule-day {
   border: 1px solid var(--border-light);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 18px;
   background: var(--task-card-bg);
   box-shadow: var(--card-shadow);
@@ -1117,7 +1190,7 @@ input[type="range"] {
   color: var(--text-secondary);
   line-height: 1.6;
   padding: 18px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--schedule-item-bg);
 }
 .task-share-row {
@@ -1128,7 +1201,7 @@ input[type="range"] {
   gap: 12px;
   margin-bottom: 14px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--schedule-item-bg);
   color: var(--text-secondary);
   font-size: var(--text-sm);
@@ -1140,7 +1213,7 @@ input[type="range"] {
 }
 .copy-code-button {
   border: 1px solid var(--btn-secondary-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--btn-secondary-bg);
   color: var(--sage);
   cursor: pointer;
@@ -1155,7 +1228,7 @@ input[type="range"] {
 .status-pill {
   display: inline-flex;
   margin-bottom: 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 6px 12px;
   font-size: var(--text-xs);
   font-weight: 700;
@@ -1176,7 +1249,7 @@ input[type="range"] {
 }
 .progress-track {
   height: 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--input-border);
   overflow: hidden;
 }
@@ -1200,7 +1273,7 @@ input[type="range"] {
 }
 .schedule-item {
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--schedule-item-bg);
   align-items: center;
   font-size: var(--text-md);
@@ -1208,7 +1281,7 @@ input[type="range"] {
 }
 .schedule-empty {
   padding: 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--schedule-item-bg);
   color: var(--text-secondary);
 }
@@ -1219,7 +1292,7 @@ input[type="range"] {
 .survey-card {
   padding: 1rem;
   border: 1px solid var(--border-light);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--card-bg);
 }
 .survey-card-head {
@@ -1263,75 +1336,69 @@ input[type="range"] {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--overlay);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  overscroll-behavior: contain;
 }
 .modal-content {
-  background: var(--panel-bg);
-  border-radius: 16px;
-  max-width: 550px;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  max-width: 520px;
   width: 90%;
-  max-height: 85vh;
+  max-height: 90vh;
+  max-height: 90dvh;
   overflow-y: auto;
-  padding: 24px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+  overscroll-behavior: contain;
+  padding: var(--space-5);
+  box-shadow: var(--shadow-3);
   color: var(--text-primary);
 }
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 .modal-header h2 {
   margin: 0;
-  color: var(--sage);
+  font-size: var(--text-xl);
+  color: var(--text-primary);
 }
 .modal-close {
-  background: none;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
   border: none;
-  font-size: var(--text-3xl);
+  border-radius: var(--radius-md);
+  background: transparent;
+  font-size: var(--text-2xl);
   cursor: pointer;
   line-height: 1;
   color: var(--text-secondary);
+  transition: background-color var(--dur-1) ease, color var(--dur-1) ease;
 }
-.modal-close:hover {
-  color: var(--text-primary);
+@media (hover: hover) and (pointer: fine) {
+  .modal-close:hover {
+    background: var(--surface-2);
+    color: var(--text-primary);
+  }
+}
+.modal-close:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 .modal-actions {
   grid-column: span 2;
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 16px;
-}
-.btn-create-task {
-  background: var(--accent);
-  border: none;
-  padding: 14px 24px;
-  border-radius: 40px;
-  font-weight: 600;
-  font-size: var(--text-md);
-  color: var(--on-accent);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: all 0.28s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  width: 100%;
-}
-.btn-create-task:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-2);
-  background: var(--accent);
-}
-.btn-create-task:active {
-  transform: translateY(1px);
+  gap: var(--space-3);
+  margin-top: var(--space-4);
 }
 .btn-icon {
   font-size: var(--text-lg);
@@ -1346,21 +1413,6 @@ input[type="range"] {
 /* ==========================================================================
    FRIENDS PAGE
    ========================================================================== */
-.remove-friend-btn {
-  background: none;
-  border: none;
-  font-size: var(--text-lg);
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  border-radius: 30px;
-  color: var(--text-secondary);
-  transition: all 0.2s;
-}
-.remove-friend-btn:hover {
-  background: var(--clay-soft);
-  color: var(--clay);
-}
-
 /* ==========================================================================
    GROUPS PAGE
    ========================================================================== */
@@ -1373,10 +1425,10 @@ input[type="range"] {
 .group-card {
   background: var(--task-card-bg);
   border: 1px solid var(--border-light);
-  border-radius: 1rem;
+  border-radius: var(--radius-lg);
   padding: 1.25rem;
   box-shadow: var(--card-shadow);
-  transition: all 0.2s;
+  transition: border-color var(--dur-2) ease;
 }
 .group-header {
   display: flex;
@@ -1397,7 +1449,7 @@ input[type="range"] {
   font-size: var(--text-xs);
   font-weight: 600;
   padding: 0.2rem 0.6rem;
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
 }
 .group-desc {
   color: var(--text-secondary);
@@ -1407,7 +1459,7 @@ input[type="range"] {
 .group-code {
   background: var(--input-bg);
   padding: 0.4rem 0.8rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: var(--text-sm);
   margin: 0.75rem 0;
   color: var(--text-primary);
@@ -1435,7 +1487,7 @@ input[type="range"] {
 .members-list li {
   background: var(--schedule-item-bg);
   padding: 0.2rem 0.6rem;
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   font-size: var(--text-xs);
   color: var(--text-primary);
 }
@@ -1445,9 +1497,7 @@ input[type="range"] {
   gap: 0.75rem;
   margin-top: 1rem;
 }
-.group-actions .ghost-button,
-.group-actions .remove-friend-btn {
-  padding: 0.4rem 1rem;
+.group-actions .ghost-button {
   font-size: var(--text-sm);
 }
 
@@ -1480,9 +1530,14 @@ input[type="range"] {
 .confirm-dialog .modal-actions {
   grid-column: auto;
 }
-.primary-button.confirm-danger {
+.primary-button.confirm-danger:not(:disabled) {
   background: var(--danger);
-  color: var(--surface);
+  color: var(--on-danger);
+}
+@media (hover: hover) and (pointer: fine) {
+  .primary-button.confirm-danger:hover:not(:disabled) {
+    filter: brightness(0.92);
+  }
 }
 .confirm-dialog-code {
   margin-top: 12px;
@@ -1507,7 +1562,7 @@ input[type="range"] {
   min-height: 460px;
   background: var(--panel-bg);
   border: 1px solid var(--border-light);
-  border-radius: 1rem;
+  border-radius: var(--radius-lg);
   box-shadow: var(--card-shadow);
   overflow: hidden;
   color: var(--text-primary);
@@ -1534,25 +1589,6 @@ input[type="range"] {
   font-size: var(--text-xs);
   color: var(--text-secondary);
 }
-.chat-icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-.chat-icon-btn:hover,
-.chat-icon-btn.is-active {
-  background: var(--sage-soft);
-  color: var(--sage);
-}
-.chat-icon-btn:focus-visible,
 .chat-send:focus-visible,
 .chat-emoji-pop button:focus-visible,
 .chat-code:focus-visible {
@@ -1624,7 +1660,7 @@ input[type="range"] {
   gap: 12px;
   padding: 6px 8px;
   margin: 10px -8px 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 .chat-row.is-continued {
   margin-top: 0;
@@ -1691,10 +1727,8 @@ input[type="range"] {
   max-width: 400px;
   padding: 14px 16px;
   background: var(--task-card-bg);
-  border: 1px solid var(--border-light);
-  border-left: 4px solid var(--ochre);
-  border-radius: 12px;
-  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
 }
 .chat-task-head {
   display: flex;
@@ -1754,13 +1788,13 @@ input[type="range"] {
   gap: 6px;
   padding: 6px 14px;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--on-accent);
   font-size: var(--text-xs);
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-2);
 }
 .chat-composer {
   display: flex;
@@ -1770,7 +1804,7 @@ input[type="range"] {
   padding: 6px 8px;
   background: var(--input-bg);
   border: 1px solid var(--input-border);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
 }
 .chat-composer:focus-within {
   border-color: var(--sage);
@@ -1805,7 +1839,7 @@ input[type="range"] {
   width: 40px;
   height: 40px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--accent);
   color: var(--on-accent);
   cursor: pointer;
@@ -1832,14 +1866,14 @@ input[type="range"] {
   padding: 6px;
   background: var(--panel-bg);
   border: 1px solid var(--border-light);
-  border-radius: 12px;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-2);
 }
 .chat-emoji-pop button {
   width: 40px;
   height: 40px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
   font-size: var(--text-xl);
   cursor: pointer;
@@ -1885,7 +1919,7 @@ input[type="range"] {
   justify-content: space-between;
   padding: 8px 12px;
   border: 1px dashed var(--input-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--input-bg);
   color: var(--text-primary);
   cursor: pointer;
@@ -1926,28 +1960,12 @@ input[type="range"] {
   font-size: var(--text-xs);
   font-weight: 600;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--ochre-soft);
   color: var(--text-primary);
 }
 .chat-side-actions {
   margin-top: auto;
-}
-.chat-danger-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--clay);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-.chat-danger-btn:hover {
-  background: var(--clay-soft);
 }
 .share-task-list {
   list-style: none;
@@ -1965,7 +1983,7 @@ input[type="range"] {
   padding: 12px 14px;
   text-align: left;
   border: 1px solid var(--border-light);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--task-card-bg);
   color: var(--text-primary);
   cursor: pointer;
@@ -2001,7 +2019,7 @@ input[type="range"] {
     bottom: 0;
     z-index: 6;
     background: var(--panel-bg);
-    box-shadow: -12px 0 24px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--shadow-2);
   }
   .chat-sidebar.is-open {
     display: flex;
@@ -2030,14 +2048,13 @@ input[type="range"] {
    ========================================================================== */
 .primary-button.small,
 .secondary-button.small {
-  padding: 0.4rem 1rem;
   font-size: var(--text-sm);
 }
 .nav-badge {
   margin-left: auto;
   min-width: 1.25rem;
   padding: 0.05rem 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--on-accent);
   font-size: var(--text-xs);
@@ -2097,7 +2114,7 @@ input[type="range"] {
   position: relative;
   width: 2.75rem;
   height: 1.55rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--input-border);
   background: var(--input-bg);
   cursor: inherit;
@@ -2131,7 +2148,7 @@ input[type="range"] {
   width: auto;
   max-width: 55%;
   padding: 0.45rem 0.7rem;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--input-border);
   background: var(--input-bg);
   color: var(--text-primary);
@@ -2155,7 +2172,7 @@ input[type="range"] {
   place-items: center;
   width: 2.5rem;
   height: 2.5rem;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--sage);
   background: var(--sage-soft);
 }
@@ -2190,7 +2207,7 @@ input[type="range"] {
   .hero,
   .panel,
   .auth-card {
-    padding: 18px;
+    padding: var(--space-4);
   }
   .auth-preview,
   .hero-metrics,
@@ -2266,7 +2283,7 @@ input[type="range"] {
      was eating most of the column's height and width on mobile. Move it
      beside the name instead, at a size that fits the rail. */
   .hero-panel {
-    padding: 18px;
+    padding: var(--space-4);
   }
   .profile-image {
     display: flex;
@@ -2737,18 +2754,17 @@ input[type="range"] {
 .sched label { color: var(--s-muted); }
 .sched input,
 .sched select {
-  background: var(--s-input);
+  background-color: var(--s-input);
   color: var(--s-ink);
   border-color: var(--s-line);
 }
-.sched .secondary-button {
+.sched .secondary-button:not(:disabled) {
   background: var(--s-card);
   color: var(--s-accent-text);
   border-color: var(--s-line);
 }
-.sched .secondary-button:hover { background: var(--s-day); }
-.sched .primary-button { background: var(--s-accent); color: var(--s-on-accent); box-shadow: none; }
-.sched .remove-friend-btn { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-sm); }
+.sched .secondary-button:hover:not(:disabled) { background: var(--s-day); }
+.sched .primary-button:not(:disabled) { background: var(--s-accent); color: var(--s-on-accent); }
 
 /* Small shared bits (also used inside the modals, which sit outside .sched) */
 .sched-hint {
@@ -2773,38 +2789,18 @@ input[type="range"] {
   font-size: var(--text-xs);
   font-weight: 600;
   padding: 2px 8px;
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   background: var(--s-holiday-bg, var(--ochre-soft));
   color: var(--s-holiday-ink, var(--text-primary));
 }
 .sched-notice {
-  margin: 0 0 12px;
-  padding: 10px 14px;
-  border-radius: 10px;
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
   background: var(--s-holiday-bg);
   color: var(--s-holiday-ink);
   font-size: var(--text-sm);
 }
-.sched-icon-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid var(--s-line, var(--border-light));
-  background: var(--s-card, var(--card-bg));
-  color: var(--s-muted, var(--text-secondary));
-  cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-  flex-shrink: 0;
-}
-.sched-icon-button:hover:not(:disabled) {
-  color: var(--s-accent-text, var(--sage));
-  border-color: var(--s-accent, var(--sage));
-}
-.sched-icon-button:disabled { opacity: 0.5; cursor: not-allowed; }
-.sched-icon-button:focus-visible,
 .sched-entry-hit:focus-visible,
 .sched-card:focus-visible,
 .sched-back:focus-visible,
@@ -2857,7 +2853,7 @@ input[type="range"] {
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--s-line, var(--input-border));
   background: var(--s-card, var(--card-bg));
   color: var(--s-ink, var(--text-primary));
@@ -2892,7 +2888,6 @@ input[type="range"] {
 .sched-week-bar { margin-bottom: 16px; }
 .sched-week-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .sched-week-nav h2 { margin: 0; font-size: var(--text-lg); flex: 1 1 auto; text-align: center; }
-.sched-week .secondary-button.small { padding: 0.4rem 1rem; }
 
 .sched-days {
   display: grid;
@@ -2970,18 +2965,18 @@ input[type="range"] {
   width: 44px;
   height: 44px;
   flex-shrink: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   color: var(--tc);
   background: color-mix(in srgb, var(--tc) 18%, transparent);
 }
 .sched-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.sched-thumb-lg { width: 64px; height: 64px; border-radius: 16px; }
+.sched-thumb-lg { width: 64px; height: 64px; border-radius: var(--radius-lg); }
 [data-sched-theme="cute"] .sched-thumb { border-radius: 50%; }
 [data-sched-theme="notebook"] .sched-day-body {
   background-image: repeating-linear-gradient(transparent, transparent 27px, var(--s-rule) 28px);
 }
-[data-sched-theme="notebook"] .sched-thumb { border-radius: 4px; }
+[data-sched-theme="notebook"] .sched-thumb { border-radius: var(--radius-sm); }
 
 /* Day off dialog (from a day in the week) */
 .sched-mark-status { margin-bottom: 14px; }
@@ -2992,21 +2987,21 @@ input[type="range"] {
 .sched-modal-narrow { max-width: 440px; }
 .sched-modal .form-group { display: flex; flex-direction: column; min-width: 0; }
 .sched-modal-actions { align-items: center; flex-wrap: wrap; }
-.sched-modal-actions .remove-friend-btn { margin-right: auto; color: var(--clay); font-size: var(--text-md); }
+.sched-modal-actions .ghost-button.is-danger { margin-right: auto; }
 .sched-segment {
   display: inline-flex;
   flex-wrap: wrap;
   align-self: flex-start;
   padding: 3px;
   border: 1px solid var(--s-line, var(--input-border));
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--s-input, var(--input-bg));
 }
 .sched-segment button {
   border: none;
   background: none;
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-weight: 600;
   color: var(--s-muted, var(--text-secondary));
   cursor: pointer;
@@ -3018,7 +3013,7 @@ input[type="range"] {
 .sched-day-picker button {
   min-width: 48px;
   padding: 8px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--s-line, var(--input-border));
   background: var(--s-input, var(--input-bg));
   color: var(--s-ink, var(--text-primary));
@@ -3036,7 +3031,7 @@ input[type="range"] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--s-line, var(--input-border));
   background: var(--s-input, var(--input-bg));
   color: var(--s-muted, var(--text-secondary));
@@ -3058,7 +3053,7 @@ input[type="range"] {
 .sched-swatch-auto {
   width: auto;
   padding: 0 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--s-line, var(--input-border));
   background: var(--s-input, var(--input-bg));
   color: var(--s-muted, var(--text-secondary));
@@ -3082,14 +3077,14 @@ input[type="range"] {
 .sched-people { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .sched-people li { display: flex; align-items: center; gap: 10px; }
 .sched-person-name { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
-.sched-people select { width: auto; padding: 8px 10px; }
+.sched-people select { width: auto; padding: 0 36px 0 10px; }
 .sched-code-row { display: flex; align-items: center; gap: 10px; }
 .sched-code {
   font-family: var(--font-mono);
   font-size: var(--text-xl);
   letter-spacing: 3px;
   padding: 6px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--s-input, var(--input-bg));
   color: var(--s-ink, var(--text-primary));
   border: 1px solid var(--s-line, transparent);
@@ -3143,10 +3138,7 @@ input[type="range"] {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---- Entrance: sections rise into place, one after another ---- */
-@keyframes rise {
-  from { opacity: 0; transform: translateY(16px); }
-}
+/* ---- Entrance keyframes ---- */
 @keyframes fade-in {
   from { opacity: 0; }
 }
@@ -3251,10 +3243,10 @@ input[type="range"] {
 .terms-gate {
   width: min(460px, calc(100% - 32px));
   padding: 28px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--panel-bg);
   color: var(--text-primary);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-3);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -3274,7 +3266,7 @@ input[type="range"] {
   justify-content: center;
   width: 48px;
   height: 48px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   background: var(--sage-soft);
   color: var(--sage);
 }
@@ -3296,7 +3288,7 @@ input[type="range"] {
   align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--input-bg);
   font-weight: 500;
   line-height: 1.45;
@@ -3441,7 +3433,7 @@ html {
   gap: 10px 12px;
   margin-bottom: 14px;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--ochre-soft);
   color: var(--text-primary);
   font-size: var(--text-md);
@@ -3465,7 +3457,7 @@ html {
   align-items: start;
   padding: 10px 12px;
   border: 1px solid var(--input-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--task-card-bg);
   transition: opacity 0.2s ease, border-color 0.2s ease;
 }
@@ -3553,7 +3545,7 @@ html {
 .imp-days button {
   min-width: 42px;
   padding: 6px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--input-border);
   background: var(--input-bg);
   color: var(--text-primary);
@@ -3596,7 +3588,7 @@ html {
 }
 .task-import-card {
   padding: 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--input-bg);
 }
 .task-import-card h3 {
@@ -3624,7 +3616,7 @@ html {
   gap: 10px;
   margin: 14px 0 0;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   font-size: var(--text-sm);
   line-height: 1.5;
 }
@@ -3666,7 +3658,7 @@ html {
 }
 .chat-schedule-preview li {
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--sage-soft);
   color: var(--text-primary);
   font-size: var(--text-xs);
@@ -3740,23 +3732,15 @@ html {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-weight: 700;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
   font-size: max(13px, calc(var(--ua-size, 36px) * 0.42));
 }
-.ghost-button.small {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0.4rem 1rem;
-  font-size: var(--text-sm);
-}
+.ghost-button.small,
 .secondary-button.small,
 .primary-button.small {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  font-size: var(--text-sm);
 }
 .field-label {
   display: block;
@@ -3849,7 +3833,7 @@ html {
   align-items: center;
   gap: 6px;
   padding: 6px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--input-bg);
   border: 1px solid var(--border-light);
   color: var(--text-secondary);
@@ -3873,7 +3857,7 @@ html {
   align-items: center;
   gap: 6px;
   padding: 6px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border-light);
   color: var(--text-primary);
   text-decoration: none;
@@ -3885,7 +3869,7 @@ html {
 .survey-stale-note {
   margin: 12px 0 0;
   padding: 8px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--ochre-soft);
   color: var(--text-primary);
   font-size: var(--text-sm);
@@ -3912,7 +3896,7 @@ html {
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border-light);
   background: var(--sage-soft);
   color: var(--text-primary);
@@ -3940,7 +3924,7 @@ html {
 .role-pill {
   display: inline-block;
   padding: 1px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -3991,7 +3975,7 @@ html {
   gap: 10px;
   width: 100%;
   padding: 4px 6px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   text-align: left;
   font-size: var(--text-sm);
 }
@@ -4005,7 +3989,7 @@ html {
   margin-bottom: 4px;
   padding: 8px 14px;
   border: 1px solid var(--border-light);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-primary);
   font-weight: 600;
@@ -4051,7 +4035,7 @@ html {
   width: 100%;
   padding: 12px 14px;
   border: 1px solid var(--border-light);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--input-bg);
   cursor: pointer;
 }
@@ -4131,13 +4115,13 @@ html {
 .today-item.is-live {
   padding: 10px 12px;
   margin: 0 -12px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--sage-soft);
 }
 .today-now-pill {
   margin-left: 8px;
   padding: 1px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--on-accent);
   font-size: var(--text-xs);
@@ -4161,7 +4145,7 @@ html {
   display: flex;
   gap: 14px;
   padding: 16px 18px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   background: var(--sage-soft);
 }
 .caught-up > svg {
@@ -4239,7 +4223,7 @@ html {
 .imp-kind {
   margin-left: 8px;
   padding: 1px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--ochre-soft);
   color: var(--text-primary);
   font-size: var(--text-xs);
@@ -4255,7 +4239,7 @@ html {
 .today-event-pill {
   margin-left: 8px;
   padding: 1px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: var(--text-xs);
   font-weight: 700;
   vertical-align: 1px;
@@ -4271,7 +4255,7 @@ html {
   gap: 8px;
   margin: 0 0 16px;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--ochre-soft);
   color: var(--text-primary);
   font-size: var(--text-md);
@@ -4290,7 +4274,7 @@ html {
   display: flex;
   gap: 14px;
   padding: 16px 18px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-light);
   background: var(--task-card-bg);
 }
@@ -4350,7 +4334,7 @@ html {
 .sched-activity-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 16px; padding: 10px 0; border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.08)); overflow-wrap: anywhere; }
 .sched-activity-list li:first-child { border-top: 0; }
 .sched-activity-list time { font-size: var(--text-xs); color: var(--text-secondary); white-space: nowrap; }
-.sched-role-select { width: auto; padding: 6px 8px; font-size: var(--text-sm); }
+.sched-role-select { width: auto; padding: 0 32px 0 var(--space-2); font-size: var(--text-sm); }
 
 /* ==========================================================================
    SCHEDULE WORKSPACE (2026-10-10): tasks on the schedule, themed dialogs,
@@ -4389,7 +4373,7 @@ html {
 .sched-layer .modal-content select,
 .sched-layer .modal-content textarea,
 .modal-content[data-sched-theme] input {
-  background: var(--s-input);
+  background-color: var(--s-input);
   color: var(--s-ink);
   border-color: var(--s-line);
 }
@@ -4399,10 +4383,10 @@ html {
   border-color: var(--s-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--s-accent) 22%, transparent);
 }
-.sched-layer .modal-content .primary-button,
-.modal-content[data-sched-theme] .primary-button { background: var(--s-accent); color: var(--s-on-accent); box-shadow: none; }
-.sched-layer .modal-content .secondary-button,
-.modal-content[data-sched-theme] .secondary-button {
+.sched-layer .modal-content .primary-button:not(:disabled),
+.modal-content[data-sched-theme] .primary-button:not(:disabled) { background: var(--s-accent); color: var(--s-on-accent); }
+.sched-layer .modal-content .secondary-button:not(:disabled),
+.modal-content[data-sched-theme] .secondary-button:not(:disabled) {
   background: var(--s-card);
   color: var(--s-accent-text);
   border-color: var(--s-line);
@@ -4411,7 +4395,7 @@ html {
 .sched-layer .modal-content .sched-field-label { color: var(--s-muted); }
 .sched-layer .modal-content .sched-notice { background: var(--s-holiday-bg); color: var(--s-holiday-ink); }
 /* Deleting stays clay whatever the theme. */
-.sched-layer .modal-content .primary-button.confirm-danger { background: var(--danger); color: var(--surface); }
+.sched-layer .modal-content .primary-button.confirm-danger:not(:disabled) { background: var(--danger); color: var(--on-danger); }
 
 /* ---- Header: title on the left, actions on the right ---- */
 .sched-top-row {
@@ -4433,7 +4417,6 @@ html {
   font-weight: 600;
   color: var(--s-muted);
 }
-.sched-actions .sched-icon-button.sched-more { width: 42px; height: 42px; }
 .sched-week-note { margin-top: -12px; padding: 0 4px; }
 
 /* ---- Small dropdown menus (Add, Theme, More) ---- */
@@ -4448,10 +4431,10 @@ html {
   padding: 6px;
   display: grid;
   gap: 2px;
-  border-radius: 14px;
-  background: var(--s-card, var(--panel-bg));
-  border: 1px solid var(--s-line, var(--border-light));
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  border-radius: var(--radius-md);
+  background: var(--s-card, var(--surface));
+  border: 1px solid var(--s-line, var(--border));
+  box-shadow: var(--shadow-2);
   animation: pop-in 0.18s var(--ease-out);
 }
 .sched-menu-list.align-end { right: 0; }
@@ -4459,20 +4442,27 @@ html {
 .sched-menu-list.is-wide { min-width: 270px; }
 .sched-menu-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 9px 10px;
+  min-height: 40px;
+  padding: var(--space-2) 10px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: none;
   color: var(--s-ink, var(--text-primary));
   font: inherit;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: 500;
   text-align: left;
   cursor: pointer;
 }
-.sched-menu-item svg { flex-shrink: 0; margin-top: 2px; color: var(--s-accent-text, var(--sage)); }
+@media (max-width: 720px), (pointer: coarse) {
+  .sched-menu-item {
+    min-height: 44px;
+  }
+}
+.sched-menu-item svg { flex-shrink: 0; color: var(--s-accent-text, var(--sage)); }
 .sched-menu-item small {
   display: block;
   margin-top: 1px;
@@ -4480,17 +4470,24 @@ html {
   font-weight: 400;
   color: var(--s-muted, var(--text-secondary));
 }
-.sched-menu-item:hover:not(:disabled),
 .sched-menu-item:focus-visible {
   outline: none;
-  background: color-mix(in srgb, var(--s-accent, var(--sage)) 13%, transparent);
+  background: color-mix(in srgb, var(--s-accent, var(--accent)) 13%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .sched-menu-item:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--s-accent, var(--accent)) 13%, transparent);
+  }
+}
+.sched-menu-item:active:not(:disabled) {
+  background: color-mix(in srgb, var(--s-accent, var(--accent)) 20%, transparent);
 }
 .sched-menu-item.is-danger,
-.sched-menu-item.is-danger svg { color: var(--clay); }
-.sched-menu-item:disabled { opacity: 0.5; cursor: not-allowed; }
+.sched-menu-item.is-danger svg { color: var(--danger); }
+.sched-menu-item:disabled { color: var(--text-muted); cursor: not-allowed; }
 .sched-menu-themes { padding: 4px; }
 .sched-menu-themes .sched-theme-picker { flex-direction: column; align-items: stretch; }
-.sched-menu-themes .sched-theme-picker button { justify-content: flex-start; border-radius: 10px; }
+.sched-menu-themes .sched-theme-picker button { justify-content: flex-start; border-radius: var(--radius-md); }
 
 /* ---- Entries: the whole card is a button, the Join link sits on top ---- */
 .sched-entry-hit {
@@ -4513,7 +4510,7 @@ html {
   align-self: flex-start;
   margin-top: 6px;
   padding: 4px 11px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid color-mix(in srgb, var(--ec, var(--s-accent)) 55%, transparent);
   background: color-mix(in srgb, var(--ec, var(--s-accent)) 16%, var(--s-card));
   color: var(--s-ink);
@@ -4571,7 +4568,7 @@ html {
 .task-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .task-chips button {
   padding: 5px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--s-line, var(--input-border));
   background: var(--s-card, var(--card-bg));
   color: var(--s-ink, var(--text-primary));
@@ -4591,7 +4588,6 @@ html {
 .task-due-row input { flex: 0 0 auto; width: auto; }
 .task-due-row .task-chips { margin-top: 0; }
 .task-stepper { display: inline-flex; align-items: center; gap: 10px; align-self: flex-start; }
-.task-stepper .sched-icon-button { width: 38px; height: 38px; }
 .task-stepper-value {
   flex-direction: row;
   align-items: center;
@@ -4729,7 +4725,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   min-width: 26px;
   height: 26px;
   padding: 0 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-weight: 700;
   font-size: var(--text-sm);
 }
@@ -4757,7 +4753,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   height: 12px;
   margin-right: 6px;
   vertical-align: -1px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--s-line);
 }
 .sched-cal-legend i.is-public { background: var(--s-holiday-bg); border-color: color-mix(in srgb, var(--s-holiday-ink) 30%, transparent); }
@@ -4775,7 +4771,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   border-radius: calc(var(--s-radius) - 2px);
   background: var(--s-card);
   color: var(--s-ink);
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16);
+  box-shadow: var(--shadow-2);
   animation: pop-in 0.22s var(--ease-out);
 }
 .sched-cal-bar-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
@@ -4810,7 +4806,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   justify-content: center;
   width: 34px;
   height: 34px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font-weight: 700;
   background: var(--s-holiday-bg);
   color: var(--s-holiday-ink);
@@ -4864,7 +4860,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   display: grid;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--ochre-soft);
   color: var(--text-primary);
   font-size: var(--text-md);
@@ -4882,7 +4878,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   align-items: center;
   gap: 5px;
   padding: 5px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--btn-secondary-border);
   background: var(--btn-secondary-bg);
   color: var(--sage);
@@ -4902,7 +4898,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
     padding: 4px;
     align-items: center;
     justify-content: center;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
   }
   .sched-cal-name { display: none; }
   .sched-cal-num { min-width: 24px; height: 24px; font-size: var(--text-xs); }
@@ -4952,7 +4948,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   gap: 8px;
   margin: 0;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--ochre-soft);
   color: var(--text-primary);
   font-size: var(--text-md);
@@ -4989,7 +4985,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   color: var(--text-primary);
   background: var(--panel-bg);
   border: 1px solid var(--border-light);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--card-shadow);
   cursor: pointer;
   transition: border-color var(--dur-2) ease;
@@ -5002,7 +4998,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   place-items: center;
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--sage-soft);
   color: var(--sage);
 }
@@ -5033,7 +5029,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   gap: 6px;
   padding: 6px 10px 6px 4px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: none;
   color: var(--text-secondary);
   font: inherit;
@@ -5090,7 +5086,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
 .reviewer-targeted .reviewer-targeted-done { color: var(--text-primary); font-weight: 600; }
 .reviewer-targeted .reviewer-targeted-error {
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--ochre-soft);
   color: var(--text-primary);
 }
@@ -5102,7 +5098,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
 .reviewer-topic-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-weight: 600; font-size: var(--text-md); }
 .reviewer-topic-row > span:first-child { min-width: 0; overflow-wrap: anywhere; }
 .reviewer-topic-list small { font-size: var(--text-xs); color: var(--text-secondary); }
-.reviewer-bar { height: 8px; border-radius: 999px; background: var(--reviewer-track); overflow: hidden; }
+.reviewer-bar { height: 8px; border-radius: var(--radius-pill); background: var(--reviewer-track); overflow: hidden; }
 .reviewer-bar span {
   display: block;
   height: 100%;
@@ -5118,7 +5114,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
 .reviewer-level {
   flex-shrink: 0;
   padding: 2px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid transparent;
   font-size: var(--text-xs);
   font-weight: 700;
@@ -5163,7 +5159,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
 .reviewer-field-label { font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary); }
 .reviewer-drop {
   border: 2px dashed var(--input-border);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   background: var(--input-bg);
   transition: border-color 0.2s ease, background 0.2s ease;
 }
@@ -5191,7 +5187,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
 .reviewer-drop-file small { color: var(--text-secondary); }
 .reviewer-notice { display: flex; gap: 8px; margin: 0; font-size: var(--text-sm); line-height: 1.5; color: var(--text-secondary); }
 .reviewer-notice svg { flex-shrink: 0; margin-top: 2px; }
-.reviewer-error { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--clay-soft); color: var(--text-primary); font-size: var(--text-sm); }
+.reviewer-error { margin: 0; padding: 10px 12px; border-radius: var(--radius-md); background: var(--clay-soft); color: var(--text-primary); font-size: var(--text-sm); }
 .reviewer-actions { grid-column: auto; margin-top: 0; align-items: center; flex-wrap: wrap; }
 .reviewer-upload-progress { margin-right: auto; font-size: var(--text-sm); color: var(--text-secondary); }
 .reviewer-dialog-text { margin: 0; color: var(--text-secondary); line-height: 1.6; }
@@ -5205,7 +5201,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--input-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--input-bg);
   color: var(--text-primary);
   cursor: pointer;
@@ -5221,14 +5217,14 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
 .learning-count { display: grid; gap: 2px; }
 .learning-count span { font-weight: 700; }
 .learning-count small { font-size: var(--text-sm); color: var(--text-secondary); }
-.learning-progress { height: 6px; border-radius: 999px; background: var(--reviewer-track); overflow: hidden; }
+.learning-progress { height: 6px; border-radius: var(--radius-pill); background: var(--reviewer-track); overflow: hidden; }
 .learning-progress span { display: block; height: 100%; border-radius: inherit; background: var(--chart-task); width: 100%; transform-origin: left; transition: transform 0.4s var(--ease-out); }
-.learning-card { display: grid; gap: 18px; padding: 28px; animation: rise 0.45s var(--ease-out) backwards; }
+.learning-card { display: grid; gap: 18px; padding: 28px; }
 .learning-tags { display: flex; flex-wrap: wrap; gap: 8px; }
 .learning-topic,
 .learning-difficulty {
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: var(--text-xs);
   font-weight: 700;
   background: var(--sage-soft);
@@ -5248,7 +5244,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   color: var(--text-primary);
   background: var(--input-bg);
   border: 1px solid var(--input-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s var(--ease-out), opacity 0.2s ease;
 }
@@ -5261,7 +5257,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   place-items: center;
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--sage-soft);
   font-weight: 700;
   font-size: var(--text-sm);
@@ -5282,13 +5278,12 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   display: grid;
   gap: 6px;
   padding: 14px 16px;
-  border-radius: 12px;
-  border-left: 4px solid var(--tone-good-fg);
+  border-radius: var(--radius-md);
   background: var(--tone-good-bg);
   color: var(--text-primary);
-  animation: rise 0.35s var(--ease-out) backwards;
+  animation: fade-in var(--dur-2) var(--ease-out) backwards;
 }
-.learning-feedback.is-wrong { border-left-color: var(--tone-watch-fg); background: var(--ochre-soft); }
+.learning-feedback.is-wrong { background: var(--watch-soft); }
 .learning-feedback p { margin: 0; line-height: 1.6; }
 .learning-actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; min-height: 48px; }
 .learning-hint { margin-right: auto; font-size: var(--text-sm); color: var(--text-secondary); }
@@ -5329,12 +5324,11 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   display: grid;
   gap: 6px;
   padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid var(--border-light);
-  border-left: 4px solid var(--tone-good-fg);
-  background: var(--input-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
 }
-.results-list li.is-wrong { border-left-color: var(--tone-watch-fg); }
+.results-list li.is-wrong { border-color: transparent; background: var(--watch-soft); }
 .results-topic { font-size: var(--text-xs); font-weight: 700; color: var(--text-secondary); }
 .results-prompt { margin: 0; font-weight: 600; line-height: 1.5; }
 .results-answer { display: flex; align-items: flex-start; gap: 8px; margin: 0; font-size: var(--text-md); line-height: 1.5; }
@@ -5398,14 +5392,14 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   gap: 8px;
   min-height: 46px;
   padding: 0 18px 0 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid color-mix(in srgb, var(--text-secondary) 22%, transparent);
   background: var(--panel-bg);
   color: var(--text-primary);
   font: inherit;
   font-size: var(--text-md);
   font-weight: 700;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+  box-shadow: var(--shadow-2);
   cursor: pointer;
   transition: transform 0.2s var(--ease-out), box-shadow 0.2s ease;
 }
@@ -5432,11 +5426,11 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   max-height: calc(100vh - 140px);
   overflow-y: auto;
   padding: 16px 18px 18px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   border: 1px solid color-mix(in srgb, var(--text-secondary) 18%, transparent);
   background: var(--panel-bg);
   color: var(--text-primary);
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-3);
   transform-origin: bottom right;
   animation: pop-in var(--dur-3) var(--ease-out);
 }
@@ -5459,7 +5453,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   height: 36px;
   margin: -6px -8px -6px 0;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
@@ -5493,7 +5487,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
 .tour-dots span {
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--text-secondary) 30%, transparent);
   transition: background var(--dur-2) ease;
 }
@@ -5550,7 +5544,7 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
     width: auto;
     max-height: 60vh;
     padding: 14px 16px 16px;
-    border-radius: 18px;
+    border-radius: var(--radius-xl);
     transform-origin: bottom center;
   }
   .app:has(> .tour-button) .site-footer {
@@ -5890,19 +5884,23 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   background: transparent;
   color: var(--text-secondary);
   font: inherit;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: 500;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
 }
-.tab:hover {
-  color: var(--text-primary);
+@media (hover: hover) and (pointer: fine) {
+  .tab:hover {
+    color: var(--text-primary);
+  }
 }
 .tab.is-selected {
-  color: var(--accent);
+  color: var(--text-primary);
+  font-weight: 600;
   border-bottom-color: var(--accent);
 }
 .tab:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus-ring);
   outline-offset: -2px;
   border-radius: var(--radius-sm);
 }
@@ -5927,20 +5925,30 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
+  max-width: 360px;
+  margin: 0 auto;
   padding: var(--space-6) var(--space-4);
   text-align: center;
   color: var(--text-secondary);
 }
 .empty-state-icon {
-  color: var(--text-muted);
+  box-sizing: content-box;
+  width: 24px;
+  height: 24px;
+  padding: var(--space-3);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 .empty-state strong {
   color: var(--text-primary);
-  font-size: var(--text-lg);
+  font-size: var(--text-md);
+  font-weight: 600;
 }
 .empty-state p {
   max-width: 44ch;
   margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 
@@ -5948,7 +5956,8 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  padding: 2px 10px;
+  min-height: 24px;
+  padding: 2px var(--space-2);
   border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text-secondary);
@@ -5970,23 +5979,37 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   background: var(--surface-2);
 }
 .segmented-option {
-  min-height: 44px;
+  min-height: 32px;
   padding: 0 var(--space-4);
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
   font: inherit;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: 500;
   cursor: pointer;
+  transition: background-color var(--dur-1) ease, color var(--dur-1) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .segmented-option:hover:not(.is-selected) {
+    color: var(--text-primary);
+  }
 }
 .segmented-option.is-selected {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: var(--shadow-1);
 }
 .segmented-option:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+@media (max-width: 720px), (pointer: coarse) {
+  .segmented-option {
+    min-height: 44px;
+  }
 }
 
 .not-found {
@@ -6440,46 +6463,57 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   }
 }
 
-/* Quiet icon buttons: 44px tap area, no fill until hover. */
+/* Quiet icon buttons: 40px square (44px on touch), no fill until hover. Always has an aria-label. */
 .icon-action {
   display: inline-grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  padding: 0;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background-color var(--dur-1) ease, color var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
 }
-.icon-action:hover,
+@media (hover: hover) and (pointer: fine) {
+  .icon-action:hover:where(:not(:disabled)) {
+    background: var(--surface-2);
+    color: var(--text-primary);
+  }
+  .icon-action.is-danger:hover:where(:not(:disabled)) {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+}
+.icon-action:active:where(:not(:disabled)) {
+  background: var(--surface-3);
+  transform: scale(0.96);
+}
+.icon-action:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
 .icon-action:focus-visible {
-  background: var(--accent-soft);
-  color: var(--text-primary);
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
-.icon-action.is-danger:hover,
-.icon-action.is-danger:focus-visible {
-  background: var(--danger-soft);
-  color: var(--danger);
-}
-.icon-action:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+@media (max-width: 720px), (pointer: coarse) {
+  .icon-action {
+    width: 44px;
+    height: 44px;
+  }
 }
 .ghost-button.icon-only {
   display: inline-grid;
   place-items: center;
   min-width: 44px;
-  min-height: 44px;
   padding: 0;
 }
 .page-header-actions .ghost-button,
 .page-header-actions .secondary-button {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 44px;
   text-decoration: none;
 }
 
@@ -6887,7 +6921,6 @@ button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline
   .primary-button.small,
   .secondary-button.small,
   .ghost-button.small,
-  .group-actions .remove-friend-btn,
   .sched-back {
     min-height: 44px;
   }

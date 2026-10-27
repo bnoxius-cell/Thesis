@@ -6,6 +6,7 @@ import { useAuth } from "../../pages/authentication/AuthContext";
 import { WEEKDAYS, formatTime, formatLongDate, KIND_LABELS } from "../../utils/scheduleUtils";
 import { analyzeEntry } from "../../utils/scheduleConflicts";
 import Modal from "../Modal";
+import BusySpinner from "../BusySpinner";
 
 const dayLabel = (entry) =>
   entry.date
@@ -154,7 +155,7 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
               <div className="imp-clash-bar imp-open-bar" role="status">
                 <Check size={18} aria-hidden="true" />
                 <span>You're already on this schedule as {preview.source.memberRole === "editor" ? "an editor" : "a viewer"}.</span>
-                <button type="button" className="primary-button small" onClick={() => onImported({ _id: preview.source.scheduleId })} disabled={busy}>Open it</button>
+                <button type="button" className="primary-button small" onClick={() => onImported({ _id: preview.source.scheduleId })} disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}Open it</button>
               </div>
             )}
             {source.shareCode && !preview.source.memberRole && preview.source.codeRole && (
@@ -165,7 +166,7 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
                     ? `This code lets you edit the schedule together with ${preview.source.ownerName || "its owner"}. Everyone on it is told when someone changes something.`
                     : `Open it to follow ${preview.source.ownerName || "the owner"}'s schedule as it changes, or copy just the entries you want below.`}
                 </span>
-                <button type="button" className="primary-button small" onClick={joinLive} disabled={busy}>
+                <button type="button" className="primary-button small" onClick={joinLive} disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                   {preview.source.codeRole === "editor" ? "Open and edit" : "Open schedule"}
                 </button>
               </div>
@@ -199,7 +200,7 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
                         {entry.location && <span className="imp-when">{entry.location}</span>}
                       </span>
                     </label>
-                    <button type="button" className="sched-icon-button" onClick={() => setEditing(isOpen ? null : id)} aria-label={`Edit ${entry.title} before adding`} aria-expanded={isOpen}>
+                    <button type="button" className="icon-action" onClick={() => setEditing(isOpen ? null : id)} aria-label={`Edit ${entry.title} before adding`} aria-expanded={isOpen}>
                       {isOpen ? <X size={15} aria-hidden="true" /> : <Pencil size={15} aria-hidden="true" />}
                     </button>
 
@@ -284,7 +285,8 @@ export default function ScheduleImportDialog({ source, onClose, onImported }) {
                 className="primary-button"
                 onClick={submit}
                 disabled={busy || chosen.length === 0 || chosen.some((r) => r.entry.endTime <= r.entry.startTime) || (target === "new" && !title.trim())}
-              >
+                aria-busy={busy}
+              >{busy && <BusySpinner />}
                 {busy ? "Adding..." : chosen.length === 0 ? "Pick something to add" : `Add ${chosen.length} ${chosen.length === 1 ? "entry" : "entries"}`}
               </button>
             </div>

@@ -73,7 +73,7 @@ export default function Menu({ trigger, label, className = "secondary-button", a
 export function MenuItem({ icon: Icon, children, hint, tone, onClick, disabled }) {
   return (
     <button type="button" role="menuitem" className={`sched-menu-item${tone ? ` is-${tone}` : ""}`} onClick={onClick} disabled={disabled}>
-      {Icon && <Icon size={17} aria-hidden="true" />}
+      {Icon && <Icon size={16} aria-hidden="true" />}
       <span>
         {children}
         {hint && <small>{hint}</small>}

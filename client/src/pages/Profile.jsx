@@ -15,6 +15,7 @@ import { profileFromUser } from "../utils/useWorkload";
 import { HELP_CONTACTS, isPlaceholder } from "../utils/helpContacts";
 import { SUPPORT_EMAILS } from "./legal/legalContent";
 import "../App.css";
+import BusySpinner from "../components/BusySpinner";
 
 // Helper to get optimized Google avatar URL
 const getOptimizedAvatarUrl = (avatar) => {
@@ -265,7 +266,7 @@ function Me() {
                   <small className="field-hint">{you.bio.length}/200</small>
                 </label>
                 <div className="me-save full-span">
-                  <button type="submit" className="primary-button" disabled={savingYou || !youDirty}>{savingYou ? "Saving..." : "Save"}</button>
+                  <button type="submit" className="primary-button" disabled={savingYou || !youDirty} aria-busy={savingYou}>{savingYou && <BusySpinner />}{savingYou ? "Saving..." : "Save"}</button>
                 </div>
               </form>
             </section>
@@ -326,7 +327,7 @@ function Me() {
                 </fieldset>
 
                 <div className="me-save full-span">
-                  <button type="submit" className="primary-button" disabled={savingWeek || !weekDirty}>{savingWeek ? "Saving..." : "Save"}</button>
+                  <button type="submit" className="primary-button" disabled={savingWeek || !weekDirty} aria-busy={savingWeek}>{savingWeek && <BusySpinner />}{savingWeek ? "Saving..." : "Save"}</button>
                 </div>
               </form>
             </section>

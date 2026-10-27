@@ -5,6 +5,7 @@ import { X, ShieldCheck } from "lucide-react";
 import PictureField from "../PictureField";
 import { useAuth } from "../../pages/authentication/AuthContext";
 import Modal from "../Modal";
+import BusySpinner from "../BusySpinner";
 
 // Owner and admins edit the group here: name, description, icon and the family-friendly filter.
 export default function GroupSettingsDialog({ group, onClose, onGroupUpdated }) {
@@ -75,7 +76,7 @@ export default function GroupSettingsDialog({ group, onClose, onGroupUpdated }) 
           {error && <p className="form-error full-span">{error}</p>}
           <div className="modal-actions full-span">
             <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn-create-task" style={{ width: "auto" }} disabled={saving}>
+            <button type="submit" className="primary-button" disabled={saving} aria-busy={saving}>{saving && <BusySpinner />}
               {saving ? "Saving..." : "Save changes"}
             </button>
           </div>

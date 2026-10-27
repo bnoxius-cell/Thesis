@@ -6,6 +6,7 @@ import { X, UserPlus, UserCheck, Clock, ShieldPlus, ShieldMinus, UserX, External
 import UserAvatar from "../UserAvatar";
 import { useAuth } from "../../pages/authentication/AuthContext";
 import Modal from "../Modal";
+import BusySpinner from "../BusySpinner";
 
 // A group member's card: who they are, how you're connected (with add friend), and, for
 // admins, the role and removal controls. The server enforces every one of these rules again.
@@ -111,7 +112,7 @@ export default function MemberDialog({ group, member, onClose, onGroupUpdated })
 
         <div className="member-dialog-actions">
           {!isSelf && profile?.relation === "none" && (
-            <button type="button" className="primary-button small" onClick={addFriend} disabled={busy}>
+            <button type="button" className="primary-button small" onClick={addFriend} disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
               <UserPlus size={15} aria-hidden="true" /> Add friend
             </button>
           )}
@@ -119,7 +120,7 @@ export default function MemberDialog({ group, member, onClose, onGroupUpdated })
             <span className="relation-pill"><Clock size={15} aria-hidden="true" /> Request sent</span>
           )}
           {!isSelf && profile?.relation === "received" && (
-            <button type="button" className="primary-button small" onClick={acceptFriend} disabled={busy}>
+            <button type="button" className="primary-button small" onClick={acceptFriend} disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
               <UserCheck size={15} aria-hidden="true" /> Accept request
             </button>
           )}
@@ -148,11 +149,11 @@ export default function MemberDialog({ group, member, onClose, onGroupUpdated })
             {canRemove && (confirmRemove ? (
               <div className="member-dialog-confirm">
                 <span>Remove {member.name} from the group?</span>
-                <button type="button" className="chat-danger-btn" onClick={remove} disabled={busy}>Yes, remove</button>
+                <button type="button" className="ghost-button is-danger" onClick={remove} disabled={busy}>Yes, remove</button>
                 <button type="button" className="ghost-button small" onClick={() => setConfirmRemove(false)} disabled={busy}>Keep</button>
               </div>
             ) : (
-              <button type="button" className="chat-danger-btn" onClick={() => setConfirmRemove(true)} disabled={busy}>
+              <button type="button" className="ghost-button is-danger" onClick={() => setConfirmRemove(true)} disabled={busy}>
                 <UserX size={15} aria-hidden="true" /> Remove from group
               </button>
             ))}

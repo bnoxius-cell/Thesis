@@ -4,6 +4,7 @@ import {
   WEEKDAYS, ENTRY_ICONS, ENTRY_COLORS, defaultIconFor, compressImage, toISODate, KIND_LABELS, isWebLink, meetingProvider,
 } from "../../utils/scheduleUtils";
 import Modal from "../Modal";
+import BusySpinner from "../BusySpinner";
 
 // People paste "meet.google.com/abc-defg-hij" without the https part. Add it for them.
 const withScheme = (value) => {
@@ -323,12 +324,12 @@ export default function EntryModal({ entry, kind = "class", date, onSave, onDele
 
         <div className="modal-actions sched-modal-actions">
           {onDelete && (
-            <button type="button" className="remove-friend-btn" onClick={onDelete} disabled={saving}>
+            <button type="button" className="ghost-button is-danger" onClick={onDelete} disabled={saving}>
               Delete
             </button>
           )}
           <button type="button" className="secondary-button" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="submit" className="primary-button" disabled={saving}>
+          <button type="submit" className="primary-button" disabled={saving} aria-busy={saving}>{saving && <BusySpinner />}
             {saving ? "Saving..." : entry ? "Save changes" : "Add"}
           </button>
         </div>
