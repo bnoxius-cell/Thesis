@@ -21,7 +21,9 @@ Last updated: 2026-10-13 (end of planning session; owner continues 2026-10-14). 
   - FE-0 PASSED, merged (34cab28).
   - FE-1 PASSED + fix round (pinned sheet actions, focus return, share overflow, tonal/danger states), merged (e9fea97). Deferred: 44px buttons on People/Profile at 1280 (FE-7/FE-9), un-gated hover lifts (FE-5/FE-8), Reviewers empty state (FE-8).
   - FE-2 PASSED + fix round (Guide resets on list/detail swap via `tour.view`, focus to `main` after nav, Guide waits out dialogs, About#contact scroll margin; harness now seeds a reviewer), merged (c3a7540). Deferred: focus return for dialogs opened via `<a ?task=new>` (FE-3/4), Guide panel overlapping targets at 1280, Reviewers `rev-list` steps.
-  - FE-3 Today building on `redesign/v2-fe3-today`. Next: FE-4, FE-5, FE-7, FE-8, FE-9, then W1 auth.
+  - FE-3 Today PASSED + fix round (reasons agree with band, DOM in phone order via `TodayLayout.jsx`, "Not today" focus, 7-day wording, About caption, week card as lead), merged. Adapter `utils/weekReading.js` `toWeekReading` is the FE-3b seam. Deferred: last Guide step 37% covered by sheet at 375.
+  - FE-4 quick add building on `redesign/v2-fe4-quick-add` (course optional per O1). Next: FE-5, FE-7, FE-8, FE-9, then W1 auth.
+  - Dev server on 5173/5000 was stopped by low memory at ~night; do not restart unless the owner asks.
   - Tester's weakest-looking list after FE-2: old Today week card (FE-3), oversized sign-in card (FE-9), sparse Study/People (FE-8/FE-7). FE-2 notes: update `mobile-rules.md` (still mentions floating Guide button); footer Help links to `/profile/<id>#help` (FE-9); `.app-boot` still text; Guide trigger can look dead on the open reviewer view.
   - Context note: orchestrator context is large (~150k). If this session was cleared, resume from this log: read plan `06-frontend-plan-v2.md`, `git log redesign/v2-integration`, and continue with the next batch.
 - This section takes priority over the build-queue order below.
