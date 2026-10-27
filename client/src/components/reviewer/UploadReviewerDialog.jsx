@@ -4,6 +4,7 @@ import { FileUp, FileText, Info, X } from "lucide-react";
 import { useAuth } from "../../pages/authentication/AuthContext";
 import { QUESTION_COUNTS, DEFAULT_QUESTION_COUNT, MAX_PDF_MB, formatBytes, errorMessage } from "./reviewerUtils";
 import Modal from "../Modal";
+import BusySpinner from "../BusySpinner";
 
 // Pick a PDF, name it (or leave that to the AI), choose how many questions, and send it off. The
 // server reads the text and starts writing the reviewer in the background, so this closes as
@@ -176,7 +177,7 @@ export default function UploadReviewerDialog({ onClose, onCreated }) {
             </span>
           )}
           <button type="button" className="secondary-button" onClick={onClose} disabled={busy}>Cancel</button>
-          <button type="submit" className="primary-button" disabled={busy || !file}>
+          <button type="submit" className="primary-button" disabled={busy || !file} aria-busy={busy}>{busy && <BusySpinner />}
             {busy ? "Working..." : "Make reviewer"}
           </button>
         </div>

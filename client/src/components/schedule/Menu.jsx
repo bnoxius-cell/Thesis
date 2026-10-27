@@ -33,6 +33,13 @@ export default function Menu({ trigger, label, className = "secondary-button", a
     };
   }, [open]);
 
+  // A pick closes the menu and may open a dialog. Focus goes back to the trigger first (capture
+  // phase, before the item's own handler), so the dialog remembers the trigger rather than the
+  // item that is about to unmount, and hands focus back to it on close.
+  const onListClickCapture = (e) => {
+    if (e.target.closest("[role='menuitem']")) wrapRef.current?.querySelector("button")?.focus({ preventScroll: true });
+  };
+
   const onListKey = (e) => {
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
     e.preventDefault();
@@ -62,6 +69,7 @@ export default function Menu({ trigger, label, className = "secondary-button", a
           className={`sched-menu-list align-${align}${wide ? " is-wide" : ""}`}
           role="menu"
           onKeyDown={onListKey}
+          onClickCapture={onListClickCapture}
         >
           {children(() => setOpen(false))}
         </div>
@@ -73,7 +81,7 @@ export default function Menu({ trigger, label, className = "secondary-button", a
 export function MenuItem({ icon: Icon, children, hint, tone, onClick, disabled }) {
   return (
     <button type="button" role="menuitem" className={`sched-menu-item${tone ? ` is-${tone}` : ""}`} onClick={onClick} disabled={disabled}>
-      {Icon && <Icon size={17} aria-hidden="true" />}
+      {Icon && <Icon size={16} aria-hidden="true" />}
       <span>
         {children}
         {hint && <small>{hint}</small>}

@@ -4,6 +4,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { Check } from "lucide-react";
 import { useAuth } from "../../pages/authentication/AuthContext";
+import BusySpinner from "../BusySpinner";
 
 const DEFAULTS = { studyHoursPerDay: 4, sleepHours: 8, usualSleepStart: "23:00", usualWakeTime: "07:00", travelMinutesPerDay: 0 };
 
@@ -125,7 +126,7 @@ export default function SetupChecklist({ work, setup, onStartCheckIn, onHide }) 
             <input type="number" min="0" max="240" step="5" value={form.travelMinutesPerDay} onChange={(e) => set("travelMinutesPerDay", e.target.value)} required />
           </label>
           <div className="setup-form-actions">
-            <button type="submit" className="primary-button" disabled={saving}>{saving ? "Saving..." : "Save"}</button>
+            <button type="submit" className="primary-button" disabled={saving} aria-busy={saving}>{saving && <BusySpinner />}{saving ? "Saving..." : "Save"}</button>
           </div>
         </form>
       )}

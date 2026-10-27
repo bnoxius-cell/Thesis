@@ -99,7 +99,7 @@ export default function Header() {
               className={`sidepanel-link sidepanel-profile ${onProfile ? 'active' : ''}`}
               aria-current={onProfile ? 'page' : undefined}
             >
-              <UserAvatar name={user?.name} src={user?.avatar} size={22} /> <span>Profile</span>
+              <UserAvatar name={user?.name} src={user?.avatar} size={28} /> <span>Profile</span>
             </Link>
             <button type="button" onClick={logout} className="sidepanel-logout">
               <LogOut size={16} aria-hidden="true" />

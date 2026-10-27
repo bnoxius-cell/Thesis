@@ -14,7 +14,7 @@ import LegalPage from './pages/legal/LegalPage';
 import TermsGate from './components/TermsGate';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer, Slide } from 'react-toastify';
 import './App.css';
 import { useAuth } from './pages/authentication/AuthContext';
 
@@ -47,7 +47,7 @@ const AppContent = () => {
     <>
     {/* Every toast() call in the app renders here. Without it, errors like a wrong
         password or an invalid code failed silently. */}
-    <ToastContainer position="top-right" autoClose={4000} newestOnTop theme={theme} />
+    <ToastContainer position={window.matchMedia('(max-width: 720px)').matches ? 'top-center' : 'top-right'} transition={Slide} autoClose={4000} newestOnTop theme={theme} />
     {/* Wait for the session check before routing. Otherwise a fresh load of any page counted as
         signed out for a moment and bounced to the dashboard, losing links like /schedule?code=. */}
     {loading ? (

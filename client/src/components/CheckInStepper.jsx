@@ -5,6 +5,7 @@ import { useAuth } from "../pages/authentication/AuthContext";
 import Modal from "./Modal";
 import CheckInResult from "./CheckInResult";
 import "../App.css";
+import BusySpinner from "./BusySpinner";
 
 const LEAVE_PROMPT = { title: "Leave the check-in?", body: "Your answers so far won't be saved.", confirmLabel: "Leave", cancelLabel: "Keep going" };
 const ADVANCE_MS = 220;
@@ -143,7 +144,7 @@ export default function CheckInStepper({ config, isFirstTime = false, onClose, o
                 Next <ArrowRight size={16} aria-hidden="true" />
               </button>
             ) : (
-              <button type="button" className="primary-button" onClick={submit} disabled={submitting || answers[step] === null}>
+              <button type="button" className="primary-button" onClick={submit} disabled={submitting || answers[step] === null} aria-busy={submitting}>{submitting && <BusySpinner />}
                 {submitting ? "Saving..." : "See what changes"}
               </button>
             )}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // The dialog shell. Use Modal (or ConfirmDialog), which build on this.
 // The one dialog shell for the app. It renders the existing .modal-overlay / .modal-content
@@ -52,6 +52,14 @@ export default function ModalShell({
   const contentRef = useRef(null);
   const pressedOverlay = useRef(false);
   const latest = useRef({});
+  // The element that had focus when the dialog opened. It is read while rendering, before the
+  // commit that lets an autofocused field take focus, so focus can go back to the real opener.
+  const [opener, setOpener] = useState(null);
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    setOpener(open ? document.activeElement : null);
+  }
   useEffect(() => {
     latest.current = { onClose, busy };
   });
@@ -66,7 +74,6 @@ export default function ModalShell({
     const token = {};
     stack.push(token);
     lockScroll();
-    const opener = document.activeElement;
 
     const root = contentRef.current;
     if (root && !root.contains(document.activeElement)) {
@@ -93,7 +100,7 @@ export default function ModalShell({
         opener.focus({ preventScroll: true });
       }
     };
-  }, [open, requestClose, initialFocusRef]);
+  }, [open, requestClose, initialFocusRef, opener]);
 
   if (!open) return null;
 

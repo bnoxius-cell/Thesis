@@ -10,6 +10,7 @@ import { ArrowLeftRight, BookOpenCheck, CalendarDays, Eye, EyeOff } from 'lucide
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { SUPPORT_EMAILS } from '../legal/legalContent';
+import BusySpinner from "../../components/BusySpinner";
 
 const SCHOOL_EMAIL_DOMAIN = "student.fatima.edu.ph";
 const RESEND_COOLDOWN_SECONDS = 180;
@@ -356,7 +357,7 @@ const AuthPage = () => {
             {authMode === 'verify' ? (
               <form className="auth-form" onSubmit={onVerifySubmit}>
                 {otpRow}
-                <button type="submit" className="primary-button" disabled={busy}>
+                <button type="submit" className="primary-button" disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                   {busy ? 'Checking...' : 'Verify email'}
                 </button>
                 <button
@@ -384,7 +385,7 @@ const AuthPage = () => {
                     required
                   />
                 </label>
-                <button type="submit" className="primary-button" disabled={busy}>
+                <button type="submit" className="primary-button" disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                   {busy ? 'Sending...' : 'Send code'}
                 </button>
               </form>
@@ -403,7 +404,7 @@ const AuthPage = () => {
                     required
                   />
                 </label>
-                <button type="submit" className="primary-button" disabled={busy}>
+                <button type="submit" className="primary-button" disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                   {busy ? 'Saving...' : 'Change password'}
                 </button>
                 <button type="button" className="ghost-button" onClick={sendResetCode} disabled={resendTimer > 0 || busy}>
@@ -461,7 +462,7 @@ const AuthPage = () => {
                     </span>
                   </label>
                 )}
-                <button type="submit" className="primary-button" disabled={busy}>
+                <button type="submit" className="primary-button" disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                   {busy
                     ? (authMode === 'login' ? 'Signing in...' : 'Creating account...')
                     : (authMode === 'login' ? 'Sign in' : 'Create account')}

@@ -4,6 +4,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { ShieldCheck } from "lucide-react";
 import { useAuth } from "../pages/authentication/AuthContext";
+import BusySpinner from "./BusySpinner";
 
 // Asks a signed-in user to agree to the current Terms of Service and Privacy Policy.
 // It shows for brand-new accounts that came in through Google (email sign-ups agree on
@@ -60,7 +61,7 @@ export default function TermsGate() {
           <span>I've read and agree to the Terms of Service and Privacy Policy.</span>
         </label>
         <div className="terms-gate-actions">
-          <button type="button" className="primary-button" onClick={accept} disabled={!agreed || busy}>
+          <button type="button" className="primary-button" onClick={accept} disabled={!agreed || busy} aria-busy={busy}>{busy && <BusySpinner />}
             {busy ? "Saving..." : "Agree and continue"}
           </button>
           <button type="button" className="ghost-button" onClick={() => logout()} disabled={busy}>

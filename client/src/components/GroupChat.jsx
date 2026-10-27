@@ -368,7 +368,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
   return (
     <section className="chat-shell" aria-label={`${group.name} chat`}>
       <header className="chat-topbar">
-        <button type="button" className="chat-icon-btn" onClick={onBack} aria-label="Back to groups">
+        <button type="button" className="icon-action" onClick={onBack} aria-label="Back to groups">
           <ArrowLeft size={18} />
         </button>
         <UserAvatar name={group.name} src={group.icon} size={38} square />
@@ -381,7 +381,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
         </div>
         <button
           type="button"
-          className={`chat-icon-btn chat-info-toggle${infoOpen ? " is-active" : ""}`}
+          className={`icon-action chat-info-toggle${infoOpen ? " is-active" : ""}`}
           onClick={() => setInfoOpen((o) => !o)}
           aria-label="Toggle group info"
           aria-expanded={infoOpen}
@@ -460,7 +460,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
               <div className="chat-emoji-wrap" ref={emojiRef}>
                 <button
                   type="button"
-                  className="chat-icon-btn"
+                  className="icon-action"
                   onClick={() => setEmojiOpen((o) => !o)}
                   aria-label="Add emoji"
                   aria-expanded={emojiOpen}
@@ -477,10 +477,10 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
                   </div>
                 )}
               </div>
-              <button type="button" className="chat-icon-btn" onClick={() => openShare("task")} aria-label="Share a task">
+              <button type="button" className="icon-action" onClick={() => openShare("task")} aria-label="Share a task">
                 <ClipboardList size={20} />
               </button>
-              <button type="button" className="chat-icon-btn" onClick={() => openShare("schedule")} aria-label="Share a schedule">
+              <button type="button" className="icon-action" onClick={() => openShare("schedule")} aria-label="Share a schedule">
                 <CalendarDays size={20} />
               </button>
             </div>
@@ -502,7 +502,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
             {draft.length > MAX_LENGTH * 0.8 && (
               <span className="chat-counter">{draft.length}/{MAX_LENGTH}</span>
             )}
-            <button type="submit" className="chat-send" disabled={!draft.trim() || sending} aria-label="Send message">
+            <button type="submit" className="chat-send" disabled={!draft.trim() || sending} aria-busy={sending} aria-label="Send message">
               <Send size={18} />
             </button>
           </form>
@@ -539,11 +539,11 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
               </button>
             )}
             {isOwner ? (
-              <button type="button" className="chat-danger-btn" onClick={onDelete}>
+              <button type="button" className="ghost-button is-danger" onClick={onDelete}>
                 <Trash2 size={15} /> Delete group
               </button>
             ) : (
-              <button type="button" className="chat-danger-btn" onClick={onLeave}>
+              <button type="button" className="ghost-button is-danger" onClick={onLeave}>
                 <LogOut size={15} /> Leave group
               </button>
             )}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { formatLongDate } from "../../utils/scheduleUtils";
 import Modal from "../Modal";
+import BusySpinner from "../BusySpinner";
 
 // Lets a user decide what a single date is: a holiday (with their own name), not a
 // holiday (hides a public one), or back to whatever the public list says.
@@ -49,7 +50,7 @@ export default function DayMarkModal({ date, holiday, publicName, hasOverride, o
         {error && <p className="form-error" role="alert">{error}</p>}
 
         <div className="sched-mark-actions">
-          <button type="submit" className="primary-button" disabled={busy}>
+          <button type="submit" className="primary-button" disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
             {holiday ? "Save name" : "Mark as holiday"}
           </button>
           {holiday && (
