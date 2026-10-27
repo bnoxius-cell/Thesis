@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
+import AppShell, { ShellOverlays } from "../components/layout/AppShell";
+import PageSkeleton from "../components/layout/PageSkeleton";
 import WorkloadChart from "../components/WorkloadChart";
 import PSSSurveyModal from "../components/PSSSurveyModal";
 import WHOSurveyModal from "../components/WHOSurveyModal";
 import CheckInBanner from "../components/CheckInBanner";
-import PageTour from "../components/PageTour";
 import EmptyState from "../components/EmptyState";
 import SetupChecklist, { setupState } from "../components/today/SetupChecklist";
 import NextStepCard from "../components/today/NextStepCard";
@@ -88,8 +87,8 @@ const Dashboard = () => {
   const [showWHOModal, setShowWHOModal] = useState(false);
   const [setupHidden, setSetupHidden] = useState(null);
 
-  if (!work.isLoggedin) return <div className="app auth-layout"><Header /><main className="dashboard"><p>Please log in to view your dashboard.</p></main><Footer /></div>;
-  if (work.loading || !work.userData) return <div className="app app-layout"><Header /><main className="dashboard"><div className="panel" style={{ textAlign: "center" }}><p>Loading your day...</p></div></main><Footer /></div>;
+  if (!work.isLoggedin) return <AppShell variant="public"><p>Please log in to view your dashboard.</p></AppShell>;
+  if (work.loading || !work.userData) return <AppShell><PageSkeleton label="Loading your day" /></AppShell>;
 
   const { insights, today, focus, nextExam, hasSchedule, week, userId, profile } = work;
   const doneCount = finishedThisWeek(work.tasks, work.now).length;
@@ -116,9 +115,7 @@ const Dashboard = () => {
   const reasons = topReasons(insights.parts, dueThisWeek);
 
   return (
-    <div className="app app-layout">
-      <Header />
-      <main className="dashboard">
+    <AppShell tour={{ page: "dashboard", title: "Today", steps: DASHBOARD_TOUR }}>
         <CheckInBanner
           isOpen
           pssDue={work.pssDue}
@@ -274,31 +271,27 @@ const Dashboard = () => {
             )}
           </>
         )}
-      </main>
-      <Footer variant="app" />
-      <PageTour page="dashboard" title="Today" steps={DASHBOARD_TOUR} />
+      <ShellOverlays>
+        {/* Mounted only while open, so each one starts from a clean slate. */}
+        {showPSSModal && (
+          <PSSSurveyModal
+            isFirstTime={work.pssNeverTaken}
+            onClose={() => setShowPSSModal(false)}
+            onComplete={() => { setShowPSSModal(false); work.refreshUser(); }}
+            onRemindLater={() => { work.snooze("PSS"); setShowPSSModal(false); }}
+          />
+        )}
 
-      {/* Mounted only while open, so each one starts from a clean slate. */}
-      {showPSSModal && (
-        <PSSSurveyModal
-
-          isFirstTime={work.pssNeverTaken}
-          onClose={() => setShowPSSModal(false)}
-          onComplete={() => { setShowPSSModal(false); work.refreshUser(); }}
-          onRemindLater={() => { work.snooze("PSS"); setShowPSSModal(false); }}
-        />
-      )}
-
-      {showWHOModal && (
-        <WHOSurveyModal
-
-          isFirstTime={work.whoNeverTaken}
-          onClose={() => setShowWHOModal(false)}
-          onComplete={() => { setShowWHOModal(false); work.refreshUser(); }}
-          onRemindLater={() => { work.snooze("WHO"); setShowWHOModal(false); }}
-        />
-      )}
-    </div>
+        {showWHOModal && (
+          <WHOSurveyModal
+            isFirstTime={work.whoNeverTaken}
+            onClose={() => setShowWHOModal(false)}
+            onComplete={() => { setShowWHOModal(false); work.refreshUser(); }}
+            onRemindLater={() => { work.snooze("WHO"); setShowWHOModal(false); }}
+          />
+        )}
+      </ShellOverlays>
+    </AppShell>
   );
 };
 

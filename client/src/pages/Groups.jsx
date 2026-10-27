@@ -3,8 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Plus, Link2, MessageSquare, ShieldCheck } from "lucide-react";
-import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
+import AppShell, { ShellOverlays } from "../components/layout/AppShell";
 import GroupChat from "../components/GroupChat";
 import ConfirmDialog from "../components/ConfirmDialog";
 import UserAvatar from "../components/UserAvatar";
@@ -197,9 +196,7 @@ export default function Groups() {
   // Chat view: takes over the page so the conversation has room.
   if (openGroupId && !loading) {
     return (
-      <div className="app app-layout">
-        <Header />
-        <main className="dashboard chat-page">
+      <AppShell mainClassName="chat-page">
           {openGroup ? (
             <GroupChat
               key={openGroup._id}
@@ -219,17 +216,13 @@ export default function Groups() {
               <button type="button" className="secondary-button" onClick={closeChat}>Back to groups</button>
             </div>
           )}
-        </main>
-        {confirmDialog}
-        <Footer />
-      </div>
+        <ShellOverlays>{confirmDialog}</ShellOverlays>
+      </AppShell>
     );
   }
 
   return (
-    <div className="app app-layout">
-      <Header />
-      <main className="dashboard">
+    <AppShell>
         <PageHeader title="People" description="Your study groups and your friends." />
         <Tabs
           tabs={[{ id: "groups", label: "Groups" }, { id: "friends", label: "Friends" }]}
@@ -315,8 +308,7 @@ export default function Groups() {
         )}
         </div>
         )}
-      </main>
-
+      <ShellOverlays>
       {/* Create Group Modal */}
       {createModalOpen && (
         <Modal onClose={closeModals} as="form" onSubmit={handleCreateGroup}>
@@ -412,7 +404,7 @@ export default function Groups() {
       )}
 
       {confirmDialog}
-      <Footer />
-    </div>
+      </ShellOverlays>
+    </AppShell>
   );
 }

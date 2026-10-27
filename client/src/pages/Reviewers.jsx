@@ -2,12 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { BookOpenCheck, FileText, FileUp, LoaderCircle, Info } from "lucide-react";
-import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
+import AppShell, { ShellOverlays } from "../components/layout/AppShell";
 import PageHeader from "../components/PageHeader";
 import UploadReviewerDialog from "../components/reviewer/UploadReviewerDialog";
 import ReviewerView from "../components/reviewer/ReviewerView";
-import PageTour from "../components/PageTour";
 import { REVIEWERS_TOUR } from "../utils/tours";
 import { formatDate } from "../components/reviewer/reviewerUtils";
 import { useAuth } from "./authentication/AuthContext";
@@ -57,14 +55,9 @@ export default function Reviewers() {
 
   if (openId) {
     return (
-      <div className="app app-layout">
-        <Header />
-        <main className="dashboard reviewer-page">
-          <ReviewerView key={openId} reviewerId={openId} onBack={close} />
-        </main>
-        <Footer />
-        <PageTour page="reviewers" title="Reviewers" steps={REVIEWERS_TOUR} />
-      </div>
+      <AppShell mainClassName="reviewer-page" tour={{ page: "reviewers", title: "Study", steps: REVIEWERS_TOUR, view: "detail" }}>
+        <ReviewerView key={openId} reviewerId={openId} onBack={close} />
+      </AppShell>
     );
   }
 
@@ -72,9 +65,7 @@ export default function Reviewers() {
   const canUpload = data?.enabled && left > 0;
 
   return (
-    <div className="app app-layout">
-      <Header />
-      <main className="dashboard reviewer-page">
+    <AppShell mainClassName="reviewer-page" tour={{ page: "reviewers", title: "Study", steps: REVIEWERS_TOUR, view: "list" }}>
         <div data-tour="rev-intro">
           <PageHeader
             kicker="Study"
@@ -154,7 +145,7 @@ export default function Reviewers() {
             ))}
           </ul>
         )}
-      </main>
+      <ShellOverlays>
       {uploadOpen && (
         <UploadReviewerDialog
           onClose={() => setUploadOpen(false)}
@@ -164,8 +155,7 @@ export default function Reviewers() {
           }}
         />
       )}
-      <Footer />
-      <PageTour page="reviewers" title="Reviewers" steps={REVIEWERS_TOUR} />
-    </div>
+      </ShellOverlays>
+    </AppShell>
   );
 }

@@ -1,4 +1,0 @@
-@layer components {
-  .site-footer-subhead { margin-top: 12px; }
-  .site-footer-email { overflow-wrap: anywhere; font-size: var(--text-sm); }
-}
