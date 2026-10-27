@@ -654,7 +654,7 @@ export default function Schedule() {
 
   if (openId) {
     return (
-      <AppShell tour={{ page: "schedule", title: "Schedule", steps: SCHEDULE_TOUR }}>
+      <AppShell tour={{ page: "schedule", title: "Schedule", steps: SCHEDULE_TOUR, view: "detail" }}>
           <button type="button" className="sched-back" onClick={() => setSearchParams({ view: "all" })}>
             <ArrowLeft size={16} aria-hidden="true" /> All schedules
           </button>
@@ -900,7 +900,7 @@ export default function Schedule() {
   }
 
   return (
-    <AppShell tour={{ page: "schedule", title: "Schedule", steps: SCHEDULE_TOUR }}>
+    <AppShell tour={{ page: "schedule", title: "Schedule", steps: SCHEDULE_TOUR, view: "list" }}>
         <div data-tour="sched-intro">
           <PageHeader
             kicker="Plan your week"

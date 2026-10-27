@@ -94,8 +94,10 @@ export default function PageTour({ page, title, steps }) {
   // Tell the header this page has a Guide, and take it back when the page goes away.
   useEffect(() => register({ page, title }, start), [register, page, title, start]);
 
-  // First visit: open by itself once the first step's section exists, and no dialog is in the way.
-  // Looks every 200ms for 4 seconds, then gives up (the next visit tries again).
+  // First visit: open by itself once the first step's section exists and no dialog is in the way.
+  // Looks every 200ms. A dialog in the way is waited out for as long as it stays open; only the wait for
+  // the section itself gives up, after 4 seconds (the next visit tries again). Opening (or having opened)
+  // the guide marks the page as seen, which ends the polling.
   useEffect(() => {
     if (isSeen(key)) return undefined;
     let tries = 0;
@@ -105,8 +107,12 @@ export default function PageTour({ page, title, steps }) {
         clearInterval(timer);
         return;
       }
+      if (document.querySelector('[role="dialog"]:not(.tour-panel), .modal-overlay')) {
+        tries -= 1; // not the page's fault: don't count the wait
+        return;
+      }
       const ready = steps.some((step) => !step.target || findTarget(step.target));
-      if (ready && !document.querySelector('[role="dialog"], .modal-overlay')) {
+      if (ready) {
         clearInterval(timer);
         start({ auto: true });
       } else if (tries >= 20) {

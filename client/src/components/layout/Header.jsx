@@ -1,8 +1,10 @@
+import { useLayoutEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Bell, CalendarDays, BookOpenCheck, CircleHelp, House, Users, LogOut } from 'lucide-react';
 import { useAuth } from '../../pages/authentication/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useGuide } from '../../context/guideState';
+import { sidebarScroll } from './navFocus';
 import UserAvatar from '../UserAvatar';
 import Logo from '../../assets/logo.png';
 
@@ -37,6 +39,12 @@ export default function Header() {
   const { unreadCount } = useNotifications();
   const { pathname } = useLocation();
   const { tour, isOpen: guideOpen, toggle: toggleGuide } = useGuide();
+  const asideRef = useRef(null);
+
+  // Each page renders its own sidebar; keep it scrolled where it was (matters on short windows).
+  useLayoutEffect(() => {
+    if (asideRef.current) asideRef.current.scrollTop = sidebarScroll.top;
+  }, []);
 
   // A simple top bar with just the logo on the login/register pages
   if (!isLoggedin) {
@@ -58,7 +66,7 @@ export default function Header() {
   return (
     <>
       {/* Laptop: left sidebar */}
-      <aside className="sidepanel">
+      <aside className="sidepanel" ref={asideRef} onScroll={(e) => { sidebarScroll.top = e.currentTarget.scrollTop; }}>
         <div className="sidepanel-logo">
           <Link to="/dashboard" className="logo-link">
             <img src={Logo} alt="" className="logo-svg" />

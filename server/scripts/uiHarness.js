@@ -24,6 +24,7 @@ await mongoose.connect(mongod.getUri());
 
 const { default: app } = await import('../app.js');
 const { default: userModel } = await import('../models/userModel.js');
+const { default: reviewerModel } = await import('../models/reviewerModel.js');
 const { LEGAL_VERSION } = await import('../utils/legal.js');
 
 app.listen(PORT, () => console.log(`UI harness API on ${base}`));
@@ -103,5 +104,24 @@ for (const name of ['Capstone Team 4', 'Study Buddies']) {
     const made = await api('/api/groups', 'POST', { name, description: `${name} group chat` });
     await api(`/api/groups/${made.group._id}/messages`, 'POST', { text: 'Hi everyone, meeting at 3 tomorrow?' });
 }
+
+// A ready reviewer for Maria, written straight to the model (no Gemini key here), so the Study page
+// and the open-reviewer view can be checked.
+const question = (topic, prompt, options, correctIndex) => ({ topic, prompt, options, correctIndex, explanation: 'Because it follows from the notes.' });
+await reviewerModel.create({
+    owner: maria._id, title: 'Network Security notes', course: 'Information Assurance',
+    source: { fileName: 'network-security.pdf', pages: 12, chars: 18000 },
+    status: 'ready', version: 1, generatedAt: new Date(), aiModel: 'harness',
+    summary: 'How networks are protected: firewalls, encryption in transit and the principle of least privilege.',
+    keyPoints: ['A firewall filters traffic by rule.', 'TLS protects data in transit.', 'Give each account only the access it needs.'],
+    keyTerms: [{ term: 'Firewall', definition: 'A device or software that filters network traffic.' }, { term: 'TLS', definition: 'A protocol that encrypts data between client and server.' }],
+    topics: [{ name: 'Firewalls', summary: 'Rule-based filtering.', parts: [1] }, { name: 'Encryption', summary: 'Protecting data in transit.', parts: [1] }],
+    questions: [
+        question('Firewalls', 'What does a firewall mainly do?', ['Filters traffic by rule', 'Stores passwords', 'Speeds up Wi-Fi', 'Backs up files'], 0),
+        question('Firewalls', 'Where is a network firewall usually placed?', ['At the network edge', 'Inside the printer', 'On the keyboard', 'In the BIOS'], 0),
+        question('Encryption', 'What does TLS protect?', ['Data in transit', 'Screen brightness', 'Disk fragmentation', 'Cable length'], 0),
+        question('Encryption', 'Least privilege means', ['Only the access that is needed', 'Everyone is admin', 'No passwords', 'Weekly resets'], 0),
+    ],
+});
 
 console.log('Seeded. Log in as maria@student.fatima.edu.ph / Password123 (or ana@ for an empty account).');

@@ -55,7 +55,7 @@ export default function Reviewers() {
 
   if (openId) {
     return (
-      <AppShell mainClassName="reviewer-page" tour={{ page: "reviewers", title: "Study", steps: REVIEWERS_TOUR }}>
+      <AppShell mainClassName="reviewer-page" tour={{ page: "reviewers", title: "Study", steps: REVIEWERS_TOUR, view: "detail" }}>
         <ReviewerView key={openId} reviewerId={openId} onBack={close} />
       </AppShell>
     );
@@ -65,7 +65,7 @@ export default function Reviewers() {
   const canUpload = data?.enabled && left > 0;
 
   return (
-    <AppShell mainClassName="reviewer-page" tour={{ page: "reviewers", title: "Study", steps: REVIEWERS_TOUR }}>
+    <AppShell mainClassName="reviewer-page" tour={{ page: "reviewers", title: "Study", steps: REVIEWERS_TOUR, view: "list" }}>
         <div data-tour="rev-intro">
           <PageHeader
             kicker="Study"

@@ -418,6 +418,11 @@
     animation: none;
   }
 
+  /* Links to a section (About > Contact) land with the section near the top, clear of the sticky bar. */
+  .about-page section[id] {
+    scroll-margin-top: var(--space-5);
+  }
+
   /* ---- Logo ---- */
   .logo-link {
     display: inline-flex;
@@ -803,6 +808,9 @@
     }
     .app.app-layout > main.is-reading {
       max-width: none;
+    }
+    .about-page section[id] {
+      scroll-margin-top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px) + var(--space-3));
     }
     .app.auth-layout .dashboard,
     .app.auth-layout .auth-page {
