@@ -42,7 +42,7 @@ function TaskCard({ message, onAdd }) {
         <span>Shared task</span>
       </div>
       <h4>{task.title}</h4>
-      <p className="chat-task-course"><BookOpen size={14} aria-hidden="true" /> {task.course}</p>
+      {task.course && <p className="chat-task-course"><BookOpen size={14} aria-hidden="true" /> {task.course}</p>}
       <div className="chat-task-meta">
         <span><Clock size={13} aria-hidden="true" /> Due {formatDue(task.dueDate)}</span>
         <span>{task.hours}h estimated</span>
@@ -572,7 +572,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
                       <li key={task._id}>
                         <button type="button" onClick={() => shareTask(task)} disabled={Boolean(sharingId)}>
                           <strong>{task.title}</strong>
-                          <span>{task.course} · Due {formatDue(task.dueDate)}</span>
+                          <span>{task.course ? `${task.course} · ` : ""}Due {formatDue(task.dueDate)}</span>
                           {sharingId === task._id && <em>Sharing...</em>}
                         </button>
                       </li>

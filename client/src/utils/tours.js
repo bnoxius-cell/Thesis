@@ -20,6 +20,11 @@ export const DASHBOARD_TOUR = [
     text: "Two short, well-known surveys on stress and well-being. They take a couple of minutes and make the reading on this page more personal. Not today is fine too.",
   },
   {
+    target: "dash-quick",
+    title: "Add a task in seconds",
+    text: "Type what needs doing, pick when it's due and roughly how long it'll take, then Add. Class, notes and the rest are optional under More details. Tap any task below to change it.",
+  },
+  {
     target: "dash-today",
     title: "Today",
     text: "Your classes happening now and later, plus anything due today or overdue, in one short list. Online classes get a Join button.",
@@ -92,7 +97,7 @@ export const SCHEDULE_TOUR = [
   {
     target: "sched-tasks",
     title: "Your tasks",
-    text: "Tap the circle to mark a task done, or the title to edit it. The menu has Copy share code and Delete. Got a 6-digit code from a classmate? Add it here.",
+    text: "Add a task at the top: a title, when it's due and roughly how long it takes. Tap the circle to mark one done, or the title to edit it. The menu has Copy share code and Delete. Got a 6-digit code from a classmate? Add it here.",
   },
   {
     target: "sched-plan",

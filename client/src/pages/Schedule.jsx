@@ -17,6 +17,7 @@ import Tabs from "../components/Tabs";
 import EntryModal from "../components/schedule/EntryModal";
 import EntryDetails from "../components/schedule/EntryDetails";
 import TaskModal from "../components/schedule/TaskModal";
+import { focusTaskCheck, showDoneToast } from "../utils/taskDone";
 import DayMarkModal from "../components/schedule/DayMarkModal";
 import ShareModal from "../components/schedule/ShareModal";
 import ScheduleImportDialog from "../components/schedule/ScheduleImportDialog";
@@ -477,15 +478,19 @@ export default function Schedule() {
     setSearchParams(next, { replace: true });
   }, [searchParams, openId, viewAll, taskParam, loading, mainId, setSearchParams]);
 
-  const DONE_TOASTS = ["Done. One less thing.", "Nice, that's off your plate.", "Finished. Take a breath before the next one."];
   const setTaskDone = async (task, done) => {
     try {
       const { data } = await axios.put(`${backendUrl}/api/tasks/${task._id}`, { isCompleted: done }, { withCredentials: true });
-      if (!data.success) return toast.error(data.message || "That change didn't save. Try again.");
+      if (!data.success) {
+        toast.error(data.message || "That change didn't save. Try again.");
+        return false;
+      }
       setTasks((list) => list.map((t) => (t._id === task._id ? data.task : t)));
-      toast.success(done ? DONE_TOASTS[Math.floor(Math.random() * DONE_TOASTS.length)] : "Reopened.");
+      showDoneToast(done, async () => { if (await setTaskDone(task, false)) focusTaskCheck(task._id); });
+      return true;
     } catch (err) {
       toast.error(taskError(err));
+      return false;
     }
   };
 
@@ -607,6 +612,7 @@ export default function Schedule() {
         <TaskModal
           task={taskModal.task}
           date={taskModal.date}
+          draft={taskModal.draft}
           courses={courses}
           onSave={saveTask}
           onDelete={taskModal.task ? () => setConfirm({ kind: "task", task: taskModal.task }) : undefined}
@@ -820,7 +826,8 @@ export default function Schedule() {
                   tasks={tasks}
                   week={week}
                   now={now}
-                  onAdd={() => setTaskModal({})}
+                  onAdded={(task) => setTasks((list) => [...list, task])}
+                  onMoreDetails={(draft) => setTaskModal({ draft })}
                   onUseCode={(tag) => setTaskCode(tag)}
                   onEdit={(task) => setTaskModal({ task })}
                   onSetDone={setTaskDone}

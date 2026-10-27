@@ -1,27 +1,28 @@
 import { useState } from "react";
 import { Minus, Plus, Ticket, CircleCheck, RotateCcw } from "lucide-react";
 import { toISODate, addDays, taskDueIso } from "../../utils/scheduleUtils";
+import { MAX_TASK_HOURS } from "../../utils/workload";
 import Modal from "../Modal";
 import BusySpinner from "../BusySpinner";
 
 const DIFFICULTY = ["Very easy", "Easy", "Medium", "Hard", "Very hard"];
 const IMPORTANCE = ["Low", "Minor", "Normal", "Important", "Critical"];
 const MIN_HOURS = 0.5;
-const MAX_HOURS = 20;
+const MAX_HOURS = MAX_TASK_HOURS;
 
-const blankForm = (date) => ({
-  title: "",
+const blankForm = (date, draft) => ({
+  title: draft?.title || "",
   course: "",
   description: "",
-  dueDate: date || toISODate(addDays(new Date(), 1)),
-  hours: 3,
+  dueDate: draft?.dueDate || date || toISODate(addDays(new Date(), 1)),
+  hours: draft?.hours ?? 3,
   difficulty: 3,
   importance: 3,
 });
 
 const formFromTask = (task) => ({
   title: task.title,
-  course: task.course,
+  course: task.course || "",
   description: task.description || "",
   dueDate: taskDueIso(task.dueDate),
   hours: task.hours,
@@ -60,12 +61,13 @@ function Scale({ id, label, words, value, onChange }) {
 //
 //   task         set when editing
 //   date         due date to start with when adding from a day (YYYY-MM-DD)
+//   draft        { title, dueDate, hours } typed in the quick-add row, to start the form with
 //   courses      class names from the schedule, offered as suggestions
 //   onSave       (payload) => error message, or nothing on success
 //   onDelete, onToggleDone   editing only
 //   onUseCode    (tag) => open the task-code preview instead
-export default function TaskModal({ task, date, courses = [], onSave, onDelete, onToggleDone, onUseCode, onClose }) {
-  const [form, setForm] = useState(() => (task ? formFromTask(task) : blankForm(date)));
+export default function TaskModal({ task, date, draft, courses = [], onSave, onDelete, onToggleDone, onUseCode, onClose }) {
+  const [form, setForm] = useState(() => (task ? formFromTask(task) : blankForm(date, draft)));
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -91,7 +93,6 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
   const submit = async (e) => {
     e.preventDefault();
     if (!form.title.trim()) return setError("Give the task a name.");
-    if (!form.course.trim()) return setError("Which class is it for?");
     if (!form.dueDate) return setError("Pick a due date.");
     const hours = Number(form.hours);
     if (!Number.isFinite(hours) || hours < MIN_HOURS || hours > MAX_HOURS) return setError(`Hours can be ${MIN_HOURS} to ${MAX_HOURS}.`);
@@ -119,7 +120,7 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
   const courseList = [...new Set(courses.filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
   return (
-    <Modal onClose={onClose} busy={saving} as="form" className="sched-modal task-modal" labelledBy="task-modal-title" onSubmit={submit}>
+    <Modal onClose={onClose} busy={saving} as="form" noValidate className="sched-modal task-modal" labelledBy="task-modal-title" onSubmit={submit}>
         <div className="modal-header">
           <div>
             <span className="panel-kicker">Task</span>
@@ -146,7 +147,7 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
           </div>
 
           <div className="form-group full-span">
-            <label htmlFor="task-course">Class</label>
+            <label htmlFor="task-course">Class (optional)</label>
             <input
               id="task-course"
               type="text"
@@ -154,7 +155,7 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
               maxLength={80}
               list="task-course-options"
               onChange={(e) => set({ course: e.target.value })}
-              placeholder="e.g., Research Methods"
+              placeholder="Leave empty if it isn't for a class"
               autoComplete="off"
             />
             <datalist id="task-course-options">

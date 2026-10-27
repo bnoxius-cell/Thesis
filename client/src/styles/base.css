@@ -80,6 +80,11 @@
   }
 
   /* ---- Browser surfaces that used to ship with defaults ---- */
+  /* Browsers dim the placeholder to roughly 3.7:1 in dark mode: use the token, fully opaque. */
+  ::placeholder {
+    color: var(--text-placeholder);
+    opacity: 1;
+  }
   ::selection {
     background: color-mix(in srgb, var(--accent) 28%, transparent);
     color: inherit;
@@ -131,7 +136,9 @@
 
   /* ---- People who ask for less motion get none ---- */
   @media (prefers-reduced-motion: reduce) {
-    *,
+    /* Not the toast's progress bar: react-toastify closes a toast when that animation ends, so
+       squashing it to 0.01ms dismissed every toast the moment it appeared. */
+    *:not(.Toastify__progress-bar),
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
