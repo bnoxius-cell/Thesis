@@ -29,8 +29,8 @@ The workload score is computed from the student's own timetable (class hours, Ph
 
 ## Brand Commitments
 - Name: StressCare. Logo: `client/src/assets/logo.png` (heart mark).
-- The owner restored the slate and red palette after a sage redesign (commits `405f65d`, `fa649bb`): red stays the brand color.
-- Fonts in use: Karla (UI) and Fraunces (display).
+- Palette: calm slate-blue accent, red only for the logo and alerts (owner, 2026-10-28).
+- Fonts in use: Figtree (one family, self-hosted).
 - Voice: plain, warm, student to student; no emoji in the UI (lucide icons instead); no em-dash connectors.
 
 ## Evidence on Hand

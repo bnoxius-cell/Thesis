@@ -68,7 +68,7 @@ export default function Wellbeing() {
                   <li key={part.key} className={`driver driver-${part.level}`}>
                     <span className="driver-label">{part.label}</span>
                     <span className="driver-word">{LEVEL_WORD[part.level]}</span>
-                    <span className="driver-track" aria-hidden="true"><span className="driver-fill" style={{ width: `${Math.max(part.value, 4)}%` }} /></span>
+                    <span className="driver-track" aria-hidden="true"><span className="driver-fill" style={{ transform: `scaleX(${Math.max(part.value, 4) / 100})` }} /></span>
                     <span className="driver-note">{DRIVER_SENTENCE[part.key]?.[part.level]}</span>
                   </li>
                 ))}
