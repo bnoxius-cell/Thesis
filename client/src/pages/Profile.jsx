@@ -4,8 +4,7 @@ import { useParams, Navigate, useLocation, Link } from "react-router-dom";
 import { Check, Copy, LogOut } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
+import AppShell from "../components/layout/AppShell";
 import PageHeader from "../components/PageHeader";
 import PictureField from "../components/PictureField";
 import NotificationPreferences from "../components/NotificationPreferences";
@@ -65,13 +64,9 @@ function OwnProfile() {
 
   if (!user) {
     return (
-      <div className="app auth-layout">
-        <Header />
-        <main className="dashboard">
-          <p>Please log in to view your profile.</p>
-        </main>
-        <Footer />
-      </div>
+      <AppShell variant="public">
+        <p>Please log in to view your profile.</p>
+      </AppShell>
     );
   }
 
@@ -193,9 +188,7 @@ function Me() {
   const mailto = `mailto:${SUPPORT_EMAILS.join(",")}`;
 
   return (
-    <div className="app app-layout">
-      <Header />
-      <main className="dashboard me-page">
+    <AppShell mainClassName="me-page">
         <PageHeader title="Profile" description="Your details, the numbers your plan uses, and how the app looks and behaves." />
 
         <div className="me-layout">
@@ -427,8 +420,6 @@ function Me() {
             </section>
           </div>
         </div>
-      </main>
-      <Footer />
-    </div>
+    </AppShell>
   );
 }

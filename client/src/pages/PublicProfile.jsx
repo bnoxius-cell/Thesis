@@ -3,8 +3,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { ArrowLeft, UserPlus, UserCheck, UserMinus, Clock, Users } from "lucide-react";
-import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
+import AppShell from "../components/layout/AppShell";
 import ConfirmDialog from "../components/ConfirmDialog";
 import UserAvatar from "../components/UserAvatar";
 import { useAuth } from "./authentication/AuthContext";
@@ -72,13 +71,7 @@ export default function PublicProfile({ uid }) {
     "Friend removed."
   );
 
-  const shell = (children) => (
-    <div className="app app-layout">
-      <Header />
-      <main className="dashboard">{children}</main>
-      <Footer />
-    </div>
-  );
+  const shell = (children) => <AppShell>{children}</AppShell>;
 
   if (status === "loading") {
     return shell(<div className="panel" style={{ textAlign: "center" }}><p>Loading profile...</p></div>);

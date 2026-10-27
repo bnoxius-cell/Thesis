@@ -1,22 +1,35 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, CircleHelp, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import { useAuth } from "../pages/authentication/AuthContext";
+import { useGuide } from "../context/guideState";
 
-// The "Guide" button in the bottom-right corner of the main pages. It opens a short, step by step
-// walkthrough of the page. A step's `target` names a `data-tour` attribute on the page: the guide
-// scrolls to it and outlines it. Steps whose target isn't on screen (a section that only shows once
-// there's data, or the other view of the page) are left out, so the guide matches what the student
-// sees. Nothing opens on its own; a small dot on the button says the guide hasn't been opened yet,
-// remembered per account in this browser (like the check-in snooze).
+// The page Guide: a short, step by step walkthrough of the page. A step's `target` names a
+// `data-tour` attribute on the page: the guide scrolls to it and outlines it. Steps whose target isn't
+// on screen (a section that only shows once there's data, or the other view of the page) are left out,
+// so the guide matches what the student sees.
+//
+// This component only renders the panel. The button that opens it lives in the header (Header.jsx,
+// `data-guide-trigger`) and talks to it through GuideContext; AppShell renders one PageTour per page.
+// The first time a student visits a page the guide opens by itself (once per page per account, remembered
+// in this browser); after that it only opens from the header button.
 
 const HIGHLIGHT = "tour-target";
+const LEAVE_MS = 140; // matches --dur-1, the exit transition in components.css
 const seenKey = (userId, page) => `stresscare:tour-seen:${userId || "guest"}:${page}`;
 
-function readSeen(key) {
+function isSeen(key) {
   try {
     return localStorage.getItem(key) === "1";
   } catch {
-    return true; // storage blocked: skip a dot that could never go away
+    return true; // storage blocked: never auto-open, it could not be remembered
+  }
+}
+
+function markSeen(key) {
+  try {
+    localStorage.setItem(key, "1");
+  } catch {
+    // Private mode or blocked storage: nothing else breaks.
   }
 }
 
@@ -26,6 +39,11 @@ function findTarget(target) {
 
 function prefersReducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+}
+
+// The header button that is on screen (the sidebar one on laptops, the top bar one on phones).
+function visibleTrigger() {
+  return [...document.querySelectorAll("[data-guide-trigger]")].find((el) => el.offsetParent !== null) || null;
 }
 
 // Brings a section into the part of the screen the guide doesn't cover: everything above the
@@ -47,44 +65,92 @@ function scrollToTarget(el, panel) {
 
 export default function PageTour({ page, title, steps }) {
   const { user } = useAuth();
+  const { isOpen, setIsOpen, register } = useGuide();
   const key = seenKey(user?._id, page);
-  const [seen, setSeen] = useState(() => readSeen(key));
-  const [open, setOpen] = useState(false);
   const [visibleSteps, setVisibleSteps] = useState([]);
   const [index, setIndex] = useState(0);
-  const buttonRef = useRef(null);
+  const [wasOpen, setWasOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const panelRef = useRef(null);
   const headingRef = useRef(null);
+  // An automatic opening shouldn't pull keyboard focus off the page; a student's own click should.
+  const focusHeading = useRef(true);
 
+  // Opens the guide on the steps whose section is on screen. Returns false when there is nothing to show.
+  const start = useCallback(
+    ({ auto = false } = {}) => {
+      const available = steps.filter((step) => !step.target || findTarget(step.target));
+      if (!available.length) return false;
+      focusHeading.current = !auto;
+      setVisibleSteps(available);
+      setIndex(0);
+      setIsOpen(true);
+      markSeen(key);
+      return true;
+    },
+    [steps, key, setIsOpen],
+  );
+
+  // Tell the header this page has a Guide, and take it back when the page goes away.
+  useEffect(() => register({ page, title }, start), [register, page, title, start]);
+
+  // First visit: open by itself once the first step's section exists, and no dialog is in the way.
+  // Looks every 200ms for 4 seconds, then gives up (the next visit tries again).
+  useEffect(() => {
+    if (isSeen(key)) return undefined;
+    let tries = 0;
+    const timer = setInterval(() => {
+      tries += 1;
+      if (isSeen(key)) {
+        clearInterval(timer);
+        return;
+      }
+      const ready = steps.some((step) => !step.target || findTarget(step.target));
+      if (ready && !document.querySelector('[role="dialog"], .modal-overlay')) {
+        clearInterval(timer);
+        start({ auto: true });
+      } else if (tries >= 20) {
+        clearInterval(timer);
+      }
+    }, 200);
+    return () => clearInterval(timer);
+  }, [key, steps, start]);
+
+  // Keep the panel mounted for the length of its exit transition. Set while rendering (the
+  // "previous value" pattern), so there is no extra frame with the panel in the wrong state.
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    setLeaving(!isOpen);
+  }
+  useEffect(() => {
+    if (!leaving) return undefined;
+    const timer = setTimeout(() => setLeaving(false), LEAVE_MS);
+    return () => clearTimeout(timer);
+  }, [leaving]);
+
+  // Closing from inside the panel puts focus back on the header button. Closing from the button itself,
+  // or from an automatic opening the student never touched, leaves focus where it is.
   const close = useCallback(() => {
-    setOpen(false);
-    buttonRef.current?.focus({ preventScroll: true });
+    const insidePanel = panelRef.current?.contains(document.activeElement);
+    setIsOpen(false);
+    if (insidePanel) visibleTrigger()?.focus({ preventScroll: true });
+  }, [setIsOpen]);
+
+  const go = useCallback((delta) => {
+    focusHeading.current = true;
+    setIndex((i) => i + delta);
   }, []);
 
-  const start = () => {
-    const available = steps.filter((step) => !step.target || findTarget(step.target));
-    if (!available.length) return;
-    setVisibleSteps(available);
-    setIndex(0);
-    setOpen(true);
-    if (!seen) {
-      setSeen(true);
-      try {
-        localStorage.setItem(key, "1");
-      } catch {
-        // Private mode or blocked storage: the dot comes back next time, nothing else breaks.
-      }
-    }
-  };
-
-  const step = open ? visibleSteps[index] : null;
+  const step = isOpen ? visibleSteps[index] : null;
   const isLast = index === visibleSteps.length - 1;
+  const showPanel = isOpen ? !!step : leaving && !!visibleSteps[index];
+  const shown = step || visibleSteps[index];
 
   // Outline the current step's section and bring it into view. Looked up again on every step,
   // so a section that went away while the guide was open just isn't outlined.
   useEffect(() => {
     if (!step) return undefined;
-    headingRef.current?.focus({ preventScroll: true });
+    if (focusHeading.current) headingRef.current?.focus({ preventScroll: true });
     const el = findTarget(step.target);
     if (!el) return undefined;
     el.classList.add(HIGHLIGHT);
@@ -93,7 +159,7 @@ export default function PageTour({ page, title, steps }) {
   }, [step]);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!isOpen) return undefined;
     const onKey = (e) => {
       // A dialog opened on top of the guide handles its own keys.
       if (document.querySelector(".modal-overlay")) return;
@@ -103,64 +169,54 @@ export default function PageTour({ page, title, steps }) {
       }
       // Arrows only while the guide has focus, so they never fight the page's own controls.
       if (!panelRef.current?.contains(e.target)) return;
-      if (e.key === "ArrowRight" && !isLast) setIndex((i) => i + 1);
-      if (e.key === "ArrowLeft" && index > 0) setIndex((i) => i - 1);
+      if (e.key === "ArrowRight" && !isLast) go(1);
+      if (e.key === "ArrowLeft" && index > 0) go(-1);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, close, isLast, index]);
+  }, [isOpen, close, go, isLast, index]);
+
+  if (!showPanel) return null;
 
   return (
-    <>
-      <button
-        ref={buttonRef}
-        type="button"
-        className={`tour-button${open ? " is-open" : ""}`}
-        onClick={open ? close : start}
-        aria-expanded={open}
-        aria-label={open ? "Close the guide" : `Guide: how the ${title} page works`}
-        title={open ? "Close the guide" : "How this page works"}
-      >
-        {open ? <X size={20} aria-hidden="true" /> : <CircleHelp size={20} aria-hidden="true" />}
-        <span className="tour-button-label">Guide</span>
-        {!seen && <span className="tour-button-dot" aria-hidden="true" />}
-      </button>
-
-      {step && (
-        <section ref={panelRef} className="tour-panel" role="dialog" aria-modal="false" aria-labelledby="tour-step-title">
-          <div className="tour-panel-top">
-            <span className="tour-kicker">
-              {title} guide · {index + 1} of {visibleSteps.length}
-            </span>
-            <button type="button" className="tour-close" onClick={close} aria-label="Close the guide">
-              <X size={18} aria-hidden="true" />
+    <section
+      ref={panelRef}
+      className={`tour-panel${isOpen ? "" : " is-leaving"}`}
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby="tour-step-title"
+    >
+      <div className="tour-panel-top">
+        <span className="tour-kicker">
+          {title} guide · {index + 1} of {visibleSteps.length}
+        </span>
+        <button type="button" className="icon-action" onClick={close} aria-label="Close the guide">
+          <X size={20} aria-hidden="true" />
+        </button>
+      </div>
+      <h2 id="tour-step-title" ref={headingRef} tabIndex={-1}>{shown.title}</h2>
+      <p>{shown.text}</p>
+      <div className="tour-panel-foot">
+        <div className="tour-dots" aria-hidden="true">
+          {visibleSteps.map((s, i) => (
+            <span key={s.title} className={i === index ? "is-current" : i < index ? "is-done" : ""} />
+          ))}
+        </div>
+        <div className="tour-nav">
+          {index > 0 && (
+            <button type="button" className="secondary-button small" onClick={() => go(-1)}>
+              <ArrowLeft size={16} aria-hidden="true" /> Back
             </button>
-          </div>
-          <h2 id="tour-step-title" ref={headingRef} tabIndex={-1}>{step.title}</h2>
-          <p>{step.text}</p>
-          <div className="tour-panel-foot">
-            <div className="tour-dots" aria-hidden="true">
-              {visibleSteps.map((s, i) => (
-                <span key={s.title} className={i === index ? "is-current" : i < index ? "is-done" : ""} />
-              ))}
-            </div>
-            <div className="tour-nav">
-              {index > 0 && (
-                <button type="button" className="secondary-button small" onClick={() => setIndex((i) => i - 1)}>
-                  <ArrowLeft size={16} aria-hidden="true" /> Back
-                </button>
-              )}
-              {isLast ? (
-                <button type="button" className="primary-button small" onClick={close}>Done</button>
-              ) : (
-                <button type="button" className="primary-button small" onClick={() => setIndex((i) => i + 1)}>
-                  Next <ArrowRight size={16} aria-hidden="true" />
-                </button>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
-    </>
+          )}
+          {isLast ? (
+            <button type="button" className="primary-button small" onClick={close}>Done</button>
+          ) : (
+            <button type="button" className="primary-button small" onClick={() => go(1)}>
+              Next <ArrowRight size={16} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

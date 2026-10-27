@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Bell, CalendarDays, BookOpenCheck, House, Users, LogOut } from 'lucide-react';
+import { Bell, CalendarDays, BookOpenCheck, CircleHelp, House, Users, LogOut } from 'lucide-react';
 import { useAuth } from '../../pages/authentication/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { useGuide } from '../../context/guideState';
 import UserAvatar from '../UserAvatar';
 import Logo from '../../assets/logo.png';
 
@@ -35,14 +36,15 @@ export default function Header() {
   const { user, logout, isLoggedin } = useAuth();
   const { unreadCount } = useNotifications();
   const { pathname } = useLocation();
+  const { tour, isOpen: guideOpen, toggle: toggleGuide } = useGuide();
 
   // A simple top bar with just the logo on the login/register pages
   if (!isLoggedin) {
     return (
       <header className="header-auth">
         <Link to="/" className="logo-link">
-          <img src={Logo} alt="StressCare Logo" className="logo-svg" />
-          <div>Stress<span>Care</span></div>
+          <img src={Logo} alt="" className="logo-svg" />
+          <div className="logo-text">Stress<span>Care</span></div>
         </Link>
       </header>
     );
@@ -77,19 +79,31 @@ export default function Header() {
                   className={`sidepanel-link ${active ? 'active' : ''}`}
                   aria-current={active ? 'page' : undefined}
                 >
-                  <Icon size={19} aria-hidden="true" /> <span>{label}</span>
+                  <Icon size={20} aria-hidden="true" /> <span>{label}</span>
                 </Link>
               );
             })}
           </div>
 
           <div className="sidepanel-footer">
+            {tour && (
+              <button
+                type="button"
+                className={`sidepanel-link sidepanel-guide ${guideOpen ? 'is-open' : ''}`}
+                onClick={toggleGuide}
+                aria-expanded={guideOpen}
+                aria-label={`Guide, how the ${tour.title} page works`}
+                data-guide-trigger
+              >
+                <CircleHelp size={20} aria-hidden="true" /> <span>Guide</span>
+              </button>
+            )}
             <Link
               to="/notifications"
               className={`sidepanel-link ${onNotifications ? 'active' : ''}`}
               aria-current={onNotifications ? 'page' : undefined}
             >
-              <Bell size={19} aria-hidden="true" /> <span>Notifications</span>
+              <Bell size={20} aria-hidden="true" /> <span>Notifications</span>
               {unreadCount > 0 && (
                 <span className="nav-badge" aria-label={`${unreadCount} unread`}>{unreadCount > 99 ? '99+' : unreadCount}</span>
               )}
@@ -116,6 +130,18 @@ export default function Header() {
           <div className="logo-text">Stress<span>Care</span></div>
         </Link>
         <div className="topbar-actions">
+          {tour && (
+            <button
+              type="button"
+              className={`icon-action ${guideOpen ? 'is-active' : ''}`}
+              onClick={toggleGuide}
+              aria-expanded={guideOpen}
+              aria-label={`Guide, how the ${tour.title} page works`}
+              data-guide-trigger
+            >
+              <CircleHelp size={20} aria-hidden="true" />
+            </button>
+          )}
           <BellLink unreadCount={unreadCount} active={onNotifications} />
           <Link
             to={profileTarget}

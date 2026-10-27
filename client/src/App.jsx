@@ -1,22 +1,37 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
-import About from './pages/About';
 import NotFound from './pages/NotFound';
-import Groups from './pages/Groups';
-import Schedule from './pages/Schedule';
-import Notifications from './pages/Notifications';
-import Wellbeing from './pages/Wellbeing';
-import Reviewers from './pages/Reviewers';
 import AuthPage from './pages/authentication/AuthPage';
-import LegalPage from './pages/legal/LegalPage';
+import AppShell from './components/layout/AppShell';
+import PageSkeleton from './components/layout/PageSkeleton';
 import TermsGate from './components/TermsGate';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { GuideProvider } from './context/GuideContext';
 import { ToastContainer, Slide } from 'react-toastify';
 import './App.css';
 import { useAuth } from './pages/authentication/AuthContext';
+
+// Every page except sign-in and the 404 loads on demand, so the first visit downloads only what it shows.
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Profile = lazy(() => import('./pages/Profile'));
+const About = lazy(() => import('./pages/About'));
+const Groups = lazy(() => import('./pages/Groups'));
+const Schedule = lazy(() => import('./pages/Schedule'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const Wellbeing = lazy(() => import('./pages/Wellbeing'));
+const Reviewers = lazy(() => import('./pages/Reviewers'));
+const LegalPage = lazy(() => import('./pages/legal/LegalPage'));
+
+// While a page's code loads: the real shell with a skeleton in it, so nothing jumps when the page arrives.
+function RouteFallback() {
+  const { isLoggedin } = useAuth();
+  return (
+    <AppShell variant={isLoggedin ? 'app' : 'public'}>
+      <PageSkeleton />
+    </AppShell>
+  );
+}
 
 // Settings now lives in Me. Old bookmarks go to the appearance section of the own profile.
 function SettingsRedirect() {
@@ -55,7 +70,9 @@ const AppContent = () => {
     ) : (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <NotificationProvider key={userData?._id || 'guest'}>
+      <GuideProvider>
       <TermsGate />
+      <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
@@ -75,6 +92,8 @@ const AppContent = () => {
         <Route path="/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      </Suspense>
+      </GuideProvider>
       </NotificationProvider>
     </Router>
     )}

@@ -6,11 +6,9 @@ import {
   Plus, Link2, ArrowLeft, Share2, Trash2, LogOut, CalendarDays, Star, Download, X, ChevronDown, MoreHorizontal,
   Copy, Palette, Pencil, Lock, Users, Globe2, ClipboardList, BookOpen, PenTool, Sparkles, PartyPopper, Eye,
 } from "lucide-react";
-import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
+import AppShell, { ShellOverlays } from "../components/layout/AppShell";
 import PageHeader from "../components/PageHeader";
 import ConfirmDialog from "../components/ConfirmDialog";
-import PageTour from "../components/PageTour";
 import TaskImportDialog from "../components/TaskImportDialog";
 import WeekView from "../components/schedule/WeekView";
 import HolidayCalendar from "../components/schedule/HolidayCalendar";
@@ -656,9 +654,7 @@ export default function Schedule() {
 
   if (openId) {
     return (
-      <div className="app app-layout">
-        <Header />
-        <main className="dashboard">
+      <AppShell tour={{ page: "schedule", title: "Schedule", steps: SCHEDULE_TOUR }}>
           <button type="button" className="sched-back" onClick={() => setSearchParams({ view: "all" })}>
             <ArrowLeft size={16} aria-hidden="true" /> All schedules
           </button>
@@ -847,10 +843,7 @@ export default function Schedule() {
               )}
             </div>
           )}
-        </main>
-        <Footer />
-        <PageTour page="schedule" title="Schedule" steps={SCHEDULE_TOUR} />
-
+        <ShellOverlays>
         <div className="sched-layer" data-sched-theme={schedule?.theme || "classic"}>
           {entryModal && (
             <EntryModal
@@ -901,14 +894,13 @@ export default function Schedule() {
           )}
           {dialogs}
         </div>
-      </div>
+        </ShellOverlays>
+      </AppShell>
     );
   }
 
   return (
-    <div className="app app-layout">
-      <Header />
-      <main className="dashboard">
+    <AppShell tour={{ page: "schedule", title: "Schedule", steps: SCHEDULE_TOUR }}>
         <div data-tour="sched-intro">
           <PageHeader
             kicker="Plan your week"
@@ -1029,10 +1021,7 @@ export default function Schedule() {
             )}
           </>
         )}
-      </main>
-      <Footer />
-      <PageTour page="schedule" title="Schedule" steps={SCHEDULE_TOUR} />
-
+      <ShellOverlays>
       <div className="sched-layer" data-sched-theme={mainSchedule?.theme || "classic"}>
         {dialogs}
 
@@ -1097,6 +1086,7 @@ export default function Schedule() {
           </Modal>
         )}
       </div>
-    </div>
+      </ShellOverlays>
+    </AppShell>
   );
 }

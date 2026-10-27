@@ -1,13 +1,12 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { AlertTriangle, Eye, Lightbulb, Sparkles } from "lucide-react";
-import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
+import AppShell from "../components/layout/AppShell";
+import PageSkeleton from "../components/layout/PageSkeleton";
 import PageHeader from "../components/PageHeader";
 import WorkloadChart from "../components/WorkloadChart";
 import SuggestionsPanel from "../components/SuggestionsPanel";
 import CheckInCards from "../components/CheckInCards";
-import PageTour from "../components/PageTour";
 import useWorkload from "../utils/useWorkload";
 import { BAND_MESSAGE, bandLabel } from "../utils/weekReasons";
 import { sleepPlan, firstStartOf } from "../utils/sleepPlan";
@@ -35,7 +34,7 @@ export default function Wellbeing() {
   }, [hash, work.loading]);
 
   if (work.loading || !work.userData) {
-    return <div className="app app-layout"><Header /><main className="dashboard"><div className="panel" style={{ textAlign: "center" }}><p>Loading...</p></div></main><Footer /></div>;
+    return <AppShell><PageSkeleton label="Loading Wellbeing" /></AppShell>;
   }
 
   const { insights, week, hasSchedule, profile } = work;
@@ -48,9 +47,7 @@ export default function Wellbeing() {
   }) : null;
 
   return (
-    <div className="app app-layout">
-      <Header />
-      <main className="dashboard">
+    <AppShell tour={{ page: "wellbeing", title: "Wellbeing", steps: WELLBEING_TOUR }}>
         <PageHeader
           back={{ to: "/dashboard", label: "Today" }}
           title={insights.isNewUser ? "How you're doing" : bandLabel(insights.band)}
@@ -143,9 +140,6 @@ export default function Wellbeing() {
             </p>
           </details>
         </section>
-      </main>
-      <Footer variant="app" />
-      <PageTour page="wellbeing" title="Wellbeing" steps={WELLBEING_TOUR} />
-    </div>
+    </AppShell>
   );
 }
