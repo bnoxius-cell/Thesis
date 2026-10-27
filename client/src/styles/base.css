@@ -131,7 +131,9 @@
 
   /* ---- People who ask for less motion get none ---- */
   @media (prefers-reduced-motion: reduce) {
-    *,
+    /* Not the toast's progress bar: react-toastify closes a toast when that animation ends, so
+       squashing it to 0.01ms dismissed every toast the moment it appeared. */
+    *:not(.Toastify__progress-bar),
     *::before,
     *::after {
       animation-duration: 0.01ms !important;

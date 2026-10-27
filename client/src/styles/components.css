@@ -314,6 +314,39 @@
     }
   }
 
+  /* A toast with one action (Undo after ticking a task off) */
+  .toast-with-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .toast-action {
+    flex: none;
+    min-height: 44px;
+    margin: -8px calc(var(--space-2) * -1) -8px 0;
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .toast-action:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* With reduced motion the toast still times out on its progress bar, which just isn't drawn. */
+  @media (prefers-reduced-motion: reduce) {
+    .Toastify__progress-bar {
+      opacity: 0;
+    }
+  }
+
   /* ---- Toasts: react-toastify styled through its own variables ----
      toastify injects unlayered CSS, which beats any layered :root rule, so the
      variables are set on its wrapper element instead (closer than :root, so they win). */
@@ -954,5 +987,481 @@
       width: 100%;
       justify-content: flex-end;
     }
+  }
+
+  /* ==========================================================================
+     TASKS (FE-4): quick add, the round done box, task rows, the task dialog
+     ========================================================================== */
+
+  /* ---- Quick add: a title, when it's due, how big. One card, two short rows. ---- */
+  .quick-add {
+    padding: var(--space-4);
+  }
+  @media (min-width: 721px) {
+    .quick-add {
+      padding: var(--space-4) var(--space-5);
+    }
+  }
+  .quick-add-top {
+    display: flex;
+    gap: var(--space-2);
+  }
+  .quick-add-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+  }
+  .quick-add-submit {
+    flex: none;
+    min-height: 44px;
+  }
+  .quick-add-error {
+    margin: var(--space-2) 0 0;
+  }
+  .quick-add-opts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-5);
+    margin-top: var(--space-3);
+  }
+  .quick-add-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+  .quick-add-label {
+    display: none;
+    font-size: var(--text-xs);
+    line-height: var(--text-xs-lh);
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+  @media (min-width: 721px) {
+    .quick-add-label {
+      display: inline;
+    }
+  }
+  .quick-add-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .quick-add-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 36px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color var(--dur-1) ease, border-color var(--dur-1) ease, color var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .quick-add-chip:hover:not(.is-selected) {
+      background: var(--surface-2);
+      color: var(--text-primary);
+    }
+  }
+  .quick-add-chip:active {
+    transform: scale(0.98);
+  }
+  .quick-add-chip.is-selected {
+    border-color: var(--accent-soft);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .quick-add-chip:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  @media (max-width: 720px), (pointer: coarse) {
+    .quick-add-chip {
+      min-height: 44px;
+    }
+  }
+  /* On a phone the date chip is just the calendar icon until a date is picked, so the four chips
+     share one line. */
+  @media (max-width: 720px) {
+    .quick-add-chips {
+      gap: 6px;
+    }
+    .quick-add-chip {
+      padding: 0 calc(var(--space-2) + 2px);
+    }
+    .quick-add-chip.is-pick:not(.has-date) {
+      padding: 0 calc(var(--space-2) + 2px);
+    }
+    .quick-add-chip.is-pick:not(.has-date) .quick-add-chip-text {
+      display: none;
+    }
+  }
+  .quick-add-pick {
+    position: relative;
+    display: inline-flex;
+  }
+  .quick-add-date {
+    width: auto;
+    flex: 0 1 11rem;
+    margin-left: var(--space-2);
+  }
+  /* Carries the value for the chip and anchors the native picker to it. Not a tab stop, not seen. */
+  .quick-add-date-hidden {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    min-height: 0;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .quick-add-size {
+    flex-wrap: nowrap;
+  }
+  .quick-add-size .segmented-option {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+  .quick-add-hours {
+    color: var(--text-muted);
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+  @media (max-width: 380px) {
+    .quick-add-size .segmented-option {
+      padding: 0 var(--space-3);
+    }
+  }
+  @media (min-width: 721px) {
+    .quick-add-more {
+      margin-left: auto;
+    }
+  }
+  /* Inside a card (the Tasks tab) it has no frame of its own: a divider, not a card in a card. */
+  .quick-add.is-flat {
+    padding: 0 0 var(--space-4);
+    margin-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ---- A new row eases in (opacity and a few pixels, nothing else) ---- */
+  @keyframes row-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  .is-entering {
+    animation: row-in var(--dur-2) var(--ease-out);
+  }
+
+  /* ---- The round done box ---- */
+  .task-check {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin: 0 calc(var(--space-1) * -1) 0 calc(var(--space-2) * -1 - 2px);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: transparent;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .task-check svg {
+    box-sizing: content-box;
+    padding: 3px;
+    border: 2px solid var(--border-input);
+    border-radius: 50%;
+    transition: background-color var(--dur-1) ease, border-color var(--dur-1) ease, color var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .task-check:hover:not(.is-checked) svg {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  }
+  .task-check:active svg {
+    transform: scale(0.9);
+  }
+  .task-check.is-checked svg {
+    background: var(--good);
+    border-color: var(--good);
+    color: var(--surface);
+  }
+  .task-check.is-settling svg {
+    animation: check-pop var(--dur-2) var(--ease-out);
+  }
+  @keyframes check-pop {
+    from {
+      transform: scale(0.85);
+    }
+  }
+  .task-check:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -4px;
+    border-radius: 50%;
+  }
+  /* The row of a task being ticked off quietens while the tick lands, before it leaves the list. */
+  .task-row,
+  .task-item {
+    transition: opacity var(--dur-3) var(--ease-out);
+  }
+  .task-row:has(.task-check.is-settling),
+  .task-item:has(.task-check.is-settling) {
+    opacity: 0.5;
+  }
+  .task-row:has(.task-check.is-checked) strong,
+  .task-item:has(.task-check.is-checked) strong {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+
+  /* ---- Task rows in Schedule > Tasks: dividers, no boxes inside the card ---- */
+  .task-rows {
+    list-style: none;
+    margin: var(--space-3) 0 0;
+    padding: 0;
+  }
+  .task-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 56px;
+    padding: var(--space-1) 0;
+    border-top: 1px solid var(--border);
+  }
+  .task-row:first-child {
+    border-top-color: transparent;
+  }
+  .task-row-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-self: stretch;
+    justify-content: center;
+    padding: var(--space-1) 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .task-row-body strong {
+    font-size: var(--text-md);
+    font-weight: 500;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .task-row-body span {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+  }
+  .task-row-body span.is-empty {
+    color: var(--text-muted);
+  }
+  .task-row-body:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .task-row-body:hover strong {
+      color: var(--accent);
+    }
+  }
+  .task-row .sched-menu {
+    flex: 0 0 auto;
+  }
+  .task-more {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .task-more:hover {
+      background: var(--surface-2);
+      color: var(--text-primary);
+    }
+  }
+
+  /* ---- The task dialog (add, edit, and "More details" from quick add) ---- */
+  .task-modal .modal-header {
+    align-items: flex-start;
+  }
+  .task-modal .modal-header h2 {
+    margin-top: 2px;
+  }
+  .task-title-input {
+    font-size: var(--text-lg);
+    font-weight: 600;
+  }
+  .task-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+  .task-chips button {
+    min-height: 36px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--s-line, var(--border-input));
+    border-radius: var(--radius-pill);
+    background: var(--s-card, var(--surface));
+    color: var(--s-ink, var(--text-primary));
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color var(--dur-1) ease, border-color var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+  }
+  .task-chips button:active {
+    transform: scale(0.98);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .task-chips button:hover {
+      border-color: var(--s-accent, var(--accent));
+    }
+  }
+  .task-chips button.is-on {
+    border-color: var(--s-accent, var(--accent));
+    background: color-mix(in srgb, var(--s-accent, var(--accent)) 18%, var(--s-card, var(--surface)));
+  }
+  .task-chips button:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  @media (max-width: 720px), (pointer: coarse) {
+    .task-chips button {
+      min-height: 44px;
+    }
+  }
+  .task-due-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-3);
+  }
+  .task-due-row input {
+    flex: 0 0 auto;
+    width: auto;
+  }
+  .task-due-row .task-chips {
+    margin-top: 0;
+  }
+  .task-stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    align-self: flex-start;
+  }
+  .task-stepper-value {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+    width: auto;
+    margin: 0;
+    font-weight: 600;
+    color: var(--s-muted, var(--text-secondary));
+  }
+  .task-stepper-value input {
+    width: 78px;
+    text-align: center;
+    font-weight: 700;
+  }
+  @media (max-width: 720px) {
+    .task-stepper-value input {
+      width: 64px;
+    }
+  }
+  .task-scale-word {
+    margin-left: var(--space-2);
+    font-style: normal;
+    font-weight: 700;
+    color: var(--s-accent-text, var(--accent));
+  }
+  .task-scale {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+  .task-scale button {
+    min-height: 44px;
+    border: 1px solid var(--s-line, var(--border-input));
+    border-radius: var(--radius-md);
+    background: var(--s-card, var(--surface));
+    color: var(--s-muted, var(--text-secondary));
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .task-scale button.is-on {
+    border-color: color-mix(in srgb, var(--s-accent, var(--accent)) 60%, transparent);
+    background: color-mix(in srgb, var(--s-accent, var(--accent)) 22%, var(--s-card, var(--surface)));
+    color: var(--s-ink, var(--text-primary));
+  }
+  .task-scale button[aria-checked="true"] {
+    box-shadow: 0 0 0 2px var(--s-accent, var(--accent));
+  }
+  .task-scale button:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .task-code {
+    padding-top: var(--space-4);
+    border-top: 1px dashed var(--s-line, var(--border));
+  }
+  .task-code label {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .task-code-row {
+    display: flex;
+    gap: var(--space-3);
+  }
+  .task-code-row input {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: 200px;
+    letter-spacing: 0.2em;
+    font-weight: 700;
   }
 }

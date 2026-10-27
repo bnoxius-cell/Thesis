@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 import AppShell, { ShellOverlays } from "../components/layout/AppShell";
 import PageSkeleton from "../components/layout/PageSkeleton";
 import WorkloadChart from "../components/WorkloadChart";
 import PSSSurveyModal from "../components/PSSSurveyModal";
 import WHOSurveyModal from "../components/WHOSurveyModal";
 import CheckInBanner from "../components/CheckInBanner";
+import ConfirmDialog from "../components/ConfirmDialog";
+import QuickAddTask from "../components/QuickAddTask";
+import TaskModal from "../components/schedule/TaskModal";
 import EmptyState from "../components/EmptyState";
 import SetupChecklist, { setupState } from "../components/today/SetupChecklist";
 import NextStepCard from "../components/today/NextStepCard";
@@ -16,10 +20,13 @@ import WeekProgress from "../components/today/WeekProgress";
 import TodayLayout from "../components/today/TodayLayout";
 import { TODAY_MAX_ROWS } from "../components/today/TodayCard";
 import { DASHBOARD_TOUR } from "../utils/tours";
-import { Plus, Sprout } from "lucide-react";
+import { Sprout } from "lucide-react";
 import useWorkload from "../utils/useWorkload";
+import { useAuth } from "./authentication/AuthContext";
 import { finishedThisWeek } from "../utils/doneThisWeek";
 import { toWeekReading } from "../utils/weekReading";
+import { saveTaskRequest } from "../utils/taskApi";
+import { showDoneToast } from "../utils/taskDone";
 import "../styles/pages/today.css";
 
 // "Tuesday, Sep 29. 2 classes left today and 2 tasks due soon."
@@ -46,9 +53,13 @@ const COMING_UP_DAYS = 7;
 
 const Dashboard = () => {
   const work = useWorkload();
+  const { backendUrl } = useAuth();
   const [showPSSModal, setShowPSSModal] = useState(false);
   const [showWHOModal, setShowWHOModal] = useState(false);
   const [setupHidden, setSetupHidden] = useState(null);
+  const [taskModal, setTaskModal] = useState(null); // { task?, draft? }
+  const [deleting, setDeleting] = useState(null);
+  const [addedOne, setAddedOne] = useState(false); // the layout can swap after a first task; keep the cursor in quick add
 
   if (!work.isLoggedin) return <AppShell variant="public"><p>Please log in to view your dashboard.</p></AppShell>;
   if (work.loading || !work.userData) return <AppShell><PageSkeleton label="Loading your day" /></AppShell>;
@@ -74,8 +85,49 @@ const Dashboard = () => {
     setSetupHidden(true);
   };
 
+  // ---- Tasks: quick add, tick off, edit ----
+  const addTask = (task) => { setAddedOne(true); work.setTasks((list) => [...list, task]); };
+  const completeTask = async (task, done) => {
+    const ok = await work.updateTask(task._id, { isCompleted: done });
+    if (ok) showDoneToast(done, () => work.updateTask(task._id, { isCompleted: false }));
+    return ok;
+  };
+  const saveTask = async (payload) => {
+    const editing = taskModal?.task;
+    const { task, error } = await saveTaskRequest(backendUrl, payload, editing?._id);
+    if (error) return error;
+    work.setTasks((list) => (editing ? list.map((t) => (t._id === editing._id ? task : t)) : [...list, task]));
+    setTaskModal(null);
+    toast.success(editing ? "Task saved." : "Added.");
+    return undefined;
+  };
+  const toggleModalTaskDone = async () => {
+    const task = taskModal?.task;
+    if (!task) return;
+    const ok = await work.updateTask(task._id, { isCompleted: !task.isCompleted });
+    if (!ok) return;
+    setTaskModal(null);
+    showDoneToast(!task.isCompleted, () => work.updateTask(task._id, { isCompleted: task.isCompleted }));
+  };
+  const confirmDelete = async () => {
+    const task = deleting;
+    setDeleting(null);
+    if (await work.deleteTask(task._id)) {
+      setTaskModal(null);
+      toast.success("Task deleted.");
+    }
+  };
+  const courses = [...new Set([
+    ...work.tasks.map((t) => t.course),
+    ...work.week.flatMap((d) => d.entries.filter((e) => e.kind === "class").map((e) => e.title)),
+  ].filter(Boolean))];
+
   const todayEntryCount = focus.happeningNow.length + focus.laterToday.length;
   const reading = toWeekReading({ insights, plannedTasks: work.plannedTasks, now });
+
+  const quickAdd = (
+    <QuickAddTask tour="dash-quick" focusOnMount={addedOne} onAdded={addTask} onMoreDetails={(draft) => setTaskModal({ draft })} />
+  );
 
   const checkIn = (
     <CheckInBanner
@@ -99,21 +151,18 @@ const Dashboard = () => {
             <h1>{GREETING[focus.phase]}{firstName ? `, ${firstName}` : ""}.</h1>
             <p>{insights.isNewUser ? "Here's your space. Let's get it set up." : summarizeDay(today, focus)}</p>
           </div>
-          {!insights.isNewUser && (
-            <Link to="/schedule?task=new" className="primary-button"><Plus size={16} aria-hidden="true" />Add task</Link>
-          )}
         </section>
 
         {insights.isNewUser ? (
           <div className="today-stack">
+            {quickAdd}
             {showSetup ? (
               <SetupChecklist work={work} setup={setup} onStartCheckIn={() => setShowPSSModal(true)} onHide={hideSetupCard} />
             ) : (
               <section className="panel">
                 <EmptyState icon={Sprout} title="Nothing here yet">
-                  Add a task or your classes and your week starts to take shape.
+                  Add a task above, or your classes, and your week starts to take shape.
                   <span className="empty-state-actions">
-                    <Link to="/schedule?task=new" className="primary-button">Add a task</Link>
                     <Link to="/schedule" className="secondary-button">Open schedule</Link>
                   </span>
                 </EmptyState>
@@ -130,8 +179,14 @@ const Dashboard = () => {
               hasNotice: work.pssDue || work.whoDue,
             }}
             week={<WeekCard reading={reading} />}
-            today={<TodayCard focus={focus} today={today} tasks={todayTasks} now={now} nextExam={nextExam} hasSchedule={hasSchedule} />}
-            coming={<ComingUp tasks={comingTasks} now={now} />}
+            quick={quickAdd}
+            today={(
+              <TodayCard
+                focus={focus} today={today} tasks={todayTasks} now={now} nextExam={nextExam} hasSchedule={hasSchedule}
+                onComplete={completeTask} onEdit={(task) => setTaskModal({ task })}
+              />
+            )}
+            coming={<ComingUp tasks={comingTasks} now={now} onComplete={completeTask} onEdit={(task) => setTaskModal({ task })} />}
             next={showSetup ? (
               <SetupChecklist work={work} setup={setup} onStartCheckIn={() => setShowPSSModal(true)} onHide={hideSetupCard} />
             ) : (
@@ -155,6 +210,27 @@ const Dashboard = () => {
           />
         )}
       <ShellOverlays>
+        {taskModal && (
+          <TaskModal
+            task={taskModal.task}
+            draft={taskModal.draft}
+            courses={courses}
+            onSave={saveTask}
+            onDelete={taskModal.task ? () => setDeleting(taskModal.task) : undefined}
+            onToggleDone={taskModal.task ? toggleModalTaskDone : undefined}
+            onClose={() => setTaskModal(null)}
+          />
+        )}
+        <ConfirmDialog
+          open={Boolean(deleting)}
+          title="Delete this task?"
+          confirmLabel="Delete task"
+          tone="danger"
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleting(null)}
+        >
+          {deleting ? `"${deleting.title}" will be removed from your plan.` : ""}
+        </ConfirmDialog>
         {/* Mounted only while open, so each one starts from a clean slate. */}
         {showPSSModal && (
           <PSSSurveyModal

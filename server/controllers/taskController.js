@@ -28,8 +28,8 @@ const getTaskPayload = (body) => {
     const difficulty = Number(body.difficulty ?? 3);
     const importance = Number(body.importance ?? 3);
 
-    if (!title || !course || !body.dueDate) {
-        return { error: 'Title, course, and due date are required.' };
+    if (!title || !body.dueDate) {
+        return { error: 'Title and due date are required.' };
     }
 
     if (!Number.isFinite(dueDate?.getTime())) {
@@ -104,12 +104,17 @@ const getTaskUpdatePayload = (body) => {
     const fields = {};
     const fail = (error) => ({ error });
 
-    for (const key of ['title', 'course']) {
-        if (body[key] === undefined) continue;
-        const value = text(body[key]);
-        if (!value) return fail(`The ${key} can't be empty.`);
-        if (value.length > TASK_LIMITS[key]) return fail(`The ${key} can be up to ${TASK_LIMITS[key]} characters.`);
-        fields[key] = value;
+    if (body.title !== undefined) {
+        const value = text(body.title);
+        if (!value) return fail("The title can't be empty.");
+        if (value.length > TASK_LIMITS.title) return fail(`The title can be up to ${TASK_LIMITS.title} characters.`);
+        fields.title = value;
+    }
+    // The course is optional: an empty string clears it ("No course").
+    if (body.course !== undefined) {
+        const value = text(body.course);
+        if (value.length > TASK_LIMITS.course) return fail(`The course can be up to ${TASK_LIMITS.course} characters.`);
+        fields.course = value;
     }
     if (body.description !== undefined) {
         const value = text(body.description);

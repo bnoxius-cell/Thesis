@@ -52,7 +52,7 @@ function TaskChip({ task, overdue, onOpen }) {
       <ClipboardCheck size={15} aria-hidden="true" />
       <span>
         <strong>{task.title}</strong>
-        <small>{task.course} · {task.hours}h{overdue ? " · overdue" : ""}</small>
+        <small>{task.course ? `${task.course} · ` : ""}{task.hours}h{overdue ? " · overdue" : ""}</small>
       </span>
     </button>
   );

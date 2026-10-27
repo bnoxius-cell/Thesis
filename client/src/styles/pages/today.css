@@ -202,6 +202,43 @@
     gap: var(--space-1);
   }
 
+  /* A task row: round done box, the title (tap to edit), a due chip. Never wraps, so the chip stays put. */
+  .row-item.task-item {
+    flex-wrap: nowrap;
+    gap: var(--space-3);
+  }
+  .task-item .row-main {
+    flex: 1 1 0;
+  }
+  .task-item .row-edit {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .task-item .row-edit:hover strong {
+      color: var(--accent);
+    }
+  }
+  .task-item .row-edit:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .task-item .row-meta.is-empty {
+    color: var(--text-muted);
+  }
+
   .today-note {
     display: flex;
     align-items: flex-start;

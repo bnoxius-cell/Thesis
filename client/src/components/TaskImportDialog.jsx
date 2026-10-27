@@ -70,7 +70,7 @@ export default function TaskImportDialog({ tag, onClose, onImported }) {
           <>
             <div className="task-import-card">
               <h3>{task.title}</h3>
-              <p className="task-import-line"><BookOpen size={15} aria-hidden="true" /> {task.course}</p>
+              {task.course && <p className="task-import-line"><BookOpen size={15} aria-hidden="true" /> {task.course}</p>}
               <p className="task-import-line"><CalendarClock size={15} aria-hidden="true" /> Due {formatDue(task.dueDate)}</p>
               <p className="task-import-line"><Gauge size={15} aria-hidden="true" /> {task.hours}h estimated · difficulty {task.difficulty}/5 · importance {task.importance}/5</p>
               {task.description && <p className="task-import-desc">{task.description}</p>}

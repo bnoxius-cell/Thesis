@@ -3,6 +3,8 @@ import { CalendarDays, CircleCheck, MapPin } from "lucide-react";
 import JoinLink from "../schedule/JoinLink";
 import { dueChip } from "../../utils/dueChip";
 import { formatTime, fromISODate } from "../../utils/scheduleUtils";
+import useEnteringIds from "../../utils/useEnteringIds";
+import TaskCheck from "../TaskCheck";
 
 export const TODAY_MAX_ROWS = 5;
 
@@ -48,24 +50,23 @@ function EntryRow({ entry, live }) {
   );
 }
 
-function TaskRow({ task, now }) {
+function TaskRow({ task, now, entering, onComplete, onEdit }) {
   const chip = dueChip(task.dueDate, now);
   return (
-    <li className="row-item">
-      <div className="row-main">
+    <li className={`row-item task-item${entering ? " is-entering" : ""}`}>
+      <TaskCheck task={task} onChange={onComplete} />
+      <button type="button" className="row-main row-edit" onClick={() => onEdit(task)} aria-label={`Edit ${task.title}`}>
         <strong>{task.title}</strong>
-        {task.course && <span className="row-meta">{task.course}</span>}
-      </div>
-      <div className="row-end">
-        <span className={`chip ${TONE_CLASS[chip.tone] || "is-neutral"}`}>{chip.label}</span>
-      </div>
+        <span className={`row-meta${task.course ? "" : " is-empty"}`}>{task.course || "No course"}</span>
+      </button>
+      <span className={`chip ${TONE_CLASS[chip.tone] || "is-neutral"}`}>{chip.label}</span>
     </li>
   );
 }
 
 // One merged list: classes happening now and later, then tasks due today or overdue. At most five
 // rows; tasks always keep a couple of seats so an overdue one is never pushed out by a full timetable.
-export default function TodayCard({ focus, today, tasks, now, nextExam, hasSchedule }) {
+export default function TodayCard({ focus, today, tasks, now, nextExam, hasSchedule, onComplete, onEdit }) {
   const live = focus.happeningNow;
   const later = focus.laterToday;
   const entries = [...live, ...later];
@@ -77,6 +78,7 @@ export default function TodayCard({ focus, today, tasks, now, nextExam, hasSched
   const hidden = entries.length - shownEntries.length + tasks.length - shownTasks.length;
   const hiddenIsTasks = entries.length === shownEntries.length;
   const hasRows = shownEntries.length + shownTasks.length > 0;
+  const entering = useEnteringIds(shownTasks.map((task) => task._id));
 
   return (
     <section className="panel today-card" data-tour="dash-today">
@@ -98,7 +100,9 @@ export default function TodayCard({ focus, today, tasks, now, nextExam, hasSched
           {shownEntries.map((entry, i) => (
             <EntryRow key={`${entry.title}-${entry.startTime}-${i}`} entry={entry} live={live.includes(entry)} />
           ))}
-          {shownTasks.map((task) => <TaskRow key={task._id} task={task} now={now} />)}
+          {shownTasks.map((task) => (
+            <TaskRow key={task._id} task={task} now={now} entering={entering.has(task._id)} onComplete={onComplete} onEdit={onEdit} />
+          ))}
         </ul>
       )}
 

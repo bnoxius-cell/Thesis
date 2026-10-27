@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Check, ClipboardList, Download, MoreHorizontal, Pencil, Share2, Trash2 } from "lucide-react";
+import { ClipboardList, Download, MoreHorizontal, Pencil, Share2, Trash2 } from "lucide-react";
 import ConfirmDialog from "../ConfirmDialog";
 import EmptyState from "../EmptyState";
 import Menu, { MenuItem } from "./Menu";
 import { dueChip } from "../../utils/dueChip";
+import useEnteringIds from "../../utils/useEnteringIds";
+import QuickAddTask from "../QuickAddTask";
+import TaskCheck from "../TaskCheck";
 
 function StudyPlan({ week, hasTasks }) {
   const [open, setOpen] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 721px)").matches);
@@ -44,7 +47,7 @@ function StudyPlan({ week, hasTasks }) {
 
 // The person's own tasks as compact rows: a round done box, title and course, a due chip, the
 // hours, and a menu. The study plan sits beside them on a laptop and folds away on a phone.
-export default function TasksTab({ tasks, week, now, onAdd, onUseCode, onEdit, onSetDone, onDelete }) {
+export default function TasksTab({ tasks, week, now, onAdded, onMoreDetails, onUseCode, onEdit, onSetDone, onDelete }) {
   const [filter, setFilter] = useState("open");
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState("");
@@ -58,6 +61,7 @@ export default function TasksTab({ tasks, week, now, onAdd, onUseCode, onEdit, o
     .filter((t) => t.isCompleted)
     .sort((a, b) => new Date(b.updatedAt || b.dueDate) - new Date(a.updatedAt || a.dueDate));
   const shown = filter === "open" ? open : done;
+  const entering = useEnteringIds(shown.map((t) => t._id));
 
   const submitCode = (event) => {
     event.preventDefault();
@@ -85,12 +89,12 @@ export default function TasksTab({ tasks, week, now, onAdd, onUseCode, onEdit, o
   return (
     <div className="tasks-tab" role="tabpanel" id="panel-tasks" aria-labelledby="tab-tasks">
       <section className="panel tasks-main" data-tour="sched-tasks">
+        <QuickAddTask flat tour="sched-quick" onAdded={onAdded} onMoreDetails={onMoreDetails} />
         <div className="tasks-toolbar">
           <div className="segmented" role="group" aria-label="Show">
             <button type="button" className={`segmented-option${filter === "open" ? " is-selected" : ""}`} aria-pressed={filter === "open"} onClick={() => setFilter("open")}>Open ({open.length})</button>
             <button type="button" className={`segmented-option${filter === "done" ? " is-selected" : ""}`} aria-pressed={filter === "done"} onClick={() => setFilter("done")}>Done ({done.length})</button>
           </div>
-          <button type="button" className="primary-button small" onClick={onAdd}>Add task</button>
         </div>
 
         <form className="task-import-form" onSubmit={submitCode}>
@@ -110,8 +114,8 @@ export default function TasksTab({ tasks, week, now, onAdd, onUseCode, onEdit, o
 
         {shown.length === 0 ? (
           filter === "open" ? (
-            <EmptyState icon={ClipboardList} title="No open tasks" action={<button type="button" className="secondary-button" onClick={onAdd}>Add a task</button>}>
-              Nothing to do right now. Add a task and your week will plan time for it.
+            <EmptyState icon={ClipboardList} title="No open tasks">
+              Nothing to do right now. Add one above and your week will plan time for it.
             </EmptyState>
           ) : (
             <p className="task-list-empty">Finished tasks show up here.</p>
@@ -121,19 +125,11 @@ export default function TasksTab({ tasks, week, now, onAdd, onUseCode, onEdit, o
             {shown.map((task) => {
               const chip = task.isCompleted ? null : dueChip(task.dueDate, now);
               return (
-                <li key={task._id} className={`task-row${task.isCompleted ? " is-done" : ""}`}>
-                  <button
-                    type="button"
-                    className={`task-check${task.isCompleted ? " is-checked" : ""}`}
-                    aria-label={task.isCompleted ? `Reopen ${task.title}` : `Mark ${task.title} as done`}
-                    aria-pressed={task.isCompleted}
-                    onClick={() => onSetDone(task, !task.isCompleted)}
-                  >
-                    <Check size={16} aria-hidden="true" />
-                  </button>
+                <li key={task._id} className={`task-row${task.isCompleted ? " is-done" : ""}${entering.has(task._id) ? " is-entering" : ""}`}>
+                  <TaskCheck task={task} onChange={onSetDone} />
                   <button type="button" className="task-row-body" onClick={() => onEdit(task)} aria-label={`Edit ${task.title}`}>
                     <strong>{task.title}</strong>
-                    <span>{task.course}{task.hours ? ` · ${task.hours}h` : ""}</span>
+                    <span className={task.course ? undefined : "is-empty"}>{[task.course || "No course", task.hours ? `${task.hours}h` : ""].filter(Boolean).join(" · ")}</span>
                   </button>
                   {chip && <span className={`chip is-${chip.tone}`}>{chip.label}</span>}
                   <Menu trigger={<MoreHorizontal size={18} aria-hidden="true" />} label={`More for ${task.title}`} className="task-more">
