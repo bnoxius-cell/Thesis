@@ -22,3 +22,28 @@ export const showDoneToast = (done, onUndo) => {
 
 // How long a ticked row shows its "done" state before the list drops it, so the tick is seen.
 export const DONE_SETTLE_MS = 280;
+
+// Keyboard focus after a row leaves the list. When the focused done box is about to disappear, pick
+// where focus should go: the next row's box, else the one above, else the quick-add title.
+export function focusTargetAfter(button) {
+  const row = button.closest("li");
+  const boxOf = (li) => li?.querySelector(".task-check");
+  return boxOf(row?.nextElementSibling) || boxOf(row?.previousElementSibling) || null;
+}
+
+// Called once the row is gone (or back): put focus on the target if it is still there, else the quick-add
+// title, else <main>, so it never drops to <body>.
+export function restoreFocus(target) {
+  requestAnimationFrame(() => {
+    const el = target?.isConnected ? target : document.querySelector(".quick-add-input") || document.getElementById("main");
+    el?.focus({ preventScroll: true });
+  });
+}
+
+// After Undo brings a task back, focus its done box once it has rendered.
+export function focusTaskCheck(taskId) {
+  setTimeout(() => {
+    const box = document.querySelector(`.task-check[data-task-id="${taskId}"]`);
+    (box || document.querySelector(".quick-add-input") || document.getElementById("main"))?.focus({ preventScroll: true });
+  }, 60);
+}

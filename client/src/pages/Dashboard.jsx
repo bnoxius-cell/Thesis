@@ -26,7 +26,7 @@ import { useAuth } from "./authentication/AuthContext";
 import { finishedThisWeek } from "../utils/doneThisWeek";
 import { toWeekReading } from "../utils/weekReading";
 import { saveTaskRequest } from "../utils/taskApi";
-import { showDoneToast } from "../utils/taskDone";
+import { focusTaskCheck, showDoneToast } from "../utils/taskDone";
 import "../styles/pages/today.css";
 
 // "Tuesday, Sep 29. 2 classes left today and 2 tasks due soon."
@@ -89,7 +89,7 @@ const Dashboard = () => {
   const addTask = (task) => { setAddedOne(true); work.setTasks((list) => [...list, task]); };
   const completeTask = async (task, done) => {
     const ok = await work.updateTask(task._id, { isCompleted: done });
-    if (ok) showDoneToast(done, () => work.updateTask(task._id, { isCompleted: false }));
+    if (ok) showDoneToast(done, async () => { if (await work.updateTask(task._id, { isCompleted: false })) focusTaskCheck(task._id); });
     return ok;
   };
   const saveTask = async (payload) => {

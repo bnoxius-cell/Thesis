@@ -15,7 +15,8 @@ const getSharePayloadFromTask = (task) => ({
     importance: task.importance,
 });
 
-export const TASK_LIMITS = { title: 120, course: 80, description: 1000 };
+export const TASK_LIMITS = { title: 120, course: 80, description: 1000, minHours: 0.5, maxHours: 24 };
+const HOURS_MESSAGE = `Estimated hours can be ${TASK_LIMITS.minHours} to ${TASK_LIMITS.maxHours}.`;
 
 const text = (value) => (typeof value === 'string' ? value.trim() : '');
 
@@ -40,8 +41,8 @@ const getTaskPayload = (body) => {
     if (course.length > TASK_LIMITS.course) return { error: `The course can be up to ${TASK_LIMITS.course} characters.` };
     if (description.length > TASK_LIMITS.description) return { error: `The description can be up to ${TASK_LIMITS.description} characters.` };
 
-    if (!Number.isFinite(hours) || hours < 0.5) {
-        return { error: 'Estimated hours must be at least 0.5.' };
+    if (!Number.isFinite(hours) || hours < TASK_LIMITS.minHours || hours > TASK_LIMITS.maxHours) {
+        return { error: HOURS_MESSAGE };
     }
 
     if (!Number.isFinite(difficulty) || difficulty < 1 || difficulty > 5) {
@@ -128,7 +129,7 @@ const getTaskUpdatePayload = (body) => {
     }
     if (body.hours !== undefined) {
         const hours = Number(body.hours);
-        if (!Number.isFinite(hours) || hours < 0.5) return fail('Estimated hours must be at least 0.5.');
+        if (!Number.isFinite(hours) || hours < TASK_LIMITS.minHours || hours > TASK_LIMITS.maxHours) return fail(HOURS_MESSAGE);
         fields.hours = hours;
     }
     for (const key of ['difficulty', 'importance']) {

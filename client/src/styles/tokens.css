@@ -39,6 +39,7 @@
     --text-primary: #1d2532;
     --text-secondary: #475263;
     --text-muted: #5d6878;
+    --text-placeholder: var(--text-muted); /* 4.5:1 or better on every input surface, both themes */
     --accent: #3f5ba9;
     --accent-hover: #344d92;
     --accent-press: #2b4079;

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { CalendarDays, CircleCheck, MapPin } from "lucide-react";
 import JoinLink from "../schedule/JoinLink";
-import { dueChip } from "../../utils/dueChip";
+import { dueChip, taskEditLabel } from "../../utils/dueChip";
 import { formatTime, fromISODate } from "../../utils/scheduleUtils";
 import useEnteringIds from "../../utils/useEnteringIds";
 import TaskCheck from "../TaskCheck";
@@ -55,7 +55,7 @@ function TaskRow({ task, now, entering, onComplete, onEdit }) {
   return (
     <li className={`row-item task-item${entering ? " is-entering" : ""}`}>
       <TaskCheck task={task} onChange={onComplete} />
-      <button type="button" className="row-main row-edit" onClick={() => onEdit(task)} aria-label={`Edit ${task.title}`}>
+      <button type="button" className="row-main row-edit" onClick={() => onEdit(task)} aria-label={taskEditLabel(task, now)}>
         <strong>{task.title}</strong>
         <span className={`row-meta${task.course ? "" : " is-empty"}`}>{task.course || "No course"}</span>
       </button>

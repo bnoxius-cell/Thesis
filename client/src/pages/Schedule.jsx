@@ -17,7 +17,7 @@ import Tabs from "../components/Tabs";
 import EntryModal from "../components/schedule/EntryModal";
 import EntryDetails from "../components/schedule/EntryDetails";
 import TaskModal from "../components/schedule/TaskModal";
-import { showDoneToast } from "../utils/taskDone";
+import { focusTaskCheck, showDoneToast } from "../utils/taskDone";
 import DayMarkModal from "../components/schedule/DayMarkModal";
 import ShareModal from "../components/schedule/ShareModal";
 import ScheduleImportDialog from "../components/schedule/ScheduleImportDialog";
@@ -486,7 +486,7 @@ export default function Schedule() {
         return false;
       }
       setTasks((list) => list.map((t) => (t._id === task._id ? data.task : t)));
-      showDoneToast(done, () => setTaskDone(task, false));
+      showDoneToast(done, async () => { if (await setTaskDone(task, false)) focusTaskCheck(task._id); });
       return true;
     } catch (err) {
       toast.error(taskError(err));

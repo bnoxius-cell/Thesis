@@ -80,6 +80,11 @@
   }
 
   /* ---- Browser surfaces that used to ship with defaults ---- */
+  /* Browsers dim the placeholder to roughly 3.7:1 in dark mode: use the token, fully opaque. */
+  ::placeholder {
+    color: var(--text-placeholder);
+    opacity: 1;
+  }
   ::selection {
     background: color-mix(in srgb, var(--accent) 28%, transparent);
     color: inherit;

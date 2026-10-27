@@ -3,7 +3,7 @@ import { ClipboardList, Download, MoreHorizontal, Pencil, Share2, Trash2 } from 
 import ConfirmDialog from "../ConfirmDialog";
 import EmptyState from "../EmptyState";
 import Menu, { MenuItem } from "./Menu";
-import { dueChip } from "../../utils/dueChip";
+import { dueChip, taskEditLabel } from "../../utils/dueChip";
 import useEnteringIds from "../../utils/useEnteringIds";
 import QuickAddTask from "../QuickAddTask";
 import TaskCheck from "../TaskCheck";
@@ -127,7 +127,7 @@ export default function TasksTab({ tasks, week, now, onAdded, onMoreDetails, onU
               return (
                 <li key={task._id} className={`task-row${task.isCompleted ? " is-done" : ""}${entering.has(task._id) ? " is-entering" : ""}`}>
                   <TaskCheck task={task} onChange={onSetDone} />
-                  <button type="button" className="task-row-body" onClick={() => onEdit(task)} aria-label={`Edit ${task.title}`}>
+                  <button type="button" className="task-row-body" onClick={() => onEdit(task)} aria-label={taskEditLabel(task, now)}>
                     <strong>{task.title}</strong>
                     <span className={task.course ? undefined : "is-empty"}>{[task.course || "No course", task.hours ? `${task.hours}h` : ""].filter(Boolean).join(" · ")}</span>
                   </button>

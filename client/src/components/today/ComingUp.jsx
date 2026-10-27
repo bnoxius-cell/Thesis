@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { dueChip } from "../../utils/dueChip";
+import { dueChip, taskEditLabel } from "../../utils/dueChip";
 import useEnteringIds from "../../utils/useEnteringIds";
 import TaskCheck from "../TaskCheck";
 
@@ -26,7 +26,7 @@ export default function ComingUp({ tasks, now, onComplete, onEdit }) {
           return (
             <li key={task._id} className={`row-item task-item${entering.has(task._id) ? " is-entering" : ""}`}>
               <TaskCheck task={task} onChange={onComplete} />
-              <button type="button" className="row-main row-edit" onClick={() => onEdit(task)} aria-label={`Edit ${task.title}`}>
+              <button type="button" className="row-main row-edit" onClick={() => onEdit(task)} aria-label={taskEditLabel(task, now)}>
                 <strong>{task.title}</strong>
                 <span className={`row-meta${task.course ? "" : " is-empty"}`}>{task.course || "No course"}</span>
               </button>

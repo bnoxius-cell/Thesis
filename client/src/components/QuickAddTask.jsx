@@ -167,7 +167,14 @@ export default function QuickAddTask({ onAdded, onMoreDetails, tour, focusOnMoun
                   onClick={() => chooseDue("pick")}
                 >
                   <CalendarDays size={16} aria-hidden="true" />
-                  <span className="quick-add-chip-text">{dueKey === "pick" && picked ? shortDate(picked) : "Pick a date"}</span>
+                  <span className="quick-add-chip-text">
+                    {dueKey === "pick" && picked ? shortDate(picked) : (
+                      <>
+                        <span className="quick-add-long">Pick a date</span>
+                        <span className="quick-add-short" aria-hidden="true">Date</span>
+                      </>
+                    )}
+                  </span>
                 </button>
                 {/* Opened by the chip. Without showPicker() support it is shown as a normal date field. */}
                 {(CAN_SHOW_PICKER || dueKey === "pick") && (
@@ -196,9 +203,10 @@ export default function QuickAddTask({ onAdded, onMoreDetails, tour, focusOnMoun
                   className={`segmented-option${size === s.key ? " is-selected" : ""}`}
                   aria-pressed={size === s.key}
                   aria-label={`${s.label}, about ${s.hours} ${s.hours === 1 ? "hour" : "hours"}`}
+                  title={`About ${s.hours} ${s.hours === 1 ? "hour" : "hours"}`}
                   onClick={() => setSize(s.key)}
                 >
-                  {s.label} <span className="quick-add-hours">{s.hours}h</span>
+                  {s.label}<span className="quick-add-hours" aria-hidden="true"> {s.hours}h</span>
                 </button>
               ))}
             </div>

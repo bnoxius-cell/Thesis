@@ -121,6 +121,23 @@ describe('FE-4: tasks without a course, and the checks quick add relies on', () 
         expect((await send(4)).status).toBe(200);
     });
 
+    test('hours are capped at 24 on create and update', async () => {
+        const { alice } = await pair();
+        const send = (hours) => alice.post('/api/tasks').send({ title: 'Lab', dueDate: '2026-11-01', hours });
+        expect((await send(0.5)).status).toBe(200);
+        expect((await send(24)).status).toBe(200);
+        for (const bad of [24.5, 999, 1e9]) {
+            const res = await send(bad);
+            expect(res.status, String(bad)).toBe(400);
+            expect(res.body.message).toBe('Estimated hours can be 0.5 to 24.');
+        }
+        const created = (await alice.post('/api/tasks').send({ title: 'Edit me', dueDate: '2026-11-01' })).body.task;
+        const put = (hours) => alice.put(`/api/tasks/${created._id}`).send({ hours });
+        expect((await put(0.5)).status).toBe(200);
+        expect((await put(24)).status).toBe(200);
+        for (const bad of [24.5, 999, 1e9]) expect((await put(bad)).status, String(bad)).toBe(400);
+    });
+
     test('a course can be cleared on edit, and a long one is still refused', async () => {
         const { alice } = await pair();
         const created = (await alice.post('/api/tasks').send({ title: 'Essay', course: 'ENG 2', dueDate: '2026-11-01' })).body.task;

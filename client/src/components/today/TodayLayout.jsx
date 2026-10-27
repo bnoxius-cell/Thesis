@@ -25,7 +25,7 @@ function useIsWide(ref) {
   return wide;
 }
 
-// The DOM order is the phone order (week card, quick add, Today, Coming up, Next step, the 7-day strip, check-in
+// The DOM order is the phone order (quick add, week card, Today, Coming up, Next step, the 7-day strip, check-in
 // notice), so Tab and screen readers follow what a phone shows. On a wide screen the cards are
 // regrouped into two columns: quick add, Today and Coming up on the left, the week card and Next step on the right,
 // with the strip under whichever column is shorter.
@@ -44,7 +44,7 @@ export default function TodayLayout({ week, quick, today, coming, next, strip, n
       </div>
     );
   } else {
-    body = <div className="today-layout">{week}{quick}{today}{coming}{next}{strip}{notice}</div>;
+    body = <div className="today-layout">{quick}{week}{today}{coming}{next}{strip}{notice}</div>;
   }
 
   return <div className="today-wrap" ref={ref}>{body}</div>;

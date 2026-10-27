@@ -1091,20 +1091,26 @@
       min-height: 44px;
     }
   }
-  /* On a phone the date chip is just the calendar icon until a date is picked, so the four chips
-     share one line. */
+  /* Phones: the date chip reads "Date" and the chips tighten, so Today, Tomorrow, This week and Date
+     share a line at 375px and wrap to two tidy lines at 320px. */
+  .quick-add-short {
+    display: none;
+  }
   @media (max-width: 720px) {
     .quick-add-chips {
-      gap: 6px;
+      gap: var(--space-1);
     }
     .quick-add-chip {
-      padding: 0 calc(var(--space-2) + 2px);
+      padding: 0 var(--space-2);
     }
-    .quick-add-chip.is-pick:not(.has-date) {
-      padding: 0 calc(var(--space-2) + 2px);
+    .quick-add-chip.is-pick {
+      gap: var(--space-1);
     }
-    .quick-add-chip.is-pick:not(.has-date) .quick-add-chip-text {
+    .quick-add-long {
       display: none;
+    }
+    .quick-add-short {
+      display: inline;
     }
   }
   .quick-add-pick {
@@ -1141,7 +1147,11 @@
     font-weight: 400;
     font-variant-numeric: tabular-nums;
   }
-  @media (max-width: 380px) {
+  /* Narrow phones: the sizes are just Short, Medium, Long. The hours stay in the tooltip and the spoken label. */
+  @media (max-width: 400px) {
+    .quick-add-hours {
+      display: none;
+    }
     .quick-add-size .segmented-option {
       padding: 0 var(--space-3);
     }
@@ -1156,6 +1166,15 @@
     padding: 0 0 var(--space-4);
     margin-bottom: var(--space-4);
     border-bottom: 1px solid var(--border);
+  }
+
+  /* The study plan on Schedule > Tasks: a long unbroken title wraps instead of widening the card. */
+  .schedule-item {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .schedule-item > span {
+    min-width: 0;
   }
 
   /* ---- A new row eases in (opacity and a few pixels, nothing else) ---- */

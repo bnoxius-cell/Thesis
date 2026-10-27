@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Minus, Plus, Ticket, CircleCheck, RotateCcw } from "lucide-react";
 import { toISODate, addDays, taskDueIso } from "../../utils/scheduleUtils";
+import { MAX_TASK_HOURS } from "../../utils/workload";
 import Modal from "../Modal";
 import BusySpinner from "../BusySpinner";
 
 const DIFFICULTY = ["Very easy", "Easy", "Medium", "Hard", "Very hard"];
 const IMPORTANCE = ["Low", "Minor", "Normal", "Important", "Critical"];
 const MIN_HOURS = 0.5;
-const MAX_HOURS = 20;
+const MAX_HOURS = MAX_TASK_HOURS;
 
 const blankForm = (date, draft) => ({
   title: draft?.title || "",
@@ -119,7 +120,7 @@ export default function TaskModal({ task, date, draft, courses = [], onSave, onD
   const courseList = [...new Set(courses.filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
   return (
-    <Modal onClose={onClose} busy={saving} as="form" className="sched-modal task-modal" labelledBy="task-modal-title" onSubmit={submit}>
+    <Modal onClose={onClose} busy={saving} as="form" noValidate className="sched-modal task-modal" labelledBy="task-modal-title" onSubmit={submit}>
         <div className="modal-header">
           <div>
             <span className="panel-kicker">Task</span>
