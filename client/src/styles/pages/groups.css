@@ -563,7 +563,7 @@
     min-width: 0;
     min-height: 44px;
     max-height: 120px;
-    padding: 10px var(--space-3);
+    padding: 9px var(--space-3);
     border: 1px solid var(--border-input);
     border-radius: var(--radius-md);
     background: var(--surface);
@@ -571,6 +571,7 @@
     font: inherit;
     font-size: max(16px, var(--text-md)); /* 16px or more: iOS zooms into smaller fields */
     line-height: var(--lh-body);
+    overflow-y: hidden; /* GroupChat switches it on only once the text passes max-height */
     resize: none;
   }
   .chat-composer textarea:focus-visible {
@@ -717,6 +718,221 @@
     color: var(--text-secondary);
     font-size: var(--text-xs);
     font-style: normal;
+  }
+
+  /* ---- Pinned note, tabs and Upcoming (FE-7b) ---- */
+  .chat-body[hidden] {
+    display: none;
+  }
+  .pinned-note {
+    display: flex;
+    flex: none;
+    align-items: flex-start;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
+    border-bottom: 1px solid var(--border);
+    background: var(--accent-soft);
+    color: var(--text-primary);
+  }
+  .pinned-icon {
+    flex: none;
+    margin-top: 14px;
+    color: var(--accent);
+  }
+  .pinned-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    padding: var(--space-2) 0;
+  }
+  .pinned-text {
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: var(--lh-body);
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+  .pinned-text.is-open {
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+  }
+  .pinned-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .pinned-toggle .pinned-text {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .pinned-chevron {
+    flex: none;
+    margin-top: 3px;
+    color: var(--text-secondary);
+    transition: transform var(--dur-1) ease;
+  }
+  .pinned-toggle[aria-expanded="true"] .pinned-chevron {
+    transform: rotate(180deg);
+  }
+  .pinned-toggle:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+  .pinned-by {
+    margin-top: 2px;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs-lh);
+  }
+  .pinned-edit {
+    flex: none;
+    gap: var(--space-1);
+    min-height: 44px;
+  }
+
+  .chat-tabs {
+    flex: none;
+    padding: 0 var(--space-3);
+  }
+
+  .chat-upcoming {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    container-type: inline-size;
+  }
+  @media (max-width: 560px) {
+    .chat-upcoming {
+      padding: var(--space-3);
+    }
+  }
+  .upcoming-state {
+    margin: 0;
+    padding: var(--space-5) var(--space-3);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    text-align: center;
+  }
+  .upcoming-state p {
+    margin: 0 0 var(--space-3);
+  }
+  .upcoming-empty {
+    display: grid;
+    place-items: center;
+    min-height: 100%;
+  }
+  .upcoming-note {
+    margin: 0 0 var(--space-2);
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+  }
+  .upcoming-list {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .upcoming-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+  }
+  .upcoming-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .upcoming-main strong {
+    font-size: var(--text-md);
+    line-height: var(--lh-snug);
+    overflow-wrap: anywhere;
+  }
+  .upcoming-main span {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--lh-body);
+    overflow-wrap: anywhere;
+  }
+  .upcoming-add,
+  .upcoming-added {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .upcoming-add {
+    gap: var(--space-1);
+    min-height: 44px;
+  }
+  .upcoming-added {
+    min-height: 32px;
+    padding: 0 var(--space-3);
+  }
+  /* Room for it all on one line: title and meta, the due chip, then the action. */
+  @container (min-width: 560px) {
+    .upcoming-row {
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      align-items: center;
+    }
+    .upcoming-add,
+    .upcoming-added {
+      grid-column: auto;
+      justify-self: end;
+    }
+  }
+
+  .group-info-pinned {
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+    font-size: var(--text-sm);
+    line-height: var(--lh-body);
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+  .pinned-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .pinned-form textarea {
+    width: 100%;
+    min-height: 104px;
+    font-size: max(16px, var(--text-md)); /* iOS zooms into smaller fields */
+    resize: vertical;
+  }
+  .pinned-count {
+    align-self: flex-end;
+  }
+  @media (min-width: 721px) {
+    .pinned-clear {
+      margin-right: auto;
+    }
   }
 
   /* ---- Role labels (chat and member lists) ---- */

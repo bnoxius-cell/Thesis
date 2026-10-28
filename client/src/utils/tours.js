@@ -227,8 +227,18 @@ export const GROUPS_TOUR = [
     text: "Talk with the group, and use the buttons next to the message box to share one of your tasks or a whole schedule. Teammates can add a copy to their own.",
   },
   {
+    target: "group-pinned",
+    title: "Pinned note",
+    text: "A short note from the group's admins, like a meeting time or a room. Tap a long one to read it all.",
+  },
+  {
+    target: "group-upcoming",
+    title: "Upcoming deadlines",
+    text: "Every task anyone shares in the group lands in Upcoming, soonest first. Tap Add to my tasks to put one in your own list.",
+  },
+  {
     target: "group-settings",
     title: "Group info",
-    text: "The join code, the member list and, for admins, the name, picture and chat filter. This is also where you leave the group.",
+    text: "The join code, the member list and, for admins, the pinned note, name, picture and chat filter. This is also where you leave the group.",
   },
 ];

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import {
@@ -13,9 +13,13 @@ import ScheduleImportDialog from "./schedule/ScheduleImportDialog";
 import UserAvatar from "./UserAvatar";
 import MemberDialog from "./group/MemberDialog";
 import GroupSettingsDialog from "./group/GroupSettingsDialog";
+import GroupUpcoming from "./group/GroupUpcoming";
+import PinnedNote, { PinnedNoteDialog } from "./group/PinnedNote";
+import Tabs from "./Tabs";
 import Modal from "./Modal";
 
 const POLL_INTERVAL_MS = 3000;
+const GROUP_TABS = [{ id: "chat", label: "Chat" }, { id: "upcoming", label: "Upcoming" }];
 const MAX_LENGTH = 1000;
 const GROUP_WINDOW_MS = 5 * 60 * 1000; // messages this close together share one header
 const EMOJIS = ["👍", "😀", "😂", "❤️", "🎉"];
@@ -101,6 +105,18 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
   const myId = user?._id;
   const { markGroupRead } = useNotifications();
   const roleOf = (id) => (group.admin?._id === id ? "Owner" : (group.admins || []).includes(id) ? "Admin" : null);
+  const isAdmin = group.admin?._id === myId || (group.admins || []).includes(myId);
+
+  // Chat | Upcoming lives in the address (?g=<id>&tab=upcoming). The chat stays mounted behind the
+  // Upcoming tab so it keeps polling and keeps its place.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") === "upcoming" ? "upcoming" : "chat";
+  const setTab = (id) => {
+    const next = new URLSearchParams(searchParams);
+    if (id === "chat") next.delete("tab");
+    else next.set("tab", id);
+    setSearchParams(next, { replace: true });
+  };
 
   const [messages, setMessages] = useState([]);
   const [status, setStatus] = useState("loading"); // loading | ready | error
@@ -110,6 +126,8 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
   const [unseen, setUnseen] = useState(0);
   const [memberOpen, setMemberOpen] = useState(null); // member id
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [pinnedOpen, setPinnedOpen] = useState(false);
+  const [upcomingRev, setUpcomingRev] = useState(0); // bumped when a task is shared or added, so Upcoming reloads
 
   const [shareOpen, setShareOpen] = useState(null); // null | "task" | "schedule"
   const [myTasks, setMyTasks] = useState(null); // null = loading
@@ -123,6 +141,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
   const listRef = useRef(null);
   const inputRef = useRef(null);
   const emojiRef = useRef(null);
+  const titleRef = useRef(null);
   const stickRef = useRef(true); // true while the reader is at the bottom of the chat
   const lastIdRef = useRef(null);
   const busyRef = useRef(false);
@@ -185,9 +204,19 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
     if (stickRef.current) scrollToBottom();
   }, [messages, scrollToBottom]);
 
+  // A hidden panel forgets its scroll position, so coming back from Upcoming puts the reader where
+  // they were: the bottom if they were following the chat, otherwise the spot they had reached.
+  const savedTopRef = useRef(0);
+  useEffect(() => {
+    if (tab !== "chat") return;
+    if (stickRef.current) scrollToBottom();
+    else if (listRef.current) listRef.current.scrollTop = savedTopRef.current;
+  }, [tab, scrollToBottom]);
+
   const handleScroll = () => {
     const el = listRef.current;
     if (!el) return;
+    savedTopRef.current = el.scrollTop;
     stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
     if (stickRef.current) setUnseen(0);
   };
@@ -205,14 +234,28 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
     };
   }, [emojiOpen]);
 
+  // Grows with the text up to 120px, then scrolls. The scrollbar only exists once it has to, so an
+  // empty box doesn't show a stub. scrollHeight leaves out the border, so it is added back.
   const resizeInput = () => {
     const el = inputRef.current;
-    if (!el) return;
+    if (!el || !el.offsetParent) return; // hidden behind the Upcoming tab: nothing to measure
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    const border = el.offsetHeight - el.clientHeight;
+    el.style.height = `${Math.min(el.scrollHeight + border, 120)}px`;
+    el.style.overflowY = el.scrollHeight + border > 120 ? "auto" : "hidden";
   };
 
-  useEffect(resizeInput, [draft]);
+  useEffect(resizeInput, [draft, tab]);
+
+  // On phones the group list is gone once a group opens, and the row that was clicked took focus
+  // with it. Put focus on the group's name so keyboard and screen reader users land in the group.
+  useEffect(() => {
+    if (!window.matchMedia("(max-width: 1099px)").matches) return;
+    const active = document.activeElement;
+    if (!active || active === document.body || active.closest?.(".groups-list-pane")) {
+      titleRef.current?.focus({ preventScroll: true });
+    }
+  }, []);
 
   const sendMessage = async () => {
     const text = draft.trim();
@@ -311,6 +354,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
         stickRef.current = true;
         mergeMessages([data.message]);
         setShareOpen(null);
+        setUpcomingRev((n) => n + 1);
         toast.success("Task shared with the group.");
       } else {
         toast.error(data.message || "Couldn't share that task.");
@@ -323,9 +367,12 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
   };
 
   // Once a shared task or schedule has been added, the card switches to "In your ...".
-  const markTaskAdded = (shareTag) => setMessages((prev) => prev.map((m) => (
-    m.task?.shareTag === shareTag ? { ...m, addedByMe: true } : m
-  )));
+  const markTaskAdded = (shareTag) => {
+    setMessages((prev) => prev.map((m) => (
+      m.task?.shareTag === shareTag ? { ...m, addedByMe: true } : m
+    )));
+    setUpcomingRev((n) => n + 1);
+  };
   const markScheduleAdded = (messageId, scheduleId) => {
     setMessages((prev) => prev.map((m) => (m._id === messageId ? { ...m, addedByMe: true } : m)));
     setAddedSchedules((prev) => ({ ...prev, [messageId]: scheduleId }));
@@ -362,7 +409,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
         </button>
         <UserAvatar name={group.name} src={group.icon} size={40} square />
         <div className="chat-topbar-title">
-          <h2>{group.name}</h2>
+          <h2 ref={titleRef} tabIndex={-1}>{group.name}</h2>
           <span>
             {group.members.length} {group.members.length === 1 ? "member" : "members"}
             {group.familyFriendly && <em className="family-badge"><ShieldCheck size={13} aria-hidden="true" /> Family-friendly</em>}
@@ -381,7 +428,24 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
         </button>
       </header>
 
-      <div className="chat-body">
+      <PinnedNote group={group} isAdmin={isAdmin} onEdit={() => setPinnedOpen(true)} />
+
+      <div className="chat-tabs" data-tour="group-upcoming">
+        <Tabs tabs={GROUP_TABS} value={tab} onChange={setTab} label="Group sections" />
+      </div>
+
+      {tab === "upcoming" && (
+        <div className="chat-upcoming" role="tabpanel" id="panel-upcoming" aria-labelledby="tab-upcoming">
+          <GroupUpcoming
+            groupId={group._id}
+            refreshKey={upcomingRev}
+            onAdd={setPendingTask}
+            onShare={() => openShare("task")}
+          />
+        </div>
+      )}
+
+      <div className="chat-body" role="tabpanel" id="panel-chat" aria-labelledby="tab-chat" hidden={tab !== "chat"}>
         <div className="chat-main">
           <div className="chat-messages" ref={listRef} onScroll={handleScroll} aria-live="polite">
             {status === "loading" && <p className="chat-state">Loading messages...</p>}
@@ -576,9 +640,14 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
           onClose={() => setSettingsOpen(false)}
           onGroupUpdated={onGroupUpdated}
           onOpenMember={setMemberOpen}
+          onEditPinned={() => setPinnedOpen(true)}
           onLeave={onLeave}
           onDelete={onDelete}
         />
+      )}
+
+      {pinnedOpen && (
+        <PinnedNoteDialog group={group} onClose={() => setPinnedOpen(false)} onGroupUpdated={onGroupUpdated} />
       )}
 
       {pendingTask && (

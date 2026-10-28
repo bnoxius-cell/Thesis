@@ -30,6 +30,12 @@ const groupSchema = new mongoose.Schema({
     icon: { type: String, default: '' },
     // When on, messages with blocked words are refused (see utils/familyFilter.js).
     familyFriendly: { type: Boolean, default: false },
+    // One short note the admins keep at the top of the group. text '' means none.
+    pinned: {
+        text: { type: String, default: '', maxlength: 280 },
+        by: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
+        at: Date
+    },
     members: [{ 
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'user' 

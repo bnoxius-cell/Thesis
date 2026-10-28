@@ -1,7 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { X, ShieldCheck, Check, Copy, LogOut, Trash2 } from "lucide-react";
+import { X, ShieldCheck, Check, Copy, LogOut, Trash2, Pin } from "lucide-react";
 import PictureField from "../PictureField";
 import UserAvatar from "../UserAvatar";
 import { useAuth } from "../../pages/authentication/AuthContext";
@@ -11,7 +11,7 @@ import BusySpinner from "../BusySpinner";
 // Everything about the group that isn't the conversation: the join code, who is in it and, for
 // the owner and admins, the name, picture and chat filter. Leave (members) and Delete (owner)
 // live at the bottom, so the group list carries no destructive buttons.
-export default function GroupSettingsDialog({ group, onClose, onGroupUpdated, onOpenMember, onLeave, onDelete }) {
+export default function GroupSettingsDialog({ group, onClose, onGroupUpdated, onOpenMember, onEditPinned, onLeave, onDelete }) {
   const { backendUrl, user } = useAuth();
   const myId = user?._id;
   const isOwner = group.admin?._id === myId;
@@ -105,6 +105,22 @@ export default function GroupSettingsDialog({ group, onClose, onGroupUpdated, on
             ))}
           </ul>
         </section>
+
+        {isAdmin && (
+          <section className="group-info-block" aria-labelledby="group-pinned-label">
+            <h3 id="group-pinned-label">Pinned note</h3>
+            {group.pinned?.text ? (
+              <p className="group-info-pinned">{group.pinned.text}</p>
+            ) : (
+              <small className="field-hint">Nothing pinned. A note shows at the top of the group for everyone.</small>
+            )}
+            <div>
+              <button type="button" className="secondary-button small" onClick={then(onEditPinned)}>
+                <Pin size={16} aria-hidden="true" /> {group.pinned?.text ? "Edit note" : "Pin a note"}
+              </button>
+            </div>
+          </section>
+        )}
 
         {isAdmin && (
           <form className="group-info-block group-info-form" onSubmit={save} aria-labelledby="group-details-label">
