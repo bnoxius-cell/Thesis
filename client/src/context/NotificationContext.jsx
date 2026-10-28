@@ -17,7 +17,10 @@ const POLL_MS = 20000;
 export function NotificationProvider({ children }) {
   const { backendUrl, isLoggedin, userData } = useAuth();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  // Read through a ref so a changing query string never restarts the poll timer.
+  const hereRef = useRef(pathname + search);
+  hereRef.current = pathname + search;
 
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -28,6 +31,8 @@ export function NotificationProvider({ children }) {
   // Collapsed chat entries change their count, which counts as new activity.
   const seen = useRef(null);
   const userId = userData?._id;
+  const listRef = useRef([]);
+  listRef.current = notifications;
 
   const refresh = useCallback(async () => {
     if (!isLoggedin) return;
@@ -41,7 +46,9 @@ export function NotificationProvider({ children }) {
       if (seen.current === null) {
         seen.current = new Set(list.map(keyOf));
       } else {
-        const fresh = list.filter((n) => !n.isRead && !seen.current.has(keyOf(n)));
+        const fresh = list.filter(
+          (n) => !n.isRead && !seen.current.has(keyOf(n)) && n.link !== hereRef.current
+        );
         fresh.slice(0, 3).forEach((n) => {
           toast.info(
             <div>
@@ -120,6 +127,16 @@ export function NotificationProvider({ children }) {
     } catch { refresh(); }
   }, [backendUrl, notifications, refresh]);
 
+  // The server already marked these read when the chat loaded; this only syncs the UI.
+  const markGroupRead = useCallback((groupId) => {
+    const chatTypes = ["group_message", "group_task", "group_schedule"];
+    const isMatch = (n) => !n.isRead && chatTypes.includes(n.type) && String(n.group) === String(groupId);
+    const changed = listRef.current.filter(isMatch).length;
+    if (!changed) return;
+    setNotifications((list) => list.map((n) => (isMatch(n) ? { ...n, isRead: true } : n)));
+    setUnreadCount((c) => Math.max(0, c - changed));
+  }, []);
+
   const markAllRead = useCallback(async () => {
     setNotifications((list) => list.map((n) => ({ ...n, isRead: true })));
     setUnreadCount(0);
@@ -146,8 +163,8 @@ export function NotificationProvider({ children }) {
   }, [backendUrl, refresh]);
 
   const value = useMemo(
-    () => ({ notifications, unreadCount, loading, error, refresh, markRead, markAllRead, remove, clearAll }),
-    [notifications, unreadCount, loading, error, refresh, markRead, markAllRead, remove, clearAll]
+    () => ({ notifications, unreadCount, loading, error, refresh, markRead, markGroupRead, markAllRead, remove, clearAll }),
+    [notifications, unreadCount, loading, error, refresh, markRead, markGroupRead, markAllRead, remove, clearAll]
   );
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;

@@ -5,6 +5,7 @@ import groupMessageModel from '../models/groupMessageModel.js';
 import taskModel from '../models/taskModel.js';
 import scheduleModel from '../models/scheduleModel.js';
 import userModel from '../models/userModel.js';
+import notificationModel from '../models/notificationModel.js';
 import { notify } from '../utils/notify.js';
 import { ensureShareTemplateForTask } from './taskController.js';
 import { containsProfanity } from '../utils/familyFilter.js';
@@ -374,7 +375,27 @@ export const getMessages = async (req, res) => {
             messages.reverse();
         }
 
-        res.json({ success: true, messages: await serializeMessages(messages, req.userId) });
+        // Opening the chat counts as reading its notifications. Only on a first load or
+        // when new messages arrived, and a failure here never fails the request.
+        let readNotifications = 0;
+        if (!after || messages.length) {
+            try {
+                const result = await notificationModel.updateMany(
+                    {
+                        recipient: req.userId,
+                        group: group._id,
+                        type: { $in: ['group_message', 'group_task', 'group_schedule'] },
+                        isRead: false,
+                    },
+                    { isRead: true }
+                );
+                readNotifications = result.modifiedCount || 0;
+            } catch (err) {
+                console.error('Mark chat notifications read error:', err);
+            }
+        }
+
+        res.json({ success: true, messages: await serializeMessages(messages, req.userId), readNotifications });
     } catch (error) {
         console.error('Get messages error:', error);
         res.status(500).json({ success: false, message: 'Could not load messages.' });
