@@ -159,7 +159,7 @@ export default function About() {
           <p>
             Questions or problems? Email{" "}
             {SUPPORT_EMAILS.map((e, i) => (
-              <span key={e}>{i > 0 && " or "}<a href={`mailto:${e}`}>{e}</a></span>
+              <span key={e}>{i > 0 && " or "}<a href={`mailto:${e}`} style={{ overflowWrap: "anywhere" }}>{e}</a></span>
             ))}
             .
           </p>
