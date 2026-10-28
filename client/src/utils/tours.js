@@ -82,17 +82,17 @@ export const SCHEDULE_TOUR = [
   {
     target: "sched-head",
     title: "This schedule",
-    text: "Its name, whose it is, and who else can see it. The line under the name says if it's private or shared.",
+    text: "Its name, whose it is, and who else can see it. The arrows next to the name switch to another schedule or open the list of all of them.",
   },
   {
     target: "sched-actions",
     title: "Add, share and more",
-    text: "Add puts in a task, class, exam, activity or event. Share works like Google Docs: invite people as viewers or editors, or turn on a link. More has make a copy, rename and delete. You'll only see the buttons your access allows.",
+    text: "Add puts in a task, class, exam, activity or event. Share works like Google Docs: invite people as viewers or editors, or turn on a link. More has the theme, make a copy, rename and delete. You'll only see the buttons your access allows.",
   },
   {
     target: "sched-week",
     title: "Your week",
-    text: "Classes, exams and your own tasks, day by day. Tap anything to see or change it, and use the arrows to move between weeks. Each day has buttons to add something or mark it as a day off.",
+    text: "Classes, exams and your own tasks, day by day. On a phone, tap a day in the strip to see it; a dot means something's planned. Tap anything to see or change it, and use the arrows to move between weeks. Each day has Add and a day-off button.",
   },
   {
     target: "sched-tasks",

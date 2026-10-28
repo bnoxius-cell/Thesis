@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { ChevronLeft, ChevronRight, X, CalendarPlus, CalendarMinus, RotateCcw, MoveHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, CalendarPlus, CalendarMinus, RotateCcw, MoveHorizontal, CircleAlert } from "lucide-react";
 import {
   WEEKDAYS, toISODate, fromISODate, addDays, resolveHoliday, formatLongDate, HOLIDAY_COUNTRY_NAME,
 } from "../../utils/scheduleUtils";
@@ -116,8 +116,8 @@ export default function HolidayCalendar({
     <section className="panel sched-cal" aria-labelledby="sched-cal-heading" data-tour="sched-cal">
       <div className="sched-cal-head">
         <div>
-          <span className="panel-kicker">Days off · {HOLIDAY_COUNTRY_NAME}</span>
           <h2 id="sched-cal-heading">{monthLabel(month)}</h2>
+          <p className="sched-cal-sub">Days off, with {HOLIDAY_COUNTRY_NAME} public holidays filled in</p>
         </div>
         <div className="sched-cal-nav">
           <button type="button" className="icon-action" onClick={() => shiftMonth(-1)} aria-label="Previous month">
@@ -134,7 +134,7 @@ export default function HolidayCalendar({
         </div>
       </div>
 
-      {holidayError && <p className="sched-notice" role="status">{holidayError}</p>}
+      {holidayError && <p className="notice is-watch" role="status"><CircleAlert size={16} aria-hidden="true" /> {holidayError}</p>}
       {canEdit && (
         <p className="sched-hint sched-cal-help">
           Tap days to select them, then mark them as days off or turn them back into normal days. Shift-click picks a whole range.

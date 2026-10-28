@@ -39,7 +39,7 @@ export default function EntryDetails({ entry, onClose }) {
               {entry.image ? <img src={entry.image} alt="" /> : <Icon size={26} aria-hidden="true" />}
             </span>
             <div>
-              <span className="panel-kicker">{KIND_LABELS[entry.kind]}</span>
+              <span className="chip is-neutral">{KIND_LABELS[entry.kind]}</span>
               <h2 id="entry-details-title">{entry.title}</h2>
             </div>
           </div>

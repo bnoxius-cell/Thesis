@@ -7,6 +7,7 @@ import { dueChip, taskEditLabel } from "../../utils/dueChip";
 import useEnteringIds from "../../utils/useEnteringIds";
 import QuickAddTask from "../QuickAddTask";
 import TaskCheck from "../TaskCheck";
+import { addDays, startOfWeek, taskDueIso, toISODate } from "../../utils/scheduleUtils";
 
 function StudyPlan({ week, hasTasks }) {
   const [open, setOpen] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 721px)").matches);
@@ -62,6 +63,41 @@ export default function TasksTab({ tasks, week, now, onAdded, onMoreDetails, onU
     .sort((a, b) => new Date(b.updatedAt || b.dueDate) - new Date(a.updatedAt || a.dueDate));
   const shown = filter === "open" ? open : done;
   const entering = useEnteringIds(shown.map((t) => t._id));
+
+  // Open tasks in three groups by due day (the same UTC day the week view uses): overdue, the
+  // rest of this Monday-to-Sunday week, and later. Empty groups are left out.
+  const todayIso = toISODate(now);
+  const weekEndIso = toISODate(addDays(startOfWeek(now), 6));
+  const groups = [
+    { id: "overdue", label: "Overdue", tasks: open.filter((t) => taskDueIso(t.dueDate) < todayIso) },
+    { id: "week", label: "This week", tasks: open.filter((t) => { const d = taskDueIso(t.dueDate); return d >= todayIso && d <= weekEndIso; }) },
+    { id: "later", label: "Later", tasks: open.filter((t) => taskDueIso(t.dueDate) > weekEndIso) },
+  ].filter((g) => g.tasks.length > 0);
+
+  const renderRow = (task) => {
+    const chip = task.isCompleted ? null : dueChip(task.dueDate, now);
+    return (
+      <li key={task._id} className={`task-row${task.isCompleted ? " is-done" : ""}${entering.has(task._id) ? " is-entering" : ""}`}>
+        <TaskCheck task={task} onChange={onSetDone} />
+        <button type="button" className="task-row-body" onClick={() => onEdit(task)} aria-label={taskEditLabel(task, now)}>
+          <strong>{task.title}</strong>
+          <span className={task.course ? undefined : "is-empty"}>{[task.course || "No course", task.hours ? `${task.hours}h` : ""].filter(Boolean).join(" · ")}</span>
+        </button>
+        {chip && <span className={`chip is-${chip.tone}`}>{chip.label}</span>}
+        <Menu trigger={<MoreHorizontal size={18} aria-hidden="true" />} label={`More for ${task.title}`} className="task-more">
+          {(close) => (
+            <>
+              <MenuItem icon={Pencil} onClick={() => { close(); onEdit(task); }}>Edit</MenuItem>
+              <MenuItem icon={Share2} hint={task.shareTag ? `Code ${task.shareTag}` : undefined} onClick={() => { close(); copyCode(task.shareTag); }}>
+                {copied === task.shareTag ? "Copied" : "Copy share code"}
+              </MenuItem>
+              <MenuItem icon={Trash2} tone="danger" onClick={() => { close(); onDelete(task); }}>Delete</MenuItem>
+            </>
+          )}
+        </Menu>
+      </li>
+    );
+  };
 
   const submitCode = (event) => {
     event.preventDefault();
@@ -120,33 +156,17 @@ export default function TasksTab({ tasks, week, now, onAdded, onMoreDetails, onU
           ) : (
             <p className="task-list-empty">Finished tasks show up here.</p>
           )
+        ) : filter === "open" ? (
+          groups.map((group) => (
+            <section key={group.id} className="task-group" aria-labelledby={`task-group-${group.id}`}>
+              <h3 className={`task-group-title${group.id === "overdue" ? " is-overdue" : ""}`} id={`task-group-${group.id}`}>
+                {group.label} <span>{group.tasks.length}</span>
+              </h3>
+              <ul className="task-rows">{group.tasks.map(renderRow)}</ul>
+            </section>
+          ))
         ) : (
-          <ul className="task-rows">
-            {shown.map((task) => {
-              const chip = task.isCompleted ? null : dueChip(task.dueDate, now);
-              return (
-                <li key={task._id} className={`task-row${task.isCompleted ? " is-done" : ""}${entering.has(task._id) ? " is-entering" : ""}`}>
-                  <TaskCheck task={task} onChange={onSetDone} />
-                  <button type="button" className="task-row-body" onClick={() => onEdit(task)} aria-label={taskEditLabel(task, now)}>
-                    <strong>{task.title}</strong>
-                    <span className={task.course ? undefined : "is-empty"}>{[task.course || "No course", task.hours ? `${task.hours}h` : ""].filter(Boolean).join(" · ")}</span>
-                  </button>
-                  {chip && <span className={`chip is-${chip.tone}`}>{chip.label}</span>}
-                  <Menu trigger={<MoreHorizontal size={18} aria-hidden="true" />} label={`More for ${task.title}`} className="task-more">
-                    {(close) => (
-                      <>
-                        <MenuItem icon={Pencil} onClick={() => { close(); onEdit(task); }}>Edit</MenuItem>
-                        <MenuItem icon={Share2} hint={task.shareTag ? `Code ${task.shareTag}` : undefined} onClick={() => { close(); copyCode(task.shareTag); }}>
-                          {copied === task.shareTag ? "Copied" : "Copy share code"}
-                        </MenuItem>
-                        <MenuItem icon={Trash2} tone="danger" onClick={() => { close(); onDelete(task); }}>Delete</MenuItem>
-                      </>
-                    )}
-                  </Menu>
-                </li>
-              );
-            })}
-          </ul>
+          <ul className="task-rows">{shown.map(renderRow)}</ul>
         )}
       </section>
 
