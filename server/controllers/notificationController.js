@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import notificationModel from '../models/notificationModel.js';
 import pushSubscriptionModel from '../models/pushSubscriptionModel.js';
 import userModel from '../models/userModel.js';
+import Friend from '../models/Friend.js';
 import { getPublicKey } from '../utils/push.js';
 
 const LIST_LIMIT = 100;
@@ -25,14 +26,17 @@ const serializePrefs = (user) => {
 
 export const getNotifications = async (req, res) => {
     try {
-        const [notifications, unreadCount] = await Promise.all([
+        const [notifications, unreadCount, pendingFriendRequests] = await Promise.all([
             notificationModel.find({ recipient: req.userId })
                 .populate('sender', 'name avatar')
                 .sort({ activityAt: -1 })
                 .limit(LIST_LIMIT),
             notificationModel.countDocuments({ recipient: req.userId, isRead: false }),
+            // Friend requests still waiting for an answer. The nav badge counts these, not the
+            // notifications, so accepting, declining or a cancelled request clears it.
+            Friend.countDocuments({ friend: req.userId, status: 'pending' }),
         ]);
-        res.json({ success: true, notifications, unreadCount });
+        res.json({ success: true, notifications, unreadCount, pendingFriendRequests });
     } catch (error) {
         res.json({ success: false, message: error.message });
     }

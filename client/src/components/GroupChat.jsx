@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import {
-  ArrowLeft, Send, Smile, ClipboardList, Check, Copy, Users, Clock, BookOpen,
-  LogOut, Trash2, ArrowDown, MessageSquare, X, Gauge, CalendarDays, Settings, ShieldCheck,
+  ArrowLeft, Send, Smile, ClipboardList, Check, Clock, BookOpen,
+  ArrowDown, MessageSquare, X, Gauge, CalendarDays, Info, ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "../pages/authentication/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
@@ -100,8 +100,6 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
   const { backendUrl, user } = useAuth();
   const myId = user?._id;
   const { markGroupRead } = useNotifications();
-  const isOwner = group.admin?._id === myId;
-  const isAdmin = isOwner || (group.admins || []).includes(myId);
   const roleOf = (id) => (group.admin?._id === id ? "Owner" : (group.admins || []).includes(id) ? "Admin" : null);
 
   const [messages, setMessages] = useState([]);
@@ -109,9 +107,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
-  const [infoOpen, setInfoOpen] = useState(false);
   const [unseen, setUnseen] = useState(0);
-  const [copied, setCopied] = useState(false);
   const [memberOpen, setMemberOpen] = useState(null); // member id
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -335,16 +331,6 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
     setAddedSchedules((prev) => ({ ...prev, [messageId]: scheduleId }));
   };
 
-  const copyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(group.joinCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.info(`Join code: ${group.joinCode}`);
-    }
-  };
-
   const isCurrentMember = (id) => Boolean(id) && group.members.some((m) => m._id === id);
 
   // Flatten messages into day dividers + message rows, marking which rows start
@@ -369,27 +355,29 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
   }, [messages]);
 
   return (
-    <section className="chat-shell" aria-label={`${group.name} chat`}>
+    <section className="chat-shell" aria-label={`${group.name} chat`} data-tour="group-chat">
       <header className="chat-topbar">
-        <button type="button" className="icon-action" onClick={onBack} aria-label="Back to groups">
-          <ArrowLeft size={18} />
+        <button type="button" className="icon-action chat-back" onClick={onBack} aria-label="Back to groups">
+          <ArrowLeft size={20} aria-hidden="true" />
         </button>
-        <UserAvatar name={group.name} src={group.icon} size={38} square />
+        <UserAvatar name={group.name} src={group.icon} size={40} square />
         <div className="chat-topbar-title">
           <h2>{group.name}</h2>
           <span>
             {group.members.length} {group.members.length === 1 ? "member" : "members"}
-            {group.familyFriendly && <em className="family-badge"><ShieldCheck size={12} aria-hidden="true" /> Family-friendly</em>}
+            {group.familyFriendly && <em className="family-badge"><ShieldCheck size={13} aria-hidden="true" /> Family-friendly</em>}
           </span>
         </div>
         <button
           type="button"
-          className={`icon-action chat-info-toggle${infoOpen ? " is-active" : ""}`}
-          onClick={() => setInfoOpen((o) => !o)}
-          aria-label="Toggle group info"
-          aria-expanded={infoOpen}
+          className="icon-action"
+          onClick={() => setSettingsOpen(true)}
+          aria-label="Group info and settings"
+          title="Group info and settings"
+          aria-haspopup="dialog"
+          data-tour="group-settings"
         >
-          <Users size={18} />
+          <Info size={20} aria-hidden="true" />
         </button>
       </header>
 
@@ -419,7 +407,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
               return (
                 <div key={row.key} className={`chat-row${continued ? " is-continued" : ""}${mine ? " is-mine" : ""}`}>
                   {continued ? (
-                    <span className="chat-time-gutter">{formatTime(message.createdAt)}</span>
+                    <span className="chat-avatar-spacer" aria-hidden="true" />
                   ) : isCurrentMember(message.sender?._id) ? (
                     <button type="button" className="chat-avatar-btn" onClick={() => setMemberOpen(message.sender._id)} aria-label={`View ${message.sender.name}`}>
                       <UserAvatar name={message.sender?.name} src={message.sender?.avatar} size={36} />
@@ -441,7 +429,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
                         <time dateTime={message.createdAt}>{formatTime(message.createdAt)}</time>
                       </div>
                     )}
-                    {message.text && <p className="chat-text">{message.text}</p>}
+                    {message.text && <p className="chat-text" title={formatTime(message.createdAt)}>{message.text}</p>}
                     {message.type === "task" && <TaskCard message={message} onAdd={setPendingTask} />}
                     {message.type === "schedule" && (
                       <ScheduleCard message={message} onAdd={setPendingSchedule} addedId={addedSchedules[message._id]} />
@@ -511,47 +499,6 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
           </form>
         </div>
 
-        <aside className={`chat-sidebar${infoOpen ? " is-open" : ""}`}>
-          {group.description && <p className="chat-side-desc">{group.description}</p>}
-          <div className="chat-side-block">
-            <span className="chat-side-label">Join code</span>
-            <button type="button" className="chat-code" onClick={copyCode} aria-label="Copy join code">
-              <strong>{group.joinCode}</strong>
-              {copied ? <Check size={15} /> : <Copy size={15} />}
-            </button>
-            <small>{copied ? "Copied" : "Share this so classmates can join."}</small>
-          </div>
-          <div className="chat-side-block">
-            <span className="chat-side-label">Members ({group.members.length})</span>
-            <ul className="chat-members">
-              {group.members.map((member) => (
-                <li key={member._id}>
-                  <button type="button" className="chat-member-btn" onClick={() => setMemberOpen(member._id)}>
-                    <UserAvatar name={member.name} src={member.avatar} size={28} />
-                    <span>{member.name}{member._id === myId ? " (you)" : ""}</span>
-                    {roleOf(member._id) && <em>{roleOf(member._id)}</em>}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="chat-side-actions">
-            {isAdmin && (
-              <button type="button" className="chat-settings-btn" onClick={() => setSettingsOpen(true)}>
-                <Settings size={15} /> Group settings
-              </button>
-            )}
-            {isOwner ? (
-              <button type="button" className="ghost-button is-danger" onClick={onDelete}>
-                <Trash2 size={15} /> Delete group
-              </button>
-            ) : (
-              <button type="button" className="ghost-button is-danger" onClick={onLeave}>
-                <LogOut size={15} /> Leave group
-              </button>
-            )}
-          </div>
-        </aside>
       </div>
 
       {shareOpen && (
@@ -624,7 +571,14 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
       )}
 
       {settingsOpen && (
-        <GroupSettingsDialog group={group} onClose={() => setSettingsOpen(false)} onGroupUpdated={onGroupUpdated} />
+        <GroupSettingsDialog
+          group={group}
+          onClose={() => setSettingsOpen(false)}
+          onGroupUpdated={onGroupUpdated}
+          onOpenMember={setMemberOpen}
+          onLeave={onLeave}
+          onDelete={onDelete}
+        />
       )}
 
       {pendingTask && (
