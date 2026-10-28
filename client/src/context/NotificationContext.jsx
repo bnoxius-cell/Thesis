@@ -9,6 +9,7 @@ import { syncPush } from "../utils/pushClient";
 const NotificationContext = createContext(null);
 
 const POLL_MS = 20000;
+const CHAT_TYPES = ["group_message", "group_task", "group_schedule"];
 
 // Owns the inbox for the whole app: polls the server while the tab is visible, pops an
 // in-app toast for anything new, keeps the unread count on the tab title and app icon,
@@ -17,10 +18,14 @@ const POLL_MS = 20000;
 export function NotificationProvider({ children }) {
   const { backendUrl, isLoggedin, userData } = useAuth();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  // Read through a ref so a changing query string never restarts the poll timer.
+  const hereRef = useRef(pathname + search);
+  hereRef.current = pathname + search;
 
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingFriends, setPendingFriends] = useState(0); // incoming friend requests still waiting
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -28,6 +33,8 @@ export function NotificationProvider({ children }) {
   // Collapsed chat entries change their count, which counts as new activity.
   const seen = useRef(null);
   const userId = userData?._id;
+  const listRef = useRef([]);
+  listRef.current = notifications;
 
   const refresh = useCallback(async () => {
     if (!isLoggedin) return;
@@ -41,7 +48,9 @@ export function NotificationProvider({ children }) {
       if (seen.current === null) {
         seen.current = new Set(list.map(keyOf));
       } else {
-        const fresh = list.filter((n) => !n.isRead && !seen.current.has(keyOf(n)));
+        const fresh = list.filter(
+          (n) => !n.isRead && !seen.current.has(keyOf(n)) && n.link !== hereRef.current
+        );
         fresh.slice(0, 3).forEach((n) => {
           toast.info(
             <div>
@@ -56,6 +65,7 @@ export function NotificationProvider({ children }) {
 
       setNotifications(list);
       setUnreadCount(data.unreadCount);
+      setPendingFriends(data.pendingFriendRequests || 0);
       setError("");
     } catch (err) {
       setError(err.response?.data?.message || err.message || "Could not load notifications.");
@@ -120,6 +130,15 @@ export function NotificationProvider({ children }) {
     } catch { refresh(); }
   }, [backendUrl, notifications, refresh]);
 
+  // The server already marked these read when the chat loaded; this only syncs the UI.
+  const markGroupRead = useCallback((groupId) => {
+    const isMatch = (n) => !n.isRead && CHAT_TYPES.includes(n.type) && String(n.group) === String(groupId);
+    const changed = listRef.current.filter(isMatch).length;
+    if (!changed) return;
+    setNotifications((list) => list.map((n) => (isMatch(n) ? { ...n, isRead: true } : n)));
+    setUnreadCount((c) => Math.max(0, c - changed));
+  }, []);
+
   const markAllRead = useCallback(async () => {
     setNotifications((list) => list.map((n) => ({ ...n, isRead: true })));
     setUnreadCount(0);
@@ -145,9 +164,24 @@ export function NotificationProvider({ children }) {
     } catch { refresh(); }
   }, [backendUrl, refresh]);
 
+  // Unread hints for the navigation, worked out from the list we already have (no new requests).
+  // Chat notifications collapse to one per group, so this is the number of groups with news, and
+  // `groupUnreadById` says which ones (and how many new messages each) for the Groups list.
+  // Friends is not a notification count: the server sends how many requests are still pending in
+  // the same response, so accepting, declining or a cancelled request clears it.
+  const { groupsUnread, groupUnreadById } = useMemo(() => {
+    const byGroup = {};
+    for (const n of notifications) {
+      if (n.isRead || !CHAT_TYPES.includes(n.type) || !n.group) continue;
+      byGroup[String(n.group)] = (byGroup[String(n.group)] || 0) + Math.max(1, n.count || 1);
+    }
+    return { groupsUnread: Object.keys(byGroup).length, groupUnreadById: byGroup };
+  }, [notifications]);
+  const friendsUnread = pendingFriends;
+
   const value = useMemo(
-    () => ({ notifications, unreadCount, loading, error, refresh, markRead, markAllRead, remove, clearAll }),
-    [notifications, unreadCount, loading, error, refresh, markRead, markAllRead, remove, clearAll]
+    () => ({ notifications, unreadCount, groupsUnread, groupUnreadById, friendsUnread, loading, error, refresh, markRead, markGroupRead, markAllRead, remove, clearAll }),
+    [notifications, unreadCount, groupsUnread, groupUnreadById, friendsUnread, loading, error, refresh, markRead, markGroupRead, markAllRead, remove, clearAll]
   );
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;

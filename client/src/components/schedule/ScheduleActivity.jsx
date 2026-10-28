@@ -1,4 +1,4 @@
-import { History, Users } from "lucide-react";
+import { Users } from "lucide-react";
 
 const timeAgo = (iso) => {
   const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -19,10 +19,7 @@ export default function ScheduleActivity({ schedule }) {
   return (
     <section className="panel sched-activity" aria-labelledby="sched-activity-heading" data-tour="sched-activity">
       <div className="sched-activity-head">
-        <div>
-          <span className="panel-kicker"><History size={16} aria-hidden="true" /> Recent changes</span>
-          <h2 id="sched-activity-heading">What changed</h2>
-        </div>
+        <h2 id="sched-activity-heading">What changed</h2>
         <p className="sched-activity-people">
           <Users size={16} aria-hidden="true" />
           <span>Edited by {editors.map((p) => p.name).join(", ")}</span>

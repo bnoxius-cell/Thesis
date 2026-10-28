@@ -5,6 +5,7 @@ import { useAuth } from "../pages/authentication/AuthContext";
 import Modal from "./Modal";
 import CheckInResult from "./CheckInResult";
 import "../App.css";
+import BusySpinner from "./BusySpinner";
 
 const LEAVE_PROMPT = { title: "Leave the check-in?", body: "Your answers so far won't be saved.", confirmLabel: "Leave", cancelLabel: "Keep going" };
 const ADVANCE_MS = 220;
@@ -104,7 +105,7 @@ export default function CheckInStepper({ config, isFirstTime = false, onClose, o
         <div className="checkin-step">
           <div className="checkin-progress" aria-live="polite">
             <div className="survey-progress-track" aria-hidden="true">
-              <div className="survey-progress-fill" style={{ width: `${((step + 1) / questions.length) * 100}%` }} />
+              <div className="survey-progress-fill" style={{ transform: `scaleX(${(step + 1) / questions.length})` }} />
             </div>
             <span>Question {step + 1} of {questions.length}</span>
           </div>
@@ -143,7 +144,7 @@ export default function CheckInStepper({ config, isFirstTime = false, onClose, o
                 Next <ArrowRight size={16} aria-hidden="true" />
               </button>
             ) : (
-              <button type="button" className="primary-button" onClick={submit} disabled={submitting || answers[step] === null}>
+              <button type="button" className="primary-button" onClick={submit} disabled={submitting || answers[step] === null} aria-busy={submitting}>{submitting && <BusySpinner />}
                 {submitting ? "Saving..." : "See what changes"}
               </button>
             )}

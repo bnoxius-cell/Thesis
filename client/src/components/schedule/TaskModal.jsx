@@ -1,26 +1,28 @@
 import { useState } from "react";
 import { Minus, Plus, Ticket, CircleCheck, RotateCcw } from "lucide-react";
 import { toISODate, addDays, taskDueIso } from "../../utils/scheduleUtils";
+import { MAX_TASK_HOURS } from "../../utils/workload";
 import Modal from "../Modal";
+import BusySpinner from "../BusySpinner";
 
 const DIFFICULTY = ["Very easy", "Easy", "Medium", "Hard", "Very hard"];
 const IMPORTANCE = ["Low", "Minor", "Normal", "Important", "Critical"];
 const MIN_HOURS = 0.5;
-const MAX_HOURS = 20;
+const MAX_HOURS = MAX_TASK_HOURS;
 
-const blankForm = (date) => ({
-  title: "",
+const blankForm = (date, draft) => ({
+  title: draft?.title || "",
   course: "",
   description: "",
-  dueDate: date || toISODate(addDays(new Date(), 1)),
-  hours: 3,
+  dueDate: draft?.dueDate || date || toISODate(addDays(new Date(), 1)),
+  hours: draft?.hours ?? 3,
   difficulty: 3,
   importance: 3,
 });
 
 const formFromTask = (task) => ({
   title: task.title,
-  course: task.course,
+  course: task.course || "",
   description: task.description || "",
   dueDate: taskDueIso(task.dueDate),
   hours: task.hours,
@@ -59,12 +61,13 @@ function Scale({ id, label, words, value, onChange }) {
 //
 //   task         set when editing
 //   date         due date to start with when adding from a day (YYYY-MM-DD)
+//   draft        { title, dueDate, hours } typed in the quick-add row, to start the form with
 //   courses      class names from the schedule, offered as suggestions
 //   onSave       (payload) => error message, or nothing on success
 //   onDelete, onToggleDone   editing only
 //   onUseCode    (tag) => open the task-code preview instead
-export default function TaskModal({ task, date, courses = [], onSave, onDelete, onToggleDone, onUseCode, onClose }) {
-  const [form, setForm] = useState(() => (task ? formFromTask(task) : blankForm(date)));
+export default function TaskModal({ task, date, draft, courses = [], onSave, onDelete, onToggleDone, onUseCode, onClose }) {
+  const [form, setForm] = useState(() => (task ? formFromTask(task) : blankForm(date, draft)));
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -90,7 +93,6 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
   const submit = async (e) => {
     e.preventDefault();
     if (!form.title.trim()) return setError("Give the task a name.");
-    if (!form.course.trim()) return setError("Which class is it for?");
     if (!form.dueDate) return setError("Pick a due date.");
     const hours = Number(form.hours);
     if (!Number.isFinite(hours) || hours < MIN_HOURS || hours > MAX_HOURS) return setError(`Hours can be ${MIN_HOURS} to ${MAX_HOURS}.`);
@@ -118,7 +120,7 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
   const courseList = [...new Set(courses.filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
   return (
-    <Modal onClose={onClose} busy={saving} as="form" className="sched-modal task-modal" labelledBy="task-modal-title" onSubmit={submit}>
+    <Modal onClose={onClose} busy={saving} as="form" noValidate className="sched-modal task-modal" labelledBy="task-modal-title" onSubmit={submit}>
         <div className="modal-header">
           <div>
             <span className="panel-kicker">Task</span>
@@ -145,7 +147,7 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
           </div>
 
           <div className="form-group full-span">
-            <label htmlFor="task-course">Class</label>
+            <label htmlFor="task-course">Class (optional)</label>
             <input
               id="task-course"
               type="text"
@@ -153,7 +155,7 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
               maxLength={80}
               list="task-course-options"
               onChange={(e) => set({ course: e.target.value })}
-              placeholder="e.g., Research Methods"
+              placeholder="Leave empty if it isn't for a class"
               autoComplete="off"
             />
             <datalist id="task-course-options">
@@ -183,7 +185,7 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
           <div className="form-group full-span">
             <span className="sched-field-label" id="task-hours-label">How long will it take?</span>
             <div className="task-stepper" role="group" aria-labelledby="task-hours-label">
-              <button type="button" className="sched-icon-button" onClick={() => stepHours(-0.5)} disabled={Number(form.hours) <= MIN_HOURS} aria-label="Half an hour less">
+              <button type="button" className="icon-action" onClick={() => stepHours(-0.5)} disabled={Number(form.hours) <= MIN_HOURS} aria-label="Half an hour less">
                 <Minus size={16} aria-hidden="true" />
               </button>
               <label className="task-stepper-value">
@@ -198,7 +200,7 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
                 />
                 <span>hours</span>
               </label>
-              <button type="button" className="sched-icon-button" onClick={() => stepHours(0.5)} disabled={Number(form.hours) >= MAX_HOURS} aria-label="Half an hour more">
+              <button type="button" className="icon-action" onClick={() => stepHours(0.5)} disabled={Number(form.hours) >= MAX_HOURS} aria-label="Half an hour more">
                 <Plus size={16} aria-hidden="true" />
               </button>
             </div>
@@ -243,7 +245,7 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
 
         <div className="modal-actions sched-modal-actions">
           {onDelete && (
-            <button type="button" className="remove-friend-btn" onClick={onDelete} disabled={saving}>Delete</button>
+            <button type="button" className="ghost-button is-danger" onClick={onDelete} disabled={saving}>Delete</button>
           )}
           {onToggleDone && (
             <button type="button" className="secondary-button" onClick={onToggleDone} disabled={saving}>
@@ -251,7 +253,7 @@ export default function TaskModal({ task, date, courses = [], onSave, onDelete, 
             </button>
           )}
           <button type="button" className="secondary-button" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="submit" className="primary-button" disabled={saving}>
+          <button type="submit" className="primary-button" disabled={saving} aria-busy={saving}>{saving && <BusySpinner />}
             {saving ? "Saving..." : task ? "Save changes" : "Add task"}
           </button>
         </div>

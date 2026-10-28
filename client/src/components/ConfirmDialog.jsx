@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import ModalShell from "./ModalShell";
+import BusySpinner from "./BusySpinner";
 
 // In-app replacement for window.confirm. `tone="danger"` is for destructive actions
 // (delete, leave) and uses the clay color; everything else uses the normal button.
@@ -41,7 +42,8 @@ export default function ConfirmDialog({
           className={tone === "danger" ? "primary-button confirm-danger" : "primary-button"}
           onClick={onConfirm}
           disabled={busy}
-        >
+          aria-busy={busy}
+        >{busy && <BusySpinner />}
           {busy ? "Working..." : confirmLabel}
         </button>
       </div>

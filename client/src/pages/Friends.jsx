@@ -4,16 +4,21 @@ import { Check, Copy, UserPlus, Users, X } from "lucide-react";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { useAuth } from "./authentication/AuthContext";
+import { useNotifications } from "../context/NotificationContext";
 import UserAvatar from "../components/UserAvatar";
 import ConfirmDialog from "../components/ConfirmDialog";
+import AppShell, { ShellOverlays } from "../components/layout/AppShell";
+import PageHeader from "../components/PageHeader";
 import EmptyState from "../components/EmptyState";
 import "../App.css";
+import BusySpinner from "../components/BusySpinner";
 
 const TAG_LENGTH = 6;
 
-// The Friends tab of People (/groups?tab=friends). It renders inside the Groups page.
+// The Friends page (/friends).
 export default function Friends() {
   const { backendUrl, user } = useAuth();
+  const { refresh: refreshNotifications } = useNotifications();
   const [friends, setFriends] = useState([]);
   const [incoming, setIncoming] = useState([]);
   const [sent, setSent] = useState([]);
@@ -52,6 +57,7 @@ export default function Friends() {
       if (data.success) {
         toast.success(doneText || data.message);
         await fetchData();
+        refreshNotifications(); // the Friends badge counts pending requests, so it follows the list
         return true;
       }
       toast.error(data.message || "That didn't work. Try again.");
@@ -110,7 +116,8 @@ export default function Friends() {
   );
 
   return (
-    <>
+    <AppShell>
+      <PageHeader title="Friends" description="Add friends with their code and see requests." />
       <section className="panel">
         <div className="panel-heading">
           <div>
@@ -147,7 +154,7 @@ export default function Friends() {
               onChange={(e) => setFriendTag(e.target.value.toUpperCase())}
               placeholder="e.g. A3F9K2"
             />
-            <button type="submit" className="primary-button" disabled={sending || friendTag.trim().length === 0}>
+            <button type="submit" className="primary-button" disabled={sending || friendTag.trim().length === 0} aria-busy={sending}>{sending && <BusySpinner />}
               <UserPlus size={18} aria-hidden="true" /> {sending ? "Sending..." : "Send request"}
             </button>
           </div>
@@ -199,7 +206,7 @@ export default function Friends() {
         {loading ? (
           <p className="schedule-empty">Loading friends...</p>
         ) : friends.length === 0 ? (
-          <EmptyState icon={Users} title="No friends yet">
+          <EmptyState compact icon={Users} title="No friends yet">
             Share your code, or type a classmate's code above, to add your first study buddy.
           </EmptyState>
         ) : (
@@ -219,6 +226,7 @@ export default function Friends() {
         )}
       </section>
 
+      <ShellOverlays>
       <ConfirmDialog
         open={Boolean(confirmRemove)}
         title="Remove this friend?"
@@ -230,6 +238,7 @@ export default function Friends() {
       >
         <p>You and <strong>{confirmRemove?.name}</strong> will no longer be friends. You can send a new request later.</p>
       </ConfirmDialog>
-    </>
+      </ShellOverlays>
+    </AppShell>
   );
 }

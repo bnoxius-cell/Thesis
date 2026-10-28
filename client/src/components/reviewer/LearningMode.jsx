@@ -5,6 +5,7 @@ import { Check, X, ArrowRight } from "lucide-react";
 import { useAuth } from "../../pages/authentication/AuthContext";
 import ConfirmDialog from "../ConfirmDialog";
 import { LETTERS, errorMessage } from "./reviewerUtils";
+import BusySpinner from "../BusySpinner";
 
 // One question at a time. Picking an answer only selects it; Submit sends it, so a stray tap
 // can't answer for you. The server grades each answer and only then sends the right answer and
@@ -136,7 +137,7 @@ export default function LearningMode({ reviewerId, title, session, onFinished, o
         aria-valuemax={questions.length}
         aria-valuenow={answeredCount}
       >
-        <span style={{ width: `${(answeredCount / questions.length) * 100}%` }} />
+        <span style={{ transform: `scaleX(${answeredCount / questions.length})` }} />
       </div>
 
       <article className="panel learning-card" key={question._id}>
@@ -177,7 +178,7 @@ export default function LearningMode({ reviewerId, title, session, onFinished, o
           {!result && (
             <>
               <span className="learning-hint">Pick an answer (or press 1 to 4), then submit.</span>
-              <button type="button" className="primary-button" onClick={submit} disabled={selected === null || sending}>
+              <button type="button" className="primary-button" onClick={submit} disabled={selected === null || sending} aria-busy={sending}>{sending && <BusySpinner />}
                 {sending ? "Checking..." : "Submit answer"}
               </button>
             </>

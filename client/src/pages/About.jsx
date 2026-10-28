@@ -1,9 +1,11 @@
-import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import AppShell from "../components/layout/AppShell";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "./authentication/AuthContext";
 import { SUPPORT_EMAILS } from "./legal/legalContent";
 import { PSS_VALID_DAYS, WHO_VALID_DAYS } from "../utils/workload";
+import { WORKLOAD_NOTE } from "../utils/weekReading";
 import "../App.css";
 
 const STEPS = [
@@ -17,7 +19,7 @@ const BANDS = [
   ["Light week", "0 to 30", "There's room. A good week to get ahead or rest."],
   ["Steady week", "31 to 60", "A normal load. Keep your routine."],
   ["Full week", "61 to 80", "A lot on. Worth moving something or protecting your sleep."],
-  ["Too much this week", "81 to 100", "More than fits. The app suggests what to move, and when."],
+  ["Very full week", "81 to 100", "More than fits. The app suggests what to move, and when."],
 ];
 
 const INPUTS = [
@@ -32,13 +34,16 @@ const INPUTS = [
 
 export default function About() {
   const { isLoggedin } = useAuth();
+  const { hash } = useLocation();
+
+  // A link to /about#contact (the footer's Contact link) lands on that section.
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ block: "start" });
+  }, [hash]);
 
   return (
-    <div className={`app ${isLoggedin ? "app-layout" : "auth-layout"}`}>
-      <Header />
-      <main className="dashboard about-page">
+    <AppShell variant={isLoggedin ? "app" : "public"} mainClassName="about-page">
         <PageHeader
-          kicker="About"
           title="About StressCare"
           description="A planner for OLFU IT students that shows how full your week is and helps you keep it manageable."
         />
@@ -104,6 +109,7 @@ export default function About() {
               </div>
             ))}
           </dl>
+          <p>{WORKLOAD_NOTE}</p>
         </section>
 
         <section className="panel">
@@ -139,7 +145,7 @@ export default function About() {
           </p>
         </section>
 
-        <section className="panel">
+        <section className="panel" id="contact">
           <div className="panel-heading">
             <div>
               <span className="panel-kicker">Who made it</span>
@@ -153,13 +159,11 @@ export default function About() {
           <p>
             Questions or problems? Email{" "}
             {SUPPORT_EMAILS.map((e, i) => (
-              <span key={e}>{i > 0 && " or "}<a href={`mailto:${e}`}>{e}</a></span>
+              <span key={e}>{i > 0 && " or "}<a href={`mailto:${e}`} style={{ overflowWrap: "anywhere" }}>{e}</a></span>
             ))}
             .
           </p>
         </section>
-      </main>
-      <Footer variant="full" />
-    </div>
+    </AppShell>
   );
 }

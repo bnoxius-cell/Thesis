@@ -44,7 +44,7 @@ export const runTaskReminders = async (now = new Date()) => {
             recipients: [task.owner],
             type: 'task_reminder',
             title: 'Task due soon',
-            message: `"${task.title}" (${task.course}) is due in less than ${leadLabel(lead)}.`,
+            message: `"${task.title}"${task.course ? ` (${task.course})` : ''} is due in less than ${leadLabel(lead)}.`,
             link: '/dashboard',
             dedupeKey: `task:${task._id}:${task.dueDate.getTime()}`,
         });

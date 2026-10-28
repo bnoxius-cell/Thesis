@@ -53,7 +53,7 @@ export const BAND_LABEL = {
   "Light Workload": "Light week",
   "Moderate Workload": "Steady week",
   "Heavy Workload": "Full week",
-  "Critical Overload": "Too much this week",
+  "Critical Overload": "Very full week",
 };
 
 export const bandFor = (score) => BANDS.find((b) => score <= b.max).name;
@@ -115,12 +115,17 @@ export function examPressure(exams = [], now = new Date()) {
   return { points, soon, next: soon[0] };
 }
 
+// The server caps a task at 24 hours. Rows saved before that cap can hold anything, so every sum
+// reads hours through this: one bad stored value cannot swamp the score, the chart or Next step.
+export const MAX_TASK_HOURS = 24;
+export const clampHours = (value) => Math.min(Math.max(Number(value) || 0, 0), MAX_TASK_HOURS);
+
 // Per-task numbers used by the task cards (progress bar, status pill).
 export function getTaskMetrics(task, now = new Date()) {
   const daysLeft = differenceInDays(task.dueDate, now);
   const urgencyBoost =
     daysLeft < 0 ? 10 : daysLeft === 0 ? 8 : daysLeft <= 2 ? 6 : daysLeft <= 5 ? 3 : 1;
-  const workload = Number(task.hours) * 1.4 + Number(task.difficulty) * 2 + Number(task.importance) * 1.8 + urgencyBoost;
+  const workload = clampHours(task.hours) * 1.4 + Number(task.difficulty) * 2 + Number(task.importance) * 1.8 + urgencyBoost;
   let status = "On Track";
   if (daysLeft < 0) status = "Overdue";
   else if (daysLeft <= 1) status = "Critical";
@@ -185,7 +190,7 @@ export function buildWeek(tasks, profile, overview, now = new Date()) {
     .sort((a, b) => a.daysLeft - b.daysLeft || b.workload - a.workload);
 
   ordered.forEach(({ task, daysLeft }) => {
-    const hours = Number(task.hours) || 0;
+    const hours = clampHours(task.hours);
     if (hours <= 0) return;
     // Overdue work lands today. Otherwise it is spread over every day up to the due
     // date, leaning toward the days with the most room left.
@@ -241,7 +246,7 @@ export function computeWorkload({
 
   // Share of the hours that matter (not the number of tasks), so one big important
   // assignment weighs more than three tiny ones.
-  const hourWeight = (t) => Math.max(Number(t.hours) || 0, 0.5);
+  const hourWeight = (t) => Math.max(clampHours(t.hours), 0.5);
   const totalWeight = tasks.reduce((s, t) => s + hourWeight(t), 0);
   const shareOf = (test) => (totalWeight ? (tasks.filter(test).reduce((s, t) => s + hourWeight(t), 0) / totalWeight) * 100 : 0);
 
@@ -424,7 +429,7 @@ function buildTips({
         ? "Work in 25-minute blocks with a 5-minute break, and choose one task a day that has to get done. The rest can wait its turn."
         : "Your week isn't heavy, so this stress may be coming from somewhere else. A friend, a walk or the guidance office can all help.");
   } else if (stress === "moderate") {
-    add("info", "Some stress showing",
+    add("info", "Go easy on yourself",
       hasTasks ? "Tackle one thing at a time and take short breaks between study blocks." : "A short walk or a break from screens goes a long way while things are calm.");
   } else if (stress === "low" && heavyWeek && mood !== "low" && mood !== "very-low") {
     add("good", "You're handling it well", "Your check-in shows low stress, so a full week is manageable. Keep your sleep and meals steady.");
@@ -450,7 +455,7 @@ function buildTips({
 
   // ---- What to do next ----
   if (upcoming) {
-    const hours = Number(upcoming.task.hours) || 0;
+    const hours = clampHours(upcoming.task.hours);
     const perDay = upcoming.daysLeft > 0 ? Math.max(0.5, Math.ceil((hours / upcoming.daysLeft) * 2) / 2) : hours;
     add("info", `Next deadline: ${upcoming.task.title}`,
       upcoming.daysLeft === 0

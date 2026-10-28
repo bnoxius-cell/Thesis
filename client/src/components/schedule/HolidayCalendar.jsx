@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
-import { ChevronLeft, ChevronRight, X, CalendarPlus, CalendarMinus, RotateCcw, MoveHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, CalendarPlus, CalendarMinus, RotateCcw, MoveHorizontal, CircleAlert } from "lucide-react";
 import {
   WEEKDAYS, toISODate, fromISODate, addDays, resolveHoliday, formatLongDate, HOLIDAY_COUNTRY_NAME,
 } from "../../utils/scheduleUtils";
+import BusySpinner from "../BusySpinner";
 
 const monthLabel = (d) => d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 const shortDate = (iso) => fromISODate(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -115,11 +116,11 @@ export default function HolidayCalendar({
     <section className="panel sched-cal" aria-labelledby="sched-cal-heading" data-tour="sched-cal">
       <div className="sched-cal-head">
         <div>
-          <span className="panel-kicker">Days off · {HOLIDAY_COUNTRY_NAME}</span>
           <h2 id="sched-cal-heading">{monthLabel(month)}</h2>
+          <p className="sched-cal-sub">Days off, with {HOLIDAY_COUNTRY_NAME} public holidays filled in</p>
         </div>
         <div className="sched-cal-nav">
-          <button type="button" className="sched-icon-button" onClick={() => shiftMonth(-1)} aria-label="Previous month">
+          <button type="button" className="icon-action" onClick={() => shiftMonth(-1)} aria-label="Previous month">
             <ChevronLeft size={18} aria-hidden="true" />
           </button>
           {!isThisMonth && (
@@ -127,13 +128,13 @@ export default function HolidayCalendar({
               This month
             </button>
           )}
-          <button type="button" className="sched-icon-button" onClick={() => shiftMonth(1)} aria-label="Next month">
+          <button type="button" className="icon-action" onClick={() => shiftMonth(1)} aria-label="Next month">
             <ChevronRight size={18} aria-hidden="true" />
           </button>
         </div>
       </div>
 
-      {holidayError && <p className="sched-notice" role="status">{holidayError}</p>}
+      {holidayError && <p className="notice is-watch" role="status"><CircleAlert size={16} aria-hidden="true" /> {holidayError}</p>}
       {canEdit && (
         <p className="sched-hint sched-cal-help">
           Tap days to select them, then mark them as days off or turn them back into normal days. Shift-click picks a whole range.
@@ -203,7 +204,7 @@ export default function HolidayCalendar({
               {selected.length === 1 ? formatLongDate(selected[0]) : `${selected.length} days selected`}
               {selected.length > 1 && <small>{shortDate(selected[0])} to {shortDate(selected[selected.length - 1])}</small>}
             </strong>
-            <button type="button" className="sched-icon-button" onClick={clear} aria-label="Clear the selection" disabled={busy}>
+            <button type="button" className="icon-action" onClick={clear} aria-label="Clear the selection" disabled={busy}>
               <X size={16} aria-hidden="true" />
             </button>
           </div>
@@ -220,12 +221,12 @@ export default function HolidayCalendar({
           </div>
           <div className="sched-cal-actions">
             {anyOn && (
-              <button type="button" className="primary-button small" onClick={makeDaysOff} disabled={busy}>
+              <button type="button" className="primary-button small" onClick={makeDaysOff} disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                 <CalendarPlus size={16} aria-hidden="true" /> {selected.length === 1 ? "Make it a day off" : "Make them days off"}
               </button>
             )}
             {!anyOn && name.trim() && (
-              <button type="button" className="primary-button small" onClick={makeDaysOff} disabled={busy}>Save name</button>
+              <button type="button" className="primary-button small" onClick={makeDaysOff} disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}Save name</button>
             )}
             {anyOff && (
               <button type="button" className="secondary-button small" onClick={removeDaysOff} disabled={busy}>

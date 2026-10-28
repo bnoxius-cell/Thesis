@@ -1,7 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import Header from "../../components/layout/Header";
-import Footer from "../../components/layout/Footer";
+import AppShell from "../../components/layout/AppShell";
 import { useAuth } from "../authentication/AuthContext";
 import { TERMS, PRIVACY, LEGAL_UPDATED, SUPPORT_EMAILS } from "./legalContent";
 import "../../App.css";
@@ -29,9 +28,7 @@ export default function LegalPage({ kind }) {
   const backTo = location.state?.from || (isLoggedin ? "/dashboard" : "/");
 
   return (
-    <div className={`app ${isLoggedin ? "app-layout" : "auth-layout"}`}>
-      <Header />
-      <main className="dashboard legal-page">
+    <AppShell variant={isLoggedin ? "app" : "public"} mainClassName="legal-page">
         <Link to={backTo} className="legal-back">
           <ArrowLeft size={16} aria-hidden="true" /> {isLoggedin ? "Back" : "Back to sign in"}
         </Link>
@@ -63,8 +60,6 @@ export default function LegalPage({ kind }) {
             </p>
           </article>
         </div>
-      </main>
-      <Footer variant="full" />
-    </div>
+    </AppShell>
   );
 }

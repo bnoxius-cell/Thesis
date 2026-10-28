@@ -1,0 +1,1618 @@
+/* ==========================================================================
+   SHARED COMPONENTS (frontend plan v2, B5)
+   The pieces the old stylesheet did not have, plus the few shared rules that
+   have to win over page-specific legacy rules (bottom-sheet dialogs, toasts).
+   Sits in the "components" layer, so it beats everything in App.css (legacy)
+   without any specificity fights. Role tokens only, never raw colours.
+   ========================================================================== */
+@layer components {
+  /* ---- Buttons ---- */
+  .tonal-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: 40px;
+    padding: 0 var(--space-4);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--dur-1) ease, color var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .tonal-button:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--accent) 10%, var(--accent-soft));
+      color: var(--accent-press);
+    }
+  }
+  .tonal-button:active:not(:disabled) {
+    background: color-mix(in srgb, var(--accent) 16%, var(--accent-soft));
+    color: var(--accent-press);
+    transform: scale(0.98);
+  }
+  @media (max-width: 720px), (pointer: coarse) {
+    .tonal-button {
+      min-height: 44px;
+    }
+  }
+  .tonal-button:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .tonal-button:disabled {
+    background: var(--surface-3);
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
+
+  /* Inline destructive action: danger text, never a red fill. Menus, settings, dialog footers. */
+  .ghost-button.is-danger {
+    color: var(--danger);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .ghost-button.is-danger:hover:not(:disabled) {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+  }
+  .ghost-button.is-danger:active:not(:disabled) {
+    background: var(--danger-soft);
+  }
+  .ghost-button.is-danger:disabled {
+    color: var(--text-muted);
+  }
+
+  /* Filled danger (confirm dialogs): darker on hover and press in light, lighter in dark,
+     by mixing toward the text colour. */
+  @media (hover: hover) and (pointer: fine) {
+    .danger-button:hover:not(:disabled),
+    .primary-button.confirm-danger:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--danger) 85%, var(--text-primary));
+    }
+  }
+  .danger-button:active:not(:disabled),
+  .primary-button.confirm-danger:active:not(:disabled) {
+    background: color-mix(in srgb, var(--danger) 70%, var(--text-primary));
+  }
+
+  .icon-action.is-active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  /* Spinner that goes before a busy button's label (components/BusySpinner.jsx) */
+  .busy-spinner {
+    flex: none;
+    animation: busy-spin 700ms linear infinite;
+  }
+  @keyframes busy-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  [aria-busy="true"] {
+    cursor: progress;
+  }
+
+  /* ---- Form controls ---- */
+  input[type="checkbox"],
+  input[type="radio"] {
+    flex: none;
+    width: 18px;
+    min-height: 0;
+    height: 18px;
+    padding: 0;
+    accent-color: var(--accent);
+  }
+  /* The whole label row is the tap target for a checkbox or radio */
+  label:has(> input[type="checkbox"]),
+  label:has(> input[type="radio"]) {
+    flex-direction: row;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  /* Opt-in form row: label, control, hint and error in one grid */
+  .field {
+    display: grid;
+    gap: 6px;
+    align-content: start;
+    min-width: 0;
+  }
+  .field > label,
+  .field > .field-label {
+    margin: 0;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .field-hint {
+    align-self: auto;
+    font-size: var(--text-xs);
+    line-height: var(--text-xs-lh);
+    color: var(--text-muted);
+  }
+  .field-error {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+    color: var(--danger);
+  }
+  .field-error > svg {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  /* ---- Chips: the two tones the old stylesheet lacked ---- */
+  .chip.is-neutral {
+    background: var(--surface-2);
+    color: var(--text-secondary);
+  }
+  .chip.is-accent {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  /* ---- Notice: an inline message, no left border ---- */
+  .notice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+  }
+  .notice > svg {
+    flex: none;
+    margin-top: 2px;
+  }
+  .notice.is-watch {
+    background: var(--watch-soft);
+    color: var(--watch);
+  }
+  .notice.is-danger {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+  .notice.is-good {
+    background: var(--good-soft);
+    color: var(--good);
+  }
+
+  /* ---- Skeleton: a calm pulse where content is on its way ---- */
+  .skeleton {
+    display: block;
+    min-height: 1em;
+    border-radius: var(--radius-sm);
+    background: var(--surface-3);
+    animation: skeleton-pulse 1.2s ease-in-out infinite alternate;
+  }
+  @keyframes skeleton-pulse {
+    from {
+      opacity: 0.6;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* ---- Progress: 6px track, the fill grows with transform, never width ---- */
+  .progress {
+    height: 6px;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: var(--surface-2);
+  }
+  .progress > span {
+    display: block;
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    transform-origin: left;
+    transition: transform 400ms var(--ease-out);
+  }
+  .progress.is-good > span {
+    background: var(--good);
+  }
+
+  /* ---- Table ---- */
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+  }
+  .table th {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--border);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-align: left;
+    color: var(--text-muted);
+  }
+  .table td {
+    height: 48px;
+    padding: 0 var(--space-3);
+    border-bottom: 1px solid var(--border);
+  }
+  .table .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- Dialogs on phones: a bottom sheet ----
+     Lives here, not in App.css, so it beats the themed and per-dialog width and
+     radius rules the legacy file still has. Behaviour (focus, Escape, scroll lock)
+     is unchanged; this is only how the same markup looks. */
+  @keyframes sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @media (max-width: 720px) {
+    .modal-overlay {
+      align-items: flex-end;
+    }
+    .modal-overlay > .modal-content {
+      width: 100%;
+      max-width: none;
+      max-height: 90vh;
+      max-height: 90dvh;
+      padding: var(--space-4) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      animation: sheet-in var(--dur-3) var(--ease-out);
+    }
+    /* Header and actions stay on screen and only the form between them scrolls. They are
+       sticky inside the sheet (which is the scroll container), so this works whether the
+       markup is a form or a plain div, and the negative margins let their background and
+       divider run edge to edge over the sheet's padding. */
+    .modal-overlay .modal-header {
+      position: sticky;
+      top: calc(-1 * var(--space-4)); /* sticky offsets are measured inside the sheet's padding */
+      z-index: 2;
+      margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) var(--space-3);
+      padding: var(--space-4) var(--space-4) var(--space-2);
+      background: var(--s-surface, var(--surface));
+    }
+    /* Actions stack full width with the primary first (it is last in the markup) */
+    .modal-overlay .modal-actions {
+      position: sticky;
+      bottom: calc(-1 * (var(--space-4) + env(safe-area-inset-bottom, 0px)));
+      z-index: 2;
+      flex-direction: column-reverse;
+      align-items: stretch;
+      gap: var(--space-2);
+      margin: var(--space-4) calc(-1 * var(--space-4)) calc(-1 * (var(--space-4) + env(safe-area-inset-bottom, 0px)));
+      padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid var(--s-line, var(--border));
+      background: var(--s-surface, var(--surface));
+    }
+    .modal-overlay .modal-actions > * {
+      width: 100%;
+    }
+    /* The consent prompt stays a centred card: it is a decision, not a form to fill in */
+    .terms-gate-overlay {
+      align-items: center;
+    }
+  }
+
+  /* 44px taps for the close button on touch */
+  @media (max-width: 720px), (pointer: coarse) {
+    .modal-close {
+      width: 44px;
+      height: 44px;
+    }
+  }
+
+  /* A toast with one action (Undo after ticking a task off) */
+  .toast-with-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .toast-action {
+    flex: none;
+    min-height: 44px;
+    margin: -8px calc(var(--space-2) * -1) -8px 0;
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .toast-action:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* With reduced motion the toast still times out on its progress bar, which just isn't drawn. */
+  @media (prefers-reduced-motion: reduce) {
+    .Toastify__progress-bar {
+      opacity: 0;
+    }
+  }
+
+  /* ---- Toasts: react-toastify styled through its own variables ----
+     toastify injects unlayered CSS, which beats any layered :root rule, so the
+     variables are set on its wrapper element instead (closer than :root, so they win). */
+  .Toastify {
+    --toastify-color-light: var(--surface);
+    --toastify-color-dark: var(--surface);
+    --toastify-text-color-light: var(--text-primary);
+    --toastify-text-color-dark: var(--text-primary);
+    --toastify-toast-background: var(--surface);
+    --toastify-font-family: var(--font-ui);
+    --toastify-toast-bd-radius: var(--radius-md);
+    --toastify-toast-shadow: var(--shadow-2);
+    --toastify-toast-min-height: 48px;
+    --toastify-toast-padding: var(--space-3) var(--space-4);
+    --toastify-color-info: var(--accent);
+    --toastify-color-success: var(--good);
+    --toastify-color-warning: var(--watch);
+    --toastify-color-error: var(--danger);
+    --toastify-icon-color-info: var(--accent);
+    --toastify-icon-color-success: var(--good);
+    --toastify-icon-color-warning: var(--watch);
+    --toastify-icon-color-error: var(--danger);
+    --toastify-color-progress-light: var(--accent);
+    --toastify-color-progress-dark: var(--accent);
+    --toastify-color-progress-info: var(--accent);
+    --toastify-color-progress-success: var(--good);
+    --toastify-color-progress-warning: var(--watch);
+    --toastify-color-progress-error: var(--danger);
+  }
+  .Toastify__toast {
+    border: 1px solid var(--border);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+  }
+  /* Toastify's own animation classes are unlayered and hard-code 500ms and ease-in, which beat
+     any layered rule. !important in a layer beats unlayered normal rules, so the entrance and
+     exit take --dur-3 with the app's ease-out. Reduced motion (base layer) still wins: it is
+     important in an earlier layer. */
+  .Toastify--animate,
+  .Toastify__toast[class*="-enter-"],
+  .Toastify__toast[class*="-exit-"] {
+    animation-duration: var(--dur-3) !important;
+    animation-timing-function: var(--ease-out) !important;
+  }
+  /* On phones toastify makes toasts full-bleed and square: inset them and keep the radius */
+  @media (max-width: 480px) {
+    .Toastify__toast-container {
+      padding: 0 var(--space-3);
+    }
+    .Toastify__toast {
+      border-radius: var(--radius-md) !important;
+    }
+  }
+
+  /* ==========================================================================
+     SHELL (FE-2): skip link, sidebar, phone top and bottom bars, footers, Guide panel,
+     page skeleton. Rendered by components/layout/AppShell.jsx, Header.jsx, Footer.jsx and
+     components/PageTour.jsx. These selectors are only used by the shell.
+     ========================================================================== */
+
+  /* ---- Page frame ---- */
+  .app.app-layout {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+    grid-template-rows: 1fr auto;
+  }
+  .app.auth-layout {
+    display: flex;
+    flex-direction: column;
+  }
+  .app.auth-layout > main {
+    flex: 1;
+  }
+  .app.auth-layout .auth-page {
+    min-height: 0;
+  }
+
+  /* <main id="main"> is focusable so the skip link can land on it; it never needs a ring. */
+  .app > main:focus,
+  .app > main:focus-visible {
+    outline: none;
+  }
+
+  .app.app-layout > main {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    max-width: var(--content-max);
+    margin: 0 auto;
+    padding: 24px 32px 32px; /* laptops (ON-2 R1) */
+  }
+  @media (min-width: 721px) and (max-width: 1023px) {
+    .app.app-layout > main {
+      padding: 20px 24px 24px;
+    }
+  }
+  .app.app-layout > main.is-reading {
+    max-width: calc(var(--reading-max) + 80px);
+  }
+
+  /* One fade when a page arrives (opacity only, no per-section stagger). Skipped while the page
+     is still a skeleton, so the skeleton and the page do not fade one after the other. */
+  .app > main {
+    animation: fade-in var(--dur-2) var(--ease-out);
+  }
+  .app > main:has(> .page-skeleton) {
+    animation: none;
+  }
+
+  /* Links to a section (About > Contact) land with the section near the top, clear of the sticky bar. */
+  .about-page section[id] {
+    scroll-margin-top: var(--space-5);
+  }
+
+  /* ---- Logo ---- */
+  .logo-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 40px;
+    color: var(--brand);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+  }
+  .logo-svg {
+    width: 28px;
+    height: 28px;
+    flex: none;
+  }
+  .logo-text > span {
+    color: var(--text-primary);
+  }
+
+  /* ---- Sidebar (over 720px) ---- */
+  .sidepanel {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    padding: var(--space-5) var(--space-3) var(--space-4);
+    overflow-y: auto;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+  }
+  .sidepanel-logo {
+    margin-bottom: var(--space-5);
+    padding: 0 var(--space-3);
+  }
+  .sidepanel-nav {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--space-5);
+  }
+  .sidepanel-menu,
+  .sidepanel-footer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .sidepanel-footer {
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border);
+  }
+  .sidepanel-link,
+  .sidepanel-logout {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    min-height: 40px;
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--dur-1) ease, color var(--dur-1) ease;
+  }
+  .sidepanel-logout svg {
+    margin: 2px; /* the 16px icon lines up with the 20px ones above it */
+  }
+  /* The 28px avatar takes the place of a 20px icon: pull it left so the labels line up. */
+  .sidepanel-profile {
+    gap: var(--space-2);
+    padding-left: calc(var(--space-3) - 4px);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .sidepanel-link:hover,
+    .sidepanel-logout:hover {
+      background: var(--surface-2);
+      color: var(--text-primary);
+    }
+  }
+  .sidepanel-link:active,
+  .sidepanel-logout:active {
+    background: var(--surface-3);
+  }
+  .sidepanel-link.active,
+  .sidepanel-guide.is-open {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  /* The active place carries the one bit of brand red in the navigation. */
+  .sidepanel-link.active::before {
+    content: "";
+    position: absolute;
+    left: calc(-1 * var(--space-3));
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--brand);
+  }
+  .sidepanel-link:focus-visible,
+  .sidepanel-logout:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+  }
+  .sidepanel-link .nav-badge {
+    margin-left: auto;
+  }
+  /* The small label that starts the People group (Groups, Friends) in the sidebar. */
+  .sidepanel-section {
+    margin-top: var(--space-3);
+    padding: var(--space-3) var(--space-3) var(--space-1);
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  @media (pointer: coarse) {
+    .sidepanel-link,
+    .sidepanel-logout {
+      min-height: 44px;
+    }
+  }
+
+  /* Unread count: an accent pill, never red. It must not pop in again on every page change. */
+  .nav-badge {
+    min-width: 20px;
+    padding: 0 6px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    line-height: 20px;
+    animation: none;
+  }
+
+  /* ---- Phone chrome (hidden over 720px) ---- */
+  .topbar,
+  .bottombar {
+    display: none;
+  }
+  .bell-link {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-pill);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: background-color var(--dur-1) ease, color var(--dur-1) ease;
+  }
+  .bell-link.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .bell-link:hover {
+      background: var(--surface-2);
+      color: var(--text-primary);
+    }
+  }
+  .bell-link:active {
+    background: var(--surface-3);
+  }
+  .bell-link .nav-badge {
+    position: absolute;
+    top: 2px;
+    right: 0;
+    margin: 0;
+  }
+
+  /* The More sheet (phone bottom bar): a plain list of links, 48px rows. */
+  .more-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .more-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    min-height: 48px;
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+    font-weight: 500;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: background-color var(--dur-1) ease;
+  }
+  .more-link svg,
+  .more-link .ua {
+    flex: none;
+    color: var(--text-secondary);
+  }
+  .more-link .nav-badge {
+    margin-left: auto;
+  }
+  .more-link:active {
+    background: var(--surface-3);
+  }
+  .more-link:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+  }
+  .topbar-avatar {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-pill);
+    text-decoration: none;
+  }
+  .topbar-avatar.active .ua {
+    box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
+  }
+
+  /* ---- Footers ---- */
+  /* Signed in: one line on every page. */
+  .app-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    padding: var(--space-3) 40px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+  }
+  .app.app-layout > .footer {
+    grid-column: 2;
+    grid-row: 2;
+    width: 100%;
+  }
+  .app-footer nav,
+  .site-footer nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+  }
+  .app-footer a,
+  .site-footer nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    text-decoration: none;
+  }
+  .app-footer a:hover,
+  .site-footer nav a:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+  }
+
+  /* Signed out: logo, four links, a copyright line. No email addresses, no links into the app. */
+  .site-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-5);
+    margin-top: auto;
+    padding: var(--space-4) 40px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+  }
+  .site-footer .logo-link {
+    font-size: var(--text-md);
+  }
+  .site-footer .logo-svg {
+    width: 24px;
+    height: 24px;
+  }
+  .header-auth {
+    display: flex;
+    align-items: center;
+    min-height: var(--topbar-h);
+    padding: env(safe-area-inset-top, 0px) max(40px, env(safe-area-inset-right, 0px)) 0 max(40px, env(safe-area-inset-left, 0px));
+  }
+
+  /* ---- Page skeleton (while a page's code or data loads) ---- */
+  .page-skeleton {
+    display: grid;
+    gap: var(--space-4);
+  }
+  .page-skeleton-title {
+    width: min(280px, 60%);
+    height: 36px;
+  }
+  .page-skeleton-block {
+    height: 168px;
+    border-radius: var(--radius-lg);
+  }
+  .page-skeleton-block.is-short {
+    height: 96px;
+  }
+
+  /* ---- Guide panel: next to its trigger (sidebar, bottom left) on laptops, a sheet on phones ---- */
+  .tour-panel {
+    position: fixed;
+    left: calc(var(--sidebar-w) + var(--space-4));
+    bottom: var(--space-4);
+    z-index: 900;
+    width: min(360px, calc(100vw - var(--sidebar-w) - var(--space-5)));
+    max-height: calc(100vh - var(--space-5));
+    max-height: calc(100dvh - var(--space-5));
+    overflow-y: auto;
+    padding: var(--space-4) var(--space-5) var(--space-5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-2);
+    transform-origin: bottom left;
+    opacity: 1;
+    transform: none;
+    transition: opacity var(--dur-3) var(--ease-out), transform var(--dur-3) var(--ease-out);
+    @starting-style {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  /* Leaves the way it came, a little quicker. */
+  .tour-panel.is-leaving {
+    opacity: 0;
+    transform: translateY(8px);
+    transition-duration: var(--dur-1);
+    pointer-events: none;
+  }
+  .tour-panel-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .tour-panel-top .icon-action {
+    margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0;
+  }
+  .tour-kicker {
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    font-weight: 500;
+  }
+  .tour-panel h2 {
+    margin: var(--space-2) 0 var(--space-1);
+    font-size: var(--text-lg);
+    line-height: var(--lh-snug);
+  }
+  .tour-panel h2:focus {
+    outline: none;
+  }
+  .tour-panel p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--lh-body);
+  }
+  .tour-panel-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+  }
+  .tour-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    min-width: 0;
+  }
+  .tour-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-3);
+    transition: background-color var(--dur-2) ease;
+  }
+  .tour-dots span.is-done {
+    background: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .tour-dots span.is-current {
+    width: 16px;
+    background: var(--accent);
+  }
+  .tour-nav {
+    display: flex;
+    flex: none;
+    gap: var(--space-2);
+  }
+  /* The section the current step is about. */
+  .tour-target {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+    border-radius: var(--radius-lg);
+  }
+
+  /* ---- Phones (720px and under) ---- */
+  @media (max-width: 720px) {
+    .app.app-layout {
+      display: flex;
+      flex-direction: column;
+      padding-bottom: calc(var(--bottombar-h) + env(safe-area-inset-bottom, 0px));
+    }
+    .app.app-layout > main {
+      width: 100%;
+      padding: 16px var(--space-4) var(--space-6); /* ON-2 R1 */
+    }
+    .app.app-layout > main.is-reading {
+      max-width: none;
+    }
+    .about-page section[id] {
+      scroll-margin-top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px) + var(--space-3));
+    }
+    .app.auth-layout .dashboard,
+    .app.auth-layout .auth-page {
+      width: min(1080px, 100% - 32px); /* same 16px edge as the logo bar */
+      padding-top: 20px;
+    }
+    .app.app-layout > .footer,
+    .app-footer {
+      margin-top: auto;
+      padding: var(--space-2) var(--space-4);
+    }
+    .app-footer a,
+    .site-footer nav a {
+      min-height: 44px;
+    }
+    .sidepanel {
+      display: none;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-2);
+      min-height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+      padding: env(safe-area-inset-top, 0px) max(var(--space-4), env(safe-area-inset-right, 0px)) 0 max(var(--space-4), env(safe-area-inset-left, 0px));
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar .logo-link {
+      min-height: 44px;
+    }
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      margin-right: calc(-1 * var(--space-2));
+    }
+
+    .bottombar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 100;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+    .bottombar-link {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      min-height: var(--bottombar-h);
+      padding: var(--space-1) 2px;
+      color: var(--text-muted);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      text-decoration: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+      transition: color var(--dur-1) ease, background-color var(--dur-1) ease;
+    }
+    /* "More" is a button; make it look like its link neighbours. */
+    button.bottombar-link {
+      border: 0;
+      background: transparent;
+      font-family: inherit;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .bottombar-icon {
+      position: relative;
+      display: inline-flex;
+    }
+    /* Unread count on a bottom bar icon: an accent pill hanging off its top right corner. */
+    .bottombar-icon .nav-badge {
+      position: absolute;
+      top: -6px;
+      left: calc(100% - 8px);
+      min-width: 18px;
+      margin: 0;
+      padding: 0 5px;
+      line-height: 18px;
+      box-shadow: 0 0 0 2px var(--surface);
+    }
+    /* A dot on More when Friends has something waiting inside it. */
+    .nav-dot {
+      position: absolute;
+      top: -2px;
+      right: -4px;
+      width: 10px;
+      height: 10px;
+      border-radius: var(--radius-pill);
+      background: var(--accent);
+      box-shadow: 0 0 0 2px var(--surface);
+    }
+    .bottombar-link svg {
+      transition: transform var(--dur-1) var(--ease-out);
+    }
+    .bottombar-link:active {
+      background: var(--surface-2);
+    }
+    .bottombar-link:active svg {
+      transform: scale(0.95);
+    }
+    .bottombar-link.active {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .bottombar-link.active::before {
+      content: "";
+      position: absolute;
+      top: -1px;
+      left: 28%;
+      right: 28%;
+      height: 2px;
+      border-radius: 0 0 2px 2px;
+      background: var(--brand);
+    }
+    .bottombar-link:focus-visible {
+      outline-offset: -2px;
+    }
+
+    .header-auth {
+      padding: env(safe-area-inset-top, 0px) max(var(--space-4), env(safe-area-inset-right, 0px)) 0 max(var(--space-4), env(safe-area-inset-left, 0px));
+    }
+    .site-footer {
+      justify-content: center;
+      padding: var(--space-2) max(var(--space-4), env(safe-area-inset-right, 0px)) var(--space-3) max(var(--space-4), env(safe-area-inset-left, 0px));
+      text-align: center;
+    }
+    /* Two lines: the links first, then the logo with the copyright. */
+    .site-footer nav {
+      order: -1;
+      justify-content: center;
+      width: 100%;
+    }
+
+    /* Guide: a sheet that comes up from the bottom edge, above the home bar */
+    .tour-panel {
+      left: calc(var(--space-2) + env(safe-area-inset-left, 0px));
+      right: calc(var(--space-2) + env(safe-area-inset-right, 0px));
+      bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+      width: auto;
+      max-height: 60vh;
+      max-height: 60dvh;
+      padding: var(--space-3) var(--space-4) var(--space-4);
+      border-radius: var(--radius-xl);
+      transform-origin: bottom center;
+      @starting-style {
+        opacity: 0;
+        transform: translateY(calc(100% + var(--space-4)));
+      }
+    }
+    .tour-panel.is-leaving {
+      transform: translateY(calc(100% + var(--space-4)));
+    }
+  }
+  @media (max-width: 360px) {
+    .tour-panel-foot {
+      flex-wrap: wrap;
+    }
+    .tour-nav {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+
+  /* ==========================================================================
+     TASKS (FE-4): quick add, the round done box, task rows, the task dialog
+     ========================================================================== */
+
+  /* ---- Quick add: a title, when it's due, how big. One card, two short rows. ---- */
+  .quick-add {
+    padding: var(--space-4);
+  }
+  @media (min-width: 721px) {
+    .quick-add {
+      padding: var(--space-4) var(--space-5);
+    }
+  }
+  .quick-add-head {
+    margin-bottom: var(--space-3);
+  }
+  .quick-add-title {
+    margin: 0;
+    font-size: var(--text-md);
+    line-height: var(--text-md-lh);
+    font-weight: 600;
+  }
+  .quick-add-lead {
+    margin: 2px 0 0;
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+    color: var(--text-muted);
+  }
+  .quick-add.is-flat .quick-add-title {
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+  }
+  .quick-add-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .quick-add-input {
+    width: 100%;
+    min-width: 0;
+  }
+  .quick-add-error {
+    margin: var(--space-2) 0 0;
+  }
+  .quick-add-opts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-3) var(--space-5);
+    margin-top: var(--space-3);
+  }
+  .quick-add-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+  .quick-add-label {
+    display: block;
+    width: auto;
+    font-size: var(--text-xs);
+    line-height: var(--text-xs-lh);
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  .quick-add-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .quick-add-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 36px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color var(--dur-1) ease, border-color var(--dur-1) ease, color var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .quick-add-chip:hover:not(.is-selected) {
+      background: var(--surface-2);
+      color: var(--text-primary);
+    }
+  }
+  .quick-add-chip:active {
+    transform: scale(0.98);
+  }
+  .quick-add-chip.is-selected {
+    border-color: var(--accent-soft);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .quick-add-chip:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  @media (max-width: 720px), (pointer: coarse) {
+    .quick-add-chip {
+      min-height: 44px;
+    }
+  }
+  /* Phones: the date chip reads "Date" and the chips tighten, so Today, Tomorrow, This week and Date
+     share a line at 375px and wrap to two tidy lines at 320px. */
+  .quick-add-short {
+    display: none;
+  }
+  @media (max-width: 720px) {
+    .quick-add-chips {
+      gap: var(--space-1);
+    }
+    .quick-add-chip {
+      padding: 0 var(--space-2);
+    }
+    .quick-add-chip.is-pick {
+      gap: var(--space-1);
+    }
+    .quick-add-long {
+      display: none;
+    }
+    .quick-add-short {
+      display: inline;
+    }
+  }
+  .quick-add-pick {
+    position: relative;
+    display: inline-flex;
+  }
+  .quick-add-date {
+    width: auto;
+    flex: 0 1 11rem;
+    margin-left: var(--space-2);
+  }
+  /* Carries the value for the chip and anchors the native picker to it. Not a tab stop, not seen. */
+  .quick-add-date-hidden {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    min-height: 0;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .quick-add-size {
+    flex-wrap: nowrap;
+  }
+  .quick-add-size .segmented-option {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+  .quick-add-hours {
+    color: var(--text-muted);
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Narrow phones: the sizes are just Short, Medium, Long. The hours stay in the tooltip and the spoken label. */
+  @media (max-width: 400px) {
+    .quick-add-hours {
+      display: none;
+    }
+    .quick-add-size .segmented-option {
+      padding: 0 var(--space-3);
+    }
+  }
+  /* Add task, "or", More details. Phones: one row, the two buttons share it. Laptops: at the end of the options row. */
+  .quick-add-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex: 1 1 100%;
+  }
+  .quick-add-actions .primary-button,
+  .quick-add-actions .tonal-button {
+    flex: 1 1 0;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .quick-add-or {
+    flex: none;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+  @media (min-width: 721px) {
+    .quick-add-actions {
+      flex: 0 0 auto;
+      margin-left: auto;
+    }
+    .quick-add-actions .primary-button,
+    .quick-add-actions .tonal-button {
+      flex: none;
+    }
+  }
+  /* Inside a card (the Tasks tab) it has no frame of its own: a divider, not a card in a card. */
+  .quick-add.is-flat {
+    padding: 0 0 var(--space-4);
+    margin-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* The study plan on Schedule > Tasks: a long unbroken title wraps instead of widening the card. */
+  .schedule-item {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .schedule-item > span {
+    min-width: 0;
+  }
+
+  /* ---- A new row eases in (opacity and a few pixels, nothing else) ---- */
+  @keyframes row-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  .is-entering {
+    animation: row-in var(--dur-2) var(--ease-out);
+  }
+
+  /* ---- The round done box ---- */
+  .task-check {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin: 0 calc(var(--space-1) * -1) 0 calc(var(--space-2) * -1 - 2px);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: transparent;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .task-check svg {
+    box-sizing: content-box;
+    padding: 3px;
+    border: 2px solid var(--border-input);
+    border-radius: 50%;
+    transition: background-color var(--dur-1) ease, border-color var(--dur-1) ease, color var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .task-check:hover:not(.is-checked) svg {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  }
+  .task-check:active svg {
+    transform: scale(0.9);
+  }
+  .task-check.is-checked svg {
+    background: var(--good);
+    border-color: var(--good);
+    color: var(--surface);
+  }
+  .task-check.is-settling svg {
+    animation: check-pop var(--dur-2) var(--ease-out);
+  }
+  @keyframes check-pop {
+    from {
+      transform: scale(0.85);
+    }
+  }
+  .task-check:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -4px;
+    border-radius: 50%;
+  }
+  /* The row of a task being ticked off quietens while the tick lands, before it leaves the list. */
+  .task-row,
+  .task-item {
+    transition: opacity var(--dur-3) var(--ease-out);
+  }
+  .task-row:has(.task-check.is-settling),
+  .task-item:has(.task-check.is-settling) {
+    opacity: 0.5;
+  }
+  .task-row:has(.task-check.is-checked) strong,
+  .task-item:has(.task-check.is-checked) strong {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+
+  /* ---- Task rows in Schedule > Tasks: dividers, no boxes inside the card ---- */
+  .task-rows {
+    list-style: none;
+    margin: var(--space-3) 0 0;
+    padding: 0;
+  }
+  .task-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 48px;
+    padding: var(--space-1) 0;
+    border-top: 1px solid var(--border);
+  }
+  .task-row:first-child {
+    border-top-color: transparent;
+  }
+  .task-row-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-self: stretch;
+    justify-content: center;
+    padding: var(--space-1) 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .task-row-body strong {
+    font-size: var(--text-md);
+    font-weight: 500;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .task-row-body span {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+  }
+  .task-row-body span.is-empty {
+    color: var(--text-muted);
+  }
+  .task-row-body:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .task-row-body:hover strong {
+      color: var(--accent);
+    }
+  }
+  .task-row .sched-menu {
+    flex: 0 0 auto;
+  }
+  .task-more {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .task-more:hover {
+      background: var(--surface-2);
+      color: var(--text-primary);
+    }
+  }
+
+  /* ---- The task dialog (add, edit, and "More details" from quick add) ---- */
+  .task-modal .modal-header {
+    align-items: flex-start;
+  }
+  .task-modal .modal-header h2 {
+    margin-top: 2px;
+  }
+  .task-title-input {
+    font-size: var(--text-lg);
+    font-weight: 600;
+  }
+  .task-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+  .task-chips button {
+    min-height: 36px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--s-line, var(--border-input));
+    border-radius: var(--radius-pill);
+    background: var(--s-card, var(--surface));
+    color: var(--s-ink, var(--text-primary));
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color var(--dur-1) ease, border-color var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+  }
+  .task-chips button:active {
+    transform: scale(0.98);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .task-chips button:hover {
+      border-color: var(--s-accent, var(--accent));
+    }
+  }
+  .task-chips button.is-on {
+    border-color: var(--s-accent, var(--accent));
+    background: color-mix(in srgb, var(--s-accent, var(--accent)) 18%, var(--s-card, var(--surface)));
+  }
+  .task-chips button:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  @media (max-width: 720px), (pointer: coarse) {
+    .task-chips button {
+      min-height: 44px;
+    }
+  }
+  .task-due-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-3);
+  }
+  .task-due-row input {
+    flex: 0 0 auto;
+    width: auto;
+  }
+  .task-due-row .task-chips {
+    margin-top: 0;
+  }
+  .task-stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    align-self: flex-start;
+  }
+  .task-stepper-value {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+    width: auto;
+    margin: 0;
+    font-weight: 600;
+    color: var(--s-muted, var(--text-secondary));
+  }
+  .task-stepper-value input {
+    width: 78px;
+    text-align: center;
+    font-weight: 700;
+  }
+  @media (max-width: 720px) {
+    .task-stepper-value input {
+      width: 64px;
+    }
+  }
+  .task-scale-word {
+    margin-left: var(--space-2);
+    font-style: normal;
+    font-weight: 700;
+    color: var(--s-accent-text, var(--accent));
+  }
+  .task-scale {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+  .task-scale button {
+    min-height: 44px;
+    border: 1px solid var(--s-line, var(--border-input));
+    border-radius: var(--radius-md);
+    background: var(--s-card, var(--surface));
+    color: var(--s-muted, var(--text-secondary));
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .task-scale button.is-on {
+    border-color: color-mix(in srgb, var(--s-accent, var(--accent)) 60%, transparent);
+    background: color-mix(in srgb, var(--s-accent, var(--accent)) 22%, var(--s-card, var(--surface)));
+    color: var(--s-ink, var(--text-primary));
+  }
+  .task-scale button[aria-checked="true"] {
+    box-shadow: 0 0 0 2px var(--s-accent, var(--accent));
+  }
+  .task-scale button:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .task-code {
+    padding-top: var(--space-4);
+    border-top: 1px dashed var(--s-line, var(--border));
+  }
+  .task-code label {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .task-code-row {
+    display: flex;
+    gap: var(--space-3);
+  }
+  .task-code-row input {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: 200px;
+    letter-spacing: 0.2em;
+    font-weight: 700;
+  }
+}

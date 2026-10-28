@@ -32,6 +32,26 @@ export const startOfWeek = (d) => {
   return addDays(new Date(d.getFullYear(), d.getMonth(), d.getDate()), day === 0 ? -6 : 1 - day);
 };
 
+// A Monday-to-Sunday week belongs to the month its Thursday falls in (the ISO 8601 rule), so every
+// week shows up in exactly one month and a month has 4 or 5 week cards. `monthOfWeek` is the first
+// of the month whose page shows the week that `date` is in; `monthWeeks` is that month's Mondays.
+export const monthOfWeek = (d) => {
+  const thursday = addDays(startOfWeek(d), 3);
+  return new Date(thursday.getFullYear(), thursday.getMonth(), 1);
+};
+
+export const monthWeeks = (monthDate) => {
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+  const weeks = [];
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  for (let day = 1; day <= lastDay; day += 1) {
+    const date = new Date(year, month, day);
+    if (date.getDay() === 4) weeks.push(addDays(date, -3));
+  }
+  return weeks;
+};
+
 export const formatTime = (hhmm) => {
   const [h, m] = hhmm.split(":").map(Number);
   const suffix = h >= 12 ? "PM" : "AM";
@@ -120,14 +140,21 @@ export const taskDueIso = (dueDate) => (dueDate ? new Date(dueDate).toISOString(
 
 // ---- Themes ----------------------------------------------------------------
 
+// Three calm presets. The keys are the server's existing ones, so nothing in the database has to
+// change: "matcha" shows as Sage and "midnight" as Lavender. Swatch: accent, second accent, surface.
 export const SCHEDULE_THEMES = [
-  { key: "classic", label: "Classic", swatch: ["#dc2626", "#14213d", "#f1f5f9"] },
-  { key: "cute", label: "Cute", swatch: ["#f472b6", "#a78bfa", "#fff1f7"] },
-  { key: "ocean", label: "Ocean", swatch: ["#0ea5e9", "#14b8a6", "#ecfeff"] },
-  { key: "matcha", label: "Matcha", swatch: ["#65a30d", "#ca8a04", "#f7fbe8"] },
-  { key: "notebook", label: "Notebook", swatch: ["#2563eb", "#dc2626", "#fffdf5"] },
-  { key: "midnight", label: "Midnight", swatch: ["#818cf8", "#f472b6", "#1e1b3a"] },
+  { key: "classic", label: "Classic", swatch: ["#3f5ba9", "#5d6878", "#f0f2f5"] },
+  { key: "matcha", label: "Sage", swatch: ["#3d7a5d", "#6b7f95", "#f4f8f5"] },
+  { key: "midnight", label: "Lavender", swatch: ["#6656c2", "#8a7fb8", "#f6f4fd"] },
 ];
+
+// Older schedules may still be saved with a theme that was retired. They show as the closest
+// preset, and the picker shows that preset as selected. Saving a new theme replaces the old key.
+const LEGACY_THEMES = { cute: "midnight", ocean: "classic", notebook: "classic" };
+export const normalizeTheme = (key) => {
+  if (SCHEDULE_THEMES.some((t) => t.key === key)) return key;
+  return LEGACY_THEMES[key] || "classic";
+};
 
 // ---- Entry look ------------------------------------------------------------
 

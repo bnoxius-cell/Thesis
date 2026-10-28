@@ -4,8 +4,7 @@ import {
   Bell, CalendarDays, Check, CheckCheck, ClipboardList, Clock, MoreHorizontal, Settings, Trash2,
   MessageSquare, UserCheck, UserPlus, Users,
 } from "lucide-react";
-import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
+import AppShell, { ShellOverlays } from "../components/layout/AppShell";
 import PageHeader from "../components/PageHeader";
 import Tabs from "../components/Tabs";
 import EmptyState from "../components/EmptyState";
@@ -80,9 +79,7 @@ export default function Notifications() {
   }[filter];
 
   return (
-    <div className="app app-layout">
-      <Header />
-      <main className="dashboard">
+    <AppShell>
         <PageHeader
           title="Notifications"
           description={unreadCount > 0 ? `${unreadCount} unread. Deadline reminders, group activity and friend updates land here.` : "You're all caught up. Deadline reminders, group activity and friend updates land here."}
@@ -133,7 +130,7 @@ export default function Notifications() {
               {error} <button type="button" className="ghost-button small" onClick={refresh}>Try again</button>
             </p>
           ) : visible.length === 0 ? (
-            <EmptyState icon={Bell} title={filter === "all" ? "Nothing yet" : "Nothing here"}>{emptyText}</EmptyState>
+            <div className="panel"><EmptyState compact icon={Bell} title={filter === "all" ? "Nothing yet" : "Nothing here"}>{emptyText}</EmptyState></div>
           ) : (
             groups.map(([label, items]) => (
               <section key={label} className="notice-group" aria-label={label}>
@@ -170,8 +167,7 @@ export default function Notifications() {
             ))
           )}
         </div>
-      </main>
-
+      <ShellOverlays>
       <ConfirmDialog
         open={clearConfirm}
         title="Clear all notifications?"
@@ -182,8 +178,7 @@ export default function Notifications() {
       >
         <p>Everything in your inbox will be removed. This can't be undone.</p>
       </ConfirmDialog>
-
-      <Footer />
-    </div>
+      </ShellOverlays>
+    </AppShell>
   );
 }

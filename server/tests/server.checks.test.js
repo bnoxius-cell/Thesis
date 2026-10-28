@@ -90,6 +90,75 @@ describe('S7: task limits', () => {
     });
 });
 
+describe('FE-4: tasks without a course, and the checks quick add relies on', () => {
+    test('create works without a course and stores an empty one', async () => {
+        const { alice } = await pair();
+        const res = await alice.post('/api/tasks').send({ title: 'Read chapter 3', dueDate: '2026-11-01', hours: 1 });
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.task.course).toBe('');
+        const blank = await alice.post('/api/tasks').send({ title: 'Quiz prep', course: '   ', dueDate: '2026-11-01' });
+        expect(blank.body.task.course).toBe('');
+        const list = (await alice.get('/api/tasks')).body.tasks;
+        expect(list.map((t) => t.course)).toEqual(['', '']);
+    });
+
+    test('title and due date are still required', async () => {
+        const { alice } = await pair();
+        expect((await alice.post('/api/tasks').send({ course: 'CS 101', dueDate: '2026-11-01' })).status).toBe(400);
+        expect((await alice.post('/api/tasks').send({ title: '   ', dueDate: '2026-11-01' })).status).toBe(400);
+        expect((await alice.post('/api/tasks').send({ title: 'No date' })).status).toBe(400);
+        expect((await alice.post('/api/tasks').send({ title: 'Bad date', dueDate: 'next-ish' })).status).toBe(400);
+    });
+
+    test('hours must be at least 0.5 and a number', async () => {
+        const { alice } = await pair();
+        const send = (hours) => alice.post('/api/tasks').send({ title: 'Lab', dueDate: '2026-11-01', hours });
+        expect((await send(0)).status).toBe(400);
+        expect((await send(0.4)).status).toBe(400);
+        expect((await send('lots')).status).toBe(400);
+        expect((await send(0.5)).status).toBe(200);
+        expect((await send(4)).status).toBe(200);
+    });
+
+    test('hours are capped at 24 on create and update', async () => {
+        const { alice } = await pair();
+        const send = (hours) => alice.post('/api/tasks').send({ title: 'Lab', dueDate: '2026-11-01', hours });
+        expect((await send(0.5)).status).toBe(200);
+        expect((await send(24)).status).toBe(200);
+        for (const bad of [24.5, 999, 1e9]) {
+            const res = await send(bad);
+            expect(res.status, String(bad)).toBe(400);
+            expect(res.body.message).toBe('Estimated hours can be 0.5 to 24.');
+        }
+        const created = (await alice.post('/api/tasks').send({ title: 'Edit me', dueDate: '2026-11-01' })).body.task;
+        const put = (hours) => alice.put(`/api/tasks/${created._id}`).send({ hours });
+        expect((await put(0.5)).status).toBe(200);
+        expect((await put(24)).status).toBe(200);
+        for (const bad of [24.5, 999, 1e9]) expect((await put(bad)).status, String(bad)).toBe(400);
+    });
+
+    test('a course can be cleared on edit, and a long one is still refused', async () => {
+        const { alice } = await pair();
+        const created = (await alice.post('/api/tasks').send({ title: 'Essay', course: 'ENG 2', dueDate: '2026-11-01' })).body.task;
+        const cleared = await alice.put(`/api/tasks/${created._id}`).send({ course: '' });
+        expect(cleared.status).toBe(200);
+        expect(cleared.body.task.course).toBe('');
+        expect((await alice.put(`/api/tasks/${created._id}`).send({ course: 'x'.repeat(81) })).status).toBe(400);
+        const set = await alice.put(`/api/tasks/${created._id}`).send({ course: ' HIST 1 ' });
+        expect(set.body.task.course).toBe('HIST 1');
+    });
+
+    test('a task without a course can be shared and imported', async () => {
+        const { alice, bob } = await pair();
+        const created = (await alice.post('/api/tasks').send({ title: 'Group notes', dueDate: '2026-11-01' })).body.task;
+        const listed = (await alice.get('/api/tasks')).body.tasks[0];
+        const imported = await bob.post('/api/tasks/import').send({ shareTag: listed.shareTag || created.shareTag });
+        expect(imported.body.success).toBe(true);
+        expect(imported.body.task.course).toBe('');
+    });
+});
+
 describe('S7: profile limits', () => {
     test('rejects values the workload maths cannot use', async () => {
         const { alice } = await pair();

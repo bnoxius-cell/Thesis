@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // The dialog shell. Use Modal (or ConfirmDialog), which build on this.
 // The one dialog shell for the app. It renders the existing .modal-overlay / .modal-content
@@ -52,6 +52,14 @@ export default function ModalShell({
   const contentRef = useRef(null);
   const pressedOverlay = useRef(false);
   const latest = useRef({});
+  // The element that had focus when the dialog opened. It is read while rendering, before the
+  // commit that lets an autofocused field take focus, so focus can go back to the real opener.
+  const [opener, setOpener] = useState(null);
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    setOpener(open ? document.activeElement : null);
+  }
   useEffect(() => {
     latest.current = { onClose, busy };
   });
@@ -66,7 +74,6 @@ export default function ModalShell({
     const token = {};
     stack.push(token);
     lockScroll();
-    const opener = document.activeElement;
 
     const root = contentRef.current;
     if (root && !root.contains(document.activeElement)) {
@@ -89,11 +96,15 @@ export default function ModalShell({
       const at = stack.indexOf(token);
       if (at >= 0) stack.splice(at, 1);
       unlockScroll();
-      if (opener && opener !== document.body && document.contains(opener)) {
-        opener.focus({ preventScroll: true });
-      }
+      // Back to the opener. If it is gone (a dialog opened by a link on another page, like Today's
+      // "Add task", or a button that left the page when its dialog finished), land on <main> instead
+      // of dropping to <body>.
+      const back = opener && opener !== document.body && document.contains(opener)
+        ? opener
+        : document.getElementById("main");
+      back?.focus({ preventScroll: true });
     };
-  }, [open, requestClose, initialFocusRef]);
+  }, [open, requestClose, initialFocusRef, opener]);
 
   if (!open) return null;
 

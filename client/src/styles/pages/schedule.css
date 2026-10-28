@@ -1,0 +1,1387 @@
+/* ==========================================================================
+   SCHEDULE (FE-5). Everything the Schedule page owns: the three theme presets, the header with
+   the schedule switcher, the week (7 columns or day strip plus agenda, by container query),
+   entries, the Tasks and Days off tabs, the themed dialogs, sharing and the All schedules list.
+   Pieces other pages reuse (.sched-hint, .sched-modal, .sched-segment, .sched-check, the Menu)
+   stay in App.css. Frontend plan v2: B9 for the presets, C4 for the layout.
+
+   Theme variables, set on [data-sched-theme]:
+   --s-surface      the week card and panels       --s-day      day columns, inset rows
+   --s-card         entries and chips on a day      --s-input    form fields
+   --s-ink          text                            --s-muted    secondary text
+   --s-line         borders                         --s-radius   card radius
+   --s-accent       fills (buttons, today, strip)   --s-accent-text  accent used as text
+   --s-on-accent    text on an --s-accent fill      --s-accent-2 activities and events
+   --s-holiday-bg / --s-holiday-ink  days off
+   ========================================================================== */
+@layer pages {
+  /* ---- Presets (B9). Classic is the base and maps to the app tokens. ---- */
+  [data-sched-theme] {
+    --s-surface: var(--surface);
+    --s-day: var(--surface-2);
+    --s-card: var(--surface);
+    --s-input: var(--surface);
+    --s-ink: var(--text-primary);
+    --s-muted: var(--text-secondary);
+    --s-line: var(--border);
+    --s-accent: var(--accent);
+    --s-accent-text: var(--accent);
+    --s-on-accent: var(--on-accent);
+    --s-accent-2: var(--text-muted);
+    --s-holiday-bg: var(--watch-soft);
+    --s-holiday-ink: var(--text-primary);
+    --s-radius: var(--radius-lg);
+    /* Derived, so hover and press follow whichever preset is on */
+    --s-accent-hover: color-mix(in srgb, var(--s-accent) 86%, var(--s-ink));
+    --s-accent-press: color-mix(in srgb, var(--s-accent) 74%, var(--s-ink));
+    --s-accent-soft: color-mix(in srgb, var(--s-accent) 12%, var(--s-card));
+  }
+  [data-sched-theme="classic"] {
+    --s-accent-hover: var(--accent-hover);
+    --s-accent-press: var(--accent-press);
+    --s-accent-soft: var(--accent-soft);
+  }
+
+  [data-sched-theme="matcha"] {
+    --s-surface: #f4f8f5;
+    --s-day: #ffffff;
+    --s-card: #ffffff;
+    --s-input: #ffffff;
+    --s-ink: #1f3329;
+    --s-muted: #4f6659;
+    --s-line: #d5e3da;
+    --s-accent: #3d7a5d;
+    --s-accent-text: #2f6b4f;
+    --s-on-accent: #ffffff;
+    --s-accent-2: #6b7f95;
+    --s-holiday-bg: #f7efd6;
+    --s-holiday-ink: #5c4a12;
+  }
+  .dark-theme [data-sched-theme="matcha"] {
+    --s-surface: #17211c;
+    --s-day: #1c2822;
+    --s-card: #212f28;
+    --s-input: #141c18;
+    --s-ink: #e3ece7;
+    --s-muted: #a6b8ae;
+    --s-line: #2f4238;
+    --s-accent: #7fc4a1;
+    --s-accent-text: #94d1b2;
+    --s-on-accent: #0f1712;
+    --s-accent-2: #8a9bb0;
+    --s-holiday-bg: #33291a;
+    --s-holiday-ink: #ecd9a3;
+  }
+
+  [data-sched-theme="midnight"] {
+    --s-surface: #f6f4fd;
+    --s-day: #ffffff;
+    --s-card: #ffffff;
+    --s-input: #ffffff;
+    --s-ink: #2a2547;
+    --s-muted: #5f5980;
+    --s-line: #dcd6f5;
+    --s-accent: #6656c2;
+    --s-accent-text: #5546a8;
+    --s-on-accent: #ffffff;
+    --s-accent-2: #8a7fb8;
+    --s-holiday-bg: #f7efd6;
+    --s-holiday-ink: #5c4a12;
+  }
+  .dark-theme [data-sched-theme="midnight"] {
+    --s-surface: #1b1a2b;
+    --s-day: #222036;
+    --s-card: #29263f;
+    --s-input: #161526;
+    --s-ink: #ebe9f7;
+    --s-muted: #b0abcb;
+    --s-line: #3a3657;
+    --s-accent: #ad9ff0;
+    --s-accent-text: #c0b6f5;
+    --s-on-accent: #15132a;
+    --s-accent-2: #c49bd0;
+    --s-holiday-bg: #33291a;
+    --s-holiday-ink: #ecd9a3;
+  }
+
+  /* ---- Themed controls: inside an open schedule and its dialogs ----
+     This layer beats the button rules in legacy, so hover and press are restated here.
+     :not(:disabled) keeps a disabled button on the flat grey from B5, and a delete confirm
+     keeps its danger fill whatever the theme. */
+  :is(.sched, .sched-layer .modal-content, .modal-content[data-sched-theme]) .primary-button:not(:disabled):not(.confirm-danger) {
+    background: var(--s-accent);
+    color: var(--s-on-accent);
+  }
+  :is(.sched, .sched-layer .modal-content, .modal-content[data-sched-theme]) .primary-button:active:not(:disabled):not(.confirm-danger) {
+    background: var(--s-accent-press);
+  }
+  :is(.sched, .sched-layer .modal-content, .modal-content[data-sched-theme]) .secondary-button:not(:disabled) {
+    background: var(--s-card);
+    color: var(--s-ink);
+    border-color: var(--border-input);
+  }
+  :is(.sched, .sched-layer .modal-content, .modal-content[data-sched-theme]) .secondary-button:active:not(:disabled) {
+    background: color-mix(in srgb, var(--s-ink) 10%, var(--s-card));
+  }
+  @media (hover: hover) and (pointer: fine) {
+    :is(.sched, .sched-layer .modal-content, .modal-content[data-sched-theme]) .primary-button:hover:not(:disabled):not(.confirm-danger) {
+      background: var(--s-accent-hover);
+    }
+    :is(.sched, .sched-layer .modal-content, .modal-content[data-sched-theme]) .secondary-button:hover:not(:disabled) {
+      background: var(--s-day);
+    }
+  }
+  :is(.sched, .sched-layer .modal-content, .modal-content[data-sched-theme]) :is(input, select, textarea) {
+    background-color: var(--s-input);
+    color: var(--s-ink);
+  }
+  :is(.sched, .sched-layer .modal-content, .modal-content[data-sched-theme]) :is(input, select, textarea):focus {
+    border-color: var(--s-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--s-accent) 22%, transparent);
+  }
+  :is(.sched, .sched-layer .modal-content, .modal-content[data-sched-theme]) :is(label, .sched-field-label) {
+    color: var(--s-muted);
+  }
+
+  /* Dialogs on the schedule page live in .sched-layer, which only carries the theme variables
+     (display: contents keeps it out of the page grid). Radius and the phone bottom sheet come
+     from ModalShell's own rules, so they aren't set here. */
+  .sched-layer { display: contents; }
+  .sched-layer .modal-content,
+  .modal-content[data-sched-theme] {
+    background: var(--s-surface);
+    color: var(--s-ink);
+    border-color: var(--s-line);
+  }
+  .sched-layer .modal-header h2,
+  .modal-content[data-sched-theme] .modal-header h2,
+  .sched-layer .confirm-dialog-title { color: var(--s-ink); }
+  .sched-layer .modal-content .sched-notice { background: var(--s-holiday-bg); color: var(--s-holiday-ink); }
+
+  /* ---- Page ---- */
+  .sched {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    color: var(--s-ink);
+  }
+  .sched .panel {
+    background: var(--s-surface);
+    color: var(--s-ink);
+    border-color: var(--s-line);
+  }
+  .sched h2,
+  .sched h3 { color: var(--s-ink); }
+  .sched .tabs { border-bottom-color: var(--s-line); }
+  .sched .tab { color: var(--s-muted); }
+  .sched .tab.is-selected { color: var(--s-ink); border-bottom-color: var(--s-accent); }
+  .sched .tab-count { background: var(--s-accent-soft); color: var(--s-ink); }
+  .sched-week,
+  .sched-day,
+  .sched .panel {
+    transition: background-color var(--dur-3) var(--ease-out), border-color var(--dur-3) var(--ease-out), color var(--dur-3) var(--ease-out);
+  }
+
+  @media (max-width: 720px) {
+    .sched,
+    .tasks-tab { gap: var(--space-3); }
+  }
+
+  /* ---- Header (no card): title and switcher, two chips, actions ---- */
+  .sched-head {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .sched-head-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-4);
+  }
+  .sched-head-title {
+    flex: 1 1 320px;
+    min-width: 0;
+    display: grid;
+    gap: var(--space-2);
+  }
+  .sched-title-line {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+  .sched-title-line h1 {
+    margin: 0;
+    min-width: 0;
+    color: var(--s-ink);
+    font-size: var(--text-3xl);
+    line-height: var(--text-3xl-lh);
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+  }
+  .sched-title-line .sched-menu { flex: none; }
+  .sched-switch { color: var(--s-muted); }
+  .sched-switch-sep {
+    height: 1px;
+    margin: var(--space-1) var(--space-2);
+    background: var(--s-line, var(--border));
+  }
+  .sched-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0;
+  }
+  .sched-chips .chip {
+    background: var(--s-day);
+    color: var(--s-muted);
+    white-space: normal;
+  }
+  .sched-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .sched-actions .sched-menu > .primary-button { gap: var(--space-2); }
+  .sched-more { color: var(--s-muted); }
+  .sched-head-notes {
+    display: grid;
+    gap: var(--space-1);
+    max-width: 72ch;
+  }
+  .sched-head-notes > .sched-hint,
+  .sched-about > .sched-hint { color: var(--s-muted); }
+  .sched-about summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--s-muted);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    gap: var(--space-1);
+    cursor: pointer;
+    list-style: none;
+  }
+  .sched-about summary::-webkit-details-marker { display: none; }
+  .sched-about summary svg { transition: transform var(--dur-1) ease; }
+  .sched-about[open] summary svg { transform: rotate(180deg); }
+  @media (hover: hover) and (pointer: fine) {
+    .sched-about summary:hover { color: var(--s-ink); }
+  }
+  .sched-about[open] > .sched-hint { margin: 0 0 var(--space-2); }
+  .sched-head-notes .sched-hint { display: block; font-size: var(--text-sm); line-height: var(--lh-body); }
+  .sched-workload-toggle {
+    align-items: flex-start;
+    width: auto;
+    font-weight: 500;
+    color: var(--s-ink);
+  }
+  .sched-workload-toggle input { margin-top: 2px; flex-shrink: 0; accent-color: var(--s-accent); }
+  .sched-workload-toggle small {
+    display: block;
+    margin-top: 2px;
+    font-weight: 400;
+    font-size: var(--text-xs);
+    color: var(--s-muted);
+  }
+
+  /* ---- Loading and failure ---- */
+  .sched-skeleton { display: grid; gap: var(--space-3); }
+  .sched-skeleton .skeleton { display: block; }
+  .sched-skeleton-title { height: 36px; width: min(320px, 70%); }
+  .sched-skeleton-chips { height: 24px; width: min(240px, 55%); }
+  .sched-skeleton-week { height: 360px; border-radius: var(--radius-lg); }
+  .sched-skeleton-row { height: 64px; border-radius: var(--radius-lg); }
+  .sched-load-failed {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-3);
+    text-align: center;
+  }
+
+  /* ---- Month: a bar on top, then one week card per week ---- */
+  .sched-month {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .sched-month-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+  }
+  .sched-month-bar h2 {
+    flex: 1 1 9rem;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--text-lg);
+    line-height: var(--text-lg-lh);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .sched-month-bar .icon-action { color: var(--s-muted); }
+  .sched-month-bar .sched-this-week { margin-left: var(--space-2); }
+  /* "This week" when the current week is already on screen: it stays focusable (so focus is not
+     lost after it scrolls) but reads as unavailable. */
+  .sched-this-week[aria-disabled="true"] {
+    opacity: 0.55;
+    cursor: default;
+    pointer-events: none;
+  }
+  .sched-month-weeks {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .sched-month-weeks > .sched-week {
+    scroll-margin-top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px) + var(--space-3));
+  }
+  @media (max-width: 720px) {
+    .sched-month-bar h2 { text-align: left; font-size: var(--text-md); }
+    .sched-month-bar .sched-this-week { margin-left: 0; }
+  }
+
+  /* ---- Week ----
+     One DOM, two layouts. The section is the container; narrow is the default (day strip and
+     the picked day's agenda), 840px and wider shows a true 7-column week. */
+  .sched-week {
+    container: week / inline-size;
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--s-line);
+    border-radius: var(--s-radius);
+    background: var(--s-surface);
+    color: var(--s-ink);
+  }
+  .sched-week-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+  .sched-week-bar h2 {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--text-lg);
+    line-height: var(--text-lg-lh);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .sched-this-week { margin-left: var(--space-2); }
+  .sched-week-bar .icon-action { color: var(--s-muted); }
+  /* A week card inside the month: its name, the date range, and a chip on the current one. */
+  .sched-week.is-current { border-color: var(--s-accent); }
+  .sched-week-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-2);
+  }
+  .sched-week-head h3 {
+    margin: 0;
+    font-size: var(--text-md);
+    line-height: var(--text-md-lh);
+    font-weight: 600;
+  }
+  .sched-week-range {
+    color: var(--s-muted);
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+  }
+  .sched-week-chip { align-self: center; }
+
+  /* Day strip (narrow only) */
+  .sched-strip {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: var(--space-1);
+  }
+  .sched-strip-day {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 60px;
+    padding: var(--space-1) 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--s-muted);
+    font: inherit;
+    cursor: pointer;
+    transition: background-color var(--dur-1) ease, color var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+  }
+  .sched-strip-name { font-size: var(--text-xs); font-weight: 500; line-height: 1.2; }
+  .sched-strip-num {
+    color: var(--s-ink);
+    font-size: var(--text-md);
+    font-weight: 600;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+  .sched-strip-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: var(--radius-pill);
+    background: transparent;
+  }
+  .sched-strip-dot.is-on { background: var(--s-accent); }
+  .sched-strip-day.is-outside .sched-strip-num { color: var(--s-muted); font-weight: 500; }
+  .sched-strip-day.is-today .sched-strip-num,
+  .sched-strip-day.is-today .sched-strip-name { color: var(--s-accent-text); }
+  .sched-strip-day[aria-pressed="true"] {
+    background: var(--s-accent);
+    color: var(--s-on-accent);
+  }
+  .sched-strip-day[aria-pressed="true"] :is(.sched-strip-num, .sched-strip-name) { color: var(--s-on-accent); }
+  .sched-strip-day[aria-pressed="true"] .sched-strip-dot.is-on { background: var(--s-on-accent); }
+  .sched-strip-day:active { transform: scale(0.98); }
+  .sched-strip-day:focus-visible { outline: 2px solid var(--s-accent); outline-offset: 2px; }
+  @media (hover: hover) and (pointer: fine) {
+    .sched-strip-day:not([aria-pressed="true"]):hover { background: var(--s-day); }
+  }
+
+  /* Days: narrow shows only the picked one, as an agenda */
+  .sched-days { display: grid; gap: var(--space-3); }
+  .sched-day { display: none; }
+  .sched-day.is-selected {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+  .sched-day-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    min-height: 44px;
+  }
+  .sched-day-name {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    min-width: 0;
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--s-ink);
+  }
+  .sched-day-short { display: none; }
+  .sched-day.is-outside .sched-day-name { color: var(--s-muted); }
+  .sched-day-date {
+    color: var(--s-muted);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .sched-day-off { color: var(--s-muted); }
+  .sched-holiday-banner {
+    margin: 0;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--s-holiday-bg);
+    color: var(--s-holiday-ink);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .sched-day-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    flex: 1;
+    min-width: 0;
+  }
+  .sched-day-empty {
+    margin: 0;
+    padding: var(--space-3) 0;
+    color: var(--s-muted);
+    font-size: var(--text-sm);
+  }
+  .sched-day-empty-short { display: none; }
+  .sched-day-add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    width: 100%;
+    min-height: 44px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--s-line);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--s-muted);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--dur-1) ease, color var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+  }
+  .sched-day-add:active { transform: scale(0.98); background: var(--s-day); }
+  .sched-day-add:focus-visible { outline: 2px solid var(--s-accent); outline-offset: 2px; }
+  @media (hover: hover) and (pointer: fine) {
+    .sched-day-add:hover { background: var(--s-day); color: var(--s-ink); }
+  }
+
+  /* One entry: a soft tint of its colour with a 3px bar on top (no side stripe) */
+  .sched-entry {
+    --ec: var(--entry-color, var(--s-accent));
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    min-width: 0;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    /* The bar is a 3px band painted on top of the tint, clipped flat by the corner radius */
+    background:
+      linear-gradient(var(--ec), var(--ec)) top / 100% 3px no-repeat,
+      color-mix(in srgb, var(--ec) 8%, var(--s-card));
+    color: var(--s-ink);
+    transition: background-color var(--dur-2) ease, transform var(--dur-1) var(--ease-out);
+  }
+  .sched-entry.kind-activity,
+  .sched-entry.kind-event { --ec: var(--entry-color, var(--s-accent-2)); }
+  .sched-entry.kind-exam { --ec: var(--entry-color, var(--watch)); }
+  .sched-entry:has(.sched-entry-hit:active) { transform: scale(0.98); }
+  @media (hover: hover) and (pointer: fine) {
+    .sched-entry:has(.sched-entry-hit:hover) {
+      background:
+        linear-gradient(var(--ec), var(--ec)) top / 100% 3px no-repeat,
+        color-mix(in srgb, var(--ec) 14%, var(--s-card));
+    }
+  }
+  .sched-entry.is-suspended {
+    background:
+      linear-gradient(var(--s-line), var(--s-line)) top / 100% 3px no-repeat,
+      var(--s-card);
+  }
+  .sched-entry.is-suspended strong { color: var(--s-muted); text-decoration: line-through; }
+  .sched-entry-hit {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    padding: 0;
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+    cursor: pointer;
+  }
+  .sched-entry-hit:focus-visible { outline: 2px solid var(--s-accent); outline-offset: 2px; }
+  .sched-thumb {
+    --tc: var(--ec, var(--entry-color, var(--s-accent, var(--accent))));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    color: color-mix(in srgb, var(--tc) 70%, var(--s-ink, var(--text-primary)));
+    background: color-mix(in srgb, var(--tc) 16%, var(--s-card, var(--surface)));
+  }
+  .sched-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sched-thumb-lg { width: 64px; height: 64px; border-radius: var(--radius-lg); }
+  .sched-entry-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .sched-entry-time {
+    color: var(--s-muted);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .sched-entry-text strong {
+    font-size: var(--text-md);
+    font-weight: 600;
+    line-height: var(--lh-snug);
+    overflow-wrap: anywhere;
+  }
+  .sched-entry-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--s-muted);
+    font-size: var(--text-xs);
+    overflow-wrap: anywhere;
+  }
+  .sched-entry-meta svg { flex-shrink: 0; }
+  .sched-entry-tags { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-1); }
+  .sched-entry-tags .chip { white-space: normal; border-radius: var(--radius-sm); }
+  .sched-join {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    align-self: flex-start;
+    min-height: 32px;
+    margin-top: var(--space-1);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-pill);
+    background: var(--s-accent-soft);
+    color: var(--s-accent-text);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+  }
+  .sched-join:active { transform: scale(0.98); }
+  .sched-join:focus-visible { outline: 2px solid var(--s-accent); outline-offset: 2px; }
+  @media (hover: hover) and (pointer: fine) {
+    .sched-join:hover { background: color-mix(in srgb, var(--s-accent) 20%, var(--s-card)); }
+  }
+
+  /* Tasks due on a day (the viewer's own) */
+  .sched-due { display: grid; gap: var(--space-1); }
+  .sched-due-label { color: var(--s-muted); font-size: var(--text-xs); font-weight: 600; }
+  .sched-due-chip {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: var(--space-2);
+    border: 1px solid var(--s-line);
+    border-radius: var(--radius-md);
+    background: var(--s-card);
+    color: var(--s-ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+  }
+  .sched-due-chip > svg { flex-shrink: 0; margin-top: 2px; color: var(--s-accent-text); }
+  .sched-due-chip > span { display: flex; flex-direction: column; min-width: 0; }
+  .sched-due-chip strong { font-size: var(--text-sm); font-weight: 600; overflow-wrap: anywhere; }
+  .sched-due-chip small { color: var(--s-muted); font-size: var(--text-xs); overflow-wrap: anywhere; }
+  .sched-due-chip.is-overdue > svg,
+  .sched-due-overdue { color: var(--danger); font-weight: 600; }
+  .sched-due-chip:active { transform: scale(0.98); }
+  .sched-due-chip:focus-visible { outline: 2px solid var(--s-accent); outline-offset: 2px; }
+  @media (hover: hover) and (pointer: fine) {
+    .sched-due-chip:hover { background: var(--s-day); }
+  }
+  .sched-week-note { margin: var(--space-2) 0 0; }
+
+  /* Wide: a true week, Monday to Sunday, compact blocks */
+  @container week (min-width: 840px) {
+    .sched-strip { display: none; }
+    .sched-days {
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: var(--space-2);
+    }
+    .sched-day,
+    .sched-day.is-selected {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      min-width: 0;
+      padding: var(--space-2);
+      border-radius: var(--radius-md);
+      background: var(--s-day);
+    }
+    .sched-day-head { min-height: 32px; }
+    .sched-day-name { gap: var(--space-1); align-items: center; }
+    .sched-day-short { display: inline; color: var(--s-muted); font-size: var(--text-xs); font-weight: 500; }
+    .sched-day-long,
+    .sched-day-month { display: none; }
+    .sched-day-date {
+      display: inline-grid;
+      place-items: center;
+      min-width: 28px;
+      height: 28px;
+      padding: 0 var(--space-1);
+      border-radius: var(--radius-pill);
+      color: var(--s-ink);
+      font-size: var(--text-md);
+      font-weight: 600;
+    }
+    .sched-day.is-outside .sched-day-date { color: var(--s-muted); font-weight: 500; }
+    .sched-day.is-today .sched-day-date { background: var(--s-accent); color: var(--s-on-accent); }
+    .sched-day.is-today .sched-day-short { color: var(--s-accent-text); }
+    .sched-day-empty { padding: var(--space-1) 0; font-size: var(--text-xs); }
+    .sched-day-empty-long { display: none; }
+    .sched-day-empty-short { display: inline; }
+    .sched-entry { display: block; padding: var(--space-2); }
+    .sched-entry .sched-thumb,
+    .sched-entry-notes { display: none; }
+    .sched-entry-text strong { font-size: var(--text-sm); }
+    .sched-due-chip { min-height: 0; padding: var(--space-1) var(--space-2); }
+    .sched-due-chip > svg { display: none; }
+    .sched-day-add {
+      min-height: 32px;
+      margin-top: auto;
+      border-color: transparent;
+      font-size: var(--text-xs);
+    }
+  }
+  /* With a mouse, the seven day-off buttons stay quiet until their day is pointed at or
+     focused, so the week reads as a timetable rather than a row of icons. Touch keeps them. */
+  @media (hover: hover) and (pointer: fine) {
+    @container week (min-width: 840px) {
+      .sched-day-off {
+        width: 32px;
+        height: 32px;
+        opacity: 0;
+        transition: opacity var(--dur-1) ease, background-color var(--dur-1) ease;
+      }
+      .sched-day:is(:hover, :focus-within) .sched-day-off { opacity: 1; }
+    }
+  }
+  @media (pointer: coarse) {
+    .sched-join { min-height: 44px; }
+  }
+
+  /* Phones: the week runs edge to edge as a band so the 7 strip buttons get the full width */
+  @media (max-width: 720px) {
+    .sched { gap: var(--space-4); }
+    .sched-title-line h1 { font-size: var(--text-2xl); line-height: var(--text-2xl-lh); }
+    .sched-head-title { flex-basis: 100%; }
+    .sched-actions { width: 100%; }
+    .sched-actions > .sched-menu:first-child,
+    .sched-actions > .primary-button,
+    .sched-add-mine { flex: 1 1 auto; }
+    .sched-actions > .sched-menu:first-child > button { width: 100%; }
+    .sched-share { width: 44px; min-height: 44px; padding: 0; }
+    .sched-share-label { display: none; }
+    .sched-week {
+      margin-inline: calc(-1 * var(--space-4));
+      padding: var(--space-3) var(--space-4) var(--space-4);
+      border-inline: 0;
+      border-radius: 0;
+    }
+  }
+  /* Narrow: the range on the left, arrows on the right, and "This week" only when it does
+     something (it wraps under them if the range is long). */
+  @container week (max-width: 839.98px) {
+    .sched-week-bar { flex-wrap: wrap; }
+    .sched-week-bar h2 {
+      order: -1;
+      text-align: left;
+      font-size: var(--text-md);
+    }
+    .sched-this-week { margin-left: 0; }
+    .sched-this-week:disabled { display: none; }
+  }
+
+  /* ---- Tasks tab ---- */
+  .tasks-tab {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: start;
+  }
+  .tasks-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+  .task-import-form {
+    display: grid;
+    grid-template-columns: minmax(0, 260px) auto;
+    justify-content: start;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+  .task-import-form .secondary-button { white-space: nowrap; }
+  .task-group + .task-group { margin-top: var(--space-4); }
+  .task-group-title {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-1);
+    color: var(--s-muted);
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+  .task-group-title span { font-size: var(--text-xs); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .task-group-title.is-overdue { color: var(--danger); }
+  .plan-disclosure summary {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: var(--space-1) 0;
+    font-size: var(--text-lg);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .plan-disclosure[open] summary { margin-bottom: var(--space-3); }
+  .schedule-stack { display: grid; gap: var(--space-2); }
+  .schedule-day {
+    display: grid;
+    gap: 2px;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--s-day);
+  }
+  .schedule-day-head {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    font-size: var(--text-sm);
+  }
+  .schedule-day-head span {
+    color: var(--s-muted);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+  }
+  .schedule-date-label,
+  .schedule-busy {
+    display: block;
+    margin: 0;
+    color: var(--s-muted);
+    font-size: var(--text-xs);
+  }
+  .schedule-items { display: grid; gap: 2px; margin-top: var(--space-1); }
+  .schedule-item {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    overflow-wrap: anywhere;
+  }
+  .schedule-item strong { font-variant-numeric: tabular-nums; flex: none; }
+  .schedule-day .schedule-empty {
+    padding: 0;
+    background: none;
+    color: var(--s-muted);
+    font-size: var(--text-xs);
+  }
+  .schedule-empty-state {
+    margin: 0;
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--s-day);
+    color: var(--s-muted);
+    line-height: var(--lh-body);
+  }
+  @media (max-width: 720px) {
+    .tasks-tab { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+    .task-import-form { grid-template-columns: minmax(0, 1fr) auto; }
+  }
+
+  /* ---- Recent changes ---- */
+  .sched-activity { display: grid; gap: var(--space-3); }
+  .sched-activity-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+  }
+  .sched-activity-head h2 { margin: 0; font-size: var(--text-xl); }
+  .sched-activity-people {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--s-muted);
+    font-size: var(--text-sm);
+  }
+  .sched-activity-list { list-style: none; margin: 0; padding: 0; display: grid; }
+  .sched-activity-list li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2px var(--space-4);
+    padding: var(--space-3) 0;
+    border-top: 1px solid var(--s-line);
+    font-size: var(--text-sm);
+    overflow-wrap: anywhere;
+  }
+  .sched-activity-list li:first-child { border-top: 0; }
+  .sched-activity-list time { color: var(--s-muted); font-size: var(--text-xs); white-space: nowrap; }
+
+  /* ---- Days off calendar ---- */
+  .sched-cal { display: grid; gap: var(--space-3); }
+  .sched-cal-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: var(--space-2);
+  }
+  .sched-cal-head h2 { margin: 0; font-size: var(--text-xl); }
+  .sched-cal-sub { margin: 2px 0 0; color: var(--s-muted); font-size: var(--text-sm); }
+  .sched-cal-nav { display: flex; align-items: center; gap: var(--space-2); }
+  .sched-cal-help { display: block; }
+  .sched-cal-grid { display: grid; gap: 6px; }
+  .sched-cal-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+  .sched-cal-weekdays span {
+    color: var(--s-muted);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-align: center;
+  }
+  .sched-cal-day {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+    min-width: 0;
+    min-height: 78px;
+    padding: 6px;
+    border: 1px solid var(--s-line);
+    border-radius: var(--radius-md);
+    background: var(--s-day);
+    color: var(--s-ink);
+    font: inherit;
+    text-align: left;
+    overflow: hidden;
+    transition: border-color var(--dur-1) ease, background-color var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+  }
+  button.sched-cal-day { cursor: pointer; }
+  button.sched-cal-day:focus-visible { outline: 2px solid var(--s-accent); outline-offset: 2px; }
+  @media (hover: hover) and (pointer: fine) {
+    button.sched-cal-day:hover { border-color: var(--s-accent); }
+  }
+  .sched-cal-day.is-weekend { background: color-mix(in srgb, var(--s-line) 30%, var(--s-day)); }
+  .sched-cal-day.is-outside { color: var(--s-muted); background: transparent; }
+  .sched-cal-day.is-public {
+    background: var(--s-holiday-bg);
+    color: var(--s-holiday-ink);
+    border-color: color-mix(in srgb, var(--s-holiday-ink) 28%, transparent);
+  }
+  /* Your own days off: a stronger accent fill plus a folded corner, so they never rely on
+     colour alone to stand apart from public holidays. */
+  .sched-cal-day.is-own {
+    background: color-mix(in srgb, var(--s-accent) 22%, var(--s-day));
+    border-color: var(--s-accent);
+  }
+  .sched-cal-day.is-own::after,
+  .sched-cal-legend i.is-own::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    border-style: solid;
+    border-width: 0 16px 16px 0;
+    border-color: transparent var(--s-accent) transparent transparent;
+  }
+  .sched-cal-day.is-cleared .sched-cal-name { text-decoration: line-through; color: var(--s-muted); }
+  .sched-cal-day.is-selected {
+    border-color: var(--s-accent);
+    box-shadow: inset 0 0 0 2px var(--s-accent);
+    transform: scale(0.97);
+  }
+  .sched-cal-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 var(--space-1);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .sched-cal-day.is-today .sched-cal-num { background: var(--s-accent); color: var(--s-on-accent); }
+  .sched-cal-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+  .sched-cal-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px var(--space-4);
+    color: var(--s-muted);
+    font-size: var(--text-xs);
+  }
+  .sched-cal-legend i {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 6px;
+    vertical-align: -1px;
+    border: 1px solid var(--s-line);
+    border-radius: var(--radius-sm);
+  }
+  .sched-cal-legend i.is-public { background: var(--s-holiday-bg); border-color: color-mix(in srgb, var(--s-holiday-ink) 30%, transparent); }
+  .sched-cal-legend i.is-own { position: relative; overflow: hidden; background: color-mix(in srgb, var(--s-accent) 22%, var(--s-day)); border-color: var(--s-accent); }
+  .sched-cal-legend i.is-own::after { border-width: 0 7px 7px 0; }
+  .sched-cal-legend i.is-cleared { background: transparent; border-color: var(--border-input); }
+  .sched-cal-bar {
+    position: sticky;
+    bottom: var(--space-3);
+    z-index: 5;
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border: 1px solid var(--s-line);
+    border-radius: var(--radius-lg);
+    background: var(--s-card);
+    color: var(--s-ink);
+    box-shadow: var(--shadow-2);
+    animation: pop-in var(--dur-2) var(--ease-out);
+  }
+  .sched-cal-bar-top { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); }
+  .sched-cal-bar-top strong small { display: block; color: var(--s-muted); font-size: var(--text-xs); font-weight: 400; }
+  .sched-cal-name-row { display: flex; gap: var(--space-2); }
+  .sched-cal-name-row input { flex: 1; width: auto; min-width: 0; }
+  .sched-cal-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+  .sched-cal-actions .sched-link-button { color: var(--s-muted); }
+  .sched-cal-bar .form-error { margin: 0; }
+  .sched-cal-summary {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--space-2);
+  }
+  .sched-cal-summary li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+    padding: var(--space-2);
+    border-radius: var(--radius-md);
+    background: var(--s-day);
+  }
+  .sched-cal-summary-date {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    background: var(--s-holiday-bg);
+    color: var(--s-holiday-ink);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .sched-cal-summary li.is-own .sched-cal-summary-date { background: color-mix(in srgb, var(--s-accent) 22%, var(--s-day)); color: var(--s-ink); }
+  .sched-cal-summary li.is-cleared .sched-cal-summary-date { background: transparent; border: 1px solid var(--s-line); color: var(--s-muted); }
+  .sched-cal-summary-name { display: flex; flex-direction: column; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+  .sched-cal-summary-name small { color: var(--s-muted); font-size: var(--text-xs); font-weight: 400; }
+  .sched-cal-empty { margin: 0; }
+  @media (max-width: 640px) {
+    .sched-cal-row,
+    .sched-cal-grid { gap: var(--space-1); }
+    .sched-cal-day {
+      min-height: 46px;
+      padding: var(--space-1);
+      align-items: center;
+      justify-content: center;
+    }
+    .sched-cal-name { display: none; }
+    .sched-cal-num { min-width: 24px; height: 24px; font-size: var(--text-xs); }
+  }
+
+  /* ---- Small text button used in the dialogs and the calendar bar ---- */
+  .sched-link-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-height: 40px;
+    padding: 0 6px;
+    border: none;
+    background: none;
+    color: var(--s-muted, var(--text-secondary));
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  .sched-link-button:focus-visible { outline: 2px solid var(--s-accent); outline-offset: 2px; }
+  @media (hover: hover) and (pointer: fine) {
+    .sched-link-button:hover:not(:disabled) { color: var(--s-accent-text); }
+  }
+  @media (max-width: 720px), (pointer: coarse) {
+    .sched-link-button { min-height: 44px; }
+  }
+
+  /* ---- Entry form pickers (EntryModal) ---- */
+  .sched-day-picker,
+  .sched-icon-picker,
+  .sched-color-picker { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .sched-day-picker button {
+    min-width: 48px;
+    min-height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-pill);
+    background: var(--s-input);
+    color: var(--s-ink);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .sched-day-picker button.active {
+    background: var(--s-accent);
+    border-color: var(--s-accent);
+    color: var(--s-on-accent);
+  }
+  .sched-icon-picker button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--s-line);
+    border-radius: var(--radius-md);
+    background: var(--s-input);
+    color: var(--s-muted);
+    cursor: pointer;
+  }
+  .sched-icon-picker button.active {
+    border-color: var(--s-accent);
+    color: var(--s-accent-text);
+    box-shadow: 0 0 0 2px var(--s-accent);
+  }
+  .sched-swatch {
+    width: 32px;
+    height: 32px;
+    border: 2px solid transparent;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+  }
+  .sched-swatch.active { box-shadow: 0 0 0 2px var(--s-card), 0 0 0 4px var(--s-ink); }
+  .sched-swatch-auto {
+    width: auto;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-input);
+    background: var(--s-input);
+    color: var(--s-muted);
+    font-size: var(--text-xs);
+    font-weight: 600;
+  }
+  @media (max-width: 720px), (pointer: coarse) {
+    .sched-day-picker button { min-height: 44px; }
+    .sched-icon-picker button,
+    .sched-swatch { width: 44px; height: 44px; }
+    .sched-swatch-auto { width: auto; }
+  }
+  .sched-picture-row { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+  .sched-picture-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .sched-info {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--s-day);
+  }
+  .sched-info-title { color: var(--s-ink); font-size: var(--text-sm); font-weight: 600; }
+  .sched-info label { flex-direction: row; align-items: center; gap: 6px; }
+  .sched-meeting-hint { margin-top: 6px; }
+
+  /* ---- Entry details (read only) and the day-off dialog ---- */
+  .sched-details-head { --ec: var(--entry-color, var(--s-accent)); display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+  .sched-details-head h2 { margin: var(--space-1) 0 0; overflow-wrap: anywhere; }
+  .sched-details-list { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: grid; gap: var(--space-3); }
+  .sched-details-list li { display: flex; align-items: flex-start; gap: 10px; overflow-wrap: anywhere; }
+  .sched-details-list li > svg { flex-shrink: 0; margin-top: 3px; color: var(--s-accent-text); }
+  .sched-details-meeting-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+  .sched-details-meeting-actions a { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+  .sched-mark-status { margin-bottom: var(--space-3); }
+  .sched-mark-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: var(--space-4); }
+
+  /* ---- Theme picker (More > Theme, and the new schedule form) ----
+     Each option carries its own data-sched-theme, so it previews in its own colours. */
+  .sched-theme-picker { display: grid; gap: var(--space-2); margin-top: var(--space-2); }
+  .sched-theme-option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    min-height: 56px;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--s-line);
+    border-radius: var(--radius-md);
+    background: var(--s-surface);
+    color: var(--s-ink);
+    font: inherit;
+    font-size: var(--text-md);
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color var(--dur-1) ease, box-shadow var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+  }
+  .sched-theme-option.is-selected {
+    border-color: var(--s-accent);
+    box-shadow: 0 0 0 1px var(--s-accent);
+    font-weight: 600;
+  }
+  .sched-theme-option:active:not(:disabled) { transform: scale(0.98); }
+  .sched-theme-option:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  .sched-theme-option:disabled { color: var(--text-muted); cursor: not-allowed; }
+  .sched-theme-preview { display: inline-flex; }
+  .sched-theme-preview i {
+    width: 20px;
+    height: 20px;
+    margin-left: -6px;
+    border: 2px solid var(--s-card);
+    border-radius: var(--radius-pill);
+  }
+  .sched-theme-preview i:first-child { margin-left: 0; }
+  .sched-theme-check { margin-left: auto; color: var(--s-accent-text); }
+  .sched-theme-dialog .sched-hint { display: block; font-size: var(--text-sm); }
+
+  /* ---- Share dialog ---- */
+  .share-modal { max-width: 600px; }
+  .share-block {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: var(--space-4) 0;
+    border-top: 1px solid var(--s-line, var(--border));
+  }
+  .share-block:first-of-type { border-top: 0; padding-top: 0; }
+  .share-block h3 { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--text-md); color: var(--s-ink); }
+  .share-add-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .share-add-row select { flex: 1 1 180px; width: auto; min-width: 0; }
+  .share-role-select { flex: 0 0 auto; width: auto; padding: 8px 10px; }
+  .share-people { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .share-people li { display: flex; align-items: center; gap: var(--space-3); }
+  .share-person { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .share-person strong { overflow-wrap: anywhere; }
+  .share-person small { color: var(--s-muted); font-size: var(--text-xs); }
+  .share-role-static { padding: 0 6px; color: var(--s-muted); font-size: var(--text-sm); font-weight: 600; }
+  .share-general { display: flex; align-items: flex-start; gap: var(--space-3); }
+  .share-general-icon {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-pill);
+    background: var(--s-day);
+    color: var(--s-muted);
+  }
+  .share-general-icon.is-open { background: var(--s-accent-soft); color: var(--s-accent-text); }
+  .share-general-body { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+  .share-general-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .share-general-row select:first-child { flex: 1 1 200px; width: auto; min-width: 0; }
+  .share-code-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+  .sched-code {
+    padding: 6px 14px;
+    border: 1px solid var(--s-line);
+    border-radius: var(--radius-md);
+    background: var(--s-input);
+    color: var(--s-ink);
+    font-family: var(--font-mono);
+    font-size: var(--text-xl);
+    letter-spacing: 3px;
+  }
+  .share-private { justify-self: start; display: inline-flex; align-items: center; gap: 6px; }
+  .share-private-confirm {
+    display: grid;
+    gap: 10px;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--watch-soft);
+    color: var(--text-primary);
+    font-size: var(--text-md);
+  }
+  .share-private-confirm div { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .share-footer { justify-content: flex-end; }
+  .share-copy-link { margin-right: auto; display: inline-flex; align-items: center; gap: 6px; }
+  @media (max-width: 640px) {
+    .share-people li { flex-wrap: wrap; }
+  }
+
+  /* ---- All schedules (?view=all) ---- */
+  .sched-list-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: var(--space-4) 0 var(--space-5);
+  }
+  .sched-list { display: grid; gap: var(--space-5); }
+  .sched-section-title { margin: 0 0 var(--space-2); font-size: var(--text-md); font-weight: 600; }
+  .sched-section > .sched-hint { display: block; margin-bottom: var(--space-2); }
+  .sched-rows.panel {
+    list-style: none;
+    margin: 0;
+    padding: var(--space-1) var(--space-2);
+  }
+  .sched-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    border-top: 1px solid var(--border);
+  }
+  .sched-row:first-child { border-top: 0; }
+  .sched-row-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 64px;
+    padding: var(--space-2);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: none;
+    color: var(--text-primary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--dur-1) ease;
+  }
+  .sched-row-main:active { background: var(--surface-3); }
+  .sched-row-main:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  @media (hover: hover) and (pointer: fine) {
+    .sched-row-main:hover { background: var(--surface-2); }
+  }
+  .sched-row-tile {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--s-accent) 14%, var(--surface));
+    color: var(--s-accent-text);
+  }
+  .sched-row-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  .sched-row-text strong { font-size: var(--text-md); font-weight: 600; overflow-wrap: anywhere; }
+  .sched-row-text small { color: var(--text-muted); font-size: var(--text-xs); overflow-wrap: anywhere; }
+  .sched-row .chip { flex: none; }
+  .sched-row-arrow { flex: none; color: var(--text-muted); }
+  .sched-row .sched-menu-list.align-end { left: auto; right: 0; }
+
+  /* ---- Motion ----
+     A month change slides the whole stack of week cards 12px the way you moved; a tapped day fades in (keyboard swaps are
+     instant); a new entry rises in through .is-entering (components.css). All of it is
+     squashed by the reduced-motion rule in base.css. */
+  @keyframes sched-week-next { from { opacity: 0; transform: translateX(12px); } }
+  @keyframes sched-week-prev { from { opacity: 0; transform: translateX(-12px); } }
+  @keyframes sched-day-in { from { opacity: 0; } }
+  .sched-month-weeks[data-dir="next"] { animation: sched-week-next var(--dur-2) var(--ease-out); }
+  .sched-month-weeks[data-dir="prev"] { animation: sched-week-prev var(--dur-2) var(--ease-out); }
+  @container week (max-width: 839.98px) {
+    .sched-day.is-selected { animation: sched-day-in var(--dur-1) var(--ease-out); }
+  }
+  .sched-week[data-instant] .sched-day { animation: none; }
+}

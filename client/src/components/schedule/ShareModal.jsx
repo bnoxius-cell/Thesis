@@ -5,6 +5,7 @@ import { Copy, RefreshCw, Send, Link2, Lock, Globe2, UserPlus, ShieldCheck } fro
 import UserAvatar from "../UserAvatar";
 import { shareLinkFor } from "../../utils/scheduleUtils";
 import Modal from "../Modal";
+import BusySpinner from "../BusySpinner";
 
 const ROLE_HELP = {
   viewer: "Viewers see the schedule and every change as it happens. They can make their own copy.",
@@ -154,7 +155,7 @@ export default function ShareModal({ schedule, backendUrl, currentUserId, onUpda
                 <option value="viewer">Viewer</option>
                 <option value="editor">Editor</option>
               </select>
-              <button type="button" className="primary-button" onClick={addPerson} disabled={busy || !pickedFriend}>Share</button>
+              <button type="button" className="primary-button" onClick={addPerson} disabled={busy || !pickedFriend} aria-busy={busy}>{busy && <BusySpinner />}Share</button>
             </div>
           )}
           <p className="sched-hint">{ROLE_HELP[newRole]}</p>
@@ -222,12 +223,12 @@ export default function ShareModal({ schedule, backendUrl, currentUserId, onUpda
               {access === "code" && (
                 <div className="share-code-row">
                   <strong className="sched-code">{schedule.shareCode}</strong>
-                  <button type="button" className="sched-icon-button" onClick={() => copy(schedule.shareCode, "Code copied.")} aria-label="Copy the code">
+                  <button type="button" className="icon-action" onClick={() => copy(schedule.shareCode, "Code copied.")} aria-label="Copy the code">
                     <Copy size={16} aria-hidden="true" />
                   </button>
                   <button
                     type="button"
-                    className="sched-icon-button"
+                    className="icon-action"
                     onClick={() => run(() => axios.put(`${base}/share-code`, { regenerate: true }, { withCredentials: true }), "New code made. The old code and link stop working.")}
                     aria-label="Make a new code"
                     title="Make a new code"
@@ -261,7 +262,7 @@ export default function ShareModal({ schedule, backendUrl, currentUserId, onUpda
                   </span>
                   <div>
                     <button type="button" className="secondary-button small" onClick={() => setConfirmPrivate(false)} disabled={busy}>Keep sharing</button>
-                    <button type="button" className="primary-button small" onClick={makePrivate} disabled={busy}>Make private</button>
+                    <button type="button" className="primary-button small" onClick={makePrivate} disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}Make private</button>
                   </div>
                 </div>
               ) : (

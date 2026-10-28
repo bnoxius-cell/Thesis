@@ -4,8 +4,7 @@ import { useParams, Navigate, useLocation, Link } from "react-router-dom";
 import { Check, Copy, LogOut } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
+import AppShell from "../components/layout/AppShell";
 import PageHeader from "../components/PageHeader";
 import PictureField from "../components/PictureField";
 import NotificationPreferences from "../components/NotificationPreferences";
@@ -15,6 +14,7 @@ import { profileFromUser } from "../utils/useWorkload";
 import { HELP_CONTACTS, isPlaceholder } from "../utils/helpContacts";
 import { SUPPORT_EMAILS } from "./legal/legalContent";
 import "../App.css";
+import BusySpinner from "../components/BusySpinner";
 
 // Helper to get optimized Google avatar URL
 const getOptimizedAvatarUrl = (avatar) => {
@@ -64,13 +64,9 @@ function OwnProfile() {
 
   if (!user) {
     return (
-      <div className="app auth-layout">
-        <Header />
-        <main className="dashboard">
-          <p>Please log in to view your profile.</p>
-        </main>
-        <Footer />
-      </div>
+      <AppShell variant="public">
+        <p>Please log in to view your profile.</p>
+      </AppShell>
     );
   }
 
@@ -192,9 +188,7 @@ function Me() {
   const mailto = `mailto:${SUPPORT_EMAILS.join(",")}`;
 
   return (
-    <div className="app app-layout">
-      <Header />
-      <main className="dashboard me-page">
+    <AppShell mainClassName="me-page">
         <PageHeader title="Profile" description="Your details, the numbers your plan uses, and how the app looks and behaves." />
 
         <div className="me-layout">
@@ -265,7 +259,7 @@ function Me() {
                   <small className="field-hint">{you.bio.length}/200</small>
                 </label>
                 <div className="me-save full-span">
-                  <button type="submit" className="primary-button" disabled={savingYou || !youDirty}>{savingYou ? "Saving..." : "Save"}</button>
+                  <button type="submit" className="primary-button" disabled={savingYou || !youDirty} aria-busy={savingYou}>{savingYou && <BusySpinner />}{savingYou ? "Saving..." : "Save"}</button>
                 </div>
               </form>
             </section>
@@ -326,7 +320,7 @@ function Me() {
                 </fieldset>
 
                 <div className="me-save full-span">
-                  <button type="submit" className="primary-button" disabled={savingWeek || !weekDirty}>{savingWeek ? "Saving..." : "Save"}</button>
+                  <button type="submit" className="primary-button" disabled={savingWeek || !weekDirty} aria-busy={savingWeek}>{savingWeek && <BusySpinner />}{savingWeek ? "Saving..." : "Save"}</button>
                 </div>
               </form>
             </section>
@@ -426,8 +420,6 @@ function Me() {
             </section>
           </div>
         </div>
-      </main>
-      <Footer />
-    </div>
+    </AppShell>
   );
 }

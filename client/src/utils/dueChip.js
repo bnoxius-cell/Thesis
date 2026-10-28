@@ -14,3 +14,17 @@ export function dueChip(dueDate, now = new Date()) {
   if (days < 7) return { label: due.toLocaleDateString("en-US", WEEKDAY), tone: "neutral", days };
   return { label: due.toLocaleDateString("en-US", SHORT_DATE), tone: "neutral", days };
 }
+
+// "overdue", "due today", "due tomorrow", "due in 3 days", or "due Oct 24" for anything past a week.
+export function dueWords(dueDate, now = new Date()) {
+  const { days } = dueChip(dueDate, now);
+  if (days < 0) return "overdue";
+  if (days === 0) return "due today";
+  if (days === 1) return "due tomorrow";
+  if (days < 7) return `due in ${days} days`;
+  return `due ${fromISODate(taskDueIso(dueDate)).toLocaleDateString("en-US", SHORT_DATE)}`;
+}
+
+// The spoken name of a row's edit button: "Edit Print slides, Web Systems, due in 2 days".
+export const taskEditLabel = (task, now = new Date()) =>
+  `Edit ${task.title}, ${task.course ? `${task.course}, ` : ""}${dueWords(task.dueDate, now)}`;

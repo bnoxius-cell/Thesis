@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import Header from "../../components/layout/Header";
-import Footer from "../../components/layout/Footer";
+import AppShell from "../../components/layout/AppShell";
 import "../../App.css";
 import { toast } from "react-toastify";
 import { useAuth } from "./AuthContext";
@@ -9,7 +8,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import { ArrowLeftRight, BookOpenCheck, CalendarDays, Eye, EyeOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
-import { SUPPORT_EMAILS } from '../legal/legalContent';
+import BusySpinner from "../../components/BusySpinner";
 
 const SCHOOL_EMAIL_DOMAIN = "student.fatima.edu.ph";
 const RESEND_COOLDOWN_SECONDS = 180;
@@ -315,22 +314,16 @@ const AuthPage = () => {
 
   if (loading) {
     return (
-      <div className="app auth-layout">
-        <Header />
-        <main className="auth-page">
-          <div className="auth-shell" style={{ justifyContent: 'center', textAlign: 'center' }}>
-            <p>Loading...</p>
-          </div>
-        </main>
-        <Footer variant="full" />
-      </div>
+      <AppShell variant="public" unframed mainClassName="auth-page">
+        <div className="auth-shell" style={{ justifyContent: 'center', textAlign: 'center' }}>
+          <p>Loading...</p>
+        </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="app auth-layout">
-      <Header />
-      <main className="auth-page">
+    <AppShell variant="public" unframed mainClassName="auth-page">
         <section className="auth-shell" id="login">
           <div className="auth-copy">
             <span className="eyebrow">For OLFU IT students</span>
@@ -356,7 +349,7 @@ const AuthPage = () => {
             {authMode === 'verify' ? (
               <form className="auth-form" onSubmit={onVerifySubmit}>
                 {otpRow}
-                <button type="submit" className="primary-button" disabled={busy}>
+                <button type="submit" className="primary-button" disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                   {busy ? 'Checking...' : 'Verify email'}
                 </button>
                 <button
@@ -384,7 +377,7 @@ const AuthPage = () => {
                     required
                   />
                 </label>
-                <button type="submit" className="primary-button" disabled={busy}>
+                <button type="submit" className="primary-button" disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                   {busy ? 'Sending...' : 'Send code'}
                 </button>
               </form>
@@ -403,7 +396,7 @@ const AuthPage = () => {
                     required
                   />
                 </label>
-                <button type="submit" className="primary-button" disabled={busy}>
+                <button type="submit" className="primary-button" disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                   {busy ? 'Saving...' : 'Change password'}
                 </button>
                 <button type="button" className="ghost-button" onClick={sendResetCode} disabled={resendTimer > 0 || busy}>
@@ -461,7 +454,7 @@ const AuthPage = () => {
                     </span>
                   </label>
                 )}
-                <button type="submit" className="primary-button" disabled={busy}>
+                <button type="submit" className="primary-button" disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                   {busy
                     ? (authMode === 'login' ? 'Signing in...' : 'Creating account...')
                     : (authMode === 'login' ? 'Sign in' : 'Create account')}
@@ -513,16 +506,11 @@ const AuthPage = () => {
               )}
             </div>
             <p className="auth-support-note">
-              Need help? Email{' '}
-              {SUPPORT_EMAILS.map((e, i) => (
-                <span key={e}>{i > 0 && ' or '}<a href={`mailto:${e}`}>{e}</a></span>
-              ))}
+              Need help? <Link to="/about#contact">See how to reach us</Link>.
             </p>
           </div>
         </section>
-      </main>
-      <Footer variant="full" />
-    </div>
+    </AppShell>
   );
 };
 

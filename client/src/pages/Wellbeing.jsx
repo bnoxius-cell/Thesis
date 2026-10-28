@@ -1,15 +1,15 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { AlertTriangle, Eye, Lightbulb, Sparkles } from "lucide-react";
-import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
+import AppShell from "../components/layout/AppShell";
+import PageSkeleton from "../components/layout/PageSkeleton";
 import PageHeader from "../components/PageHeader";
 import WorkloadChart from "../components/WorkloadChart";
 import SuggestionsPanel from "../components/SuggestionsPanel";
 import CheckInCards from "../components/CheckInCards";
-import PageTour from "../components/PageTour";
 import useWorkload from "../utils/useWorkload";
 import { BAND_MESSAGE, bandLabel } from "../utils/weekReasons";
+import { WORKLOAD_NOTE } from "../utils/weekReading";
 import { sleepPlan, firstStartOf } from "../utils/sleepPlan";
 import { formatTime } from "../utils/scheduleUtils";
 import { WELLBEING_TOUR } from "../utils/tours";
@@ -35,7 +35,7 @@ export default function Wellbeing() {
   }, [hash, work.loading]);
 
   if (work.loading || !work.userData) {
-    return <div className="app app-layout"><Header /><main className="dashboard"><div className="panel" style={{ textAlign: "center" }}><p>Loading...</p></div></main><Footer /></div>;
+    return <AppShell><PageSkeleton label="Loading Wellbeing" /></AppShell>;
   }
 
   const { insights, week, hasSchedule, profile } = work;
@@ -48,15 +48,13 @@ export default function Wellbeing() {
   }) : null;
 
   return (
-    <div className="app app-layout">
-      <Header />
-      <main className="dashboard">
+    <AppShell tour={{ page: "wellbeing", title: "Wellbeing", steps: WELLBEING_TOUR }}>
         <PageHeader
           back={{ to: "/dashboard", label: "Today" }}
           title={insights.isNewUser ? "How you're doing" : bandLabel(insights.band)}
           description={insights.isNewUser ? "Add a task or your classes and this page fills in." : BAND_MESSAGE[insights.band]}
         >
-          {!insights.isNewUser && <p className="wellbeing-score">Workload score {insights.workloadScore} of 100</p>}
+          {!insights.isNewUser && <p className="wellbeing-score">Workload score {insights.workloadScore} of 100. {WORKLOAD_NOTE}</p>}
         </PageHeader>
 
         {!insights.isNewUser && (
@@ -68,7 +66,7 @@ export default function Wellbeing() {
                   <li key={part.key} className={`driver driver-${part.level}`}>
                     <span className="driver-label">{part.label}</span>
                     <span className="driver-word">{LEVEL_WORD[part.level]}</span>
-                    <span className="driver-track" aria-hidden="true"><span className="driver-fill" style={{ width: `${Math.max(part.value, 4)}%` }} /></span>
+                    <span className="driver-track" aria-hidden="true"><span className="driver-fill" style={{ transform: `scaleX(${Math.max(part.value, 4) / 100})` }} /></span>
                     <span className="driver-note">{DRIVER_SENTENCE[part.key]?.[part.level]}</span>
                   </li>
                 ))}
@@ -143,9 +141,6 @@ export default function Wellbeing() {
             </p>
           </details>
         </section>
-      </main>
-      <Footer variant="app" />
-      <PageTour page="wellbeing" title="Wellbeing" steps={WELLBEING_TOUR} />
-    </div>
+    </AppShell>
   );
 }

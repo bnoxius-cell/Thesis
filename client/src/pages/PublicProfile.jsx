@@ -3,12 +3,12 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { ArrowLeft, UserPlus, UserCheck, UserMinus, Clock, Users } from "lucide-react";
-import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
+import AppShell from "../components/layout/AppShell";
 import ConfirmDialog from "../components/ConfirmDialog";
 import UserAvatar from "../components/UserAvatar";
 import { useAuth } from "./authentication/AuthContext";
 import "../App.css";
+import BusySpinner from "../components/BusySpinner";
 
 // Another student's profile: who they are and how you're connected. Reached from the
 // friends list and from group members. Email and check-in results are never shown here.
@@ -71,13 +71,7 @@ export default function PublicProfile({ uid }) {
     "Friend removed."
   );
 
-  const shell = (children) => (
-    <div className="app app-layout">
-      <Header />
-      <main className="dashboard">{children}</main>
-      <Footer />
-    </div>
-  );
+  const shell = (children) => <AppShell>{children}</AppShell>;
 
   if (status === "loading") {
     return shell(<div className="panel" style={{ textAlign: "center" }}><p>Loading profile...</p></div>);
@@ -113,7 +107,7 @@ export default function PublicProfile({ uid }) {
 
           <div className="public-profile-actions">
             {profile.relation === "none" && (
-              <button type="button" className="primary-button" onClick={sendRequest} disabled={busy}>
+              <button type="button" className="primary-button" onClick={sendRequest} disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                 <UserPlus size={16} aria-hidden="true" /> Add friend
               </button>
             )}
@@ -121,7 +115,7 @@ export default function PublicProfile({ uid }) {
               <span className="relation-pill"><Clock size={15} aria-hidden="true" /> Friend request sent</span>
             )}
             {profile.relation === "received" && (
-              <button type="button" className="primary-button" onClick={acceptRequest} disabled={busy}>
+              <button type="button" className="primary-button" onClick={acceptRequest} disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                 <UserCheck size={16} aria-hidden="true" /> Accept friend request
               </button>
             )}

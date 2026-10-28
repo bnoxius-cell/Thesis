@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { BookOpen, CalendarClock, Gauge, AlertTriangle, Check } from "lucide-react";
 import { useAuth } from "../pages/authentication/AuthContext";
 import Modal from "./Modal";
+import BusySpinner from "./BusySpinner";
 
 const formatDue = (iso) => new Date(iso).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 const formatShort = (iso) => new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" });
@@ -69,7 +70,7 @@ export default function TaskImportDialog({ tag, onClose, onImported }) {
           <>
             <div className="task-import-card">
               <h3>{task.title}</h3>
-              <p className="task-import-line"><BookOpen size={15} aria-hidden="true" /> {task.course}</p>
+              {task.course && <p className="task-import-line"><BookOpen size={15} aria-hidden="true" /> {task.course}</p>}
               <p className="task-import-line"><CalendarClock size={15} aria-hidden="true" /> Due {formatDue(task.dueDate)}</p>
               <p className="task-import-line"><Gauge size={15} aria-hidden="true" /> {task.hours}h estimated · difficulty {task.difficulty}/5 · importance {task.importance}/5</p>
               {task.description && <p className="task-import-desc">{task.description}</p>}
@@ -104,7 +105,7 @@ export default function TaskImportDialog({ tag, onClose, onImported }) {
             {preview?.alreadyAdded || error ? "Close" : "Cancel"}
           </button>
           {task && !preview.alreadyAdded && (
-            <button type="button" className="primary-button" onClick={add} disabled={busy}>
+            <button type="button" className="primary-button" onClick={add} disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
               {busy ? "Adding..." : "Add task"}
             </button>
           )}

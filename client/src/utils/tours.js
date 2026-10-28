@@ -17,17 +17,27 @@ export const DASHBOARD_TOUR = [
   {
     target: "dash-checkin",
     title: "Check-ins",
-    text: "Two short, well-known surveys on stress and well-being. They take a couple of minutes and make the reading on this page more personal. Not today is fine too.",
+    text: "When a check-in is due it shows at the bottom of the week card. Two short, well-known surveys on stress and well-being, about 2 minutes each, and they make the reading on this page more personal. Later is fine a few times; it keeps your plan accurate once you take it.",
+  },
+  {
+    target: "dash-quick",
+    title: "Add a task in seconds",
+    text: "Quick setup: type a title, pick when it's due and roughly how long it'll take, then Add task. Class, notes and the rest are optional under More details. Tap any task below to change it.",
   },
   {
     target: "dash-today",
     title: "Today",
-    text: "What's happening now, what's later and what's due soon. Online classes get a Join button. Later in the day it looks ahead to tomorrow.",
+    text: "Your classes happening now and later, plus anything due today or overdue, in one short list. Online classes get a Join button.",
+  },
+  {
+    target: "dash-coming",
+    title: "Coming up",
+    text: "Tasks due in the next 7 days, soonest first, so nothing sneaks up on you.",
   },
   {
     target: "dash-doing",
     title: "This week",
-    text: "How heavy your week is, in words, and the two things adding the most. See what's behind this opens the full picture.",
+    text: "How full your week is, in words, with the few things adding the most. It's an estimate of workload, not of your stress. See details has the full picture.",
   },
   {
     target: "dash-next",
@@ -37,7 +47,7 @@ export const DASHBOARD_TOUR = [
   {
     target: "dash-week",
     title: "The next 7 days",
-    text: "Each day's study time next to your classes and activities, so heavy days stand out early. Tap it for the details.",
+    text: "Each day's study time next to your classes and activities, so heavy days stand out early, plus how many of this week's tasks are done. Tap it for the details.",
   },
 ];
 
@@ -72,22 +82,22 @@ export const SCHEDULE_TOUR = [
   {
     target: "sched-head",
     title: "This schedule",
-    text: "Its name, whose it is, and who else can see it. The line under the name says if it's private or shared.",
+    text: "Its name, whose it is, and who else can see it. The arrows next to the name switch to another schedule or open the list of all of them.",
   },
   {
     target: "sched-actions",
     title: "Add, share and more",
-    text: "Add puts in a task, class, exam, activity or event. Share works like Google Docs: invite people as viewers or editors, or turn on a link. More has make a copy, rename and delete. You'll only see the buttons your access allows.",
+    text: "Add puts in a task, class, exam, activity or event. Share works like Google Docs: invite people as viewers or editors, or turn on a link. More has the theme, make a copy, rename and delete. You'll only see the buttons your access allows.",
   },
   {
     target: "sched-week",
-    title: "Your week",
-    text: "Classes, exams and your own tasks, day by day. Tap anything to see or change it, and use the arrows to move between weeks. Each day has buttons to add something or mark it as a day off.",
+    title: "Your month",
+    text: "Your month, one card per week. On a phone, tap a day in a card's strip; a dot means something's planned. Use the arrows at the top to change month. Each day has Add and a day-off button.",
   },
   {
     target: "sched-tasks",
     title: "Your tasks",
-    text: "Tap the circle to mark a task done, or the title to edit it. The menu has Copy share code and Delete. Got a 6-digit code from a classmate? Add it here.",
+    text: "Add a task at the top: a title, when it's due and roughly how long it takes. Tap the circle to mark one done, or the title to edit it. The menu has Copy share code and Delete. Got a 6-digit code from a classmate? Add it here.",
   },
   {
     target: "sched-plan",
@@ -197,5 +207,38 @@ export const WELLBEING_TOUR = [
     target: "well-how",
     title: "How this works",
     text: "In plain words, what goes into your score and where the two check-ins come from.",
+  },
+];
+
+export const GROUPS_TOUR = [
+  {
+    target: "groups-actions",
+    title: "Start or join a group",
+    text: "Make a group for a class or project, or join a classmate's with the 6-character code they share with you.",
+  },
+  {
+    target: "groups-list",
+    title: "Your groups",
+    text: "Each group with its member count. A number means chats you haven't read yet. Tap a group to open it.",
+  },
+  {
+    target: "group-chat",
+    title: "The chat",
+    text: "Talk with the group, and use the buttons next to the message box to share one of your tasks or a whole schedule. Teammates can add a copy to their own.",
+  },
+  {
+    target: "group-pinned",
+    title: "Pinned note",
+    text: "A short note from the group's admins, like a meeting time or a room. Tap a long one to read it all.",
+  },
+  {
+    target: "group-upcoming",
+    title: "Upcoming deadlines",
+    text: "Every task anyone shares in the group lands in Upcoming, soonest first. Tap Add to my tasks to put one in your own list.",
+  },
+  {
+    target: "group-settings",
+    title: "Group info",
+    text: "The join code, the member list and, for admins, the pinned note, name, picture and chat filter. This is also where you leave the group.",
   },
 ];

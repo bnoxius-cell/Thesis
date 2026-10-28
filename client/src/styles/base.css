@@ -1,0 +1,151 @@
+/* ==========================================================================
+   BASE: element defaults, scrollbars, focus, selection, reduced motion.
+   Sits in the early "base" layer, so every later layer can override it. The
+   reduced-motion !important rules belong here on purpose: important rules in
+   an earlier layer beat important rules in a later one, so nothing can undo them.
+   ========================================================================== */
+@layer base {
+  /* ---- Scrollbars ----
+     The default OS scrollbar (thick, grey, boxy arrows) clashes with a calm page,
+     especially inside scrolling modals. Restyle it everywhere, in both themes. */
+  :root {
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--accent);
+    border-radius: var(--radius-pill);
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    /* Relative brightness, not a colour swap: it works in both themes. */
+    filter: brightness(0.85);
+  }
+
+  /* ---- Phone touch behaviour ---- */
+  html {
+    -webkit-tap-highlight-color: transparent; /* press feedback comes from :active, not the grey flash */
+    -webkit-text-size-adjust: 100%;
+  }
+  button,
+  a,
+  [role="button"],
+  summary {
+    touch-action: manipulation; /* no double-tap-zoom delay */
+  }
+  button,
+  [role="button"] {
+    -webkit-user-select: none;
+    user-select: none; /* long-press on a control never selects its label */
+  }
+  /* iOS zooms the page when focus lands on a field under 16px */
+  @media (pointer: coarse) {
+    input,
+    select,
+    textarea {
+      font-size: max(16px, 1em);
+    }
+  }
+
+  /* ---- Document ---- */
+  body {
+    font-family: var(--font-ui);
+    font-size: var(--text-md);
+    line-height: var(--lh-body);
+    background: var(--bg-app);
+    color: var(--text-primary);
+  }
+
+  h1,
+  .eyebrow-mark {
+    font-family: var(--font-ui);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  h2,
+  h3 {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  svg.lucide {
+    stroke-width: 1.75px;
+  }
+
+  /* ---- Browser surfaces that used to ship with defaults ---- */
+  /* Browsers dim the placeholder to roughly 3.7:1 in dark mode: use the token, fully opaque. */
+  ::placeholder {
+    color: var(--text-placeholder);
+    opacity: 1;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 28%, transparent);
+    color: inherit;
+  }
+  input,
+  textarea {
+    caret-color: var(--accent);
+  }
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  a {
+    text-underline-offset: 3px;
+  }
+
+  /* ---- Utilities that pages and the shell share ---- */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .skip-link {
+    position: absolute;
+    left: var(--space-3);
+    top: var(--space-3);
+    z-index: 1000;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-decoration: none;
+    transform: translateY(-200%);
+  }
+  .skip-link:focus-visible {
+    transform: translateY(0);
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- People who ask for less motion get none ---- */
+  @media (prefers-reduced-motion: reduce) {
+    /* Not the toast's progress bar: react-toastify closes a toast when that animation ends, so
+       squashing it to 0.01ms dismissed every toast the moment it appeared. */
+    *:not(.Toastify__progress-bar),
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

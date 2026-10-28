@@ -43,8 +43,8 @@ export default function NextStepCard({ work }) {
           <strong>Move "{sug.title}" to {shortDate(sug.toDate)}</strong>
           <p>{sug.why}</p>
           <div className="suggestion-actions">
-            <button type="button" className="primary-button small" onClick={() => applyMove(sug, work.updateTask)}>Move it</button>
-            <button type="button" className="ghost-button small" onClick={() => dismiss(sug)}>Not now</button>
+            <button type="button" className="tonal-button" onClick={() => applyMove(sug, work.updateTask)}>Move it</button>
+            <button type="button" className="ghost-button" onClick={() => dismiss(sug)}>Not now</button>
           </div>
         </div>
       </div>
@@ -65,8 +65,8 @@ export default function NextStepCard({ work }) {
 
   if (!body) return null;
   return (
-    <section className="panel next-step-card" data-tour="dash-next">
-      <span className="panel-kicker">Next step</span>
+    <section className="panel next-step-card" data-tour="dash-next" aria-labelledby="next-step-title">
+      <h2 id="next-step-title">Next step</h2>
       {body}
     </section>
   );
