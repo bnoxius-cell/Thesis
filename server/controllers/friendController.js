@@ -62,7 +62,7 @@ export const sendFriendRequest = async (req, res) => {
                         type: 'friend_accepted',
                         title: 'Friend request accepted',
                         message: `${accepter?.name || 'Someone'} accepted your friend request.`,
-                        link: '/groups?tab=friends',
+                        link: '/friends',
                     });
                     return res.json({ success: true, message: 'You are now friends.', accepted: true });
                 }
@@ -84,7 +84,7 @@ export const sendFriendRequest = async (req, res) => {
             type: 'friend_request',
             title: 'New friend request',
             message: `${sender?.name || 'Someone'} wants to be your friend.`,
-            link: '/groups?tab=friends',
+            link: '/friends',
         });
         res.json({ success: true, message: 'Friend request sent.' });
     } catch (error) {
@@ -113,7 +113,7 @@ export const acceptFriendRequest = async (req, res) => {
             type: 'friend_accepted',
             title: 'Friend request accepted',
             message: `${accepter?.name || 'Someone'} accepted your friend request.`,
-            link: '/groups?tab=friends',
+            link: '/friends',
         });
         res.json({ success: true, message: 'Friend request accepted.' });
     } catch (error) {

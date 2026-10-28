@@ -3,7 +3,7 @@
 // single-page-app route announcement), but only when the navigation came from a link inside the shell
 // (sidebar, top bar, bottom bar, footer). A first load, or a page that moved focus itself, is left alone.
 
-const SHELL_LINKS = '.sidepanel, .topbar, .bottombar, .app-footer, .site-footer';
+const SHELL_LINKS = '.sidepanel, .topbar, .bottombar, .more-sheet, .app-footer, .site-footer';
 const WINDOW_MS = 5000; // long enough for a lazy page chunk on a slow connection
 
 let armedAt = 0;

@@ -9,9 +9,6 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import UserAvatar from "../components/UserAvatar";
 import PictureField from "../components/PictureField";
 import PageHeader from "../components/PageHeader";
-import Tabs from "../components/Tabs";
-import { useTabParam } from "../utils/useTabParam";
-import Friends from "./Friends";
 import { useAuth } from "./authentication/AuthContext";
 import "../App.css";
 import Modal from "../components/Modal";
@@ -24,7 +21,6 @@ export default function Groups() {
   const myId = user?._id;
   const [searchParams, setSearchParams] = useSearchParams();
   const openGroupId = searchParams.get("g");
-  const [tab, setTab] = useTabParam(["groups", "friends"]);
 
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -223,25 +219,9 @@ export default function Groups() {
 
   return (
     <AppShell>
-        <PageHeader
-          title="People"
-          description="Your study groups and your friends."
-          actions={(
-            <Tabs
-              tabs={[{ id: "groups", label: "Groups" }, { id: "friends", label: "Friends" }]}
-              value={tab}
-              onChange={setTab}
-              label="People"
-            />
-          )}
-        />
+        <PageHeader title="Groups" description="Your study groups and their chats." />
 
-        {tab === "friends" ? (
-          <div role="tabpanel" id="panel-friends" aria-labelledby="tab-friends" className="tab-panel">
-            <Friends />
-          </div>
-        ) : (
-        <div role="tabpanel" id="panel-groups" aria-labelledby="tab-groups" className="tab-panel">
+        <>
         <div className="groups-actions">
           <button className="primary-button" onClick={() => { setError(""); setCreateModalOpen(true); }}>
             <Plus size={18} aria-hidden="true" /> Create group
@@ -311,8 +291,7 @@ export default function Groups() {
             ))}
           </div>
         )}
-        </div>
-        )}
+        </>
       <ShellOverlays>
       {/* Create Group Modal */}
       {createModalOpen && (

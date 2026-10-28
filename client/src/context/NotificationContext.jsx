@@ -9,6 +9,7 @@ import { syncPush } from "../utils/pushClient";
 const NotificationContext = createContext(null);
 
 const POLL_MS = 20000;
+const CHAT_TYPES = ["group_message", "group_task", "group_schedule"];
 
 // Owns the inbox for the whole app: polls the server while the tab is visible, pops an
 // in-app toast for anything new, keeps the unread count on the tab title and app icon,
@@ -129,8 +130,7 @@ export function NotificationProvider({ children }) {
 
   // The server already marked these read when the chat loaded; this only syncs the UI.
   const markGroupRead = useCallback((groupId) => {
-    const chatTypes = ["group_message", "group_task", "group_schedule"];
-    const isMatch = (n) => !n.isRead && chatTypes.includes(n.type) && String(n.group) === String(groupId);
+    const isMatch = (n) => !n.isRead && CHAT_TYPES.includes(n.type) && String(n.group) === String(groupId);
     const changed = listRef.current.filter(isMatch).length;
     if (!changed) return;
     setNotifications((list) => list.map((n) => (isMatch(n) ? { ...n, isRead: true } : n)));
@@ -162,9 +162,22 @@ export function NotificationProvider({ children }) {
     } catch { refresh(); }
   }, [backendUrl, refresh]);
 
+  // Unread hints for the navigation, worked out from the list we already have (no new requests).
+  // Chat notifications collapse to one per group, so this is the number of groups with news.
+  const { groupsUnread, friendsUnread } = useMemo(() => {
+    let groups = 0;
+    let friends = 0;
+    for (const n of notifications) {
+      if (n.isRead) continue;
+      if (CHAT_TYPES.includes(n.type)) groups += 1;
+      else if (n.type === "friend_request") friends += 1;
+    }
+    return { groupsUnread: groups, friendsUnread: friends };
+  }, [notifications]);
+
   const value = useMemo(
-    () => ({ notifications, unreadCount, loading, error, refresh, markRead, markGroupRead, markAllRead, remove, clearAll }),
-    [notifications, unreadCount, loading, error, refresh, markRead, markGroupRead, markAllRead, remove, clearAll]
+    () => ({ notifications, unreadCount, groupsUnread, friendsUnread, loading, error, refresh, markRead, markGroupRead, markAllRead, remove, clearAll }),
+    [notifications, unreadCount, groupsUnread, friendsUnread, loading, error, refresh, markRead, markGroupRead, markAllRead, remove, clearAll]
   );
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;

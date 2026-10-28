@@ -6,13 +6,15 @@ import axios from "axios";
 import { useAuth } from "./authentication/AuthContext";
 import UserAvatar from "../components/UserAvatar";
 import ConfirmDialog from "../components/ConfirmDialog";
+import AppShell, { ShellOverlays } from "../components/layout/AppShell";
+import PageHeader from "../components/PageHeader";
 import EmptyState from "../components/EmptyState";
 import "../App.css";
 import BusySpinner from "../components/BusySpinner";
 
 const TAG_LENGTH = 6;
 
-// The Friends tab of People (/groups?tab=friends). It renders inside the Groups page.
+// The Friends page (/friends).
 export default function Friends() {
   const { backendUrl, user } = useAuth();
   const [friends, setFriends] = useState([]);
@@ -111,7 +113,8 @@ export default function Friends() {
   );
 
   return (
-    <>
+    <AppShell>
+      <PageHeader title="Friends" description="Add friends with their code and see requests." />
       <section className="panel">
         <div className="panel-heading">
           <div>
@@ -220,6 +223,7 @@ export default function Friends() {
         )}
       </section>
 
+      <ShellOverlays>
       <ConfirmDialog
         open={Boolean(confirmRemove)}
         title="Remove this friend?"
@@ -231,6 +235,7 @@ export default function Friends() {
       >
         <p>You and <strong>{confirmRemove?.name}</strong> will no longer be friends. You can send a new request later.</p>
       </ConfirmDialog>
-    </>
+      </ShellOverlays>
+    </AppShell>
   );
 }
