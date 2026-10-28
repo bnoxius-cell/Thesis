@@ -91,8 +91,8 @@ export const SCHEDULE_TOUR = [
   },
   {
     target: "sched-week",
-    title: "Your week",
-    text: "Classes, exams and your own tasks, day by day. On a phone, tap a day in the strip to see it; a dot means something's planned. Tap anything to see or change it, and use the arrows to move between weeks. Each day has Add and a day-off button.",
+    title: "Your month",
+    text: "Your month, one card per week. On a phone, tap a day in a card's strip; a dot means something's planned. Use the arrows at the top to change month. Each day has Add and a day-off button.",
   },
   {
     target: "sched-tasks",

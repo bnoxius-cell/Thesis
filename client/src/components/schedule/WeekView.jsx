@@ -7,12 +7,14 @@ import { overlapsOnDay } from "../../utils/scheduleConflicts";
 import useEnteringIds from "../../utils/useEnteringIds";
 import JoinLink from "./JoinLink";
 
-const rangeLabel = (start) => {
+// "Oct 5 to 11", or "Sep 28 to Oct 4" when the week crosses a month. The year comes with the
+// month bar (or the nav heading below) so a card stays short.
+const rangeLabel = (start, withYear = false) => {
   const end = addDays(start, 6);
   const sameMonth = start.getMonth() === end.getMonth();
   const startText = start.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   const endText = end.toLocaleDateString(undefined, sameMonth ? { day: "numeric" } : { month: "short", day: "numeric" });
-  return `${startText} to ${endText}, ${end.getFullYear()}`;
+  return `${startText} to ${endText}${withYear ? `, ${end.getFullYear()}` : ""}`;
 };
 
 // "9:00-10:30 AM" when both ends share AM or PM, so a narrow column fits it on one line. Screen
@@ -85,20 +87,28 @@ function TaskChip({ task, overdue, onOpen }) {
 //
 // `tasks` are the viewer's own open tasks (never shared with anyone else on the schedule),
 // shown under the day they are due.
+//
+// Inside the month view (`showNav={false}`) the card has no arrows of its own: it gets a
+// heading ("Week 2", the date range, a chip when it is the current week). `monthIndex` mutes the
+// days that belong to the neighbouring month; their entries still show because they are real days.
 export default function WeekView({
   weekStart, entries, overrides, publicByDate, canEdit, onShiftWeek, onToday, onAddEntry, onOpenEntry, onMarkDay,
   mainEntries = [], tasks = [], onOpenTask,
+  showNav = true, title, monthIndex, isCurrent = false,
 }) {
   const todayIso = toISODate(new Date());
   const days = WEEKDAYS.map((_, i) => addDays(weekStart, i));
   const isos = days.map(toISODate);
   const isThisWeek = isos.includes(todayIso);
   const weekIso = isos[0];
+  const inMonth = (day) => monthIndex === undefined || day.getMonth() === monthIndex;
+  // With no picked day: today in the current week, otherwise the first day of the month.
+  const firstInMonthIso = isos[Math.max(0, days.findIndex(inMonth))];
 
-  // The picked day for the phone agenda. It falls back to today when the shown week has it,
-  // otherwise to Monday, so moving to another week never leaves an empty agenda.
+  // The picked day for the phone agenda. It falls back to today when the card has it,
+  // otherwise to the first day of the month, so a card never opens on an empty agenda.
   const [picked, setPicked] = useState(null);
-  const selectedIso = isos.includes(picked) ? picked : isThisWeek ? todayIso : weekIso;
+  const selectedIso = isos.includes(picked) ? picked : isThisWeek ? todayIso : firstInMonthIso;
   // Keyboard day changes swap instantly; a tap gets a short fade. Week changes slide a little
   // in the direction of travel.
   const [instant, setInstant] = useState(false);
@@ -114,6 +124,7 @@ export default function WeekView({
     setDirection(weekStart > new Date() ? "prev" : "next");
     onToday();
   };
+  const rangeText = rangeLabel(weekStart);
 
   const pickDay = (iso, byKey) => {
     setInstant(byKey);
@@ -140,17 +151,31 @@ export default function WeekView({
   });
 
   return (
-    <section className="sched-week" aria-label="Weekly schedule" data-tour="sched-week" data-instant={instant || undefined}>
-      <div className="sched-week-bar">
-        <button type="button" className="icon-action" onClick={() => shiftWeek(-1)} aria-label="Previous week">
-          <ChevronLeft size={20} aria-hidden="true" />
-        </button>
-        <h2 aria-live="polite">{rangeLabel(weekStart)}</h2>
-        <button type="button" className="icon-action" onClick={() => shiftWeek(1)} aria-label="Next week">
-          <ChevronRight size={20} aria-hidden="true" />
-        </button>
-        <button type="button" className="secondary-button small sched-this-week" onClick={goToday} disabled={isThisWeek}>This week</button>
-      </div>
+    <section
+      className={`sched-week${isCurrent ? " is-current" : ""}`}
+      aria-label={title ? `${title}, ${rangeText}` : "Weekly schedule"}
+      data-tour={showNav ? "sched-week" : undefined}
+      data-current-week={isCurrent || undefined}
+      data-instant={instant || undefined}
+    >
+      {showNav ? (
+        <div className="sched-week-bar">
+          <button type="button" className="icon-action" onClick={() => shiftWeek(-1)} aria-label="Previous week">
+            <ChevronLeft size={20} aria-hidden="true" />
+          </button>
+          <h2 aria-live="polite">{rangeLabel(weekStart, true)}</h2>
+          <button type="button" className="icon-action" onClick={() => shiftWeek(1)} aria-label="Next week">
+            <ChevronRight size={20} aria-hidden="true" />
+          </button>
+          <button type="button" className="secondary-button small sched-this-week" onClick={goToday} disabled={isThisWeek}>This week</button>
+        </div>
+      ) : (
+        <div className="sched-week-head">
+          <h3>{title}</h3>
+          <span className="sched-week-range">{rangeText}</span>
+          {isCurrent && <span className="chip is-accent sched-week-chip">This week</span>}
+        </div>
+      )}
 
       <div className="sched-strip" role="group" aria-label="Pick a day" ref={stripRef} onKeyDown={onStripKey}>
         {dayInfo.map(({ day, iso, holiday, dayEntries, dayTasks }) => {
@@ -162,7 +187,7 @@ export default function WeekView({
               key={iso}
               type="button"
               data-iso={iso}
-              className={`sched-strip-day${iso === todayIso ? " is-today" : ""}${holiday ? " is-holiday" : ""}`}
+              className={`sched-strip-day${iso === todayIso ? " is-today" : ""}${holiday ? " is-holiday" : ""}${inMonth(day) ? "" : " is-outside"}`}
               aria-pressed={selected}
               tabIndex={selected ? 0 : -1}
               aria-label={`${day.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}${iso === todayIso ? ", today" : ""}${busy ? `, ${dayEntries.length + dayTasks.length} planned` : ", free"}${holiday ? `, ${holiday.name}` : ""}`}
@@ -176,7 +201,7 @@ export default function WeekView({
         })}
       </div>
 
-      <div className="sched-days" key={weekIso} data-dir={direction}>
+      <div className="sched-days" key={weekIso} data-dir={showNav ? direction : undefined}>
         {dayInfo.map(({ day, iso, holiday, dayEntries, dayTasks }) => {
           const label = day.toLocaleDateString(undefined, { weekday: "short" });
           const longLabel = day.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
@@ -191,7 +216,7 @@ export default function WeekView({
           return (
             <div
               key={iso}
-              className={`sched-day${iso === todayIso ? " is-today" : ""}${holiday ? " is-holiday" : ""}${iso === selectedIso ? " is-selected" : ""}`}
+              className={`sched-day${iso === todayIso ? " is-today" : ""}${holiday ? " is-holiday" : ""}${iso === selectedIso ? " is-selected" : ""}${inMonth(day) ? "" : " is-outside"}`}
               aria-label={longLabel}
               role="group"
             >

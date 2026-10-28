@@ -12,7 +12,7 @@ import PageHeader from "../components/PageHeader";
 import EmptyState from "../components/EmptyState";
 import ConfirmDialog from "../components/ConfirmDialog";
 import TaskImportDialog from "../components/TaskImportDialog";
-import WeekView from "../components/schedule/WeekView";
+import MonthView from "../components/schedule/MonthView";
 import HolidayCalendar from "../components/schedule/HolidayCalendar";
 import TasksTab from "../components/schedule/TasksTab";
 import Tabs from "../components/Tabs";
@@ -29,7 +29,7 @@ import { useAuth } from "./authentication/AuthContext";
 import useWorkload from "../utils/useWorkload";
 import { useTabParam } from "../utils/useTabParam";
 import {
-  SCHEDULE_THEMES, normalizeTheme, startOfWeek, addDays, toISODate, fromISODate, taskDueIso,
+  SCHEDULE_THEMES, normalizeTheme, monthOfWeek, monthWeeks, addDays, toISODate, fromISODate, taskDueIso,
 } from "../utils/scheduleUtils";
 import { SCHEDULE_TOUR } from "../utils/tours";
 import "../App.css";
@@ -156,8 +156,8 @@ export default function Schedule() {
   const [failedId, setFailedId] = useState(null);
   const schedule = loadedSchedule?._id === openId ? loadedSchedule : null;
   const detailFailed = failedId === openId;
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
-  const [calMonth, setCalMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  // The month on show (first of the month), shared by the Week and Days off tabs.
+  const [month, setMonth] = useState(() => monthOfWeek(new Date()));
   const [holidayCache, setHolidayCache] = useState({}); // year -> [{date, name}]
   const [holidayError, setHolidayError] = useState("");
 
@@ -324,8 +324,13 @@ export default function Schedule() {
   }, [needsMain, scheduleId, api]);
   const mainEntries = needsMain && mainInfo?.forId === scheduleId ? mainInfo.entries : [];
 
-  // Holidays (always the Philippines): every year the visible week and calendar month touch.
-  const holidayYears = [...new Set([weekStart.getFullYear(), addDays(weekStart, 6).getFullYear(), calMonth.getFullYear()])];
+  // Holidays (always the Philippines): every year the month's week cards and the calendar touch.
+  const monthMondays = monthWeeks(month);
+  const holidayYears = [...new Set([
+    month.getFullYear(),
+    monthMondays[0].getFullYear(),
+    addDays(monthMondays[monthMondays.length - 1], 6).getFullYear(),
+  ])];
   const holidayYearsKey = holidayYears.join(",");
   useEffect(() => {
     if (!openId) return;
@@ -446,10 +451,10 @@ export default function Schedule() {
 
   const taskError = (err) => err.response?.data?.message || "Couldn't save the task. Check your connection and try again.";
 
-  // A new task due outside the week on screen moves the view to that week, so it's seen landing.
-  const showWeekOf = (iso) => {
-    const target = startOfWeek(fromISODate(iso));
-    if (toISODate(target) !== toISODate(weekStart)) setWeekStart(target);
+  // A new task due outside the month on screen moves the view to that month, so it's seen landing.
+  const showMonthOf = (iso) => {
+    const target = monthOfWeek(fromISODate(iso));
+    if (toISODate(target) !== toISODate(month)) setMonth(target);
   };
 
   const saveTask = async (payload) => {
@@ -465,7 +470,7 @@ export default function Schedule() {
         toast.success("Task saved.");
       } else if (openId) {
         toast.success(tasksHere ? "Task added. It's on the day it's due." : "Task added to your plan.");
-        if (tasksHere) showWeekOf(payload.dueDate);
+        if (tasksHere) showMonthOf(payload.dueDate);
       } else {
         toast.success("Task added. Your dashboard plans time for it.");
       }
@@ -670,7 +675,7 @@ export default function Schedule() {
           onImported={(task) => {
             setTaskCode(null);
             setTasks((list) => [...list, task]);
-            if (openId && tasksHere) showWeekOf(taskDueIso(task.dueDate));
+            if (openId && tasksHere) showMonthOf(taskDueIso(task.dueDate));
           }}
         />
       )}
@@ -910,14 +915,13 @@ export default function Schedule() {
 
               {tab === "week" && (
                 <div role="tabpanel" id="panel-week" aria-labelledby="tab-week">
-                <WeekView
-                  weekStart={weekStart}
+                <MonthView
+                  month={month}
+                  onMonthChange={setMonth}
                   entries={schedule.entries}
                   overrides={schedule.holidayOverrides}
                   publicByDate={publicByDate}
                   canEdit={canEdit}
-                  onShiftWeek={(n) => setWeekStart((w) => addDays(w, n * 7))}
-                  onToday={() => setWeekStart(startOfWeek(new Date()))}
                   onAddEntry={(date) => setEntryModal({ kind: "class", date })}
                   onOpenEntry={(entry) => (canEdit ? setEntryModal({ entry, kind: entry.kind }) : setDetailsEntry(entry))}
                   onMarkDay={setMarkDate}
@@ -951,8 +955,8 @@ export default function Schedule() {
               {tab === "days-off" && (
                 <div role="tabpanel" id="panel-days-off" aria-labelledby="tab-days-off">
                 <HolidayCalendar
-                  month={calMonth}
-                  onMonthChange={setCalMonth}
+                  month={month}
+                  onMonthChange={setMonth}
                   publicByDate={publicByDate}
                   overrides={schedule.holidayOverrides}
                   holidayError={holidayError}
