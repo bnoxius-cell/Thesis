@@ -436,22 +436,62 @@
     margin: 0;
   }
 
-  /* ---- Check-in notice: slim, last in the right column ---- */
-  .checkin-notice-body {
-    flex: 1;
-    min-width: 0;
-  }
-  .checkin-notice-body p {
-    margin: 0;
-  }
-  .checkin-notice-actions {
+  /* ---- Check-in row: the foot of the week card, or a small card of its own ---- */
+  .checkin-row {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-2);
-    margin-top: var(--space-2);
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    margin-top: var(--space-1);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border);
   }
-  .checkin-notice-actions .ghost-button {
-    margin-left: calc(var(--space-2) * -1);
+  .week-card .checkin-row {
+    border-top-color: color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+  .checkin-card {
+    padding-block: 0 var(--space-3);
+  }
+  .checkin-card .checkin-row {
+    margin-top: 0;
+    border-top: 0;
+    padding-top: var(--space-3);
+  }
+  /* The only colour: a small watch-tone dot. No red, no alarm. */
+  .checkin-row-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--watch);
+  }
+  .checkin-row-text {
+    flex: 1 1 14rem;
+    min-width: 0;
+  }
+  .checkin-row-title,
+  .checkin-row-meta {
+    margin: 0;
+  }
+  .checkin-row-title {
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .checkin-row-meta {
+    font-size: var(--text-xs);
+    line-height: var(--text-xs-lh);
+    color: var(--text-secondary);
+  }
+  .checkin-row-actions {
+    display: flex;
+    gap: var(--space-2);
+    margin-left: auto;
+  }
+  .week-card .checkin-row .tonal-button {
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
   }
 
   /* ---- Setup checklist (new students) ---- */

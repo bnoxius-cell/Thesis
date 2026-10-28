@@ -23,6 +23,38 @@ const readReminder = (type, userId) => {
   }
 };
 
+// "Later" is counted per due cycle. A cycle is named by the day the check-in became due, so taking the
+// check-in (which moves that day) starts a fresh count. Storage can throw, so every access is wrapped.
+export const LATER_LIMIT = 3;
+const laterKey = (type, userId) => `stresscare:checkin-later:${userId || "anonymous"}:${type}`;
+const isoDay = (date) => {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+// The day a check-in became due: last submission + valid days, or account creation + the grace for never-taken.
+export function dueSinceFor(last, validDays, createdAt) {
+  if (last) {
+    const d = new Date(last);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + validDays);
+    return isoDay(d);
+  }
+  return createdAt ? isoDay(new Date(createdAt).getTime() + ONBOARDING_GRACE_MS) : "";
+}
+export function readLaterCount(type, userId, since) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(laterKey(type, userId)) || "null");
+    return saved && saved.since === since ? Number(saved.count) || 0 : 0;
+  } catch {
+    return 0;
+  }
+}
+function bumpLater(type, userId, since) {
+  try {
+    localStorage.setItem(laterKey(type, userId), JSON.stringify({ since, count: readLaterCount(type, userId, since) + 1 }));
+  } catch { /* private mode */ }
+}
+
 const DEFAULT_PROFILE = {
   studentName: "",
   program: "BS Information Technology",
@@ -121,10 +153,11 @@ export default function useWorkload() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
     types.forEach((type) => {
+      bumpLater(type, userId, type === "PSS" ? dueSinceFor(userData?.lastPSSSubmission, PSS_VALID_DAYS, userData?.createdAt) : dueSinceFor(userData?.lastWHOSubmission, WHO_VALID_DAYS, userData?.createdAt));
       try { localStorage.setItem(reminderKey(type, userId), tomorrow.getTime()); } catch { /* private mode */ }
     });
     setSnoozeTick((n) => n + 1);
-  }, [userId]);
+  }, [userId, userData]);
 
   const due = useMemo(() => {
     const result = { pssDue: false, whoDue: false };
@@ -146,6 +179,11 @@ export default function useWorkload() {
     // snoozeTick re-runs this after a snooze, since localStorage isn't reactive.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData, snoozeTick, now]);
+
+  const pssDueSince = dueSinceFor(userData?.lastPSSSubmission, PSS_VALID_DAYS, userData?.createdAt);
+  const whoDueSince = dueSinceFor(userData?.lastWHOSubmission, WHO_VALID_DAYS, userData?.createdAt);
+  // Read on every render (cheap); snoozeTick re-renders after a Later.
+  const laterCount = (type) => readLaterCount(type, userId, type === "PSS" ? pssDueSince : whoDueSince);
 
   const derived = useMemo(() => {
     const activeTasks = tasks.filter((task) => !task.isCompleted);
@@ -209,7 +247,7 @@ export default function useWorkload() {
 
   return {
     loading: loading && isLoggedin, isLoggedin, userData, userId, profile, tasks, setTasks, overview, now,
-    pssDue: due.pssDue, whoDue: due.whoDue,
+    pssDue: due.pssDue, whoDue: due.whoDue, pssDueSince, whoDueSince, laterCount,
     pssNeverTaken: !userData?.lastPSSSubmission, whoNeverTaken: !userData?.lastWHOSubmission,
     snooze, refreshUser, refreshTasks, refreshOverview, updateTask, deleteTask, markTaskDone,
     ...derived,

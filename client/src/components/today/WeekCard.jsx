@@ -16,8 +16,8 @@ function reasonIcon(text) {
 const CHIP_TONE = { light: "is-good", steady: "is-good", full: "is-watch", over: "is-watch" };
 
 // The week in words: a chip, one sentence, up to three reasons, one next action and the caption.
-// No number: it lives one tap deeper on Wellbeing. `reading` comes from toWeekReading().
-export default function WeekCard({ reading }) {
+// `footer` is the due check-in row, when there is one. No number: it lives one tap deeper on Wellbeing. `reading` comes from toWeekReading().
+export default function WeekCard({ reading, footer }) {
   const [action] = reading.actions;
   const toDetails = action?.to === "/wellbeing";
 
@@ -50,6 +50,8 @@ export default function WeekCard({ reading }) {
       </div>
 
       <p className="week-card-note">{reading.note}</p>
+
+      {footer}
     </section>
   );
 }

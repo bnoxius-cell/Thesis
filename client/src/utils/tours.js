@@ -17,12 +17,12 @@ export const DASHBOARD_TOUR = [
   {
     target: "dash-checkin",
     title: "Check-ins",
-    text: "Two short, well-known surveys on stress and well-being. They take a couple of minutes and make the reading on this page more personal. Not today is fine too.",
+    text: "When a check-in is due it shows at the bottom of the week card. Two short, well-known surveys on stress and well-being, about 2 minutes each, and they make the reading on this page more personal. Later is fine a few times; it keeps your plan accurate once you take it.",
   },
   {
     target: "dash-quick",
     title: "Add a task in seconds",
-    text: "Type what needs doing, pick when it's due and roughly how long it'll take, then Add. Class, notes and the rest are optional under More details. Tap any task below to change it.",
+    text: "Quick setup: type a title, pick when it's due and roughly how long it'll take, then Add task. Class, notes and the rest are optional under More details. Tap any task below to change it.",
   },
   {
     target: "dash-today",

@@ -80,7 +80,7 @@ export default function QuickAddTask({ onAdded, onMoreDetails, tour, focusOnMoun
     if (saving) return;
     const clean = title.trim();
     if (!clean) {
-      setError("Type what needs doing first.");
+      setError("Give the task a title first.");
       titleRef.current?.focus();
       return;
     }
@@ -115,7 +115,13 @@ export default function QuickAddTask({ onAdded, onMoreDetails, tour, focusOnMoun
   return (
     <section className={`quick-add ${flat ? "is-flat" : "panel"}`} data-tour={tour} aria-label="Add a task">
       <form onSubmit={submit} noValidate>
-        <div className="quick-add-top">
+        <header className="quick-add-head">
+          <h2 className="quick-add-title">Add a task</h2>
+          <p className="quick-add-lead">Quick setup: a title, when it's due and how long it takes.</p>
+        </header>
+
+        <div className="quick-add-field">
+          <label className="quick-add-label" htmlFor={`${uid}-title`}>Title</label>
           <input
             ref={titleRef}
             id={`${uid}-title`}
@@ -123,18 +129,13 @@ export default function QuickAddTask({ onAdded, onMoreDetails, tour, focusOnMoun
             type="text"
             value={title}
             maxLength={TITLE_MAX}
-            placeholder="What needs doing?"
-            aria-label="What needs doing?"
+            placeholder="e.g., Lab report 3"
             aria-invalid={error ? "true" : undefined}
             aria-describedby={error ? errorId : undefined}
             enterKeyHint="done"
             autoComplete="off"
             onChange={(e) => { setTitle(e.target.value); setError(""); }}
           />
-          <button type="submit" className="primary-button quick-add-submit" disabled={saving} aria-busy={saving}>
-            {saving ? <BusySpinner /> : <Plus size={16} aria-hidden="true" />}
-            Add
-          </button>
         </div>
 
         {error && (
@@ -144,8 +145,8 @@ export default function QuickAddTask({ onAdded, onMoreDetails, tour, focusOnMoun
         )}
 
         <div className="quick-add-opts">
-          <div className="quick-add-group" role="group" aria-label="Due">
-            <span className="quick-add-label" aria-hidden="true">Due</span>
+          <div className="quick-add-group" role="group" aria-labelledby={`${uid}-due`}>
+            <span className="quick-add-label" id={`${uid}-due`}>Due</span>
             <div className="quick-add-chips">
               {options.map((o) => (
                 <button
@@ -193,8 +194,8 @@ export default function QuickAddTask({ onAdded, onMoreDetails, tour, focusOnMoun
             </div>
           </div>
 
-          <div className="quick-add-group" role="group" aria-label="Size">
-            <span className="quick-add-label" aria-hidden="true">Size</span>
+          <div className="quick-add-group" role="group" aria-labelledby={`${uid}-size`}>
+            <span className="quick-add-label" id={`${uid}-size`}>Size</span>
             <div className="segmented quick-add-size">
               {SIZES.map((s) => (
                 <button
@@ -212,11 +213,20 @@ export default function QuickAddTask({ onAdded, onMoreDetails, tour, focusOnMoun
             </div>
           </div>
 
-          {onMoreDetails && (
-            <button type="button" className="ghost-button quick-add-more" onClick={moreDetails}>
-              <SlidersHorizontal size={16} aria-hidden="true" />More details
+          <div className="quick-add-actions">
+            <button type="submit" className="primary-button quick-add-submit" disabled={saving} aria-busy={saving}>
+              {saving ? <BusySpinner /> : <Plus size={16} aria-hidden="true" />}
+              Add task
             </button>
-          )}
+            {onMoreDetails && (
+              <>
+                <span className="quick-add-or" aria-hidden="true">or</span>
+                <button type="button" className="tonal-button quick-add-more" onClick={moreDetails}>
+                  <SlidersHorizontal size={16} aria-hidden="true" />More details
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </form>
     </section>
