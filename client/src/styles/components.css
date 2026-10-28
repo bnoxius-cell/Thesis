@@ -584,6 +584,17 @@
   .sidepanel-link .nav-badge {
     margin-left: auto;
   }
+  /* The small label that starts the People group (Groups, Friends) in the sidebar. */
+  .sidepanel-section {
+    margin-top: var(--space-3);
+    padding: var(--space-3) var(--space-3) var(--space-1);
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
   @media (pointer: coarse) {
     .sidepanel-link,
     .sidepanel-logout {
@@ -637,6 +648,53 @@
     top: 2px;
     right: 0;
     margin: 0;
+  }
+
+  /* The More sheet (phone bottom bar): a plain list of links, 48px rows. */
+  .more-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .more-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    min-height: 48px;
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+    font-weight: 500;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: background-color var(--dur-1) ease;
+  }
+  .more-link svg,
+  .more-link .ua {
+    flex: none;
+    color: var(--text-secondary);
+  }
+  .more-link .nav-badge {
+    margin-left: auto;
+  }
+  .more-link:active {
+    background: var(--surface-3);
+  }
+  .more-link:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
   }
   .topbar-avatar {
     display: grid;
@@ -898,7 +956,7 @@
       bottom: 0;
       z-index: 100;
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
       background: var(--surface);
       border-top: 1px solid var(--border);
@@ -921,6 +979,41 @@
       -webkit-touch-callout: none;
       touch-action: manipulation;
       transition: color var(--dur-1) ease, background-color var(--dur-1) ease;
+    }
+    /* "More" is a button; make it look like its link neighbours. */
+    button.bottombar-link {
+      border: 0;
+      background: transparent;
+      font-family: inherit;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .bottombar-icon {
+      position: relative;
+      display: inline-flex;
+    }
+    /* Unread count on a bottom bar icon: an accent pill hanging off its top right corner. */
+    .bottombar-icon .nav-badge {
+      position: absolute;
+      top: -6px;
+      left: calc(100% - 8px);
+      min-width: 18px;
+      margin: 0;
+      padding: 0 5px;
+      line-height: 18px;
+      box-shadow: 0 0 0 2px var(--surface);
+    }
+    /* A dot on More when Friends has something waiting inside it. */
+    .nav-dot {
+      position: absolute;
+      top: -2px;
+      right: -4px;
+      width: 10px;
+      height: 10px;
+      border-radius: var(--radius-pill);
+      background: var(--accent);
+      box-shadow: 0 0 0 2px var(--surface);
     }
     .bottombar-link svg {
       transition: transform var(--dur-1) var(--ease-out);

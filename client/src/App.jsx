@@ -17,6 +17,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Profile = lazy(() => import('./pages/Profile'));
 const About = lazy(() => import('./pages/About'));
 const Groups = lazy(() => import('./pages/Groups'));
+const Friends = lazy(() => import('./pages/Friends'));
 const Schedule = lazy(() => import('./pages/Schedule'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Wellbeing = lazy(() => import('./pages/Wellbeing'));
@@ -37,6 +38,13 @@ function RouteFallback() {
 function SettingsRedirect() {
   const { user } = useAuth();
   return <Navigate to={user?._id ? `/profile/${user._id}#appearance` : '/profile'} replace />;
+}
+
+// Friends used to be a tab of Groups. Old notification links and bookmarks (/groups?tab=friends) go to /friends.
+function GroupsRoute() {
+  const { search } = useLocation();
+  if (new URLSearchParams(search).get('tab') === 'friends') return <Navigate to="/friends" replace />;
+  return <Groups />;
 }
 
 // Signed-out visitors go to the login page, which remembers where they were headed (a shared
@@ -84,10 +92,10 @@ const AppContent = () => {
         <Route path="/terms-of-service" element={<LegalPage kind="terms" />} />
         <Route path="/privacy-policy" element={<LegalPage kind="privacy" />} />
         <Route path="/settings" element={<RequireAuth><SettingsRedirect /></RequireAuth>} />
-        <Route path="/friends" element={<Navigate to="/groups?tab=friends" replace />} />
+        <Route path="/friends" element={<RequireAuth><Friends /></RequireAuth>} />
         <Route path="/schedule" element={<RequireAuth><Schedule /></RequireAuth>} />
         <Route path="/reviewers" element={<RequireAuth><Reviewers /></RequireAuth>} />
-        <Route path="/groups" element={<RequireAuth><Groups /></RequireAuth>} />
+        <Route path="/groups" element={<RequireAuth><GroupsRoute /></RequireAuth>} />
         <Route path="/wellbeing" element={<RequireAuth><Wellbeing /></RequireAuth>} />
         <Route path="/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
         <Route path="*" element={<NotFound />} />

@@ -1,22 +1,34 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Bell, CalendarDays, BookOpenCheck, CircleHelp, House, Users, LogOut } from 'lucide-react';
+import { Bell, CalendarDays, BookOpenCheck, CircleHelp, Ellipsis, Heart, House, UserPlus, Users, LogOut } from 'lucide-react';
 import { useAuth } from '../../pages/authentication/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useGuide } from '../../context/guideState';
 import { sidebarScroll } from './navFocus';
+import MoreSheet from './MoreSheet';
 import UserAvatar from '../UserAvatar';
 import Logo from '../../assets/logo.png';
 
-// The main places in the app (frontend-plan.md section 5). `match` decides when a place is the
-// current one, so related pages (Wellbeing under Today, /friends under People) keep it lit.
-// Profile isn't one of them: it sits with Notifications and Sign out (sidebar footer, phone top bar).
-const PLACES = [
-  { key: 'today', label: 'Today', Icon: House, to: () => '/dashboard', match: (p) => p === '/dashboard' || p === '/wellbeing' },
-  { key: 'schedule', label: 'Schedule', Icon: CalendarDays, to: () => '/schedule', match: (p) => p === '/schedule' },
-  { key: 'study', label: 'Study', Icon: BookOpenCheck, to: () => '/reviewers', match: (p) => p === '/reviewers' },
-  { key: 'people', label: 'People', Icon: Users, to: () => '/groups', match: (p) => p === '/groups' || p === '/friends' },
+// The places in the app. `match` decides when a place is the current one. Profile isn't one of them:
+// it sits with Notifications and Sign out (sidebar footer, phone top bar and More sheet).
+// `badge` names the unread count from NotificationContext that belongs to the place.
+const MAIN_PLACES = [
+  { key: 'today', label: 'Today', Icon: House, to: '/dashboard', match: (p) => p === '/dashboard' },
+  { key: 'schedule', label: 'Schedule', Icon: CalendarDays, to: '/schedule', match: (p) => p === '/schedule' },
+  { key: 'wellbeing', label: 'Wellbeing', Icon: Heart, to: '/wellbeing', match: (p) => p === '/wellbeing' },
+  { key: 'study', label: 'Study', Icon: BookOpenCheck, to: '/reviewers', match: (p) => p === '/reviewers' },
 ];
+// Another student's profile (/profile/<id>) belongs to Friends: its back link goes there.
+const PEOPLE_PLACES = [
+  { key: 'groups', label: 'Groups', Icon: Users, to: '/groups', badge: 'groupsUnread', badgeLabel: 'unread chats', match: (p) => p === '/groups' },
+  {
+    key: 'friends', label: 'Friends', Icon: UserPlus, to: '/friends', badge: 'friendsUnread', badgeLabel: 'friend requests',
+    match: (p, ownProfile) => p === '/friends' || (p.startsWith('/profile/') && p !== ownProfile),
+  },
+];
+// The phone bottom bar: four places, then More (Wellbeing and Friends live in the More sheet).
+const BOTTOM_PLACES = [MAIN_PLACES[0], MAIN_PLACES[1], MAIN_PLACES[3], PEOPLE_PLACES[0]];
+const MORE_PATHS = ['/wellbeing', '/friends', '/about'];
 
 function BellLink({ unreadCount, active }) {
   return (
@@ -34,12 +46,27 @@ function BellLink({ unreadCount, active }) {
   );
 }
 
+function SidebarLink({ place, pathname, ownProfile, counts }) {
+  const { label, to, match, badge, badgeLabel } = place;
+  const Icon = place.Icon;
+  const active = match(pathname, ownProfile);
+  const count = badge ? counts[badge] : 0;
+  return (
+    <Link to={to} className={`sidepanel-link ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}>
+      <Icon size={20} aria-hidden="true" /> <span>{label}</span>
+      {count > 0 && <span className="nav-badge" aria-label={`${count} ${badgeLabel}`}>{count > 99 ? '99+' : count}</span>}
+    </Link>
+  );
+}
+
 export default function Header() {
   const { user, logout, isLoggedin } = useAuth();
-  const { unreadCount } = useNotifications();
+  const { unreadCount, groupsUnread, friendsUnread } = useNotifications();
+  const counts = { groupsUnread, friendsUnread };
   const { pathname } = useLocation();
   const { tour, isOpen: guideOpen, toggle: toggleGuide } = useGuide();
   const asideRef = useRef(null);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // Each page renders its own sidebar; keep it scrolled where it was (matters on short windows).
   useLayoutEffect(() => {
@@ -62,6 +89,7 @@ export default function Header() {
   // Only your own profile lights it up, not another student's.
   const onProfile = pathname === profileTarget || pathname === '/settings';
   const onNotifications = pathname === '/notifications';
+  const onMore = MORE_PATHS.includes(pathname);
 
   return (
     <>
@@ -76,21 +104,13 @@ export default function Header() {
 
         <nav className="sidepanel-nav" aria-label="Main">
           <div className="sidepanel-menu">
-            {PLACES.map((place) => {
-              const { key, label, to, match } = place;
-              const Icon = place.Icon;
-              const active = match(pathname);
-              return (
-                <Link
-                  key={key}
-                  to={to(user)}
-                  className={`sidepanel-link ${active ? 'active' : ''}`}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  <Icon size={20} aria-hidden="true" /> <span>{label}</span>
-                </Link>
-              );
-            })}
+            {MAIN_PLACES.map((place) => (
+              <SidebarLink key={place.key} place={place} pathname={pathname} ownProfile={profileTarget} counts={counts} />
+            ))}
+            <div className="sidepanel-section">People</div>
+            {PEOPLE_PLACES.map((place) => (
+              <SidebarLink key={place.key} place={place} pathname={pathname} ownProfile={profileTarget} counts={counts} />
+            ))}
           </div>
 
           <div className="sidepanel-footer">
@@ -163,23 +183,53 @@ export default function Header() {
       </header>
 
       <nav className="bottombar" aria-label="Main">
-        {PLACES.map((place) => {
-          const { key, label, to, match } = place;
+        {BOTTOM_PLACES.map((place) => {
+          const { key, label, to, match, badge, badgeLabel } = place;
           const Icon = place.Icon;
-          const active = match(pathname);
+          const active = match(pathname, profileTarget);
+          const count = badge ? counts[badge] : 0;
           return (
             <Link
               key={key}
-              to={to(user)}
+              to={to}
               className={`bottombar-link ${active ? 'active' : ''}`}
               aria-current={active ? 'page' : undefined}
             >
-              <Icon size={22} aria-hidden="true" />
+              <span className="bottombar-icon">
+                <Icon size={22} aria-hidden="true" />
+                {count > 0 && <span className="nav-badge" aria-label={`${count} ${badgeLabel}`}>{count > 99 ? '99+' : count}</span>}
+              </span>
               <span>{label}</span>
             </Link>
           );
         })}
+        <button
+          type="button"
+          className={`bottombar-link ${onMore ? 'active' : ''}`}
+          onClick={() => setMoreOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={moreOpen}
+          aria-current={onMore ? 'page' : undefined}
+          aria-label={friendsUnread > 0 ? `More, ${friendsUnread} friend ${friendsUnread === 1 ? 'request' : 'requests'}` : 'More'}
+        >
+          <span className="bottombar-icon">
+            <Ellipsis size={22} aria-hidden="true" />
+            {friendsUnread > 0 && <span className="nav-dot" aria-hidden="true" />}
+          </span>
+          <span>More</span>
+        </button>
       </nav>
+
+      {moreOpen && (
+        <MoreSheet
+          onClose={() => setMoreOpen(false)}
+          user={user}
+          profileTarget={profileTarget}
+          friendsUnread={friendsUnread}
+          unreadCount={unreadCount}
+          onLogout={logout}
+        />
+      )}
     </>
   );
 }
