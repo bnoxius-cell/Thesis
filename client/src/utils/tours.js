@@ -209,3 +209,26 @@ export const WELLBEING_TOUR = [
     text: "In plain words, what goes into your score and where the two check-ins come from.",
   },
 ];
+
+export const GROUPS_TOUR = [
+  {
+    target: "groups-actions",
+    title: "Start or join a group",
+    text: "Make a group for a class or project, or join a classmate's with the 6-character code they share with you.",
+  },
+  {
+    target: "groups-list",
+    title: "Your groups",
+    text: "Each group with its member count. A number means chats you haven't read yet. Tap a group to open it.",
+  },
+  {
+    target: "group-chat",
+    title: "The chat",
+    text: "Talk with the group, and use the buttons next to the message box to share one of your tasks or a whole schedule. Teammates can add a copy to their own.",
+  },
+  {
+    target: "group-settings",
+    title: "Group info",
+    text: "The join code, the member list and, for admins, the name, picture and chat filter. This is also where you leave the group.",
+  },
+];

@@ -4,6 +4,7 @@ import { Check, Copy, UserPlus, Users, X } from "lucide-react";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { useAuth } from "./authentication/AuthContext";
+import { useNotifications } from "../context/NotificationContext";
 import UserAvatar from "../components/UserAvatar";
 import ConfirmDialog from "../components/ConfirmDialog";
 import AppShell, { ShellOverlays } from "../components/layout/AppShell";
@@ -17,6 +18,7 @@ const TAG_LENGTH = 6;
 // The Friends page (/friends).
 export default function Friends() {
   const { backendUrl, user } = useAuth();
+  const { refresh: refreshNotifications } = useNotifications();
   const [friends, setFriends] = useState([]);
   const [incoming, setIncoming] = useState([]);
   const [sent, setSent] = useState([]);
@@ -55,6 +57,7 @@ export default function Friends() {
       if (data.success) {
         toast.success(doneText || data.message);
         await fetchData();
+        refreshNotifications(); // the Friends badge counts pending requests, so it follows the list
         return true;
       }
       toast.error(data.message || "That didn't work. Try again.");

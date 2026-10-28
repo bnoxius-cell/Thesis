@@ -117,6 +117,28 @@ describe('friends', () => {
         expect(aliceInbox.notifications[0].message).toContain('Bob');
     });
 
+    test('the inbox reports pending friend requests, and answering one clears the count', async () => {
+        const alice = await signUp('Alice');
+        const bob = await signUp('Bob');
+        const cara = await signUp('Cara');
+
+        await alice.agent.post('/api/friends/request').send({ profileTag: cara.user.profileTag });
+        await bob.agent.post('/api/friends/request').send({ profileTag: cara.user.profileTag });
+        expect((await inbox(cara)).pendingFriendRequests).toBe(2);
+        // The sender has nothing waiting on them.
+        expect((await inbox(alice)).pendingFriendRequests).toBe(0);
+
+        const pending = (await cara.agent.get('/api/friends/pending')).body.requests;
+        await cara.agent.put(`/api/friends/accept/${pending[0]._id}`);
+        expect((await inbox(cara)).pendingFriendRequests).toBe(1);
+
+        await cara.agent.delete(`/api/friends/request/${pending[1]._id}`);
+        const after = await inbox(cara);
+        expect(after.pendingFriendRequests).toBe(0);
+        // The notification itself is still unread: the badge no longer depends on it.
+        expect(after.notifications.filter((n) => n.type === 'friend_request' && !n.isRead)).toHaveLength(2);
+    });
+
     test('turning friend alerts off silences both', async () => {
         const alice = await signUp('Alice');
         const bob = await signUp('Bob');

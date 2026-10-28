@@ -25,6 +25,7 @@ export function NotificationProvider({ children }) {
 
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingFriends, setPendingFriends] = useState(0); // incoming friend requests still waiting
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -64,6 +65,7 @@ export function NotificationProvider({ children }) {
 
       setNotifications(list);
       setUnreadCount(data.unreadCount);
+      setPendingFriends(data.pendingFriendRequests || 0);
       setError("");
     } catch (err) {
       setError(err.response?.data?.message || err.message || "Could not load notifications.");
@@ -163,21 +165,23 @@ export function NotificationProvider({ children }) {
   }, [backendUrl, refresh]);
 
   // Unread hints for the navigation, worked out from the list we already have (no new requests).
-  // Chat notifications collapse to one per group, so this is the number of groups with news.
-  const { groupsUnread, friendsUnread } = useMemo(() => {
-    let groups = 0;
-    let friends = 0;
+  // Chat notifications collapse to one per group, so this is the number of groups with news, and
+  // `groupUnreadById` says which ones (and how many new messages each) for the Groups list.
+  // Friends is not a notification count: the server sends how many requests are still pending in
+  // the same response, so accepting, declining or a cancelled request clears it.
+  const { groupsUnread, groupUnreadById } = useMemo(() => {
+    const byGroup = {};
     for (const n of notifications) {
-      if (n.isRead) continue;
-      if (CHAT_TYPES.includes(n.type)) groups += 1;
-      else if (n.type === "friend_request") friends += 1;
+      if (n.isRead || !CHAT_TYPES.includes(n.type) || !n.group) continue;
+      byGroup[String(n.group)] = (byGroup[String(n.group)] || 0) + Math.max(1, n.count || 1);
     }
-    return { groupsUnread: groups, friendsUnread: friends };
+    return { groupsUnread: Object.keys(byGroup).length, groupUnreadById: byGroup };
   }, [notifications]);
+  const friendsUnread = pendingFriends;
 
   const value = useMemo(
-    () => ({ notifications, unreadCount, groupsUnread, friendsUnread, loading, error, refresh, markRead, markGroupRead, markAllRead, remove, clearAll }),
-    [notifications, unreadCount, groupsUnread, friendsUnread, loading, error, refresh, markRead, markGroupRead, markAllRead, remove, clearAll]
+    () => ({ notifications, unreadCount, groupsUnread, groupUnreadById, friendsUnread, loading, error, refresh, markRead, markGroupRead, markAllRead, remove, clearAll }),
+    [notifications, unreadCount, groupsUnread, groupUnreadById, friendsUnread, loading, error, refresh, markRead, markGroupRead, markAllRead, remove, clearAll]
   );
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;

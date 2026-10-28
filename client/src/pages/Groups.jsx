@@ -1,16 +1,20 @@
-import { useState, useEffect, useCallback } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Plus, Link2, MessageSquare, ShieldCheck } from "lucide-react";
+import { Plus, KeyRound, MessageSquare, ShieldCheck, Users } from "lucide-react";
 import AppShell, { ShellOverlays } from "../components/layout/AppShell";
 import GroupChat from "../components/GroupChat";
 import ConfirmDialog from "../components/ConfirmDialog";
 import UserAvatar from "../components/UserAvatar";
 import PictureField from "../components/PictureField";
 import PageHeader from "../components/PageHeader";
+import EmptyState from "../components/EmptyState";
+import { useNotifications } from "../context/NotificationContext";
+import { GROUPS_TOUR } from "../utils/tours";
 import { useAuth } from "./authentication/AuthContext";
 import "../App.css";
+import "../styles/pages/groups.css";
 import Modal from "../components/Modal";
 import BusySpinner from "../components/BusySpinner";
 
@@ -19,6 +23,7 @@ const GROUP_REFRESH_MS = 10000;
 export default function Groups() {
   const { backendUrl, user } = useAuth();
   const myId = user?._id;
+  const { groupUnreadById } = useNotifications();
   const [searchParams, setSearchParams] = useSearchParams();
   const openGroupId = searchParams.get("g");
 
@@ -167,6 +172,18 @@ export default function Groups() {
   const handleGroupUpdated = (updated) => setGroups((prev) => prev.map((g) => (g._id === updated._id ? updated : g)));
   const openGroup = groups.find((g) => g._id === openGroupId);
 
+  // Back on the list (phones), focus goes to the row that was open instead of dropping to the page.
+  const lastOpenRef = useRef(null);
+  useEffect(() => {
+    if (openGroupId) {
+      lastOpenRef.current = openGroupId;
+      return;
+    }
+    const id = lastOpenRef.current;
+    lastOpenRef.current = null;
+    if (id) document.querySelector(`[data-group-id="${id}"]`)?.focus({ preventScroll: true });
+  }, [openGroupId]);
+
   const confirmDialog = (
     <ConfirmDialog
       open={Boolean(confirm)}
@@ -189,109 +206,127 @@ export default function Groups() {
     </ConfirmDialog>
   );
 
-  // Chat view: takes over the page so the conversation has room.
-  if (openGroupId && !loading) {
-    return (
-      <AppShell mainClassName="chat-page">
-          {openGroup ? (
-            <GroupChat
-              key={openGroup._id}
-              group={openGroup}
-              onBack={closeChat}
-              onLeave={() => setConfirm({ kind: "leave", group: openGroup })}
-              onDelete={() => setConfirm({ kind: "delete", group: openGroup })}
-              onGroupUpdated={handleGroupUpdated}
-            />
-          ) : (
-            <div className="panel" style={{ textAlign: "center" }}>
-              <p className="schedule-empty">
-                {loadFailed
-                  ? "Couldn't load your groups. Check your connection and try again."
-                  : "That group doesn't exist, or you're no longer a member."}
-              </p>
-              <button type="button" className="secondary-button" onClick={closeChat}>Back to groups</button>
-            </div>
-          )}
-        <ShellOverlays>{confirmDialog}</ShellOverlays>
-      </AppShell>
-    );
-  }
+  const actions = (
+    <div className="groups-actions" data-tour="groups-actions">
+      <button type="button" className="primary-button" onClick={() => { setError(""); setCreateModalOpen(true); }}>
+        <Plus size={18} aria-hidden="true" /> New group
+      </button>
+      <button type="button" className="secondary-button" onClick={() => { setError(""); setJoinModalOpen(true); }}>
+        <KeyRound size={18} aria-hidden="true" /> Join with a code
+      </button>
+    </div>
+  );
 
-  return (
-    <AppShell>
-        <PageHeader title="Groups" description="Your study groups and their chats." />
-
-        <>
-        <div className="groups-actions">
-          <button className="primary-button" onClick={() => { setError(""); setCreateModalOpen(true); }}>
-            <Plus size={18} aria-hidden="true" /> Create group
-          </button>
-          <button className="secondary-button" onClick={() => { setError(""); setJoinModalOpen(true); }}>
-            <Link2 size={18} aria-hidden="true" /> Join group
+  const listBody = () => {
+    if (loading) return <p className="groups-state" role="status">Loading your groups...</p>;
+    if (loadFailed) {
+      return (
+        <div className="groups-state">
+          <p>Couldn't load your groups.</p>
+          <button type="button" className="secondary-button" onClick={() => { setLoading(true); fetchGroups(); }}>
+            Try again
           </button>
         </div>
+      );
+    }
+    return (
+      <ul className="groups-list">
+        {groups.map((group) => {
+          const active = group._id === openGroupId;
+          const unread = active ? 0 : groupUnreadById[group._id] || 0;
+          const role = isOwner(group) ? "Owner" : isAdmin(group) ? "Admin" : "";
+          return (
+            <li key={group._id}>
+              <button
+                type="button"
+                className="group-row"
+                data-group-id={group._id}
+                aria-current={active ? "true" : undefined}
+                onClick={() => openChat(group._id)}
+              >
+                <UserAvatar name={group.name} src={group.icon} size={40} square />
+                <span className="group-row-text">
+                  <strong>{group.name}</strong>
+                  <span>
+                    {group.members.length} {group.members.length === 1 ? "member" : "members"}
+                    {role && ` · ${role}`}
+                  </span>
+                </span>
+                {unread > 0 && (
+                  <span className="group-unread">
+                    <span aria-hidden="true">{unread > 99 ? "99+" : unread}</span>
+                    <span className="sr-only">{unread} unread</span>
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
 
-        {loading ? (
-          <div className="panel" style={{ textAlign: "center" }}>
-            <p className="schedule-empty">Loading your groups...</p>
-          </div>
-        ) : loadFailed ? (
-          <div className="panel" style={{ textAlign: "center" }}>
-            <p className="schedule-empty">Couldn't load your groups.</p>
-            <button type="button" className="secondary-button" onClick={() => { setLoading(true); fetchGroups(); }}>
-              Try again
-            </button>
-          </div>
-        ) : groups.length === 0 ? (
-          <div className="panel" style={{ textAlign: "center" }}>
-            <p className="schedule-empty">
-              You're not in any group yet. Create one, or join a classmate's with a code.
+  const detail = () => {
+    if (!openGroupId) {
+      return (
+        <div className="groups-placeholder">
+          <EmptyState icon={MessageSquare} title="Pick a group">
+            Its chat opens here, with the tasks and schedules people have shared.
+          </EmptyState>
+        </div>
+      );
+    }
+    if (loading) return <div className="groups-placeholder"><p className="groups-state" role="status">Opening the chat...</p></div>;
+    if (!openGroup) {
+      return (
+        <div className="groups-placeholder">
+          <div className="groups-state">
+            <p>
+              {loadFailed
+                ? "Couldn't load your groups. Check your connection and try again."
+                : "That group doesn't exist, or you're no longer a member."}
             </p>
+            <button type="button" className="secondary-button" onClick={closeChat}>Back to groups</button>
           </div>
-        ) : (
-          <div className="groups-grid">
-            {groups.map((group) => (
-              <div key={group._id} className="group-card">
-                <div className="group-header">
-                  <UserAvatar name={group.name} src={group.icon} size={44} square />
-                  <h3>{group.name}</h3>
-                  {isOwner(group) && <span className="owner-badge">Owner</span>}
-                  {!isOwner(group) && isAdmin(group) && <span className="owner-badge admin-badge">Admin</span>}
-                  {group.familyFriendly && <span className="family-badge"><ShieldCheck size={12} aria-hidden="true" /> Family-friendly</span>}
-                </div>
-                {group.description && <p className="group-desc">{group.description}</p>}
-                <div className="group-code">
-                  Join code: <strong>{group.joinCode}</strong>
-                </div>
-                <div className="group-members">
-                  <span className="group-members-title">Members ({group.members.length})</span>
-                  <ul className="members-list">
-                    {group.members.map((member) => (
-                      <li key={member._id}>
-                        <Link to={`/profile/${member._id}`} className="member-chip">
-                          <UserAvatar name={member.name} src={member.avatar} size={28} />
-                          {member.name} {member._id === myId && "(you)"}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="group-actions">
-                  <button className="primary-button small" onClick={() => openChat(group._id)}>
-                    <MessageSquare size={16} aria-hidden="true" /> Open chat
-                  </button>
-                  <button
-                    className="ghost-button is-danger"
-                    onClick={() => setConfirm({ kind: isOwner(group) ? "delete" : "leave", group })}
-                  >
-                    {isOwner(group) ? "Delete group" : "Leave group"}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        </>
+        </div>
+      );
+    }
+    return (
+      <GroupChat
+        key={openGroup._id}
+        group={openGroup}
+        onBack={closeChat}
+        onLeave={() => setConfirm({ kind: "leave", group: openGroup })}
+        onDelete={() => setConfirm({ kind: "delete", group: openGroup })}
+        onGroupUpdated={handleGroupUpdated}
+      />
+    );
+  };
+
+  const noGroups = !loading && !loadFailed && groups.length === 0;
+
+  return (
+    <AppShell
+      mainClassName={`groups-page${openGroupId ? " has-open" : ""}`}
+      tour={{ page: "groups", title: "Groups", steps: GROUPS_TOUR, view: openGroupId ? "open" : "list" }}
+    >
+      <PageHeader title="Groups" description="Study groups for your classes: chat, and share tasks and schedules." actions={actions} />
+
+      {noGroups ? (
+        <section className="panel" data-tour="groups-list">
+          <EmptyState icon={Users} title="No groups yet">
+            Create one for your class, or join a classmate's with their 6-character code.
+          </EmptyState>
+        </section>
+      ) : (
+        <div className="groups-layout">
+          <section className="groups-list-pane" aria-label="Your groups" data-tour="groups-list">
+            {listBody()}
+          </section>
+          <div className="groups-detail-pane">{detail()}</div>
+        </div>
+      )}
+
       <ShellOverlays>
       {/* Create Group Modal */}
       {createModalOpen && (
