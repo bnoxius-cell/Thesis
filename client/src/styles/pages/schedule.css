@@ -302,6 +302,49 @@
     text-align: center;
   }
 
+  /* ---- Month: a bar on top, then one week card per week ---- */
+  .sched-month {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .sched-month-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+  }
+  .sched-month-bar h2 {
+    flex: 1 1 9rem;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--text-lg);
+    line-height: var(--text-lg-lh);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .sched-month-bar .icon-action { color: var(--s-muted); }
+  .sched-month-bar .sched-this-week { margin-left: var(--space-2); }
+  /* "This week" when the current week is already on screen: it stays focusable (so focus is not
+     lost after it scrolls) but reads as unavailable. */
+  .sched-this-week[aria-disabled="true"] {
+    opacity: 0.55;
+    cursor: default;
+    pointer-events: none;
+  }
+  .sched-month-weeks {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .sched-month-weeks > .sched-week {
+    scroll-margin-top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px) + var(--space-3));
+  }
+  @media (max-width: 720px) {
+    .sched-month-bar h2 { text-align: left; font-size: var(--text-md); }
+    .sched-month-bar .sched-this-week { margin-left: 0; }
+  }
+
   /* ---- Week ----
      One DOM, two layouts. The section is the container; narrow is the default (day strip and
      the picked day's agenda), 840px and wider shows a true 7-column week. */
@@ -333,6 +376,26 @@
   }
   .sched-this-week { margin-left: var(--space-2); }
   .sched-week-bar .icon-action { color: var(--s-muted); }
+  /* A week card inside the month: its name, the date range, and a chip on the current one. */
+  .sched-week.is-current { border-color: var(--s-accent); }
+  .sched-week-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-2);
+  }
+  .sched-week-head h3 {
+    margin: 0;
+    font-size: var(--text-md);
+    line-height: var(--text-md-lh);
+    font-weight: 600;
+  }
+  .sched-week-range {
+    color: var(--s-muted);
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+  }
+  .sched-week-chip { align-self: center; }
 
   /* Day strip (narrow only) */
   .sched-strip {
@@ -371,6 +434,7 @@
     background: transparent;
   }
   .sched-strip-dot.is-on { background: var(--s-accent); }
+  .sched-strip-day.is-outside .sched-strip-num { color: var(--s-muted); font-weight: 500; }
   .sched-strip-day.is-today .sched-strip-num,
   .sched-strip-day.is-today .sched-strip-name { color: var(--s-accent-text); }
   .sched-strip-day[aria-pressed="true"] {
@@ -411,6 +475,7 @@
     color: var(--s-ink);
   }
   .sched-day-short { display: none; }
+  .sched-day.is-outside .sched-day-name { color: var(--s-muted); }
   .sched-day-date {
     color: var(--s-muted);
     font-size: var(--text-sm);
@@ -645,6 +710,7 @@
       font-size: var(--text-md);
       font-weight: 600;
     }
+    .sched-day.is-outside .sched-day-date { color: var(--s-muted); font-weight: 500; }
     .sched-day.is-today .sched-day-date { background: var(--s-accent); color: var(--s-on-accent); }
     .sched-day.is-today .sched-day-short { color: var(--s-accent-text); }
     .sched-day-empty { padding: var(--space-1) 0; font-size: var(--text-xs); }
@@ -1306,14 +1372,14 @@
   .sched-row .sched-menu-list.align-end { left: auto; right: 0; }
 
   /* ---- Motion ----
-     A week change slides 12px the way you moved; a tapped day fades in (keyboard swaps are
+     A month change slides the whole stack of week cards 12px the way you moved; a tapped day fades in (keyboard swaps are
      instant); a new entry rises in through .is-entering (components.css). All of it is
      squashed by the reduced-motion rule in base.css. */
   @keyframes sched-week-next { from { opacity: 0; transform: translateX(12px); } }
   @keyframes sched-week-prev { from { opacity: 0; transform: translateX(-12px); } }
   @keyframes sched-day-in { from { opacity: 0; } }
-  .sched-days[data-dir="next"] { animation: sched-week-next var(--dur-2) var(--ease-out); }
-  .sched-days[data-dir="prev"] { animation: sched-week-prev var(--dur-2) var(--ease-out); }
+  .sched-month-weeks[data-dir="next"] { animation: sched-week-next var(--dur-2) var(--ease-out); }
+  .sched-month-weeks[data-dir="prev"] { animation: sched-week-prev var(--dur-2) var(--ease-out); }
   @container week (max-width: 839.98px) {
     .sched-day.is-selected { animation: sched-day-in var(--dur-1) var(--ease-out); }
   }

@@ -32,6 +32,26 @@ export const startOfWeek = (d) => {
   return addDays(new Date(d.getFullYear(), d.getMonth(), d.getDate()), day === 0 ? -6 : 1 - day);
 };
 
+// A Monday-to-Sunday week belongs to the month its Thursday falls in (the ISO 8601 rule), so every
+// week shows up in exactly one month and a month has 4 or 5 week cards. `monthOfWeek` is the first
+// of the month whose page shows the week that `date` is in; `monthWeeks` is that month's Mondays.
+export const monthOfWeek = (d) => {
+  const thursday = addDays(startOfWeek(d), 3);
+  return new Date(thursday.getFullYear(), thursday.getMonth(), 1);
+};
+
+export const monthWeeks = (monthDate) => {
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+  const weeks = [];
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  for (let day = 1; day <= lastDay; day += 1) {
+    const date = new Date(year, month, day);
+    if (date.getDay() === 4) weeks.push(addDays(date, -3));
+  }
+  return weeks;
+};
+
 export const formatTime = (hhmm) => {
   const [h, m] = hhmm.split(":").map(Number);
   const suffix = h >= 12 ? "PM" : "AM";
