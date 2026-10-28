@@ -3,6 +3,7 @@ import request from 'supertest';
 import app from '../app.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
+import notificationModel from '../models/notificationModel.js';
 
 vi.mock('../utils/emailService.js', () => ({
     sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
@@ -184,5 +185,44 @@ describe('sharing tasks in a group chat', () => {
 
         const after = await bob.get(`/api/groups/${group._id}/messages`);
         expect(after.body.messages[0].addedByMe).toBe(true);
+    });
+});
+
+describe('reading a chat marks its notifications read', () => {
+    test('opening the chat clears only that group chat notifications', async () => {
+        const { alice, bob, group } = await setup();
+
+        await alice.post(`/api/groups/${group._id}/messages`).send({ text: 'hello' });
+
+        const other = await alice.post('/api/groups').send({ name: 'Other Group' });
+        await bob.post('/api/groups/join').send({ joinCode: other.body.group.joinCode });
+        await alice.post(`/api/groups/${other.body.group._id}/messages`).send({ text: 'elsewhere' });
+
+        const before = await bob.get('/api/notifications');
+        const bobId = before.body.notifications[0].recipient;
+        await notificationModel.create({ recipient: bobId, type: 'friend_request', title: 'Friend', message: 'hi' });
+
+        const unread = async () => (await bob.get('/api/notifications')).body.unreadCount;
+        const beforeCount = await unread();
+
+        const res = await bob.get(`/api/groups/${group._id}/messages`);
+        expect(res.body.readNotifications).toBe(1);
+        expect(await unread()).toBe(beforeCount - 1);
+
+        const left = await notificationModel.find({ recipient: bobId, isRead: false });
+        const types = left.map((n) => n.type).sort();
+        expect(types).toContain('friend_request');
+        expect(left.some((n) => String(n.group) === String(other.body.group._id))).toBe(true);
+        expect(left.some((n) => String(n.group) === String(group._id))).toBe(false);
+    });
+
+    test('a poll with nothing new reads nothing', async () => {
+        const { alice, bob, group } = await setup();
+        await alice.post(`/api/groups/${group._id}/messages`).send({ text: 'hello' });
+        const first = await bob.get(`/api/groups/${group._id}/messages`);
+        const newest = first.body.messages[first.body.messages.length - 1]._id;
+
+        const res = await bob.get(`/api/groups/${group._id}/messages?after=${newest}`);
+        expect(res.body.readNotifications).toBe(0);
     });
 });

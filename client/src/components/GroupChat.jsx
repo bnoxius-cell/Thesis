@@ -7,6 +7,7 @@ import {
   LogOut, Trash2, ArrowDown, MessageSquare, X, Gauge, CalendarDays, Settings, ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "../pages/authentication/AuthContext";
+import { useNotifications } from "../context/NotificationContext";
 import TaskImportDialog from "./TaskImportDialog";
 import ScheduleImportDialog from "./schedule/ScheduleImportDialog";
 import UserAvatar from "./UserAvatar";
@@ -98,6 +99,7 @@ function ScheduleCard({ message, onAdd, addedId }) {
 export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpdated }) {
   const { backendUrl, user } = useAuth();
   const myId = user?._id;
+  const { markGroupRead } = useNotifications();
   const isOwner = group.admin?._id === myId;
   const isAdmin = isOwner || (group.admins || []).includes(myId);
   const roleOf = (id) => (group.admin?._id === id ? "Owner" : (group.admins || []).includes(id) ? "Admin" : null);
@@ -160,6 +162,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
       const { data } = await axios.get(url, { withCredentials: true });
       if (data.success) {
         mergeMessages(data.messages, { fromPoll: true });
+        if (data.readNotifications > 0) markGroupRead(group._id);
         setStatus("ready");
       }
     } catch {
@@ -168,7 +171,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
     } finally {
       busyRef.current = false;
     }
-  }, [base, mergeMessages]);
+  }, [base, mergeMessages, markGroupRead, group._id]);
 
   useEffect(() => {
     poll();
