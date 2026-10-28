@@ -223,12 +223,17 @@ export default function Groups() {
 
   return (
     <AppShell>
-        <PageHeader title="People" description="Your study groups and your friends." />
-        <Tabs
-          tabs={[{ id: "groups", label: "Groups" }, { id: "friends", label: "Friends" }]}
-          value={tab}
-          onChange={setTab}
-          label="People"
+        <PageHeader
+          title="People"
+          description="Your study groups and your friends."
+          actions={(
+            <Tabs
+              tabs={[{ id: "groups", label: "Groups" }, { id: "friends", label: "Friends" }]}
+              value={tab}
+              onChange={setTab}
+              label="People"
+            />
+          )}
         />
 
         {tab === "friends" ? (

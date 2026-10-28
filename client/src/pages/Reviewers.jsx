@@ -68,9 +68,8 @@ export default function Reviewers() {
     <AppShell mainClassName="reviewer-page" tour={{ page: "reviewers", title: "Study", steps: REVIEWERS_TOUR, view: "list" }}>
         <div data-tour="rev-intro">
           <PageHeader
-            kicker="Study"
             title="Reviewers"
-            description="Upload your notes, a handout or a module as a PDF. You'll get a short reviewer, key terms and practice questions, and you'll see which topics need more of your time."
+            description="Turn a PDF of your notes into a short reviewer, key terms and practice questions."
             actions={(
               <div className="reviewer-intro-actions" data-tour="rev-upload">
                 <button type="button" className="primary-button" onClick={() => setUploadOpen(true)} disabled={!canUpload}>

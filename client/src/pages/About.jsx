@@ -44,7 +44,6 @@ export default function About() {
   return (
     <AppShell variant={isLoggedin ? "app" : "public"} mainClassName="about-page">
         <PageHeader
-          kicker="About"
           title="About StressCare"
           description="A planner for OLFU IT students that shows how full your week is and helps you keep it manageable."
         />

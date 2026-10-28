@@ -868,8 +868,8 @@ export default function Schedule() {
                       {notes[0] && <p className="sched-hint">{notes[0].short}</p>}
                       {hasMore && (
                         <details className="sched-about">
-                          <summary>About this schedule</summary>
-                          {notes.map((n) => <p key={n.short} className="sched-hint">{n.full}</p>)}
+                          <summary>About this schedule <ChevronDown size={16} aria-hidden="true" /></summary>
+                          {notes.slice(1).map((n) => <p key={n.short} className="sched-hint">{n.full}</p>)}
                           {workloadNote && <p className="sched-hint">{workloadNote}</p>}
                         </details>
                       )}

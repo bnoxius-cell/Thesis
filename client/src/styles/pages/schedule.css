@@ -260,8 +260,16 @@
     min-height: 44px;
     color: var(--s-muted);
     font-size: var(--text-sm);
-    font-weight: 600;
+    font-weight: 500;
+    gap: var(--space-1);
     cursor: pointer;
+    list-style: none;
+  }
+  .sched-about summary::-webkit-details-marker { display: none; }
+  .sched-about summary svg { transition: transform var(--dur-1) ease; }
+  .sched-about[open] summary svg { transform: rotate(180deg); }
+  @media (hover: hover) and (pointer: fine) {
+    .sched-about summary:hover { color: var(--s-ink); }
   }
   .sched-about[open] > .sched-hint { margin: 0 0 var(--space-2); }
   .sched-head-notes .sched-hint { display: block; font-size: var(--text-sm); line-height: var(--lh-body); }
