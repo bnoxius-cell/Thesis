@@ -162,7 +162,7 @@
   .sched {
     display: flex;
     flex-direction: column;
-    gap: var(--space-5);
+    gap: var(--space-4);
     color: var(--s-ink);
   }
   .sched .panel {
@@ -180,6 +180,11 @@
   .sched-day,
   .sched .panel {
     transition: background-color var(--dur-3) var(--ease-out), border-color var(--dur-3) var(--ease-out), color var(--dur-3) var(--ease-out);
+  }
+
+  @media (max-width: 720px) {
+    .sched,
+    .tasks-tab { gap: var(--space-3); }
   }
 
   /* ---- Header (no card): title and switcher, two chips, actions ---- */
@@ -244,9 +249,21 @@
   .sched-more { color: var(--s-muted); }
   .sched-head-notes {
     display: grid;
-    gap: var(--space-2);
+    gap: var(--space-1);
     max-width: 72ch;
   }
+  .sched-head-notes > .sched-hint,
+  .sched-about > .sched-hint { color: var(--s-muted); }
+  .sched-about summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--s-muted);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .sched-about[open] > .sched-hint { margin: 0 0 var(--space-2); }
   .sched-head-notes .sched-hint { display: block; font-size: var(--text-sm); line-height: var(--lh-body); }
   .sched-workload-toggle {
     align-items: flex-start;
@@ -691,7 +708,7 @@
   .tasks-tab {
     display: grid;
     grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-    gap: var(--space-5);
+    gap: var(--space-4);
     align-items: start;
   }
   .tasks-toolbar {

@@ -200,7 +200,7 @@ export default function Friends() {
         {loading ? (
           <p className="schedule-empty">Loading friends...</p>
         ) : friends.length === 0 ? (
-          <EmptyState icon={Users} title="No friends yet">
+          <EmptyState compact icon={Users} title="No friends yet">
             Share your code, or type a classmate's code above, to add your first study buddy.
           </EmptyState>
         ) : (

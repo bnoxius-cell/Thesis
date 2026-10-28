@@ -436,7 +436,12 @@
     width: 100%;
     max-width: var(--content-max);
     margin: 0 auto;
-    padding: var(--space-6) 40px var(--space-7); /* 40px sides on laptops (plan B4) */
+    padding: 24px 32px 32px; /* laptops (ON-2 R1) */
+  }
+  @media (min-width: 721px) and (max-width: 1023px) {
+    .app.app-layout > main {
+      padding: 20px 24px 24px;
+    }
   }
   .app.app-layout > main.is-reading {
     max-width: calc(var(--reading-max) + 80px);
@@ -837,7 +842,7 @@
     }
     .app.app-layout > main {
       width: 100%;
-      padding: 20px var(--space-4) var(--space-6); /* 20px top on phones (plan B4) */
+      padding: 16px var(--space-4) var(--space-6); /* ON-2 R1 */
     }
     .app.app-layout > main.is-reading {
       max-width: none;
@@ -847,7 +852,7 @@
     }
     .app.auth-layout .dashboard,
     .app.auth-layout .auth-page {
-      width: min(var(--content-max), 100% - 32px); /* same 16px edge as the logo bar */
+      width: min(1080px, 100% - 32px); /* same 16px edge as the logo bar */
       padding-top: 20px;
     }
     .app.app-layout > .footer,
@@ -1263,7 +1268,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    min-height: 56px;
+    min-height: 48px;
     padding: var(--space-1) 0;
     border-top: 1px solid var(--border);
   }

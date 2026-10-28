@@ -160,7 +160,7 @@ const Dashboard = () => {
               <SetupChecklist work={work} setup={setup} onStartCheckIn={() => setShowPSSModal(true)} onHide={hideSetupCard} />
             ) : (
               <section className="panel">
-                <EmptyState icon={Sprout} title="Nothing here yet">
+                <EmptyState compact icon={Sprout} title="Nothing here yet">
                   Add a task above, or your classes, and your week starts to take shape.
                   <span className="empty-state-actions">
                     <Link to="/schedule" className="secondary-button">Open schedule</Link>

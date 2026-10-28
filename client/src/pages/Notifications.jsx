@@ -130,7 +130,7 @@ export default function Notifications() {
               {error} <button type="button" className="ghost-button small" onClick={refresh}>Try again</button>
             </p>
           ) : visible.length === 0 ? (
-            <EmptyState icon={Bell} title={filter === "all" ? "Nothing yet" : "Nothing here"}>{emptyText}</EmptyState>
+            <EmptyState compact icon={Bell} title={filter === "all" ? "Nothing yet" : "Nothing here"}>{emptyText}</EmptyState>
           ) : (
             groups.map(([label, items]) => (
               <section key={label} className="notice-group" aria-label={label}>
