@@ -6,7 +6,8 @@ import { useGuide } from "../context/guideState";
 // The page Guide: a short, step by step walkthrough of the page. A step's `target` names a
 // `data-tour` attribute on the page: the guide scrolls to it and outlines it. Steps whose target isn't
 // on screen (a section that only shows once there's data, or the other view of the page) are left out,
-// so the guide matches what the student sees.
+// so the guide matches what the student sees. "On screen" means it has a size: a section hidden by CSS
+// at this width (the group list while a group is open on a phone) counts as not there.
 //
 // This component only renders the panel. The button that opens it lives in the header (Header.jsx,
 // `data-guide-trigger`) and talks to it through GuideContext; AppShell renders one PageTour per page.
@@ -33,8 +34,17 @@ function markSeen(key) {
   }
 }
 
+// An element hidden with display:none (or inside something that is) has no box, so a size check covers it.
+function isShown(el) {
+  const rect = el.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
+
+// The first matching element that is actually showing, so a target that exists twice (a nav item in the
+// sidebar and in the phone bar) resolves to the one the student can see.
 function findTarget(target) {
-  return target ? document.querySelector(`[data-tour="${target}"]`) : null;
+  if (!target) return null;
+  return [...document.querySelectorAll(`[data-tour="${target}"]`)].find(isShown) || null;
 }
 
 function prefersReducedMotion() {

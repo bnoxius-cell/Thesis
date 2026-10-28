@@ -34,6 +34,9 @@ const createUniqueJoinCode = async () => {
 
 const MAX_NAME_LENGTH = 60;
 const MAX_DESCRIPTION_LENGTH = 140;
+const MAX_PINNED_LENGTH = 280;
+const UPCOMING_LIMIT = 30;
+const UPCOMING_GRACE_MS = 24 * 60 * 60 * 1000; // the client hides what is before its own today
 
 const sameId = (a, b) => String(a) === String(b);
 const isMember = (group, userId) => group.members.some((member) => sameId(member, userId));
@@ -42,7 +45,10 @@ const isOwner = (group, userId) => sameId(group.admin, userId);
 const isAdmin = (group, userId) => isOwner(group, userId) || (group.admins || []).some((a) => sameId(a, userId));
 
 // Same shape getGroups returns, so the client can drop an updated group straight into its list.
-const populateGroup = (query) => query.populate('admin', 'name avatar').populate('members', 'name avatar');
+const populateGroup = (query) => query
+    .populate('admin', 'name avatar')
+    .populate('members', 'name avatar')
+    .populate('pinned.by', 'name');
 
 // Every piece of text a message would put in front of the group, for the family-friendly filter.
 const textsToCheck = (messageData) => {
@@ -130,9 +136,7 @@ export const createGroup = async (req, res) => {
 
 export const getGroups = async (req, res) => {
     try {
-        const groups = await groupModel.find({ members: req.userId })
-            .populate('admin', 'name avatar')
-            .populate('members', 'name avatar');
+        const groups = await populateGroup(groupModel.find({ members: req.userId }));
 
         // Groups made before join codes existed get one the first time they're listed.
         await Promise.all(groups.filter((group) => !group.joinCode).map(async (group) => {
@@ -228,7 +232,7 @@ export const deleteGroup = async (req, res) => {
     }
 };
 
-// PATCH /:groupId  body: any of { name, description, icon, familyFriendly }. Owner and admins.
+// PATCH /:groupId  body: any of { name, description, icon, familyFriendly, pinned }. Owner and admins.
 export const updateGroup = async (req, res) => {
     try {
         const group = await loadGroupForMember(req, res);
@@ -237,7 +241,24 @@ export const updateGroup = async (req, res) => {
             return res.status(403).json({ success: false, message: 'Only group admins can change the group.' });
         }
 
-        const { name, description, icon, familyFriendly } = req.body;
+        const { name, description, icon, familyFriendly, pinned } = req.body;
+        // Checked before anything is changed, so a refused note never half-saves the other fields.
+        let pinnedText;
+        if (pinned !== undefined) {
+            if (typeof pinned !== 'string') return res.status(400).json({ success: false, message: 'That note is not valid.' });
+            pinnedText = pinned.trim();
+            if (pinnedText.length > MAX_PINNED_LENGTH) {
+                return res.status(400).json({ success: false, message: `A pinned note can be up to ${MAX_PINNED_LENGTH} characters.` });
+            }
+            const familyOn = familyFriendly !== undefined ? familyFriendly === true : group.familyFriendly;
+            if (familyOn && containsProfanity(pinnedText)) {
+                return res.status(400).json({
+                    success: false,
+                    code: 'family_filter',
+                    message: 'This group is set to family-friendly, so that note was not saved. Try rewording it.',
+                });
+            }
+        }
         if (name !== undefined) {
             const trimmed = String(name).trim();
             if (!trimmed) return res.status(400).json({ success: false, message: 'Group name is required.' });
@@ -254,12 +275,50 @@ export const updateGroup = async (req, res) => {
             group.icon = icon;
         }
         if (familyFriendly !== undefined) group.familyFriendly = familyFriendly === true;
+        if (pinnedText !== undefined) {
+            group.pinned = pinnedText
+                ? { text: pinnedText, by: req.userId, at: new Date() }
+                : { text: '', by: undefined, at: undefined };
+        }
 
         await group.save();
         res.json({ success: true, group: await populateGroup(groupModel.findById(group._id)) });
     } catch (error) {
-        console.error('Update group error:', error);
-        res.status(500).json({ success: false, message: 'Could not update the group.' });
+        serverError(res, 'updateGroup error', error);
+    }
+};
+
+// GET /:groupId/upcoming  Members only. Deadlines people shared in the chat, soonest first.
+// A task shared twice (same shareTag) is listed once, from its newest message.
+export const getUpcoming = async (req, res) => {
+    try {
+        const group = await loadGroupForMember(req, res);
+        if (!group) return;
+
+        const since = new Date(Date.now() - UPCOMING_GRACE_MS);
+        const messages = await groupMessageModel.find({ group: group._id, type: 'task', 'task.dueDate': { $gte: since } })
+            .sort({ _id: -1 })
+            .populate('sender', 'name');
+
+        const seen = new Set();
+        const newestPerTask = messages.filter((m) => {
+            if (seen.has(m.task.shareTag)) return false;
+            seen.add(m.task.shareTag);
+            return true;
+        });
+        newestPerTask.sort((a, b) => a.task.dueDate - b.task.dueDate);
+
+        const serialized = await serializeMessages(newestPerTask.slice(0, UPCOMING_LIMIT), req.userId);
+        const deadlines = serialized.map((m) => ({
+            _id: m._id,
+            task: m.task,
+            addedByMe: m.addedByMe,
+            sharedBy: m.sender ? { _id: m.sender._id, name: m.sender.name } : null,
+            sharedAt: m.createdAt,
+        }));
+        res.json({ success: true, deadlines });
+    } catch (error) {
+        serverError(res, 'getUpcoming error', error);
     }
 };
 
