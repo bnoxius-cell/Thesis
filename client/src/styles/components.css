@@ -1007,18 +1007,33 @@
       padding: var(--space-4) var(--space-5);
     }
   }
-  .quick-add-top {
+  .quick-add-head {
+    margin-bottom: var(--space-3);
+  }
+  .quick-add-title {
+    margin: 0;
+    font-size: var(--text-md);
+    line-height: var(--text-md-lh);
+    font-weight: 600;
+  }
+  .quick-add-lead {
+    margin: 2px 0 0;
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+    color: var(--text-muted);
+  }
+  .quick-add.is-flat .quick-add-title {
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+  }
+  .quick-add-field {
     display: flex;
-    gap: var(--space-2);
+    flex-direction: column;
+    gap: var(--space-1);
   }
   .quick-add-input {
-    flex: 1 1 auto;
+    width: 100%;
     min-width: 0;
-    width: auto;
-  }
-  .quick-add-submit {
-    flex: none;
-    min-height: 44px;
   }
   .quick-add-error {
     margin: var(--space-2) 0 0;
@@ -1026,28 +1041,24 @@
   .quick-add-opts {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: flex-end;
     gap: var(--space-3) var(--space-5);
     margin-top: var(--space-3);
   }
   .quick-add-group {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-2);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
     min-width: 0;
   }
   .quick-add-label {
-    display: none;
+    display: block;
+    width: auto;
     font-size: var(--text-xs);
     line-height: var(--text-xs-lh);
     font-weight: 500;
-    color: var(--text-muted);
-  }
-  @media (min-width: 721px) {
-    .quick-add-label {
-      display: inline;
-    }
+    color: var(--text-secondary);
   }
   .quick-add-chips {
     display: flex;
@@ -1161,9 +1172,32 @@
       padding: 0 var(--space-3);
     }
   }
+  /* Add task, "or", More details. Phones: one row, the two buttons share it. Laptops: at the end of the options row. */
+  .quick-add-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex: 1 1 100%;
+  }
+  .quick-add-actions .primary-button,
+  .quick-add-actions .tonal-button {
+    flex: 1 1 0;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .quick-add-or {
+    flex: none;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
   @media (min-width: 721px) {
-    .quick-add-more {
+    .quick-add-actions {
+      flex: 0 0 auto;
       margin-left: auto;
+    }
+    .quick-add-actions .primary-button,
+    .quick-add-actions .tonal-button {
+      flex: none;
     }
   }
   /* Inside a card (the Tasks tab) it has no frame of its own: a divider, not a card in a card. */

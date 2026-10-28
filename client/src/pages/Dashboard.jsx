@@ -6,7 +6,7 @@ import PageSkeleton from "../components/layout/PageSkeleton";
 import WorkloadChart from "../components/WorkloadChart";
 import PSSSurveyModal from "../components/PSSSurveyModal";
 import WHOSurveyModal from "../components/WHOSurveyModal";
-import CheckInBanner from "../components/CheckInBanner";
+import CheckInRow from "../components/CheckInRow";
 import ConfirmDialog from "../components/ConfirmDialog";
 import QuickAddTask from "../components/QuickAddTask";
 import TaskModal from "../components/schedule/TaskModal";
@@ -130,19 +130,23 @@ const Dashboard = () => {
   );
 
   const checkIn = (
-    <CheckInBanner
-      isOpen
+    <CheckInRow
       pssDue={work.pssDue}
       whoDue={work.whoDue}
+      pssSince={work.pssDueSince}
+      whoSince={work.whoDueSince}
+      pssLater={work.laterCount("PSS")}
+      whoLater={work.laterCount("WHO")}
       onSelectPSS={() => setShowPSSModal(true)}
       onSelectWHO={() => setShowWHOModal(true)}
-      onDismiss={() => {
+      onLater={() => {
         work.snooze(...[work.pssDue && "PSS", work.whoDue && "WHO"].filter(Boolean));
-        // The notice unmounts with the focused button, so put focus on the page instead of <body>.
+        // The row unmounts with the focused button, so put focus on the page instead of <body>.
         document.getElementById("main")?.focus({ preventScroll: true });
       }}
     />
   );
+  const checkInDue = work.pssDue || work.whoDue;
 
   return (
     <AppShell tour={{ page: "dashboard", title: "Today", steps: DASHBOARD_TOUR }}>
@@ -168,7 +172,8 @@ const Dashboard = () => {
                 </EmptyState>
               </section>
             )}
-            {checkIn}
+            {/* With the setup card, its "Take your first check-in" row is the prompt. */}
+            {checkInDue && !showSetup && <section className="panel checkin-card">{checkIn}</section>}
           </div>
         ) : (
           <TodayLayout
@@ -176,9 +181,9 @@ const Dashboard = () => {
               todayRows: Math.min(TODAY_MAX_ROWS, todayEntryCount + todayTasks.length),
               comingRows: Math.min(5, comingTasks.length),
               nextHeight: showSetup ? 420 : 220,
-              hasNotice: work.pssDue || work.whoDue,
+              hasCheckIn: checkInDue,
             }}
-            week={<WeekCard reading={reading} />}
+            week={<WeekCard reading={reading} footer={checkIn} />}
             quick={quickAdd}
             today={(
               <TodayCard
@@ -206,7 +211,6 @@ const Dashboard = () => {
                 )}
               </section>
             )}
-            notice={checkIn}
           />
         )}
       <ShellOverlays>
