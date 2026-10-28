@@ -849,28 +849,38 @@ export default function Schedule() {
                   </div>
                 </div>
 
-                {(isEditor || role === "viewer" || (isOwner && (schedule.live || !schedule.isMain))) && (
+                {(isEditor || role === "viewer" || (isOwner && (schedule.live || !schedule.isMain)) || !isOwner) && (
                 <div className="sched-head-notes">
-                {isEditor && (
-                  <p className="sched-hint">You and {schedule.owner?.name || "the owner"} both edit this. Changes show up for everyone on it within a few seconds, and they're told what changed.</p>
-                )}
-                {role === "viewer" && (
-                  <p className="sched-hint">You see changes as they happen, but can't make them. "Make a copy" or "Add to mine" gives you one you can edit.</p>
-                )}
-                {isOwner && schedule.live && (
-                  <p className="sched-hint">Others can edit this schedule. Their changes show up here within a few seconds, and the latest are listed under the week.</p>
-                )}
-                {isOwner && !schedule.isMain && (
-                  <p className="sched-hint">An extra schedule sits on top of your main one. Anything that overlaps a class or exam in your main schedule is flagged.</p>
-                )}
+                {(() => {
+                  const notes = [];
+                  if (isEditor) notes.push({ short: `You and ${schedule.owner?.name || "the owner"} both edit this. Changes show for everyone within seconds.`, full: `You and ${schedule.owner?.name || "the owner"} both edit this. Changes show up for everyone on it within a few seconds, and they're told what changed.` });
+                  if (role === "viewer") notes.push({ short: "View only. Changes show up as they happen.", full: `You see changes as they happen, but can't make them. "Make a copy" or "Add to mine" gives you one you can edit.` });
+                  if (isOwner && schedule.live) notes.push({ short: "Others can edit this schedule. Their changes show up here within seconds.", full: "Others can edit this schedule. Their changes show up here within a few seconds, and the latest are listed under the week." });
+                  if (isOwner && !schedule.isMain) notes.push({ short: "An extra schedule sits on top of your main one. Overlaps are flagged.", full: "An extra schedule sits on top of your main one. Anything that overlaps a class or exam in your main schedule is flagged." });
+                  const workloadNote = !isOwner
+                    ? "Use this if it's a class you actually attend. Its time is taken off your study time, your tasks show on it, and it follows any changes made to it."
+                    : !schedule.isMain
+                      ? "Time in this schedule is taken off your study time, next to your main one. Turn it off if it shouldn't affect your plan."
+                      : null;
+                  const hasMore = notes.length > 1 || workloadNote;
+                  return (
+                    <>
+                      {notes[0] && <p className="sched-hint">{notes[0].short}</p>}
+                      {hasMore && (
+                        <details className="sched-about">
+                          <summary>About this schedule <ChevronDown size={16} aria-hidden="true" /></summary>
+                          {notes.slice(1).map((n) => <p key={n.short} className="sched-hint">{n.full}</p>)}
+                          {workloadNote && <p className="sched-hint">{workloadNote}</p>}
+                        </details>
+                      )}
+                    </>
+                  );
+                })()}
 
                 {!isOwner && (
                   <label className="sched-check sched-workload-toggle">
                     <input type="checkbox" checked={Boolean(schedule.myCountInWorkload)} onChange={(e) => toggleMyWorkload(e.target.checked)} />
-                    <span>
-                      Count this in my dashboard workload
-                      <small>Use this if it's a class you actually attend. Its time is taken off your study time, your tasks show on it, and it follows any changes made to it.</small>
-                    </span>
+                    <span>Count this in my dashboard workload</span>
                   </label>
                 )}
                 {isOwner && !schedule.isMain && (
@@ -880,10 +890,7 @@ export default function Schedule() {
                       checked={schedule.countInWorkload !== false}
                       onChange={(e) => updateSettings({ countInWorkload: e.target.checked })}
                     />
-                    <span>
-                      Count this in my dashboard workload
-                      <small>Time in this schedule is taken off your study time, next to your main one. Turn it off if it shouldn't affect your plan.</small>
-                    </span>
+                    <span>Count this in my dashboard workload</span>
                   </label>
                 )}
                 </div>
@@ -1074,7 +1081,7 @@ export default function Schedule() {
                 </ul>
               ) : (
                 <div className="panel">
-                  <EmptyState icon={CalendarDays} title="No main schedule yet">
+                  <EmptyState compact icon={CalendarDays} title="No main schedule yet">
                     Create it with your classes and exams, or open a classmate's with a code. Today plans around this one.
                   </EmptyState>
                 </div>

@@ -40,13 +40,20 @@
     display: grid;
     grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
     align-items: start;
-    gap: var(--space-5);
+    gap: var(--space-4);
   }
   .today-col {
     display: flex;
     flex-direction: column;
-    gap: var(--space-5);
+    gap: var(--space-4);
     min-width: 0;
+  }
+  @media (max-width: 720px) {
+    .today-layout,
+    .today-stack,
+    .today-col {
+      gap: var(--space-3);
+    }
   }
 
   /* ---- Card titles on Today ---- */

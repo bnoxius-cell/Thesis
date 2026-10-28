@@ -44,7 +44,6 @@ export default function About() {
   return (
     <AppShell variant={isLoggedin ? "app" : "public"} mainClassName="about-page">
         <PageHeader
-          kicker="About"
           title="About StressCare"
           description="A planner for OLFU IT students that shows how full your week is and helps you keep it manageable."
         />
@@ -160,7 +159,7 @@ export default function About() {
           <p>
             Questions or problems? Email{" "}
             {SUPPORT_EMAILS.map((e, i) => (
-              <span key={e}>{i > 0 && " or "}<a href={`mailto:${e}`}>{e}</a></span>
+              <span key={e}>{i > 0 && " or "}<a href={`mailto:${e}`} style={{ overflowWrap: "anywhere" }}>{e}</a></span>
             ))}
             .
           </p>

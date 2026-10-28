@@ -150,7 +150,7 @@ export default function TasksTab({ tasks, week, now, onAdded, onMoreDetails, onU
 
         {shown.length === 0 ? (
           filter === "open" ? (
-            <EmptyState icon={ClipboardList} title="No open tasks">
+            <EmptyState compact icon={ClipboardList} title="No open tasks">
               Nothing to do right now. Add one above and your week will plan time for it.
             </EmptyState>
           ) : (
