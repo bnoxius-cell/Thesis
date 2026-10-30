@@ -9,7 +9,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://stresscare-api-g0o1.onrender.com/api/:path*" },
+    { "source": "/api/:path*", "destination": "https://stresscare-api-staging.onrender.com/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
