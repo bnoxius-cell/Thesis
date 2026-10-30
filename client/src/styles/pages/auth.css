@@ -49,15 +49,19 @@
     color: var(--text-secondary);
   }
 
-  /* ---- Left panel ---- */
+  /* ---- Left panel ----
+     The gaps and the top and bottom padding shrink with the window's height, so sign-in fits a 900px
+     tall screen without scrolling. They are near Figma's 28px and 60px at 1080 tall and reach them at
+     1120. Fields and buttons keep their size. */
   .auth-panel {
+    --auth-gap: clamp(var(--space-4), 5vh - 28px, 28px);
     position: relative;
     z-index: 1;
     display: flex;
     flex-direction: column;
     justify-content: safe center;
-    gap: clamp(var(--space-4), 2.6vh, 28px);
-    padding: clamp(var(--space-5), 5.5vh, 60px) clamp(var(--space-5), 3.75vw, 72px);
+    gap: var(--auth-gap);
+    padding: clamp(var(--space-5), 10.9vh - 62px, 60px) clamp(var(--space-5), 3.75vw, 72px);
     overflow-y: auto;
     background: var(--accent-soft);
     box-shadow: 8px 0 40px color-mix(in srgb, var(--overlay) 25%, transparent);
@@ -91,7 +95,7 @@
   }
   .auth-panel-header p {
     margin: 0;
-    text-wrap: pretty;
+    text-wrap: balance; /* no one- or two-word last line */
     font-size: var(--text-md);
     line-height: 1.5;
     color: var(--text-secondary);
@@ -209,7 +213,15 @@
   .auth-alt {
     display: flex;
     flex-direction: column;
-    gap: clamp(var(--space-4), 2.6vh, 28px);
+    gap: var(--auth-gap);
+  }
+  /* The register consent row: each link's name stays on one line. */
+  .auth-form .terms-check span {
+    text-wrap: pretty;
+  }
+  .auth-form .terms-check a,
+  .auth-nowrap {
+    white-space: nowrap;
   }
   .auth-divider {
     display: flex;
@@ -247,8 +259,10 @@
     text-wrap: pretty;
     text-wrap: balance;
   }
+  /* The note reads as a caption to the button above it, so it sits closer than the panel gap. */
   .auth-legal-note {
     max-width: 36ch;
+    margin-top: calc(var(--space-3) - var(--auth-gap));
     align-self: center;
   }
   .auth-legal-note a {
@@ -346,7 +360,13 @@
   }
   /* Stacking comes from --z (set in AuthShowcase): schedule behind workload behind reviewers until
      one is hovered, which then stays in front. The fan angles never change; the hovered card only
-     lifts a little and deepens its shadow. */
+     lifts a little and deepens its shadow. The stage ignores the pointer so it never blocks the pitch
+     or the form; the cards take it back where a mouse can hover them. */
+  @media (hover: hover) {
+    .auth-pcard {
+      pointer-events: auto;
+    }
+  }
   @media (hover: hover) and (prefers-reduced-motion: no-preference) {
     .auth-pcard {
       transition: translate var(--dur-2) ease-out, box-shadow var(--dur-2) ease-out;
@@ -674,7 +694,7 @@
        what a finger can hit without changing the line height, so the text looks the same. */
     .auth-legal-note a,
     .auth-support-note a {
-      padding-block: 14px;
+      padding-block: 15px;
     }
   }
 }
