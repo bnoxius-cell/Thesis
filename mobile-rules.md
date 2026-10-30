@@ -19,5 +19,5 @@ All styling is plain CSS (Tailwind isn't wired up). The phone and desktop layout
 
 ## How to check
 - In the owner's Chrome (Claude in Chrome extension): the resize tool doesn't work here, so load the page in a fixed-width iframe (`<iframe style="width:375px;height:740px">` pointing at the same origin) and look at it, or check computed widths with `document.documentElement.scrollWidth <= innerWidth`.
-- Headless Chrome over CDP with `Emulation.setDeviceMetricsOverride` also works when the extension isn't connected (see `handout.md`, Gotchas).
+- Headless Chrome over CDP with `Emulation.setDeviceMetricsOverride` also works when the extension isn't connected (see `.claude/docs/testing-and-gotchas.md`).
 - A real phone is still the final word for touch, the keyboard covering inputs, and iOS Safari quirks. Say so when it hasn't been tried.
