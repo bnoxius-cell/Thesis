@@ -369,7 +369,7 @@ function Me() {
                       </button>
                     ))}
                   </div>
-                  <small className="field-hint">Match my device follows your phone or computer's reduce-motion setting.</small>
+                  <p className="me-pace-hint">Match my device follows your phone or computer's reduce-motion setting.</p>
                 </fieldset>
               </div>
             </section>

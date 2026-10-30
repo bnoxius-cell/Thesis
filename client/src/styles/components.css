@@ -136,9 +136,6 @@
     display: grid;
     gap: var(--space-4);
   }
-  .appearance-groups .field-hint {
-    margin-top: var(--space-2);
-  }
   .field-hint {
     align-self: auto;
     font-size: var(--text-xs);
