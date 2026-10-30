@@ -17,7 +17,12 @@
     <style>@layer tokens, base, legacy, components, pages, utilities;</style>
     <meta name="description" content="StressCare helps OLFU IT students see how full their week is, spread the work out and keep it manageable." />
     <script>
-      // Set the theme before the first paint so a dark-mode visitor never sees a white flash.
+      // Set the theme and the Animations choice before the first paint, so a dark-mode visitor never sees
+      // a white flash and a reduced-motion visitor never sees one flash of motion.
+      try {
+        var motion = localStorage.getItem('stresscare-motion');
+        document.documentElement.dataset.motion = motion === 'on' || motion === 'off' ? motion : 'system';
+      } catch (e) { document.documentElement.dataset.motion = 'system'; }
       try {
         var saved = localStorage.getItem('stresscare-theme');
         var dark = saved === 'dark' || (saved === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);

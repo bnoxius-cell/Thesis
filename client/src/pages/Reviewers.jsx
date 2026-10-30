@@ -111,7 +111,7 @@ export default function Reviewers() {
         )}
 
         {data && data.reviewers.length > 0 && (
-          <ul className="reviewer-grid" data-tour="rev-list">
+          <ul className="reviewer-grid stagger" data-tour="rev-list">
             {data.reviewers.map((r) => (
               <li key={r._id}>
                 <button type="button" className={`reviewer-card is-${r.status}`} onClick={() => open(r._id)}>

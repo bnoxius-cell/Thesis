@@ -230,7 +230,7 @@ export default function Groups() {
       );
     }
     return (
-      <ul className="groups-list">
+      <ul className="groups-list stagger">
         {groups.map((group) => {
           const active = group._id === openGroupId;
           const unread = active ? 0 : groupUnreadById[group._id] || 0;

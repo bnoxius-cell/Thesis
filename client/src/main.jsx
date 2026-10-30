@@ -4,9 +4,13 @@ import './index.css'
 import './styles/tokens.css'
 import './styles/base.css'
 import './styles/components.css'
+import './styles/motion.css'
 import AppContent from './App.jsx'
 import { AppContextProvider } from './pages/authentication/AuthContext.jsx'
 import { GoogleOAuthProvider } from '@react-oauth/google'
+import { watchVisibility } from './utils/motion.js'
+
+watchVisibility()
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID_HERE";
 

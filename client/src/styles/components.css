@@ -132,6 +132,10 @@
     font-weight: 500;
     color: var(--text-primary);
   }
+  .appearance-groups {
+    display: grid;
+    gap: var(--space-4);
+  }
   .field-hint {
     align-self: auto;
     font-size: var(--text-xs);
@@ -447,10 +451,12 @@
     max-width: calc(var(--reading-max) + 80px);
   }
 
-  /* One fade when a page arrives (opacity only, no per-section stagger). Skipped while the page
-     is still a skeleton, so the skeleton and the page do not fade one after the other. */
+  /* A page arrives with a short rise and fade (page-in, motion.css). Skipped while the page is still
+     a skeleton, so the skeleton and the page do not move one after the other. "backwards" (not "both")
+     drops the transform after the animation: while it applies, main would be the containing block
+     for any position: fixed child. */
   .app > main {
-    animation: fade-in var(--dur-2) var(--ease-out);
+    animation: page-in var(--dur-3) var(--ease-out) backwards;
   }
   .app > main:has(> .page-skeleton) {
     animation: none;

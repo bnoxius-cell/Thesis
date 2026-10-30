@@ -96,7 +96,7 @@ export default function TodayCard({ focus, today, tasks, now, nextExam, hasSched
       )}
 
       {hasRows && (
-        <ul className="row-list" aria-label="Today's classes and tasks">
+        <ul className="row-list stagger" aria-label="Today's classes and tasks">
           {shownEntries.map((entry, i) => (
             <EntryRow key={`${entry.title}-${entry.startTime}-${i}`} entry={entry} live={live.includes(entry)} />
           ))}
