@@ -1,19 +1,19 @@
 # StressCare build queue (2026-10-13)
 
-The order to build everything that's left. Each `Q` section is a complete brief for one `builder` spawn: the main session spawns `builder` with "Build Q<n> from `build-queue.md`", waits for the report, reviews, merges, ticks the box here, then spawns the next one. Specs that already exist live in `system-review.md` (SR) or `frontend-plan.md`; this file points at them and adds what they don't say.
+The order to build everything that's left. Each `Q` section is a complete brief for one `builder` spawn: the main session spawns `builder` with "Build Q<n> from `build-queue.md`", waits for the report, reviews, merges, ticks the box here, then spawns the next one. Specs that already exist live in `system-review.md` (SR) or `.claude/docs/old-design/frontend-plan.md`; this file points at them and adds what they don't say.
 
-Written by Opus after checking the code on 2026-10-13 (which SR items had quietly landed during the FE batches). Owner answers from the same day are recorded in `system-review.md` ("Owner decisions") and `frontend-plan.md` section 8.
+Written by Opus after checking the code on 2026-10-13 (which SR items had quietly landed during the FE batches). Owner answers from the same day are recorded in `system-review.md` ("Owner decisions") and `.claude/docs/old-design/frontend-plan.md` section 8.
 
 ## How to run it (main session)
 1. `main` clean and pushed. Spawn `builder` with: `Build Q<n> from build-queue.md. Branch: <branch>. Read that section and the files it points to. Stop only the processes you started.`
 2. Items marked **Review** get a `code-reviewer` spawn on the branch before merging (CLAUDE.md requires it for anything auth or other users' data).
-3. Merge, push, tick the boxes here and in `system-review.md` / `frontend-plan.md`, move the report's docs notes into `.claude/docs/`, update `handout.md`.
+3. Merge, push, tick the boxes here and in `system-review.md` / `.claude/docs/old-design/frontend-plan.md`, move the report's docs notes into `.claude/docs/`, update `handout.md`.
 4. One builder at a time in the main tree. The queue order matters where noted (Q1 before Q2, Q6 before Q10 and Q11).
 
 ## Rules every brief inherits (builders: read these)
 - Branch from `main` with the name given. Commit on it, never merge or push.
 - Server: tests in `server/tests/`, `npm test` in `server/` all green. Client: `npm run build` in `client/` passes, lint no worse than before.
-- UI: read `mobile-rules.md` and `frontend-plan.md` section 11 first. Check 375px and 1280px, light and dark (`.claude/docs/testing-and-gotchas.md` has the UI harness and headless Chrome steps). Plain CSS on the role tokens, `Modal` for dialogs, `ConfirmDialog` for confirms, lucide icons, no emoji, no new packages.
+- UI: read `mobile-rules.md` and `.claude/docs/design.md` first (build UI only from an approved Figma frame). Check 375px and 1280px, light and dark (`.claude/docs/testing-and-gotchas.md` has the UI harness and headless Chrome steps). Plain CSS on the role tokens, `Modal` for dialogs, `ConfirmDialog` for confirms, lucide icons, no emoji, no new packages.
 - Never use ports 5000 or 5173 (the owner's dev servers on the real database). In-memory MongoDB on 5070.
 - Copy follows the writing style rules: plain sentences, no em-dashes as connectors, warm but not cute.
 - New data about a student (a new model or field that stores something they enter) means: list it in the Privacy Policy's "What we collect" (`client/src/pages/legal/legalContent.js`), bump `LEGAL_VERSION` (`server/utils/legal.js`) and `LEGAL_UPDATED`, and add the new collection to `server/scripts/deleteUser.js` (after Q6 lands).
@@ -65,7 +65,7 @@ SR Batch 11 (P1) as written. Also report the before and after main chunk sizes.
 
 ## After the panel (or earlier if Q1 to Q7 finish early)
 
-The four parked features the owner asked to plan (2026-10-13), plus follow-ups. Decisions behind them are in `frontend-plan.md` section 8 Decided. UI rules apply to all of them.
+The four parked features the owner asked to plan (2026-10-13), plus follow-ups. Decisions behind them are in `.claude/docs/old-design/frontend-plan.md` section 8 Decided. UI rules apply to all of them.
 
 ### Q8 `feature/reviewer-ready-notification` [ ]
 When an AI reviewer finishes in the background, tell the student, since generation takes a while and they've usually left the page.
@@ -94,7 +94,7 @@ A short guided breathing exercise, client only. Based on cyclic sighing (Balban 
 
 ### Q11 `feature/daily-checkin` (Review: new personal data) [ ]
 One tap for mood and one for last night's sleep, on Today. Needs Q6 merged.
-- Decided (Opus, delegated 2026-10-13, recorded in `frontend-plan.md`): the daily check-in **does not change the workload score**. The score stays built on the two validated instruments (that's the thesis method). It feeds the sleep advice and one tip, and shows on Wellbeing. Mood is not a clinical measure and is never labelled as one.
+- Decided (Opus, delegated 2026-10-13, recorded in `.claude/docs/old-design/frontend-plan.md`): the daily check-in **does not change the workload score**. The score stays built on the two validated instruments (that's the thesis method). It feeds the sleep advice and one tip, and shows on Wellbeing. Mood is not a clinical measure and is never labelled as one.
 - Model `server/models/dailyCheckInModel.js`: `user` (ref, required), `date` (`'YYYY-MM-DD'` in Philippine time, worked out on the server), `mood` (Number 1 to 5), `sleptHours` (Number 0 to 14, steps of 0.5, optional), timestamps. Unique index `{ user: 1, date: 1 }`.
 - Routes on `surveyRoutes.js` (all `userAuth`): `PUT /api/surveys/daily` `{ mood, sleptHours }` upserts today's entry (validate both, 400 with a plain message on bad input; either can be sent alone, but at least one); `GET /api/surveys/daily?days=14` returns the caller's entries for the last N days (N 1 to 60, default 14), newest first. Owner only, from the token.
 - Today (`Dashboard.jsx`): a compact card under the hero, "How are you today?" with five mood buttons (lucide faces are fine: `Frown`, `Annoyed`, `Meh`, `Smile`, `Laugh`, each with a text label for screen readers and a visible short word under it: "Rough", "Low", "Okay", "Good", "Great") and "Last night I slept" with a small stepper or select (3 to 12 hours, half steps). Saving is instant on tap with a quiet "Saved" state; the card collapses to one line ("Today: Good, 6.5h of sleep. Change") once both are in. Hidden while the setup checklist shows. Don't push Today's main content below the fold on a phone: keep the card short.
@@ -128,6 +128,6 @@ Link a reviewer to an exam on the schedule, so the exam reminder on Today points
 
 ## Not planned (on purpose)
 - IP rate limiting (SR Batch 1 explains why the per-account limits are the real fix).
-- Splitting `App.css` into files, Taglish copy, sharing a reviewer to a group, weak topics on Wellbeing: still parked in `frontend-plan.md` section 13.
-- Anything in `frontend-plan.md` "Considered and rejected".
+- Splitting `App.css` into files, Taglish copy, sharing a reviewer to a group, weak topics on Wellbeing: still parked in `.claude/docs/old-design/frontend-plan.md` section 13.
+- Anything in `.claude/docs/old-design/frontend-plan.md` "Considered and rejected".
 - Owner-only items (placeholders, real phone pass, real Google sign-in, push on Render): in `handout.md`.

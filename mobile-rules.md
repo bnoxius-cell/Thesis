@@ -11,13 +11,11 @@ Read this before any UI work in `client/`.
 - **Fixed and sticky things clear the phone's edges**: use `env(safe-area-inset-*)` for anything pinned to the bottom or sides, so it stays above the iPhone home bar and out of the notch.
 - **Dialogs fit**: `.modal-content` stays inside the screen, scrolls inside itself, and its buttons stay reachable.
 - **Text stays readable**: nothing under about 13px, and contrast of 4.5:1 or better in both themes.
-- **Nothing covers content for good**: a floating button (like the bottom-right Guide) must leave room to scroll past it (the footer gets extra bottom padding for it).
+- **Nothing covers content for good**: a floating button must leave room to scroll past it.
 
 ## Where the breakpoints are
-All styling is plain CSS in `client/src/App.css` (Tailwind isn't wired up).
-- `720px`: the main phone breakpoint. The sidebar becomes a 56px icon rail with a menu button, page padding drops to 16px, the Guide button turns into a round icon and its panel into a bottom sheet.
-- `480px`, `640px`, `768px`: smaller per-component tweaks. Search `@media` in `App.css` near the component's own styles.
-- Put a component's phone rules next to its desktop rules (same section of `App.css`), not in a far-away block.
+All styling is plain CSS (Tailwind isn't wired up). The phone and desktop layouts come from the Figma frame for the page (see `.claude/docs/design.md`); if a frame has no phone version yet, ask the owner or follow the page's Figma notes instead of guessing.
+- Put a component's phone rules next to its desktop rules, not in a far-away block.
 
 ## How to check
 - In the owner's Chrome (Claude in Chrome extension): the resize tool doesn't work here, so load the page in a fixed-width iframe (`<iframe style="width:375px;height:740px">` pointing at the same origin) and look at it, or check computed widths with `document.documentElement.scrollWidth <= innerWidth`.
