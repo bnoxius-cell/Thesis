@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { CalendarDays, CircleAlert, Plus, SlidersHorizontal } from "lucide-react";
+import { CalendarDays, ChevronUp, CircleAlert, Plus, SlidersHorizontal } from "lucide-react";
 import { useAuth } from "../pages/authentication/AuthContext";
 import { addDays, fromISODate, toISODate } from "../utils/scheduleUtils";
 import { saveTaskRequest } from "../utils/taskApi";
@@ -31,6 +31,14 @@ const CAN_SHOW_PICKER = typeof HTMLInputElement !== "undefined" && "showPicker" 
 
 const shortDate = (iso) => fromISODate(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
+const openKey = (userId) => `stresscare:quick-add-open:${userId}`;
+const readOpen = (userId) => {
+  try { return localStorage.getItem(openKey(userId)); } catch { return null; }
+};
+const writeOpen = (userId, open) => {
+  try { localStorage.setItem(openKey(userId), open ? "1" : "0"); } catch { /* private mode */ }
+};
+
 // A title, when it's due and roughly how big it is: enough to put a task on the plan in seconds.
 // Everything else (class, notes, difficulty) lives behind "More details", which opens the full dialog.
 //
@@ -39,10 +47,24 @@ const shortDate = (iso) => fromISODate(iso).toLocaleDateString("en-US", { month:
 //   tour                    data-tour marker for the Guide
 //   flat                    no card of its own, for use inside a card
 //   focusOnMount            put the cursor in the title on mount (the page re-laid itself out after a first add)
-export default function QuickAddTask({ onAdded, onMoreDetails, tour, focusOnMount = false, flat = false }) {
-  const { backendUrl } = useAuth();
+//   collapsible             show a one-row "Add a task" button until the student opens it, and a hide button once open
+//   defaultOpen             with collapsible: open unless the student has left it closed (remembered per account)
+//   onOpenChange(open)      with collapsible: the open state on mount and whenever it changes
+export default function QuickAddTask({
+  onAdded, onMoreDetails, onOpenChange, tour, focusOnMount = false, flat = false, collapsible = false, defaultOpen = true,
+}) {
+  const { backendUrl, userData } = useAuth();
+  const userId = userData?._id;
   const uid = useId();
   const titleRef = useRef(null);
+  const toggleRef = useRef(null);
+  const nextFocus = useRef(null); // "title" or "toggle", set by the student opening or hiding the form
+  const [expanded, setExpanded] = useState(() => {
+    const stored = readOpen(userId);
+    return stored === null ? defaultOpen : stored === "1";
+  });
+  const [revealed, setRevealed] = useState(false); // the student just opened it: let the form ease in
+  const open = !collapsible || expanded;
   const dateRef = useRef(null);
   const [title, setTitle] = useState("");
   const [dueKey, setDueKey] = useState("tomorrow");
@@ -52,8 +74,26 @@ export default function QuickAddTask({ onAdded, onMoreDetails, tour, focusOnMoun
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (focusOnMount) titleRef.current?.focus({ preventScroll: true });
-  }, [focusOnMount]);
+    if (focusOnMount && open) titleRef.current?.focus({ preventScroll: true });
+  }, [focusOnMount, open]);
+
+  useEffect(() => {
+    if (collapsible) onOpenChange?.(open);
+  }, [collapsible, open, onOpenChange]);
+
+  // Move focus after the form or the row button has rendered.
+  useEffect(() => {
+    const target = nextFocus.current === "title" ? titleRef.current : toggleRef.current;
+    if (nextFocus.current) target?.focus({ preventScroll: true });
+    nextFocus.current = null;
+  }, [open]);
+
+  const toggle = (next) => {
+    nextFocus.current = next ? "title" : "toggle";
+    setExpanded(next);
+    setRevealed(next);
+    writeOpen(userId, next);
+  };
 
   const options = dueOptions();
   const dueIso = dueKey === "pick" ? picked : options.find((o) => o.key === dueKey)?.iso || options[0].iso;
@@ -111,13 +151,37 @@ export default function QuickAddTask({ onAdded, onMoreDetails, tour, focusOnMoun
   };
 
   const errorId = `${uid}-error`;
+  const formId = `${uid}-form`;
+
+  if (!open) {
+    return (
+      <section className="quick-add is-collapsed" data-tour={tour} aria-label="Add a task">
+        <button
+          ref={toggleRef}
+          type="button"
+          className="tonal-button quick-add-row"
+          aria-expanded="false"
+          onClick={() => toggle(true)}
+        >
+          <Plus size={16} aria-hidden="true" />Add a task
+        </button>
+      </section>
+    );
+  }
 
   return (
     <section className={`quick-add ${flat ? "is-flat" : "panel"}`} data-tour={tour} aria-label="Add a task">
-      <form onSubmit={submit} noValidate>
+      <form id={formId} className={revealed ? "quick-add-form is-revealed" : undefined} onSubmit={submit} noValidate>
         <header className="quick-add-head">
-          <h2 className="quick-add-title">Add a task</h2>
-          <p className="quick-add-lead">Quick setup: a title, when it's due and how long it takes.</p>
+          <div>
+            <h2 className="quick-add-title">Add a task</h2>
+            <p className="quick-add-lead">Quick setup: a title, when it's due and how long it takes.</p>
+          </div>
+          {collapsible && (
+            <button type="button" className="icon-action" aria-label="Hide quick add" onClick={() => toggle(false)}>
+              <ChevronUp size={18} aria-hidden="true" />
+            </button>
+          )}
         </header>
 
         <div className="quick-add-field">
@@ -135,6 +199,7 @@ export default function QuickAddTask({ onAdded, onMoreDetails, tour, focusOnMoun
             enterKeyHint="done"
             autoComplete="off"
             onChange={(e) => { setTitle(e.target.value); setError(""); }}
+            onKeyDown={(e) => { if (collapsible && e.key === "Escape" && !title) toggle(false); }}
           />
         </div>
 
