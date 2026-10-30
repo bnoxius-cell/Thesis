@@ -177,6 +177,24 @@ export const REVIEWERS_TOUR = [
   },
 ];
 
+export const SUBJECT_TOUR = [
+  {
+    target: "subj-head",
+    title: "This subject",
+    text: "Its name, code and term. Edit changes them, and the More menu has delete. Deleting a subject never deletes your tasks.",
+  },
+  {
+    target: "subj-tabs",
+    title: "Overview, Tasks, Reviewers",
+    text: "Overview shows what's next and this week's classes. Tasks and Reviewers list only what belongs to this subject.",
+  },
+  {
+    target: "subj-quick",
+    title: "Add a task here",
+    text: "Anything you add here is filed under this subject already, so you only need a title and a due date.",
+  },
+];
+
 export const WELLBEING_TOUR = [
   {
     target: "well-drivers",

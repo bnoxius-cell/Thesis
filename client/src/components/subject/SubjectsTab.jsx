@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { ChevronRight, GraduationCap, Plus } from "lucide-react";
 import { useAuth } from "../../pages/authentication/AuthContext";
 import { fetchSubjects, fetchSuggestions } from "../../utils/subjectApi";
@@ -15,13 +16,13 @@ const countsText = ({ openTasks, reviewers }) => (
 );
 
 // The Subjects tab on Study: suggestions from what the student already has, then their subjects.
-// A subject opens the edit dialog for now.
+// A subject opens its own page.
 export default function SubjectsTab() {
   const { backendUrl } = useAuth();
   const [subjects, setSubjects] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [dialog, setDialog] = useState(null); // { subject? } while the dialog is open
+  const [creating, setCreating] = useState(false);
 
   const load = useCallback(async () => {
     const [list, found] = await Promise.all([fetchSubjects(backendUrl), fetchSuggestions(backendUrl)]);
@@ -35,7 +36,7 @@ export default function SubjectsTab() {
   }, [load]);
 
   const closeAndReload = () => {
-    setDialog(null);
+    setCreating(false);
     load();
   };
 
@@ -52,7 +53,7 @@ export default function SubjectsTab() {
     <div className="subjects-tab">
       <div className="subjects-toolbar">
         <p>Group your tasks and reviewers by class.</p>
-        <button type="button" className="primary-button" onClick={() => setDialog({})}>
+        <button type="button" className="primary-button" onClick={() => setCreating(true)}>
           <Plus size={18} aria-hidden="true" /> New subject
         </button>
       </div>
@@ -69,7 +70,7 @@ export default function SubjectsTab() {
         <ul className="subject-list stagger">
           {subjects.map((s) => (
             <li key={s._id}>
-              <button type="button" className="subject-row" onClick={() => setDialog({ subject: s })}>
+              <Link to={`/subjects/${s._id}`} className="subject-row">
                 <SubjectDot color={s.color} />
                 <span className="subject-row-body">
                   <strong>{s.name}</strong>
@@ -77,21 +78,13 @@ export default function SubjectsTab() {
                   <span className="subject-row-meta">{countsText(s.counts)}</span>
                 </span>
                 <ChevronRight size={18} aria-hidden="true" className="subject-row-chevron" />
-              </button>
+              </Link>
             </li>
           ))}
         </ul>
       )}
 
-      {dialog && (
-        <SubjectDialog
-          subject={dialog.subject}
-          subjects={subjects}
-          onClose={() => setDialog(null)}
-          onSaved={closeAndReload}
-          onDeleted={closeAndReload}
-        />
-      )}
+      {creating && <SubjectDialog subjects={subjects} onClose={() => setCreating(false)} onSaved={closeAndReload} />}
     </div>
   );
 }

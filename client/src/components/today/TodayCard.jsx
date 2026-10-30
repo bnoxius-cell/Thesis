@@ -5,6 +5,7 @@ import { dueChip, taskEditLabel } from "../../utils/dueChip";
 import { formatTime, fromISODate } from "../../utils/scheduleUtils";
 import useEnteringIds from "../../utils/useEnteringIds";
 import TaskCheck from "../TaskCheck";
+import SubjectDot from "../subject/SubjectDot";
 
 export const TODAY_MAX_ROWS = 5;
 
@@ -50,14 +51,14 @@ function EntryRow({ entry, live }) {
   );
 }
 
-function TaskRow({ task, now, entering, onComplete, onEdit }) {
+function TaskRow({ task, subject, now, entering, onComplete, onEdit }) {
   const chip = dueChip(task.dueDate, now);
   return (
     <li className={`row-item task-item${entering ? " is-entering" : ""}`}>
       <TaskCheck task={task} onChange={onComplete} />
       <button type="button" className="row-main row-edit" onClick={() => onEdit(task)} aria-label={taskEditLabel(task, now)}>
         <strong>{task.title}</strong>
-        <span className={`row-meta${task.course ? "" : " is-empty"}`}>{task.course || "No course"}</span>
+        <span className={`row-meta${task.course ? "" : " is-empty"}`}>{subject && <SubjectDot color={subject.color} />}{task.course || "No course"}</span>
       </button>
       <span className={`chip ${TONE_CLASS[chip.tone] || "is-neutral"}`}>{chip.label}</span>
     </li>
@@ -66,7 +67,7 @@ function TaskRow({ task, now, entering, onComplete, onEdit }) {
 
 // One merged list: classes happening now and later, then tasks due today or overdue. At most five
 // rows; tasks always keep a couple of seats so an overdue one is never pushed out by a full timetable.
-export default function TodayCard({ focus, today, tasks, now, nextExam, hasSchedule, onComplete, onEdit }) {
+export default function TodayCard({ focus, today, tasks, subjectsById, now, nextExam, hasSchedule, onComplete, onEdit }) {
   const live = focus.happeningNow;
   const later = focus.laterToday;
   const entries = [...live, ...later];
@@ -101,7 +102,7 @@ export default function TodayCard({ focus, today, tasks, now, nextExam, hasSched
             <EntryRow key={`${entry.title}-${entry.startTime}-${i}`} entry={entry} live={live.includes(entry)} />
           ))}
           {shownTasks.map((task) => (
-            <TaskRow key={task._id} task={task} now={now} entering={entering.has(task._id)} onComplete={onComplete} onEdit={onEdit} />
+            <TaskRow key={task._id} task={task} subject={subjectsById.get(task.subject)} now={now} entering={entering.has(task._id)} onComplete={onComplete} onEdit={onEdit} />
           ))}
         </ul>
       )}
