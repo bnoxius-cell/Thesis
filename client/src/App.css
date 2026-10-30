@@ -1173,7 +1173,6 @@ input[type="range"] {
   overflow-y: auto;
 }
 .checkin-intro h3 { margin: 0 0 var(--space-2); font-size: var(--text-lg); outline: none; }
-.checkin-intro p { margin: 0 0 var(--space-2); color: var(--text-secondary); line-height: 1.5; }
 .checkin-progress {
   display: flex;
   align-items: center;
