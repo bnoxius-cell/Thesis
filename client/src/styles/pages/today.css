@@ -605,4 +605,19 @@
       padding: var(--space-3);
     }
   }
+
+  /* ---- Quick add, collapsed: one full-width row; opened, the form eases in (opacity and 4px, no height) ---- */
+  .quick-add-row {
+    width: 100%;
+    min-height: 48px;
+  }
+  .quick-add-form.is-revealed {
+    animation: quick-add-in var(--dur-2) var(--ease-out);
+  }
+  @keyframes quick-add-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
 }

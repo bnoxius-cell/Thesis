@@ -1101,7 +1101,15 @@
     }
   }
   .quick-add-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
     margin-bottom: var(--space-3);
+  }
+  .quick-add-head .icon-action {
+    flex: none;
+    margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0 0;
   }
   .quick-add-title {
     margin: 0;

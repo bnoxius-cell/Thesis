@@ -20,14 +20,14 @@ export const DASHBOARD_TOUR = [
     text: "When a check-in is due it shows at the bottom of the week card. Two short, well-known surveys on stress and well-being, about 2 minutes each, and they make the reading on this page more personal. Later is fine a few times; it keeps your plan accurate once you take it.",
   },
   {
-    target: "dash-quick",
-    title: "Add a task in seconds",
-    text: "Quick setup: type a title, pick when it's due and roughly how long it'll take, then Add task. Class, notes and the rest are optional under More details. Tap any task below to change it.",
-  },
-  {
     target: "dash-today",
     title: "Today",
     text: "Your classes happening now and later, plus anything due today or overdue, in one short list. Online classes get a Join button.",
+  },
+  {
+    target: "dash-quick",
+    title: "Add a task in seconds",
+    text: "Tap Add a task to put something on your plan: a title, when it's due and how long it takes. More details holds the rest.",
   },
   {
     target: "dash-coming",

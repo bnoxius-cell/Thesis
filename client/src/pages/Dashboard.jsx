@@ -60,6 +60,7 @@ const Dashboard = () => {
   const [taskModal, setTaskModal] = useState(null); // { task?, draft? }
   const [deleting, setDeleting] = useState(null);
   const [addedOne, setAddedOne] = useState(false); // the layout can swap after a first task; keep the cursor in quick add
+  const [quickOpen, setQuickOpen] = useState(true); // reported by quick add, for the layout's column estimate
 
   if (!work.isLoggedin) return <AppShell variant="public"><p>Please log in to view your dashboard.</p></AppShell>;
   if (work.loading || !work.userData) return <AppShell><PageSkeleton label="Loading your day" /></AppShell>;
@@ -125,8 +126,18 @@ const Dashboard = () => {
   const todayEntryCount = focus.happeningNow.length + focus.laterToday.length;
   const reading = toWeekReading({ insights, plannedTasks: work.plannedTasks, now });
 
+  // A new student's first job is adding something, so their quick add stays open and can't be hidden.
+  // Everyone else gets a one-row button, open when they have nothing to do yet or have just added a first task.
   const quickAdd = (
-    <QuickAddTask tour="dash-quick" focusOnMount={addedOne} onAdded={addTask} onMoreDetails={(draft) => setTaskModal({ draft })} />
+    <QuickAddTask
+      tour="dash-quick"
+      focusOnMount={addedOne}
+      collapsible={!insights.isNewUser}
+      defaultOpen={work.enrichedTasks.length === 0 || addedOne}
+      onOpenChange={setQuickOpen}
+      onAdded={addTask}
+      onMoreDetails={(draft) => setTaskModal({ draft })}
+    />
   );
 
   const checkIn = (
@@ -182,6 +193,7 @@ const Dashboard = () => {
               comingRows: Math.min(5, comingTasks.length),
               nextHeight: showSetup ? 420 : 220,
               hasCheckIn: checkInDue,
+              quickOpen,
             }}
             week={<WeekCard reading={reading} footer={checkIn} />}
             quick={quickAdd}

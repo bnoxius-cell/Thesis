@@ -2,10 +2,12 @@ import { useLayoutEffect, useRef, useState } from "react";
 
 const WIDE_AT = 760; // px of content width (the sidebar already took its 240px) where two columns fit
 const STRIP_HEIGHT = 250;
+const QUICK_OPEN_HEIGHT = 260;
+const QUICK_CLOSED_HEIGHT = 56; // the one-row "Add a task" button
 
 // Rough heights, only used to decide which column gets the 7-day strip so the two end near each other.
-const estimate = ({ todayRows, comingRows, nextHeight, hasCheckIn }) => ({
-  left: 160 + todayRows * 64 + (comingRows > 0 ? 90 + comingRows * 66 : 0),
+const estimate = ({ todayRows, comingRows, nextHeight, hasCheckIn, quickOpen }) => ({
+  left: 160 + (quickOpen ? QUICK_OPEN_HEIGHT : QUICK_CLOSED_HEIGHT) + todayRows * 64 + (comingRows > 0 ? 90 + comingRows * 66 : 0),
   right: 340 + nextHeight + (hasCheckIn ? 80 : 0),
 });
 
@@ -25,8 +27,8 @@ function useIsWide(ref) {
   return wide;
 }
 
-// The DOM order is the phone order (quick add, week card, Today, Coming up, Next step, the 7-day strip), so Tab and screen readers follow what a phone shows. On a wide screen the cards are
-// regrouped into two columns: quick add, Today and Coming up on the left, the week card and Next step on the right,
+// The DOM order is the phone order (Today, quick add, week card, Coming up, Next step, the 7-day strip), so Tab and screen readers follow what a phone shows. On a wide screen the cards are
+// regrouped into two columns: Today, quick add and Coming up on the left, the week card and Next step on the right,
 // with the strip under whichever column is shorter.
 export default function TodayLayout({ week, quick, today, coming, next, strip, sizes }) {
   const ref = useRef(null);
@@ -38,12 +40,12 @@ export default function TodayLayout({ week, quick, today, coming, next, strip, s
     const stripLeft = Math.abs(left + STRIP_HEIGHT - right) < Math.abs(left - (right + STRIP_HEIGHT));
     body = (
       <div className="today-layout is-wide">
-        <div className="today-col">{quick}{today}{coming}{stripLeft && strip}</div>
+        <div className="today-col">{today}{quick}{coming}{stripLeft && strip}</div>
         <div className="today-col">{week}{next}{!stripLeft && strip}</div>
       </div>
     );
   } else {
-    body = <div className="today-layout">{quick}{week}{today}{coming}{next}{strip}</div>;
+    body = <div className="today-layout">{today}{quick}{week}{coming}{next}{strip}</div>;
   }
 
   return <div className="today-wrap" ref={ref}>{body}</div>;
