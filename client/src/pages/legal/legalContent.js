@@ -153,6 +153,7 @@ export const PRIVACY = {
           "Check-in results: your answers and scores for the PSS-10 stress scale and the WHO-5 well-being index, with dates, and a short history of your recent results.",
           "Your tasks: titles, courses, descriptions, due dates, estimated hours, difficulty and importance, and the time you mark a task as done.",
           "Your schedules: classes and activities with times, places, online class links and notes, any pictures you attach, days you mark off, who you share each one with, and a short log of recent changes on shared schedules.",
+          "The subjects you add (name, code, term and colour) and which of your tasks and reviewers belong to them.",
           "Social features: friend connections, groups you belong to, group messages and tasks shared in groups.",
           "Reviewers: the text taken from PDFs you upload (we don't keep the PDF file itself), the reviewer and questions made from it, and your Learning Mode answers and scores.",
           "Notifications: your inbox and your notification preferences. If you turn on phone or computer alerts, we keep the address your browser gives us for sending them.",

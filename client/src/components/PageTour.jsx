@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import { useAuth } from "../pages/authentication/AuthContext";
 import { useGuide } from "../context/guideState";
+import { prefersLessMotion } from "../utils/motion";
 
 // The page Guide: a short, step by step walkthrough of the page. A step's `target` names a
 // `data-tour` attribute on the page: the guide scrolls to it and outlines it. Steps whose target isn't
@@ -47,10 +48,6 @@ function findTarget(target) {
   return [...document.querySelectorAll(`[data-tour="${target}"]`)].find(isShown) || null;
 }
 
-function prefersReducedMotion() {
-  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-}
-
 // The header button that is on screen (the sidebar one on laptops, the top bar one on phones).
 function visibleTrigger() {
   return [...document.querySelectorAll("[data-guide-trigger]")].find((el) => el.offsetParent !== null) || null;
@@ -69,7 +66,7 @@ function scrollToTarget(el, panel) {
   const offset = fits ? (room - rect.height) / 2 : margin;
   window.scrollTo({
     top: Math.max(0, window.scrollY + rect.top - offset),
-    behavior: prefersReducedMotion() ? "auto" : "smooth",
+    behavior: prefersLessMotion() ? "auto" : "smooth",
   });
 }
 

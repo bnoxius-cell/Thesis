@@ -4,6 +4,7 @@ const TITLES = {
   "/dashboard": "Today",
   "/schedule": "Schedule",
   "/reviewers": "Study",
+  "/subjects": "Subject",
   "/groups": "Groups",
   "/friends": "Friends",
   "/profile": "Profile",
@@ -16,7 +17,7 @@ const TITLES = {
 
 export function pageTitle(pathname) {
   const clean = pathname.replace(/\/+$/, "") || "/";
-  const root = clean.startsWith("/profile/") ? "/profile" : clean;
+  const root = ["/profile", "/subjects"].find((base) => clean.startsWith(`${base}/`)) || clean;
   const name = TITLES[root];
   return name ? `${name} | StressCare` : "StressCare";
 }

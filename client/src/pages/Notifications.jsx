@@ -135,7 +135,7 @@ export default function Notifications() {
             groups.map(([label, items]) => (
               <section key={label} className="notice-group" aria-label={label}>
                 <h2 className="notice-group-title">{label}</h2>
-                <ul className="notice-list">
+                <ul className="notice-list stagger">
                   {items.map((n) => {
                     const Icon = ICONS[n.type] || Bell;
                     return (

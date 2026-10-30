@@ -1,0 +1,68 @@
+/* ==========================================================================
+   MOTION utilities (M-0). The rules live in .claude/docs/motion.md: transform and opacity only,
+   tokens only, nothing on scores, and every keyframe is defined here, not in page CSS.
+   Reduced motion and the Animations switch are handled once in base.css.
+   ========================================================================== */
+@layer components {
+  @keyframes page-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  @keyframes stagger-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  @keyframes ambient-drift {
+    to {
+      transform: translate(3%, 4%) rotate(4deg);
+    }
+  }
+  /* Same idea for small icons, which need to travel a fraction of their own size to be seen. */
+  @keyframes ambient-float {
+    to {
+      transform: translate(35%, -55%) rotate(8deg);
+    }
+  }
+
+  /* The first 6 children arrive one after another (item n waits (n-1) x --stagger); item 7 onward
+     shares item 6's delay, so the longest wait is 200ms. A row that has .is-entering keeps its own
+     animation. Children keep their DOM nodes across polls (stable keys), so nothing replays. */
+  .stagger > :not(.is-entering) {
+    --i: 5;
+    animation: stagger-in var(--dur-3) var(--ease-out) backwards;
+    animation-delay: calc(var(--i) * var(--stagger));
+  }
+  .stagger > :nth-child(1) { --i: 0; }
+  .stagger > :nth-child(2) { --i: 1; }
+  .stagger > :nth-child(3) { --i: 2; }
+  .stagger > :nth-child(4) { --i: 3; }
+  .stagger > :nth-child(5) { --i: 4; }
+
+  /* The one thing that moves while nobody touches anything. Two soft gradients behind the content,
+     drifting a few percent. Use on a greeting band or a whole-page empty state, never in a card,
+     list or dialog. Each gradient fades to nothing before the box edge (radius under 50% either side of its centre, with room for the drift), so there is no visible edge. */
+  .ambient {
+    position: relative;
+    isolation: isolate;
+  }
+  .ambient::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: 0.6;
+    pointer-events: none;
+    contain: paint;
+    background:
+      radial-gradient(ellipse 28% 38% at 30% 45%, var(--accent-soft), transparent),
+      radial-gradient(ellipse 28% 38% at 70% 55%, var(--good-soft), transparent);
+    animation: ambient-drift var(--dur-ambient) ease-in-out infinite alternate;
+  }
+  html.is-hidden .ambient::before {
+    animation-play-state: paused;
+  }
+}

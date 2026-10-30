@@ -132,6 +132,10 @@
     font-weight: 500;
     color: var(--text-primary);
   }
+  .appearance-groups {
+    display: grid;
+    gap: var(--space-4);
+  }
   .field-hint {
     align-self: auto;
     font-size: var(--text-xs);
@@ -420,9 +424,6 @@
   .app.auth-layout > main {
     flex: 1;
   }
-  .app.auth-layout .auth-page {
-    min-height: 0;
-  }
 
   /* <main id="main"> is focusable so the skip link can land on it; it never needs a ring. */
   .app > main:focus,
@@ -447,10 +448,12 @@
     max-width: calc(var(--reading-max) + 80px);
   }
 
-  /* One fade when a page arrives (opacity only, no per-section stagger). Skipped while the page
-     is still a skeleton, so the skeleton and the page do not fade one after the other. */
+  /* A page arrives with a short rise and fade (page-in, motion.css). Skipped while the page is still
+     a skeleton, so the skeleton and the page do not move one after the other. "backwards" (not "both")
+     drops the transform after the animation: while it applies, main would be the containing block
+     for any position: fixed child. */
   .app > main {
-    animation: fade-in var(--dur-2) var(--ease-out);
+    animation: page-in var(--dur-3) var(--ease-out) backwards;
   }
   .app > main:has(> .page-skeleton) {
     animation: none;
@@ -908,8 +911,7 @@
     .about-page section[id] {
       scroll-margin-top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px) + var(--space-3));
     }
-    .app.auth-layout .dashboard,
-    .app.auth-layout .auth-page {
+    .app.auth-layout .dashboard {
       width: min(1080px, 100% - 32px); /* same 16px edge as the logo bar */
       padding-top: 20px;
     }
@@ -1101,7 +1103,15 @@
     }
   }
   .quick-add-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
     margin-bottom: var(--space-3);
+  }
+  .quick-add-head .icon-action {
+    flex: none;
+    margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0 0;
   }
   .quick-add-title {
     margin: 0;
@@ -1119,6 +1129,23 @@
     font-size: var(--text-sm);
     line-height: var(--text-sm-lh);
   }
+  /* ---- Quick add, collapsed: one full-width row; opened, the form eases in (opacity and 4px, no height) ---- */
+  .quick-add.is-collapsed { padding: 0; }
+  .quick-add-row {
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--border);
+  }
+  .quick-add-form.is-revealed {
+    animation: quick-add-in var(--dur-2) var(--ease-out);
+  }
+  @keyframes quick-add-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+
   .quick-add-field {
     display: flex;
     flex-direction: column;
@@ -1614,5 +1641,38 @@
     max-width: 200px;
     letter-spacing: 0.2em;
     font-weight: 700;
+  }
+
+  /* ---- Check-in intro (CheckInStepper, intro step) ---- */
+  .checkin-intro-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+  .checkin-intro-head h3 { margin: 0; }
+  .checkin-intro-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .checkin-facts { display: grid; gap: var(--space-3); margin: 0 0 var(--space-4); }
+  .checkin-facts > div {
+    display: grid;
+    grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
+    gap: var(--space-1) var(--space-4);
+  }
+  .checkin-facts dt { color: var(--text-primary); font-weight: 600; }
+  .checkin-facts dd { margin: 0; color: var(--text-secondary); line-height: 1.5; overflow-wrap: anywhere; }
+  .checkin-meta { margin: 0 0 var(--space-4); color: var(--text-primary); font-size: var(--text-sm); }
+  .checkin-cite { color: var(--text-muted); font-size: var(--text-xs); line-height: 1.5; }
+  .checkin-cite p { margin: 0 0 var(--space-1); }
+  @media (max-width: 480px) {
+    .checkin-facts > div { grid-template-columns: minmax(0, 1fr); gap: var(--space-1); }
   }
 }

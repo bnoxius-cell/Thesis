@@ -4,19 +4,18 @@ import { useAuth } from "../pages/authentication/AuthContext";
 import PSSSurveyModal from "./PSSSurveyModal";
 import WHOSurveyModal from "./WHOSurveyModal";
 import { meaningOf } from "../utils/checkinResult";
+import { CHECKIN_COPY } from "../utils/checkinCopy";
 import { PSS_VALID_DAYS, WHO_VALID_DAYS } from "../utils/workload";
 
 const SCALES = {
   pss: {
     title: "Stress (PSS-10)",
-    lead: "How stressed the last month felt",
     max: 40,
     validDays: PSS_VALID_DAYS,
     Modal: PSSSurveyModal,
   },
   who: {
     title: "Well-being (WHO-5)",
-    lead: "How the last two weeks felt",
     max: 100,
     validDays: WHO_VALID_DAYS,
     Modal: WHOSurveyModal,
@@ -75,7 +74,7 @@ export default function CheckInCards({ work }) {
             <article className="checkin-card" key={kind}>
               <header>
                 <h3>{scale.title}</h3>
-                <p className="checkin-card-lead">{scale.lead}</p>
+                <p className="checkin-card-lead">{CHECKIN_COPY[kind].short}</p>
               </header>
               {score === null || !last ? (
                 <p>You haven't taken this one yet. It takes about {kind === "pss" ? "two minutes" : "a minute"}.</p>

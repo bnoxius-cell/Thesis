@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import axios from "axios";
 import { FileUp, FileText, Info, X } from "lucide-react";
 import { useAuth } from "../../pages/authentication/AuthContext";
 import { QUESTION_COUNTS, DEFAULT_QUESTION_COUNT, MAX_PDF_MB, formatBytes, errorMessage } from "./reviewerUtils";
 import Modal from "../Modal";
 import BusySpinner from "../BusySpinner";
+import SubjectPicker from "../subject/SubjectPicker";
 
 // Pick a PDF, name it (or leave that to the AI), choose how many questions, and send it off. The
 // server reads the text and starts writing the reviewer in the background, so this closes as
@@ -16,32 +17,12 @@ export default function UploadReviewerDialog({ onClose, onCreated }) {
   const inputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState("");
-  const [course, setCourse] = useState("");
+  const [subject, setSubject] = useState("");
   const [questionCount, setQuestionCount] = useState(DEFAULT_QUESTION_COUNT);
-  const [courses, setCourses] = useState([]);
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
-
-  // Suggest course names the student already uses on their tasks.
-  useEffect(() => {
-    let cancelled = false;
-    axios.get(`${backendUrl}/api/tasks`, { withCredentials: true })
-      .then(({ data }) => {
-        if (cancelled || !data.success) return;
-        const names = [...new Set((data.tasks || []).map((t) => t.course?.trim()).filter(Boolean))];
-        setCourses(names.sort((a, b) => a.localeCompare(b)).slice(0, 30));
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [backendUrl]);
-
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape" && !busy) onClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [busy, onClose]);
 
   const choose = (picked) => {
     setError("");
@@ -75,7 +56,7 @@ export default function UploadReviewerDialog({ onClose, onCreated }) {
     setProgress(0);
     const form = new FormData();
     form.append("title", title.trim());
-    form.append("course", course.trim());
+    if (subject) form.append("subject", subject);
     form.append("questionCount", String(questionCount));
     form.append("pdf", file);
     try {
@@ -141,13 +122,12 @@ export default function UploadReviewerDialog({ onClose, onCreated }) {
             <span>Title <span className="reviewer-optional">(optional)</span></span>
             <input type="text" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="Leave it blank and the AI will name it" disabled={busy} />
           </label>
-          <label>
-            <span>Course <span className="reviewer-optional">(optional)</span></span>
-            <input type="text" value={course} maxLength={80} list="reviewer-courses" onChange={(e) => setCourse(e.target.value)} placeholder="BIO 101" disabled={busy} />
-            <datalist id="reviewer-courses">
-              {courses.map((c) => <option key={c} value={c} />)}
-            </datalist>
-          </label>
+          <div className="reviewer-field">
+            <label className="reviewer-field-label" htmlFor="reviewer-subject">
+              Subject <span className="reviewer-optional">(optional)</span>
+            </label>
+            <SubjectPicker id="reviewer-subject" value={subject} onChange={setSubject} disabled={busy} />
+          </div>
           <div className="reviewer-field">
             <span className="reviewer-field-label" id="reviewer-count-label">Practice questions</span>
             <div className="sched-segment" role="group" aria-labelledby="reviewer-count-label">

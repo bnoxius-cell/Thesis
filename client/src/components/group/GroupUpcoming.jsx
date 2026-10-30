@@ -78,6 +78,7 @@ export default function GroupUpcoming({ groupId, refreshKey, onAdd, onShare }) {
     return (
       <div className="upcoming-empty">
         <EmptyState
+          compact
           icon={CalendarClock}
           title="No deadlines shared yet"
           action={(

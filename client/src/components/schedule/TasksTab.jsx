@@ -3,10 +3,9 @@ import { ClipboardList, Download, MoreHorizontal, Pencil, Share2, Trash2 } from 
 import ConfirmDialog from "../ConfirmDialog";
 import EmptyState from "../EmptyState";
 import Menu, { MenuItem } from "./Menu";
-import { dueChip, taskEditLabel } from "../../utils/dueChip";
 import useEnteringIds from "../../utils/useEnteringIds";
 import QuickAddTask from "../QuickAddTask";
-import TaskCheck from "../TaskCheck";
+import TaskRow from "./TaskRow";
 import { addDays, startOfWeek, taskDueIso, toISODate } from "../../utils/scheduleUtils";
 
 function StudyPlan({ week, hasTasks }) {
@@ -48,7 +47,7 @@ function StudyPlan({ week, hasTasks }) {
 
 // The person's own tasks as compact rows: a round done box, title and course, a due chip, the
 // hours, and a menu. The study plan sits beside them on a laptop and folds away on a phone.
-export default function TasksTab({ tasks, week, now, onAdded, onMoreDetails, onUseCode, onEdit, onSetDone, onDelete }) {
+export default function TasksTab({ tasks, subjectsById, week, now, onAdded, onMoreDetails, onUseCode, onEdit, onSetDone, onDelete }) {
   const [filter, setFilter] = useState("open");
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState("");
@@ -74,30 +73,21 @@ export default function TasksTab({ tasks, week, now, onAdded, onMoreDetails, onU
     { id: "later", label: "Later", tasks: open.filter((t) => taskDueIso(t.dueDate) > weekEndIso) },
   ].filter((g) => g.tasks.length > 0);
 
-  const renderRow = (task) => {
-    const chip = task.isCompleted ? null : dueChip(task.dueDate, now);
-    return (
-      <li key={task._id} className={`task-row${task.isCompleted ? " is-done" : ""}${entering.has(task._id) ? " is-entering" : ""}`}>
-        <TaskCheck task={task} onChange={onSetDone} />
-        <button type="button" className="task-row-body" onClick={() => onEdit(task)} aria-label={taskEditLabel(task, now)}>
-          <strong>{task.title}</strong>
-          <span className={task.course ? undefined : "is-empty"}>{[task.course || "No course", task.hours ? `${task.hours}h` : ""].filter(Boolean).join(" · ")}</span>
-        </button>
-        {chip && <span className={`chip is-${chip.tone}`}>{chip.label}</span>}
-        <Menu trigger={<MoreHorizontal size={18} aria-hidden="true" />} label={`More for ${task.title}`} className="task-more">
-          {(close) => (
-            <>
-              <MenuItem icon={Pencil} onClick={() => { close(); onEdit(task); }}>Edit</MenuItem>
-              <MenuItem icon={Share2} hint={task.shareTag ? `Code ${task.shareTag}` : undefined} onClick={() => { close(); copyCode(task.shareTag); }}>
-                {copied === task.shareTag ? "Copied" : "Copy share code"}
-              </MenuItem>
-              <MenuItem icon={Trash2} tone="danger" onClick={() => { close(); onDelete(task); }}>Delete</MenuItem>
-            </>
-          )}
-        </Menu>
-      </li>
-    );
-  };
+  const renderRow = (task) => (
+    <TaskRow key={task._id} task={task} subject={subjectsById.get(task.subject)} now={now} entering={entering.has(task._id)} onSetDone={onSetDone} onEdit={onEdit}>
+      <Menu trigger={<MoreHorizontal size={18} aria-hidden="true" />} label={`More for ${task.title}`} className="task-more">
+        {(close) => (
+          <>
+            <MenuItem icon={Pencil} onClick={() => { close(); onEdit(task); }}>Edit</MenuItem>
+            <MenuItem icon={Share2} hint={task.shareTag ? `Code ${task.shareTag}` : undefined} onClick={() => { close(); copyCode(task.shareTag); }}>
+              {copied === task.shareTag ? "Copied" : "Copy share code"}
+            </MenuItem>
+            <MenuItem icon={Trash2} tone="danger" onClick={() => { close(); onDelete(task); }}>Delete</MenuItem>
+          </>
+        )}
+      </Menu>
+    </TaskRow>
+  );
 
   const submitCode = (event) => {
     event.preventDefault();
@@ -162,11 +152,11 @@ export default function TasksTab({ tasks, week, now, onAdded, onMoreDetails, onU
               <h3 className={`task-group-title${group.id === "overdue" ? " is-overdue" : ""}`} id={`task-group-${group.id}`}>
                 {group.label} <span>{group.tasks.length}</span>
               </h3>
-              <ul className="task-rows">{group.tasks.map(renderRow)}</ul>
+              <ul className="task-rows stagger">{group.tasks.map(renderRow)}</ul>
             </section>
           ))
         ) : (
-          <ul className="task-rows">{shown.map(renderRow)}</ul>
+          <ul className="task-rows stagger">{shown.map(renderRow)}</ul>
         )}
       </section>
 

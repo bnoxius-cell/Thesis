@@ -22,6 +22,7 @@ import { TODAY_MAX_ROWS } from "../components/today/TodayCard";
 import { DASHBOARD_TOUR } from "../utils/tours";
 import { Sprout } from "lucide-react";
 import useWorkload from "../utils/useWorkload";
+import useSubjectLookup from "../utils/useSubjectLookup";
 import { useAuth } from "./authentication/AuthContext";
 import { finishedThisWeek } from "../utils/doneThisWeek";
 import { toWeekReading } from "../utils/weekReading";
@@ -53,6 +54,7 @@ const COMING_UP_DAYS = 7;
 
 const Dashboard = () => {
   const work = useWorkload();
+  const subjectsById = useSubjectLookup();
   const { backendUrl } = useAuth();
   const [showPSSModal, setShowPSSModal] = useState(false);
   const [showWHOModal, setShowWHOModal] = useState(false);
@@ -60,6 +62,7 @@ const Dashboard = () => {
   const [taskModal, setTaskModal] = useState(null); // { task?, draft? }
   const [deleting, setDeleting] = useState(null);
   const [addedOne, setAddedOne] = useState(false); // the layout can swap after a first task; keep the cursor in quick add
+  const [quickOpen, setQuickOpen] = useState(true); // reported by quick add, for the layout's column estimate
 
   if (!work.isLoggedin) return <AppShell variant="public"><p>Please log in to view your dashboard.</p></AppShell>;
   if (work.loading || !work.userData) return <AppShell><PageSkeleton label="Loading your day" /></AppShell>;
@@ -117,16 +120,22 @@ const Dashboard = () => {
       toast.success("Task deleted.");
     }
   };
-  const courses = [...new Set([
-    ...work.tasks.map((t) => t.course),
-    ...work.week.flatMap((d) => d.entries.filter((e) => e.kind === "class").map((e) => e.title)),
-  ].filter(Boolean))];
 
   const todayEntryCount = focus.happeningNow.length + focus.laterToday.length;
   const reading = toWeekReading({ insights, plannedTasks: work.plannedTasks, now });
 
+  // A new student's first job is adding something, so their quick add stays open and can't be hidden.
+  // Everyone else gets a one-row button, open when they have nothing to do yet or have just added a first task.
   const quickAdd = (
-    <QuickAddTask tour="dash-quick" focusOnMount={addedOne} onAdded={addTask} onMoreDetails={(draft) => setTaskModal({ draft })} />
+    <QuickAddTask
+      tour="dash-quick"
+      focusOnMount={addedOne}
+      collapsible={!insights.isNewUser}
+      defaultOpen={work.enrichedTasks.length === 0 || addedOne}
+      onOpenChange={setQuickOpen}
+      onAdded={addTask}
+      onMoreDetails={(draft) => setTaskModal({ draft })}
+    />
   );
 
   const checkIn = (
@@ -150,7 +159,7 @@ const Dashboard = () => {
 
   return (
     <AppShell tour={{ page: "dashboard", title: "Today", steps: DASHBOARD_TOUR }}>
-        <section className="today-head" id="dashboard" data-tour="dash-greeting">
+        <section className="today-head ambient" id="dashboard" data-tour="dash-greeting">
           <div>
             <h1>{GREETING[focus.phase]}{firstName ? `, ${firstName}` : ""}.</h1>
             <p>{insights.isNewUser ? "Here's your space. Let's get it set up." : summarizeDay(today, focus)}</p>
@@ -182,16 +191,17 @@ const Dashboard = () => {
               comingRows: Math.min(5, comingTasks.length),
               nextHeight: showSetup ? 420 : 220,
               hasCheckIn: checkInDue,
+              quickOpen,
             }}
             week={<WeekCard reading={reading} footer={checkIn} />}
             quick={quickAdd}
             today={(
               <TodayCard
-                focus={focus} today={today} tasks={todayTasks} now={now} nextExam={nextExam} hasSchedule={hasSchedule}
+                focus={focus} today={today} tasks={todayTasks} subjectsById={subjectsById} now={now} nextExam={nextExam} hasSchedule={hasSchedule}
                 onComplete={completeTask} onEdit={(task) => setTaskModal({ task })}
               />
             )}
-            coming={<ComingUp tasks={comingTasks} now={now} onComplete={completeTask} onEdit={(task) => setTaskModal({ task })} />}
+            coming={<ComingUp tasks={comingTasks} subjectsById={subjectsById} now={now} onComplete={completeTask} onEdit={(task) => setTaskModal({ task })} />}
             next={showSetup ? (
               <SetupChecklist work={work} setup={setup} onStartCheckIn={() => setShowPSSModal(true)} onHide={hideSetupCard} />
             ) : (
@@ -218,7 +228,6 @@ const Dashboard = () => {
           <TaskModal
             task={taskModal.task}
             draft={taskModal.draft}
-            courses={courses}
             onSave={saveTask}
             onDelete={taskModal.task ? () => setDeleting(taskModal.task) : undefined}
             onToggleDone={taskModal.task ? toggleModalTaskDone : undefined}

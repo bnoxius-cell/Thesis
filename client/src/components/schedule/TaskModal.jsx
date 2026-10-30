@@ -4,6 +4,7 @@ import { toISODate, addDays, taskDueIso } from "../../utils/scheduleUtils";
 import { MAX_TASK_HOURS } from "../../utils/workload";
 import Modal from "../Modal";
 import BusySpinner from "../BusySpinner";
+import SubjectPicker from "../subject/SubjectPicker";
 
 const DIFFICULTY = ["Very easy", "Easy", "Medium", "Hard", "Very hard"];
 const IMPORTANCE = ["Low", "Minor", "Normal", "Important", "Critical"];
@@ -12,7 +13,7 @@ const MAX_HOURS = MAX_TASK_HOURS;
 
 const blankForm = (date, draft) => ({
   title: draft?.title || "",
-  course: "",
+  subject: draft?.subject || "",
   description: "",
   dueDate: draft?.dueDate || date || toISODate(addDays(new Date(), 1)),
   hours: draft?.hours ?? 3,
@@ -22,7 +23,7 @@ const blankForm = (date, draft) => ({
 
 const formFromTask = (task) => ({
   title: task.title,
-  course: task.course || "",
+  subject: task.subject || "",
   description: task.description || "",
   dueDate: taskDueIso(task.dueDate),
   hours: task.hours,
@@ -62,11 +63,10 @@ function Scale({ id, label, words, value, onChange }) {
 //   task         set when editing
 //   date         due date to start with when adding from a day (YYYY-MM-DD)
 //   draft        { title, dueDate, hours } typed in the quick-add row, to start the form with
-//   courses      class names from the schedule, offered as suggestions
 //   onSave       (payload) => error message, or nothing on success
 //   onDelete, onToggleDone   editing only
 //   onUseCode    (tag) => open the task-code preview instead
-export default function TaskModal({ task, date, draft, courses = [], onSave, onDelete, onToggleDone, onUseCode, onClose }) {
+export default function TaskModal({ task, date, draft, onSave, onDelete, onToggleDone, onUseCode, onClose }) {
   const [form, setForm] = useState(() => (task ? formFromTask(task) : blankForm(date, draft)));
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
@@ -97,10 +97,14 @@ export default function TaskModal({ task, date, draft, courses = [], onSave, onD
     const hours = Number(form.hours);
     if (!Number.isFinite(hours) || hours < MIN_HOURS || hours > MAX_HOURS) return setError(`Hours can be ${MIN_HOURS} to ${MAX_HOURS}.`);
 
+    // The subject goes along only when it changed or the task is new. Otherwise the old course text
+    // is sent as it was, so a task still linked by name stays linked.
+    const subjectChanged = form.subject !== (task?.subject || "");
     setSaving(true);
     const message = await onSave({
       title: form.title.trim(),
-      course: form.course.trim(),
+      course: form.subject ? "" : task?.course || "",
+      ...(subjectChanged && { subject: form.subject || null }),
       description: form.description.trim(),
       dueDate: form.dueDate,
       hours,
@@ -116,8 +120,6 @@ export default function TaskModal({ task, date, draft, courses = [], onSave, onD
     if (!/^\d{6}$/.test(tag)) return setError("A task code has 6 digits.");
     onUseCode(tag);
   };
-
-  const courseList = [...new Set(courses.filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
   return (
     <Modal onClose={onClose} busy={saving} as="form" noValidate className="sched-modal task-modal" labelledBy="task-modal-title" onSubmit={submit}>
@@ -147,27 +149,13 @@ export default function TaskModal({ task, date, draft, courses = [], onSave, onD
           </div>
 
           <div className="form-group full-span">
-            <label htmlFor="task-course">Class (optional)</label>
-            <input
-              id="task-course"
-              type="text"
-              value={form.course}
-              maxLength={80}
-              list="task-course-options"
-              onChange={(e) => set({ course: e.target.value })}
-              placeholder="Leave empty if it isn't for a class"
-              autoComplete="off"
+            <label htmlFor="task-subject">Subject (optional)</label>
+            <SubjectPicker
+              id="task-subject"
+              value={form.subject}
+              onChange={(subject) => set({ subject })}
+              legacyLabel={task?.course || ""}
             />
-            <datalist id="task-course-options">
-              {courseList.map((c) => <option key={c} value={c} />)}
-            </datalist>
-            {courseList.length > 0 && (
-              <div className="task-chips" aria-label="Classes in this schedule">
-                {courseList.slice(0, 8).map((c) => (
-                  <button key={c} type="button" className={form.course === c ? "is-on" : ""} onClick={() => set({ course: c })}>{c}</button>
-                ))}
-              </div>
-            )}
           </div>
 
           <div className="form-group full-span">

@@ -58,7 +58,7 @@ The rest of SR Batch 6, checked against the code on 2026-10-13 (B2, B3, B10, B11
 ### Q6 `chore/delete-user-script` (Review) [ ]
 SR Batch 10 (D3) as written. It deletes other people's shared data, so it gets a review. Also add a `npm run delete-user` script to `server/package.json`. Collections to cover are in SR Batch 10; check `server/models/` for anything newer (`completedAt` is just a field). Later batches that add a model extend this script.
 
-### Q7 `perf/code-splitting` [ ]
+### Q7 `perf/code-splitting` [x] (done in FE-2)
 SR Batch 11 (P1) as written. Also report the before and after main chunk sizes.
 
 ---

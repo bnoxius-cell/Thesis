@@ -115,8 +115,12 @@
     --dur-1: 120ms;
     --dur-2: 180ms;
     --dur-3: 240ms;
+    --dur-4: 400ms;
+    --stagger: 40ms;
+    --dur-ambient: 32s;
     --ease-out: cubic-bezier(0.2, 0, 0, 1);
     --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
 
     /* Older names, now pointing at the roles (removed in FE-10) */
     --paper: var(--bg-app);
@@ -133,7 +137,6 @@
     --mist: rgba(0, 0, 0, 0.06);
     --border-light: var(--border);
     --card-bg: var(--surface);
-    --auth-card-bg: var(--surface);
     --panel-bg: var(--surface);
     --input-bg: var(--surface);
     --input-border: var(--border-input);
@@ -179,6 +182,24 @@
 
     /* react-toastify defaults to a generic sans-serif; use the app font. */
     --toastify-font-family: var(--font-ui);
+
+    /* Subject colours: dots, bars and a soft tint for a row or chip. Solid is 3:1 or better on --surface, --text-primary on -soft is 4.5:1 or better, none reads as red. */
+    --subject-blue: #3a6cd0;
+    --subject-blue-soft: #e3eaf8;
+    --subject-teal: #12767c;
+    --subject-teal-soft: #deeced;
+    --subject-green: #2a7a4b;
+    --subject-green-soft: #e1ece6;
+    --subject-olive: #66741a;
+    --subject-olive-soft: #eaecdf;
+    --subject-amber: #9c6608;
+    --subject-amber-soft: #f1eadc;
+    --subject-orange: #b85f10;
+    --subject-orange-soft: #f5e9de;
+    --subject-violet: #7452c4;
+    --subject-violet-soft: #ece7f7;
+    --subject-slate: #566880;
+    --subject-slate-soft: #e7eaed;
   }
 
   .dark-theme {
@@ -220,5 +241,23 @@
     --shadow-3: 0 24px 56px rgba(0, 0, 0, 0.6);
 
     --mist: rgba(255, 255, 255, 0.06);
+
+    /* Subject colours: lighter solids and deeper tints for dark. Solid is 3:1 or better on --surface, --text-primary on -soft is 4.5:1 or better, none reads as red. */
+    --subject-blue: #7ea3f2;
+    --subject-blue-soft: #2d3951;
+    --subject-teal: #4cc0c6;
+    --subject-teal-soft: #223f47;
+    --subject-green: #5bc08a;
+    --subject-green-soft: #253f3a;
+    --subject-olive: #a9bb55;
+    --subject-olive-soft: #363e2e;
+    --subject-amber: #e0a63f;
+    --subject-amber-soft: #423a29;
+    --subject-orange: #e88a4a;
+    --subject-orange-soft: #44332c;
+    --subject-violet: #b196f0;
+    --subject-violet-soft: #383650;
+    --subject-slate: #9aabc4;
+    --subject-slate-soft: #333b46;
   }
 }

@@ -22,6 +22,7 @@ const Schedule = lazy(() => import('./pages/Schedule'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Wellbeing = lazy(() => import('./pages/Wellbeing'));
 const Reviewers = lazy(() => import('./pages/Reviewers'));
+const SubjectDetail = lazy(() => import('./pages/SubjectDetail'));
 const LegalPage = lazy(() => import('./pages/legal/LegalPage'));
 
 // While a page's code loads: the real shell with a skeleton in it, so nothing jumps when the page arrives.
@@ -95,6 +96,7 @@ const AppContent = () => {
         <Route path="/friends" element={<RequireAuth><Friends /></RequireAuth>} />
         <Route path="/schedule" element={<RequireAuth><Schedule /></RequireAuth>} />
         <Route path="/reviewers" element={<RequireAuth><Reviewers /></RequireAuth>} />
+        <Route path="/subjects/:id" element={<RequireAuth><SubjectDetail /></RequireAuth>} />
         <Route path="/groups" element={<RequireAuth><GroupsRoute /></RequireAuth>} />
         <Route path="/wellbeing" element={<RequireAuth><Wellbeing /></RequireAuth>} />
         <Route path="/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />

@@ -20,14 +20,14 @@ export const DASHBOARD_TOUR = [
     text: "When a check-in is due it shows at the bottom of the week card. Two short, well-known surveys on stress and well-being, about 2 minutes each, and they make the reading on this page more personal. Later is fine a few times; it keeps your plan accurate once you take it.",
   },
   {
-    target: "dash-quick",
-    title: "Add a task in seconds",
-    text: "Quick setup: type a title, pick when it's due and roughly how long it'll take, then Add task. Class, notes and the rest are optional under More details. Tap any task below to change it.",
-  },
-  {
     target: "dash-today",
     title: "Today",
     text: "Your classes happening now and later, plus anything due today or overdue, in one short list. Online classes get a Join button.",
+  },
+  {
+    target: "dash-quick",
+    title: "Add a task in seconds",
+    text: "Tap Add a task to put something on your plan: a title, when it's due and how long it takes. More details holds the rest.",
   },
   {
     target: "dash-coming",
@@ -120,7 +120,7 @@ export const REVIEWERS_TOUR = [
   // The list of reviewers
   {
     target: "rev-intro",
-    title: "Reviewers",
+    title: "Study",
     text: "Turn your notes, a handout or a module into a short reviewer with key terms and practice questions.",
   },
   {
@@ -132,6 +132,11 @@ export const REVIEWERS_TOUR = [
     target: "rev-list",
     title: "Your reviewers",
     text: "Each card shows your last score. Open one to read it or practice.",
+  },
+  {
+    target: "rev-subjects",
+    title: "Subjects",
+    text: "Add the classes you take. Your tasks and reviewers can sit under them, and we can suggest subjects from what you already have.",
   },
   // One open reviewer
   {
@@ -169,6 +174,24 @@ export const REVIEWERS_TOUR = [
     target: "rev-results",
     title: "Your results",
     text: "Your score and how each topic went. From here you can practice the weak topics or ask for new questions on them.",
+  },
+];
+
+export const SUBJECT_TOUR = [
+  {
+    target: "subj-head",
+    title: "This subject",
+    text: "Its name, code and term. Edit changes them, and the More menu has delete. Deleting a subject never deletes your tasks.",
+  },
+  {
+    target: "subj-tabs",
+    title: "Overview, Tasks, Reviewers",
+    text: "Overview shows what's next and this week's classes. Tasks and Reviewers list only what belongs to this subject.",
+  },
+  {
+    target: "subj-quick",
+    title: "Add a task here",
+    text: "Anything you add here is filed under this subject already, so you only need a title and a due date.",
   },
 ];
 

@@ -10,6 +10,7 @@ import PictureField from "../components/PictureField";
 import NotificationPreferences from "../components/NotificationPreferences";
 import PublicProfile from "./PublicProfile";
 import { useTheme } from "../context/ThemeContext";
+import { readMotionPref, setMotionPref } from "../utils/motion";
 import { profileFromUser } from "../utils/useWorkload";
 import { HELP_CONTACTS, isPlaceholder } from "../utils/helpContacts";
 import { SUPPORT_EMAILS } from "./legal/legalContent";
@@ -80,6 +81,11 @@ function OwnProfile() {
 function Me() {
   const { user, backendUrl, getUserData, logout } = useAuth();
   const { mode, setTheme } = useTheme();
+  const [motion, setMotion] = useState(readMotionPref);
+  const pickMotion = (value) => {
+    setMotionPref(value);
+    setMotion(value);
+  };
   const { hash } = useLocation();
   const [savingPicture, setSavingPicture] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -327,24 +333,44 @@ function Me() {
 
             <section className="panel" id="appearance">
               <div className="panel-heading">
-                <div>
-                  <span className="panel-kicker">Appearance</span>
-                  <h2>Light or dark</h2>
-                </div>
+                <h2>Look and motion</h2>
               </div>
-              <div className="segmented" role="radiogroup" aria-label="Appearance">
-                {[["light", "Light"], ["dark", "Dark"], ["system", "Match my device"]].map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    role="radio"
-                    aria-checked={mode === value}
-                    className={`segmented-option ${mode === value ? "is-selected" : ""}`}
-                    onClick={() => setTheme(value)}
-                  >
-                    {label}
-                  </button>
-                ))}
+              <div className="appearance-groups">
+                <fieldset className="me-pace">
+                  <legend>Appearance</legend>
+                  <div className="segmented" role="radiogroup" aria-label="Appearance">
+                    {[["light", "Light"], ["dark", "Dark"], ["system", "Match my device"]].map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={mode === value}
+                        className={`segmented-option ${mode === value ? "is-selected" : ""}`}
+                        onClick={() => setTheme(value)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+                <fieldset className="me-pace">
+                  <legend>Animations</legend>
+                  <div className="segmented" role="radiogroup" aria-label="Animations">
+                    {[["on", "On"], ["system", "Match my device"], ["off", "Off"]].map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={motion === value}
+                        className={`segmented-option ${motion === value ? "is-selected" : ""}`}
+                        onClick={() => pickMotion(value)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="me-pace-hint">Match my device follows your phone or computer's reduce-motion setting.</p>
+                </fieldset>
               </div>
             </section>
 

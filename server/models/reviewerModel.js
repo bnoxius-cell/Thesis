@@ -25,6 +25,7 @@ const reviewerSchema = new mongoose.Schema({
     // True while the title is just the file name. The AI's title replaces it once.
     autoTitle: { type: Boolean, default: false },
     course: { type: String, default: '', maxlength: 80 },
+    subject: { type: mongoose.Schema.Types.ObjectId, ref: 'subject', default: null },
     source: {
         fileName: { type: String, default: '' },
         pages: { type: Number, default: 0 },

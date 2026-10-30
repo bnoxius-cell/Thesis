@@ -27,6 +27,7 @@ import ScheduleActivity from "../components/schedule/ScheduleActivity";
 import Menu, { MenuItem } from "../components/schedule/Menu";
 import { useAuth } from "./authentication/AuthContext";
 import useWorkload from "../utils/useWorkload";
+import useSubjectLookup from "../utils/useSubjectLookup";
 import { useTabParam } from "../utils/useTabParam";
 import {
   SCHEDULE_THEMES, normalizeTheme, monthOfWeek, monthWeeks, addDays, toISODate, fromISODate, taskDueIso,
@@ -164,6 +165,7 @@ export default function Schedule() {
   // The signed-in person's own tasks. They show on their schedules under the day they are due,
   // and nobody else on a shared schedule ever sees them.
   const { tasks, setTasks, week, now } = useWorkload();
+  const subjectsById = useSubjectLookup();
   const [taskModal, setTaskModal] = useState(null); // { task?, date? }
   const [taskCode, setTaskCode] = useState(null); // 6-digit code being previewed
 
@@ -635,11 +637,6 @@ export default function Schedule() {
   const extras = schedules.filter((x) => x.role === "owner" && !x.isMain);
   const sharedWithMe = schedules.filter((x) => x.role !== "owner");
 
-  const courses = [
-    ...(schedule?.entries || []).filter((e) => e.kind === "class" || e.kind === "exam").map((e) => e.title),
-    ...tasks.map((t) => t.course),
-  ];
-
   const markInfo = markDate && schedule && {
     holiday: (() => {
       const o = schedule.holidayOverrides.find((x) => x.date === markDate);
@@ -660,7 +657,6 @@ export default function Schedule() {
           task={taskModal.task}
           date={taskModal.date}
           draft={taskModal.draft}
-          courses={courses}
           onSave={saveTask}
           onDelete={taskModal.task ? () => setConfirm({ kind: "task", task: taskModal.task }) : undefined}
           onToggleDone={taskModal.task ? toggleTaskDone : undefined}
@@ -941,6 +937,7 @@ export default function Schedule() {
               {tab === "tasks" && tasksHere && (
                 <TasksTab
                   tasks={tasks}
+                  subjectsById={subjectsById}
                   week={week}
                   now={now}
                   onAdded={(task) => setTasks((list) => [...list, task])}

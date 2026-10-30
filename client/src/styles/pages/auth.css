@@ -1,0 +1,719 @@
+/* ==========================================================================
+   SIGN-IN PAGE. Source of truth: Figma "Login v1 (light)" (1920 x 1080), see .claude/docs/design.md.
+   A tinted panel on the left holds the form; the right shows the pitch and three fanned preview
+   cards on a soft gradient with blurred blobs and faint icons. Under 1100px the cards go, and
+   under 900px only the panel is left.
+   Colours are role tokens only, so dark mode comes for free.
+   ========================================================================== */
+@layer pages {
+  .app.auth-layout:has(.auth-split) > .header-auth {
+    display: none; /* the logo lives in the panel on this page */
+  }
+  /* The legacy ".app.auth-layout > *" rule puts the skip link back in the flow, where it leaves an
+     empty strip above the split. Here it floats again: hidden until focused (base.css). */
+  .app.auth-layout:has(.auth-split) > .skip-link {
+    position: absolute;
+    z-index: 1000;
+  }
+  @media (min-width: 900px) {
+    .app.auth-layout:has(.auth-split) > .site-footer {
+      display: none;
+    }
+  }
+  .app.auth-layout > main.auth-page {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* On a wide screen the page is one screen tall: the split fills the viewport, the panel scrolls
+     inside itself when its form doesn't fit, and the public footer goes (Terms and Privacy are linked
+     in the panel). */
+  .auth-split {
+    --auth-panel-w: clamp(480px, 34vw, 652px);
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--auth-panel-w) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    height: 100vh;
+    height: 100dvh;
+    min-height: 560px;
+    overflow: hidden;
+    background: linear-gradient(90deg, var(--bg-app), color-mix(in srgb, var(--accent) 16%, var(--bg-app)));
+  }
+  .auth-loading {
+    display: grid;
+    place-items: center;
+    min-height: 60dvh;
+    color: var(--text-secondary);
+  }
+
+  /* ---- Left panel ----
+     The gaps and the top and bottom padding shrink with the window's height, so sign-in fits a 900px
+     tall screen without scrolling. They are near Figma's 28px and 60px at 1080 tall and reach them at
+     1120. Fields and buttons keep their size. */
+  .auth-panel {
+    --auth-gap: clamp(var(--space-4), 5vh - 28px, 28px);
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: safe center;
+    gap: var(--auth-gap);
+    padding: clamp(var(--space-5), 10.9vh - 62px, 60px) clamp(var(--space-5), 3.75vw, 72px);
+    overflow-y: auto;
+    background: var(--accent-soft);
+    box-shadow: 8px 0 40px color-mix(in srgb, var(--overlay) 25%, transparent);
+  }
+  .auth-panel .logo-link {
+    align-self: flex-start;
+    gap: 10px;
+    min-height: 44px;
+    font-size: 26px;
+    line-height: 1;
+  }
+  .auth-panel .logo-svg {
+    width: 36px;
+    height: 36px;
+  }
+  .auth-panel-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .auth-panel-header .panel-kicker {
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .auth-panel-header h2 {
+    margin: 0;
+    font-size: clamp(var(--text-3xl), 5vw, 2.625rem);
+    font-weight: 700;
+    line-height: 1.19;
+    color: var(--text-primary);
+  }
+  .auth-panel-header p {
+    margin: 0;
+    text-wrap: balance; /* no one- or two-word last line */
+    font-size: var(--text-md);
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  .auth-form,
+  .auth-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .auth-form label {
+    gap: var(--space-2);
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .auth-form input:not([type="checkbox"], .otp-input) {
+    min-height: 52px;
+    padding-inline: var(--space-4);
+  }
+  /* Input with a leading icon: the icon sits inside the box, so the text starts after it. */
+  .auth-field {
+    position: relative;
+  }
+  .auth-field-icon {
+    position: absolute;
+    top: 50%;
+    left: var(--space-4);
+    translate: 0 -50%;
+    color: var(--text-muted);
+    pointer-events: none;
+    transition: color var(--dur-2) ease;
+  }
+  .auth-field:focus-within .auth-field-icon {
+    color: var(--accent);
+  }
+  .auth-form .auth-field input {
+    padding-left: 48px;
+  }
+  .auth-form .password-field input {
+    padding-right: 52px;
+  }
+  .auth-form .password-toggle {
+    right: 4px;
+    width: 44px;
+    height: 44px;
+  }
+  .auth-form .primary-button,
+  .auth-form .ghost-button,
+  .auth-actions .secondary-button {
+    width: 100%;
+    min-height: 52px;
+    font-size: var(--text-md);
+  }
+  .auth-actions .secondary-button {
+    border: 1.5px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-size: 0.9375rem;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .auth-actions .secondary-button:hover:where(:not(:disabled)) {
+      background: var(--surface-2);
+    }
+  }
+  .auth-login-extras {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0 var(--space-4);
+  }
+  .auth-form .remember-me {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+    width: auto;
+    min-height: 44px;
+    font-size: var(--text-sm);
+    font-weight: 400;
+    cursor: pointer;
+  }
+  .auth-form .remember-me input {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    margin: 0;
+    accent-color: var(--accent);
+  }
+  .link-button {
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .link-button:hover {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+  }
+  .link-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* "or", the Google button and its consent note */
+  .auth-alt {
+    display: flex;
+    flex-direction: column;
+    gap: var(--auth-gap);
+  }
+  /* The register consent row: each link's name stays on one line. */
+  .auth-form .terms-check span {
+    text-wrap: pretty;
+  }
+  .auth-form .terms-check a,
+  .auth-nowrap {
+    white-space: nowrap;
+  }
+  .auth-divider {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+  }
+  .auth-divider::before,
+  .auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .auth-google {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  /* Google's button lives in a light-scheme iframe. Without a matching color-scheme on its parent,
+     the browser paints that iframe opaque white, a box around the dark button in dark mode. */
+  .auth-google-button {
+    color-scheme: light;
+  }
+  .auth-legal-note,
+  .auth-support-note {
+    margin: 0;
+    text-align: center;
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+    text-wrap: pretty;
+    text-wrap: balance;
+  }
+  /* The note reads as a caption to the button above it, so it sits closer than the panel gap. */
+  .auth-legal-note {
+    max-width: 36ch;
+    margin-top: calc(var(--space-3) - var(--auth-gap));
+    align-self: center;
+  }
+  .auth-legal-note a {
+    white-space: nowrap;
+  }
+  .auth-support-note {
+    font-size: var(--text-sm);
+  }
+  .auth-legal-note a,
+  .auth-support-note a {
+    color: var(--accent);
+    font-weight: 600;
+    text-underline-offset: 2px;
+  }
+
+  /* ---- Right side: the pitch ---- */
+  .auth-showcase {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: clamp(var(--space-6), 12vh, 130px) var(--space-5) clamp(var(--space-5), 7vh, 79px) 0;
+  }
+  .auth-showcase-text {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: var(--space-4);
+    max-width: 820px;
+    margin-bottom: var(--space-6);
+    padding-left: clamp(var(--space-6), 6.15vw, 118px);
+  }
+  .auth-showcase-eyebrow {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  /* Measures in em so the lines break where Figma's do at every size, clear of the sprites. */
+  .auth-showcase h1 {
+    max-width: 14em;
+    margin: 0;
+    font-size: clamp(2rem, 2.92vw, 3.5rem);
+    font-weight: 700;
+    line-height: 1.143;
+    color: var(--text-primary);
+  }
+  .auth-showcase-text p {
+    max-width: 35em;
+    margin: 0;
+    font-size: clamp(var(--text-md), 1.04vw, 1.25rem);
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  /* ---- Right side: the three cards ----
+     The stage takes whatever room is left under the pitch and is a size container. Inside it, --u is
+     one design pixel of the 1920 frame: the fan (1046 x 522 with its left offset) shrinks to fit the
+     stage's width or height, whichever is tighter, and never grows past 1:1. Every length in the fan,
+     fonts included, is calc(N * var(--u)), so the whole thing scales as one picture. */
+  .auth-stage {
+    --u: min(1px, 100cqw / 1046, 100cqh / 522);
+    container-type: size;
+    display: flex;
+    flex: 1 1 0;
+    align-items: flex-end;
+    min-height: 160px;
+    pointer-events: none;
+    user-select: none;
+  }
+  .auth-fan {
+    position: relative;
+    flex: none;
+    width: calc(998 * var(--u));
+    height: calc(522 * var(--u));
+    margin-left: calc(48 * var(--u));
+    font-size: calc(12 * var(--u));
+    line-height: 1.25;
+  }
+  .auth-pcard {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: calc(14 * var(--u));
+    width: calc(320 * var(--u));
+    height: calc(440 * var(--u));
+    padding: calc(20 * var(--u));
+    border: calc(1 * var(--u)) solid var(--border);
+    border-radius: calc(20 * var(--u));
+    background: var(--surface);
+    box-shadow: 0 calc(16 * var(--u)) calc(40 * var(--u)) color-mix(in srgb, var(--overlay) 40%, transparent);
+    overflow: hidden;
+    z-index: var(--z);
+  }
+  /* Stacking comes from --z (set in AuthShowcase): schedule behind workload behind reviewers until
+     one is hovered, which then stays in front. The fan angles never change; the hovered card only
+     lifts a little and deepens its shadow. The stage ignores the pointer so it never blocks the pitch
+     or the form; the cards take it back where a mouse can hover them. */
+  @media (hover: hover) {
+    .auth-pcard {
+      pointer-events: auto;
+    }
+  }
+  /* Hover pops the card out (scale + deeper shadow). This is a state change, not motion, so it stays
+     with reduced motion; only the easing, the rise and the float below are gated. */
+  @media (hover: hover) {
+    .auth-pcard:hover {
+      scale: 1.06;
+      translate: 0 calc(-10 * var(--u));
+      box-shadow: 0 calc(32 * var(--u)) calc(64 * var(--u)) color-mix(in srgb, var(--overlay) 55%, transparent);
+    }
+  }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .auth-pcard {
+      transition: scale var(--dur-2) ease-out, box-shadow var(--dur-2) ease-out;
+    }
+    /* Rises into place, then keeps floating gently while hovered. */
+    .auth-pcard:hover {
+      animation:
+        auth-pcard-rise 0.25s ease-out forwards,
+        auth-pcard-float 2.6s 0.25s ease-in-out infinite alternate;
+    }
+    @keyframes auth-pcard-rise {
+      from { translate: 0 0; }
+      to { translate: 0 calc(-10 * var(--u)); }
+    }
+    @keyframes auth-pcard-float {
+      from { translate: 0 calc(-10 * var(--u)); }
+      to { translate: 0 calc(-18 * var(--u)); }
+    }
+  }
+  .auth-pcard.is-schedule {
+    left: calc(25.6 * var(--u));
+    top: calc(19 * var(--u));
+    rotate: -7deg;
+  }
+  .auth-pcard.is-workload {
+    left: calc(340 * var(--u));
+    top: 0;
+  }
+  .auth-pcard.is-reviewers {
+    left: calc(656 * var(--u));
+    top: calc(65.5 * var(--u));
+    rotate: 6deg;
+  }
+  .auth-pcard-head {
+    display: flex;
+    align-items: center;
+    gap: calc(10 * var(--u));
+    font-size: calc(14 * var(--u));
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .auth-pcard-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: calc(36 * var(--u));
+    height: calc(36 * var(--u));
+    border-radius: calc(10 * var(--u));
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .auth-ic {
+    width: calc(20 * var(--u));
+    height: calc(20 * var(--u));
+  }
+  .auth-ic.is-small {
+    flex: none;
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+  }
+  .auth-pcard-preview {
+    display: flex;
+    flex-direction: column;
+    gap: calc(10 * var(--u));
+    padding: calc(12 * var(--u));
+    border-radius: calc(12 * var(--u));
+    background: var(--surface-2);
+  }
+  .auth-pcard-caption {
+    display: flex;
+    flex-direction: column;
+    gap: calc(4 * var(--u));
+  }
+  .auth-pcard-caption strong {
+    font-size: calc(18 * var(--u));
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .auth-pcard-caption span {
+    font-size: calc(14 * var(--u));
+    line-height: calc(20 * var(--u));
+    color: var(--text-secondary);
+  }
+  .auth-chip {
+    align-self: flex-start;
+    padding: calc(4 * var(--u)) calc(10 * var(--u));
+    border-radius: var(--radius-pill);
+    font-size: calc(12 * var(--u));
+    font-weight: 600;
+  }
+  .auth-chip.is-watch {
+    background: var(--watch-soft);
+    color: var(--watch);
+  }
+  .auth-chip.is-good {
+    background: var(--good-soft);
+    color: var(--good);
+  }
+
+  /* Schedule card */
+  .auth-week-label {
+    font-size: calc(13 * var(--u));
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .auth-week {
+    display: flex;
+    gap: calc(6 * var(--u));
+  }
+  .auth-week-day {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: calc(6 * var(--u));
+    min-width: 0;
+  }
+  .auth-week-day > span,
+  .auth-bars span {
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+  .auth-week-day > i {
+    display: block;
+    height: calc(var(--h) * var(--u));
+    border-radius: calc(6 * var(--u));
+  }
+  .auth-week-day > .is-accent {
+    background: color-mix(in srgb, var(--accent) 22%, var(--surface));
+  }
+  .auth-week-day > .is-good {
+    background: color-mix(in srgb, var(--good) 22%, var(--surface));
+  }
+  .auth-week-day > .is-watch {
+    background: color-mix(in srgb, var(--watch) 26%, var(--surface));
+  }
+
+  /* Workload card */
+  .auth-pcard.is-workload .auth-pcard-preview {
+    gap: calc(12 * var(--u));
+  }
+  .auth-bars {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .auth-bars > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(6 * var(--u));
+  }
+  .auth-bars i {
+    width: calc(24 * var(--u));
+    height: calc(var(--h) * var(--u));
+    border-radius: calc(6 * var(--u));
+    background: color-mix(in srgb, var(--accent) 40%, var(--surface-2));
+  }
+  .auth-bars i.is-heavy {
+    background: var(--chart-over);
+  }
+  .auth-score {
+    display: flex;
+    align-items: center;
+    gap: calc(12 * var(--u));
+    padding: calc(10 * var(--u)) calc(12 * var(--u));
+    border-radius: calc(10 * var(--u));
+    background: var(--surface);
+  }
+  .auth-score > b {
+    font-size: calc(28 * var(--u));
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .auth-score > div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: calc(4 * var(--u));
+  }
+  .auth-score > div > span:first-child {
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  /* Reviewers card */
+  .auth-source {
+    display: flex;
+    align-items: center;
+    gap: calc(6 * var(--u));
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  .auth-qcount {
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .auth-question {
+    margin: 0;
+    font-size: calc(15 * var(--u));
+    font-weight: 600;
+    line-height: calc(21 * var(--u));
+    color: var(--text-primary);
+  }
+  .auth-option {
+    display: flex;
+    align-items: center;
+    gap: calc(8 * var(--u));
+    padding: calc(8 * var(--u)) calc(10 * var(--u));
+    border: calc(1 * var(--u)) solid var(--border);
+    border-radius: calc(8 * var(--u));
+    background: var(--surface);
+    font-size: calc(14 * var(--u));
+    color: var(--text-primary);
+  }
+  .auth-option > i {
+    flex: none;
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+    box-sizing: border-box;
+    border: calc(1.5 * var(--u)) solid var(--border-input);
+    border-radius: 50%;
+  }
+  .auth-option.is-correct {
+    border-color: var(--good);
+    background: var(--good-soft);
+    font-weight: 600;
+    color: var(--good);
+  }
+  .auth-option.is-correct > i {
+    border-color: var(--good);
+    background: radial-gradient(circle, var(--good) 0 calc(3 * var(--u)), transparent calc(3.5 * var(--u)));
+  }
+  .auth-progress {
+    height: calc(6 * var(--u));
+    border-radius: calc(3 * var(--u));
+    background: var(--surface-3);
+  }
+  .auth-progress > i {
+    display: block;
+    width: calc(70 * var(--u));
+    height: 100%;
+    border-radius: calc(3 * var(--u));
+    background: var(--accent);
+  }
+
+  /* ---- Backdrop: blobs and faint icons, positioned on the 1920 design ---- */
+  .auth-backdrop {
+    --u: calc(100vw / 1920);
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .auth-blob {
+    position: absolute;
+    left: calc((var(--x) - var(--d) / 2) * var(--u));
+    top: calc((var(--y) - var(--d) / 2) * var(--u));
+    width: calc(var(--d) * var(--u));
+    height: calc(var(--d) * var(--u));
+    border-radius: 50%;
+    background: radial-gradient(circle closest-side, color-mix(in srgb, var(--accent) var(--a), transparent), transparent);
+  }
+  .auth-sprite {
+    position: absolute;
+    left: calc(var(--x) * var(--u));
+    top: calc(var(--y) * var(--u));
+    width: calc(var(--s) * var(--u));
+    height: calc(var(--s) * var(--u));
+    rotate: calc(var(--r) * 1deg);
+    color: var(--accent);
+    opacity: 0.35;
+  }
+
+  /* The one slow ambient layer: blobs and icons drift a little, out of step with each other. */
+  @media (prefers-reduced-motion: no-preference) {
+    .auth-blob {
+      animation: ambient-drift calc(var(--dur-ambient) * var(--k)) ease-in-out infinite alternate;
+      animation-delay: calc(var(--k) * -11s);
+    }
+    .auth-sprite {
+      animation: ambient-float calc(var(--dur-ambient) * var(--k)) ease-in-out infinite alternate;
+      animation-delay: calc(var(--k) * -7s);
+    }
+    html.is-hidden .auth-blob,
+    html.is-hidden .auth-sprite {
+      animation-play-state: paused;
+    }
+  }
+
+  /* Below 1600px the pitch reaches the calendar sprite marked wide-only, so it goes. */
+  @media (max-width: 1599px) {
+    .auth-sprite.is-wide-only {
+      display: none;
+    }
+  }
+
+  /* ---- Small laptops and tablets: the cards would be too small to read, so only the pitch stays ---- */
+  @media (max-width: 1099px) {
+    .auth-stage {
+      display: none;
+    }
+    .auth-showcase-text {
+      margin-bottom: 0;
+    }
+  }
+
+  /* ---- Phones and small tablets: the panel is the whole page ---- */
+  @media (max-width: 899px) {
+    .auth-split {
+      display: block;
+      height: auto;
+      min-height: 0;
+    }
+    .auth-backdrop,
+    .auth-stage {
+      display: none;
+    }
+    /* Keep the page's headline for screen readers, just not on screen. */
+    .auth-showcase {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    .auth-panel {
+      min-height: calc(100dvh - 120px);
+      padding-block: var(--space-5) var(--space-6);
+      padding-inline: max(var(--space-4), env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px), calc((100% - 460px) / 2));
+      overflow-y: visible;
+      box-shadow: none;
+    }
+    /* Inline links in the notes get a 44px tall tap area. Vertical padding on an inline box widens
+       what a finger can hit without changing the line height, so the text looks the same. */
+    .auth-legal-note a,
+    .auth-support-note a {
+      padding-block: 15px;
+    }
+  }
+}

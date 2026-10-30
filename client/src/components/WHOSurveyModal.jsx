@@ -1,14 +1,20 @@
+import { Sun } from "lucide-react";
 import CheckInStepper from "./CheckInStepper";
+import { CHECKIN_COPY } from "../utils/checkinCopy";
+
+const { measures, whyItHelps, meta } = CHECKIN_COPY.who;
 
 // WHO-5 Well-Being Index. The server multiplies the raw total by 4 (0 to 100).
 const CONFIG = {
   kind: "who",
   title: "Well-being check-in",
+  icon: Sun,
   citation: "WHO-5 Well-Being Index, World Health Organization, 1998",
   introFirst: "Your first check-in",
   introAgain: "Time for your two-week check-in",
-  introBody: "Five quick questions, about a minute. Your answers help us tailor your workload to more than just your task list.",
-  window: "These ask about the last two weeks.",
+  measures,
+  whyItHelps,
+  meta,
   stem: "Over the last two weeks...",
   questions: [
     "I have felt cheerful and in good spirits.",

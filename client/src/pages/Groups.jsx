@@ -230,7 +230,7 @@ export default function Groups() {
       );
     }
     return (
-      <ul className="groups-list">
+      <ul className="groups-list stagger">
         {groups.map((group) => {
           const active = group._id === openGroupId;
           const unread = active ? 0 : groupUnreadById[group._id] || 0;
@@ -314,7 +314,7 @@ export default function Groups() {
 
       {noGroups ? (
         <section className="panel" data-tour="groups-list">
-          <EmptyState icon={Users} title="No groups yet">
+          <EmptyState compact icon={Users} title="No groups yet">
             Create one for your class, or join a classmate's with their 6-character code.
           </EmptyState>
         </section>

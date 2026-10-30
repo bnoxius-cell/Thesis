@@ -2,17 +2,33 @@ import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import AppShell from "../../components/layout/AppShell";
 import "../../App.css";
+import "../../styles/pages/auth.css";
 import { toast } from "react-toastify";
 import { useAuth } from "./AuthContext";
 import { GoogleLogin } from '@react-oauth/google';
-import { ArrowLeftRight, BookOpenCheck, CalendarDays, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import BusySpinner from "../../components/BusySpinner";
+import AuthShowcase, { AuthBackdrop } from "../../components/auth/AuthShowcase";
+import Logo from '../../assets/logo.png';
 
 const SCHOOL_EMAIL_DOMAIN = "student.fatima.edu.ph";
 const RESEND_COOLDOWN_SECONDS = 180;
 const OTP_LENGTH = 6;
+
+// A labelled input with a decorative icon inside its left edge. `className` adds to the wrapper
+// (the password field passes `password-field` for its show/hide button); `trailing` goes after the input.
+const IconField = ({ Icon, label, className = '', trailing, children }) => (
+  <label>
+    {label}
+    <div className={`auth-field ${className}`.trim()}>
+      <Icon className="auth-field-icon" size={20} aria-hidden="true" />
+      {children}
+      {trailing}
+    </div>
+  </label>
+);
 
 // Navigation to /dashboard is left to the route guard in App.jsx: it redirects as soon as
 // isLoggedin flips, and an extra navigate() here competed with it.
@@ -279,18 +295,11 @@ const AuthPage = () => {
   const countdown = `${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}`;
 
   const passwordInput = (value, onChange, { label, autoComplete, placeholder }) => (
-    <label>
-      {label}
-      <div className="password-field">
-        <input
-          onChange={onChange}
-          value={value}
-          type={showPassword ? 'text' : 'password'}
-          autoComplete={autoComplete}
-          minLength={autoComplete === 'new-password' ? 8 : undefined}
-          placeholder={placeholder}
-          required
-        />
+    <IconField
+      Icon={Lock}
+      label={label}
+      className="password-field"
+      trailing={(
         <button
           type="button"
           className="password-toggle"
@@ -300,22 +309,34 @@ const AuthPage = () => {
         >
           {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
         </button>
-      </div>
-    </label>
+      )}
+    >
+      <input
+        onChange={onChange}
+        value={value}
+        type={showPassword ? 'text' : 'password'}
+        autoComplete={autoComplete}
+        minLength={autoComplete === 'new-password' ? 8 : undefined}
+        placeholder={placeholder}
+        required
+      />
+    </IconField>
   );
 
+  // "6-digit" never breaks at its hyphen.
+  const sixDigit = <span className="auth-nowrap">6-digit</span>;
   const header = {
     login: ['Welcome back', 'Sign in', 'Sign in with your email, or continue with a Fatima Google account.'],
     register: ['Create profile', 'Student signup', 'Sign up with any email. Google sign-up is for Fatima student accounts only.'],
-    verify: ['Verify account', 'Check your email', `Enter the 6-digit code we emailed to ${userData?.email || 'your email'}. It's valid for 20 minutes.`],
-    forgot: ['Forgot password', 'Reset your password', "Enter the email you signed up with and we'll send you a 6-digit code. If you signed up with Google, use the Google button on the sign-in page instead."],
+    verify: ['Verify account', 'Check your email', <>Enter the {sixDigit} code we emailed to {userData?.email || 'your email'}. It's valid for 20 minutes.</>],
+    forgot: ['Forgot password', 'Reset your password', <>Enter the email you signed up with and we'll send you a {sixDigit} code. If you signed up with Google, use the Google button on the sign-in page instead.</>],
     reset: ['Reset password', 'Choose a new password', `Enter the code we emailed to ${email.trim() || 'your email'} and pick a new password. The code is valid for 20 minutes.`],
   }[authMode];
 
   if (loading) {
     return (
       <AppShell variant="public" unframed mainClassName="auth-page">
-        <div className="auth-shell" style={{ justifyContent: 'center', textAlign: 'center' }}>
+        <div className="auth-loading">
           <p>Loading...</p>
         </div>
       </AppShell>
@@ -324,23 +345,16 @@ const AuthPage = () => {
 
   return (
     <AppShell variant="public" unframed mainClassName="auth-page">
-        <section className="auth-shell" id="login">
-          <div className="auth-copy">
-            <span className="eyebrow">For OLFU IT students</span>
-            <h1>See your week clearly and keep it manageable.</h1>
-            <p>
-              StressCare puts your classes, deadlines and quick check-ins together, then helps you spread
-              the work so no day is too much. Made for OLFU IT students.
-            </p>
-            <ul className="auth-points">
-              <li><CalendarDays size={20} aria-hidden="true" /> Your timetable and deadlines in one week</li>
-              <li><ArrowLeftRight size={20} aria-hidden="true" /> A plan that moves work off your heaviest days</li>
-              <li><BookOpenCheck size={20} aria-hidden="true" /> Practice questions from your own notes</li>
-            </ul>
-          </div>
+        <div className="auth-split" id="login">
+          <AuthBackdrop />
 
-          <div className="auth-card">
-            <div className="auth-card-header">
+          <section className="auth-panel">
+            <Link to="/" className="logo-link">
+              <img src={Logo} alt="" className="logo-svg" />
+              <div className="logo-text">Stress<span>Care</span></div>
+            </Link>
+
+            <div className="auth-panel-header">
               <span className="panel-kicker">{header[0]}</span>
               <h2>{header[1]}</h2>
               <p>{header[2]}</p>
@@ -356,7 +370,6 @@ const AuthPage = () => {
                   type="button"
                   onClick={handleResendOtp}
                   className="ghost-button"
-                  style={{ marginTop: '10px' }}
                   disabled={resendTimer > 0 || busy}
                 >
                   {resendTimer > 0 ? `Resend code in ${countdown}` : 'Resend code'}
@@ -364,8 +377,7 @@ const AuthPage = () => {
               </form>
             ) : authMode === 'forgot' ? (
               <form className="auth-form" onSubmit={sendResetCode}>
-                <label>
-                  Email
+                <IconField Icon={Mail} label="Email">
                   <input
                     onChange={e => setEmail(e.target.value)}
                     value={email}
@@ -376,7 +388,7 @@ const AuthPage = () => {
                     placeholder="you@example.com"
                     required
                   />
-                </label>
+                </IconField>
                 <button type="submit" className="primary-button" disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                   {busy ? 'Sending...' : 'Send code'}
                 </button>
@@ -385,8 +397,7 @@ const AuthPage = () => {
               <form className="auth-form" onSubmit={onResetSubmit}>
                 {otpRow}
                 {passwordInput(password, e => setPassword(e.target.value), { label: 'New password', autoComplete: 'new-password', placeholder: 'At least 8 characters' })}
-                <label>
-                  Confirm new password
+                <IconField Icon={Lock} label="Confirm new password">
                   <input
                     onChange={e => setConfirmPassword(e.target.value)}
                     value={confirmPassword}
@@ -395,7 +406,7 @@ const AuthPage = () => {
                     placeholder="Type it again"
                     required
                   />
-                </label>
+                </IconField>
                 <button type="submit" className="primary-button" disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                   {busy ? 'Saving...' : 'Change password'}
                 </button>
@@ -406,8 +417,7 @@ const AuthPage = () => {
             ) : (
               <form className="auth-form" onSubmit={onSubmitHandler}>
                 {authMode === 'register' && (
-                  <label>
-                    Full Name
+                  <IconField Icon={User} label="Full Name">
                     <input
                       onChange={e => setName(e.target.value)}
                       value={name}
@@ -416,10 +426,9 @@ const AuthPage = () => {
                       placeholder="Juan Dela Cruz"
                       required
                     />
-                  </label>
+                  </IconField>
                 )}
-                <label>
-                  Email
+                <IconField Icon={Mail} label="Email">
                   <input
                     onChange={e => setEmail(e.target.value)}
                     value={email}
@@ -430,7 +439,7 @@ const AuthPage = () => {
                     placeholder="you@example.com"
                     required
                   />
-                </label>
+                </IconField>
                 {passwordInput(password, e => setPassword(e.target.value), {
                   label: 'Password',
                   autoComplete: authMode === 'login' ? 'current-password' : 'new-password',
@@ -463,25 +472,19 @@ const AuthPage = () => {
             )}
 
             {(authMode === 'login' || authMode === 'register') && (
-              <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '10px' }}>
-                  <hr style={{ flex: 1, border: 'none', borderTop: '1px solid var(--input-border)' }} />
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>or</span>
-                  <hr style={{ flex: 1, border: 'none', borderTop: '1px solid var(--input-border)' }} />
+              <div className="auth-alt">
+                <div className="auth-divider">or</div>
+                <div className="auth-google">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => toast.error('Google Login Failed')}
+                    text={authMode === 'login' ? 'signin_with' : 'signup_with'}
+                    shape="rectangular"
+                    hosted_domain={SCHOOL_EMAIL_DOMAIN}
+                    theme={theme === 'dark' ? 'filled_black' : 'outline'}
+                    containerProps={{ className: 'auth-google-button' }}
+                  />
                 </div>
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => toast.error('Google Login Failed')}
-                  text={authMode === 'login' ? 'signin_with' : 'signup_with'}
-                  shape="rectangular"
-                  hosted_domain={SCHOOL_EMAIL_DOMAIN}
-                  theme={theme === 'dark' ? 'filled_black' : 'outline'}
-                />
-                <p className="auth-legal-note">
-                  New to StressCare? Signing in with Google means you agree to our{' '}
-                  <Link to="/terms-of-service">Terms</Link> and <Link to="/privacy-policy">Privacy Policy</Link>.
-                  We'll ask you to confirm once you're in.
-                </p>
               </div>
             )}
 
@@ -505,11 +508,20 @@ const AuthPage = () => {
                 </button>
               )}
             </div>
+            {(authMode === 'login' || authMode === 'register') && (
+              <p className="auth-legal-note">
+                New to StressCare? Signing in with Google means you agree to our{' '}
+                <Link to="/terms-of-service">Terms</Link> and <Link to="/privacy-policy">Privacy Policy</Link>.
+                We'll ask you to confirm once you're in.
+              </p>
+            )}
             <p className="auth-support-note">
               Need help? <Link to="/about#contact">See how to reach us</Link>.
             </p>
-          </div>
-        </section>
+          </section>
+
+          <AuthShowcase />
+        </div>
     </AppShell>
   );
 };
