@@ -468,6 +468,7 @@ const AuthPage = () => {
                     shape="rectangular"
                     hosted_domain={SCHOOL_EMAIL_DOMAIN}
                     theme={theme === 'dark' ? 'filled_black' : 'outline'}
+                    containerProps={{ className: 'auth-google-button' }}
                   />
                   <p className="auth-legal-note">
                     New to StressCare? Signing in with Google means you agree to our{' '}

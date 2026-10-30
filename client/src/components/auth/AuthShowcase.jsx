@@ -22,7 +22,7 @@ const SPRITES = [
   { Icon: Leaf, x: 1005, y: 70, size: 48, rot: 18, k: 1.3 },
   { Icon: CircleCheck, x: 1790, y: 880, size: 60, rot: 0, k: 0.8 },
   { Icon: Leaf, x: 880, y: 971, size: 44, rot: -25, k: 1.1 },
-  { Icon: Calendar, x: 1613, y: 300, size: 40, rot: 10, k: 0.9 },
+  { Icon: Calendar, x: 1613, y: 300, size: 40, rot: 10, k: 0.9, wideOnly: true },
   { Icon: CircleCheck, x: 1330, y: 40, size: 36, rot: 0, k: 1.2 },
 ];
 // Blobs: centre and diameter on the 1920 x 1080 design, and how strong the accent tint is (%).
@@ -40,8 +40,8 @@ export function AuthBackdrop() {
       {BLOBS.map(({ x, y, d, a, k }) => (
         <i key={`${x}-${y}`} className="auth-blob" style={{ '--x': x, '--y': y, '--d': d, '--a': `${a}%`, '--k': k }} />
       ))}
-      {SPRITES.map(({ Icon, x, y, size, rot, k }) => (
-        <Icon key={`${x}-${y}`} className="auth-sprite" strokeWidth={1.25}
+      {SPRITES.map(({ Icon, x, y, size, rot, k, wideOnly }) => (
+        <Icon key={`${x}-${y}`} className={wideOnly ? 'auth-sprite is-wide-only' : 'auth-sprite'} strokeWidth={1.25}
           style={{ '--x': x, '--y': y, '--s': size, '--r': rot, '--k': k }} />
       ))}
     </div>
@@ -77,52 +77,54 @@ export default function AuthShowcase() {
       </div>
 
       <div className="auth-stage" aria-hidden="true">
-        <PreviewCard className="is-schedule" Icon={Calendar} title="Schedule"
-          caption="Your week at a glance" sub="Classes and deadlines in one place.">
-          <b className="auth-week-label">Nov 3 – 7</b>
-          <div className="auth-week">
-            {WEEK.map(([day, blocks], i) => (
-              <div key={i} className="auth-week-day">
-                <span>{day}</span>
-                {blocks.map(([tone, h]) => <i key={h} className={`is-${tone}`} style={{ '--h': h }} />)}
-              </div>
-            ))}
-          </div>
-          <span className="auth-chip is-watch">Report due Wed</span>
-        </PreviewCard>
-
-        <PreviewCard className="is-workload" Icon={ChartColumn} title="Workload"
-          caption="See which days are too heavy" sub="Plus a quick check-in on how you feel.">
-          <div className="auth-bars">
-            {LOAD.map(([day, h], i) => (
-              <div key={i}>
-                <i className={i === HEAVY_DAY ? 'is-heavy' : ''} style={{ '--h': h }} />
-                <span>{day}</span>
-              </div>
-            ))}
-          </div>
-          <span className="auth-chip is-watch">Thu is heavy</span>
-          <div className="auth-score">
-            <b>68</b>
-            <div>
-              <span>WHO-5 check-in</span>
-              <span className="auth-chip is-good">Doing okay</span>
+        <div className="auth-fan">
+          <PreviewCard className="is-schedule" Icon={Calendar} title="Schedule"
+            caption="Your week at a glance" sub="Classes and deadlines in one place.">
+            <b className="auth-week-label">Nov 3 – 7</b>
+            <div className="auth-week">
+              {WEEK.map(([day, blocks], i) => (
+                <div key={i} className="auth-week-day">
+                  <span>{day}</span>
+                  {blocks.map(([tone, h]) => <i key={h} className={`is-${tone}`} style={{ '--h': h }} />)}
+                </div>
+              ))}
             </div>
-          </div>
-        </PreviewCard>
+            <span className="auth-chip is-watch">Report due Wed</span>
+          </PreviewCard>
 
-        <PreviewCard className="is-reviewers" Icon={BookOpen} title="Reviewers"
-          caption="Practice from your own notes" sub="Questions made from what you study.">
-          <span className="auth-source"><FileText className="auth-ic is-small" strokeWidth={1.75} />Data Structures notes</span>
-          <span className="auth-qcount">QUESTION 3 OF 10</span>
-          <p className="auth-question">Which structure gives O(1) average lookup by key?</p>
-          {OPTIONS.map(([label, correct]) => (
-            <span key={label} className={`auth-option${correct ? ' is-correct' : ''}`}>
-              <i />{label}
-            </span>
-          ))}
-          <div className="auth-progress"><i /></div>
-        </PreviewCard>
+          <PreviewCard className="is-workload" Icon={ChartColumn} title="Workload"
+            caption="See which days are too heavy" sub="Plus a quick check-in on how you feel.">
+            <div className="auth-bars">
+              {LOAD.map(([day, h], i) => (
+                <div key={i}>
+                  <i className={i === HEAVY_DAY ? 'is-heavy' : ''} style={{ '--h': h }} />
+                  <span>{day}</span>
+                </div>
+              ))}
+            </div>
+            <span className="auth-chip is-watch">Thu is heavy</span>
+            <div className="auth-score">
+              <b>68</b>
+              <div>
+                <span>WHO-5 check-in</span>
+                <span className="auth-chip is-good">Doing okay</span>
+              </div>
+            </div>
+          </PreviewCard>
+
+          <PreviewCard className="is-reviewers" Icon={BookOpen} title="Reviewers"
+            caption="Practice from your own notes" sub="Questions made from what you study.">
+            <span className="auth-source"><FileText className="auth-ic is-small" strokeWidth={1.75} />Data Structures notes</span>
+            <span className="auth-qcount">QUESTION 3 OF 10</span>
+            <p className="auth-question">Which structure gives O(1) average lookup by key?</p>
+            {OPTIONS.map(([label, correct]) => (
+              <span key={label} className={`auth-option${correct ? ' is-correct' : ''}`}>
+                <i />{label}
+              </span>
+            ))}
+            <div className="auth-progress"><i /></div>
+          </PreviewCard>
+        </div>
       </div>
     </div>
   );

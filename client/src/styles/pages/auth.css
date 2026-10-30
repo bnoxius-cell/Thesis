@@ -1,12 +1,24 @@
 /* ==========================================================================
    SIGN-IN PAGE. Source of truth: Figma "Login v1 (light)" (1920 x 1080), see .claude/docs/design.md.
    A tinted panel on the left holds the form; the right shows the pitch and three fanned preview
-   cards on a soft gradient with blurred blobs and faint icons. Under 900px only the panel is left.
+   cards on a soft gradient with blurred blobs and faint icons. Under 1100px the cards go, and
+   under 900px only the panel is left.
    Colours are role tokens only, so dark mode comes for free.
    ========================================================================== */
 @layer pages {
   .app.auth-layout:has(.auth-split) > .header-auth {
     display: none; /* the logo lives in the panel on this page */
+  }
+  /* The legacy ".app.auth-layout > *" rule puts the skip link back in the flow, where it leaves an
+     empty strip above the split. Here it floats again: hidden until focused (base.css). */
+  .app.auth-layout:has(.auth-split) > .skip-link {
+    position: absolute;
+    z-index: 1000;
+  }
+  @media (min-width: 900px) {
+    .app.auth-layout:has(.auth-split) > .site-footer {
+      display: none;
+    }
   }
   .app.auth-layout > main.auth-page {
     width: 100%;
@@ -15,13 +27,18 @@
     padding: 0;
   }
 
+  /* On a wide screen the page is one screen tall: the split fills the viewport, the panel scrolls
+     inside itself when its form doesn't fit, and the public footer goes (Terms and Privacy are linked
+     in the panel). */
   .auth-split {
     --auth-panel-w: clamp(480px, 34vw, 652px);
     position: relative;
     display: grid;
     grid-template-columns: var(--auth-panel-w) minmax(0, 1fr);
-    min-height: 720px;
-    min-height: max(100dvh, 720px);
+    grid-template-rows: minmax(0, 1fr);
+    height: 100vh;
+    height: 100dvh;
+    min-height: 560px;
     overflow: hidden;
     background: linear-gradient(90deg, var(--bg-app), color-mix(in srgb, var(--accent) 16%, var(--bg-app)));
   }
@@ -38,9 +55,10 @@
     z-index: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    gap: 28px;
-    padding: 60px clamp(var(--space-5), 3.75vw, 72px);
+    justify-content: safe center;
+    gap: clamp(var(--space-4), 2.6vh, 28px);
+    padding: clamp(var(--space-5), 5.5vh, 60px) clamp(var(--space-5), 3.75vw, 72px);
+    overflow-y: auto;
     background: var(--accent-soft);
     box-shadow: 8px 0 40px color-mix(in srgb, var(--overlay) 25%, transparent);
   }
@@ -171,7 +189,7 @@
   .auth-alt {
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: clamp(var(--space-4), 2.6vh, 28px);
   }
   .auth-divider {
     display: flex;
@@ -192,6 +210,11 @@
     flex-direction: column;
     align-items: center;
     gap: var(--space-3);
+  }
+  /* Google's button lives in a light-scheme iframe. Without a matching color-scheme on its parent,
+     the browser paints that iframe opaque white, a box around the dark button in dark mode. */
+  .auth-google-button {
+    color-scheme: light;
   }
   .auth-legal-note,
   .auth-support-note {
@@ -226,6 +249,7 @@
   }
   .auth-showcase-text {
     display: flex;
+    flex: none;
     flex-direction: column;
     gap: var(--space-4);
     max-width: 820px;
@@ -238,7 +262,9 @@
     text-transform: uppercase;
     color: var(--accent);
   }
+  /* Measures in em so the lines break where Figma's do at every size, clear of the sprites. */
   .auth-showcase h1 {
+    max-width: 14em;
     margin: 0;
     font-size: clamp(2rem, 2.92vw, 3.5rem);
     font-weight: 700;
@@ -246,7 +272,7 @@
     color: var(--text-primary);
   }
   .auth-showcase-text p {
-    max-width: 700px;
+    max-width: 35em;
     margin: 0;
     font-size: clamp(var(--text-md), 1.04vw, 1.25rem);
     line-height: 1.5;
@@ -254,101 +280,113 @@
   }
 
   /* ---- Right side: the three cards ----
-     Everything in the stage is sized in em, and the stage's font-size is "one design pixel", so the
-     whole fan scales with the space left beside the panel (1em = 1px on the 1920 design). */
+     The stage takes whatever room is left under the pitch and is a size container. Inside it, --u is
+     one design pixel of the 1920 frame: the fan (1046 x 522 with its left offset) shrinks to fit the
+     stage's width or height, whichever is tighter, and never grows past 1:1. Every length in the fan,
+     fonts included, is calc(N * var(--u)), so the whole thing scales as one picture. */
   .auth-stage {
-    position: relative;
-    flex: none;
-    width: 998em;
-    height: 522em;
-    margin: auto 0 0 48em;
-    font-size: clamp(0.3px, calc((100vw - var(--auth-panel-w)) / 1046), 1px);
-    line-height: 1.25;
+    --u: min(1px, 100cqw / 1046, 100cqh / 522);
+    container-type: size;
+    display: flex;
+    flex: 1 1 0;
+    align-items: flex-end;
+    min-height: 160px;
     pointer-events: none;
     user-select: none;
+  }
+  .auth-fan {
+    position: relative;
+    flex: none;
+    width: calc(998 * var(--u));
+    height: calc(522 * var(--u));
+    margin-left: calc(48 * var(--u));
+    font-size: calc(12 * var(--u));
+    line-height: 1.25;
   }
   .auth-pcard {
     position: absolute;
     display: flex;
     flex-direction: column;
-    gap: 14em;
-    width: 320em;
-    height: 440em;
-    padding: 20em;
-    border: 1em solid var(--border);
-    border-radius: 20em;
+    gap: calc(14 * var(--u));
+    width: calc(320 * var(--u));
+    height: calc(440 * var(--u));
+    padding: calc(20 * var(--u));
+    border: calc(1 * var(--u)) solid var(--border);
+    border-radius: calc(20 * var(--u));
     background: var(--surface);
-    box-shadow: 0 16em 40em color-mix(in srgb, var(--overlay) 40%, transparent);
+    box-shadow: 0 calc(16 * var(--u)) calc(40 * var(--u)) color-mix(in srgb, var(--overlay) 40%, transparent);
     overflow: hidden;
   }
+  /* DOM order stacks them: schedule behind workload behind reviewers. */
   .auth-pcard.is-schedule {
-    left: 25.6em;
-    top: 19em;
+    left: calc(25.6 * var(--u));
+    top: calc(19 * var(--u));
     rotate: -7deg;
   }
   .auth-pcard.is-workload {
-    left: 340em;
+    left: calc(340 * var(--u));
     top: 0;
   }
   .auth-pcard.is-reviewers {
-    left: 656em;
-    top: 65.5em;
+    left: calc(656 * var(--u));
+    top: calc(65.5 * var(--u));
     rotate: 6deg;
   }
   .auth-pcard-head {
     display: flex;
     align-items: center;
-    gap: 10em;
-    font-size: 14em;
+    gap: calc(10 * var(--u));
+    font-size: calc(14 * var(--u));
     font-weight: 600;
     color: var(--text-secondary);
   }
   .auth-pcard-icon {
     display: grid;
+    flex: none;
     place-items: center;
-    width: 36em;
-    height: 36em;
-    border-radius: 10em;
+    width: calc(36 * var(--u));
+    height: calc(36 * var(--u));
+    border-radius: calc(10 * var(--u));
     background: var(--accent-soft);
     color: var(--accent);
   }
   .auth-ic {
-    width: 20em;
-    height: 20em;
+    width: calc(20 * var(--u));
+    height: calc(20 * var(--u));
   }
   .auth-ic.is-small {
-    width: 14em;
-    height: 14em;
+    flex: none;
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
   }
   .auth-pcard-preview {
     display: flex;
     flex-direction: column;
-    gap: 10em;
-    padding: 12em;
-    border-radius: 12em;
+    gap: calc(10 * var(--u));
+    padding: calc(12 * var(--u));
+    border-radius: calc(12 * var(--u));
     background: var(--surface-2);
-    font-size: 12em;
   }
   .auth-pcard-caption {
     display: flex;
     flex-direction: column;
-    gap: 4em;
+    gap: calc(4 * var(--u));
   }
   .auth-pcard-caption strong {
-    font-size: 18em;
+    font-size: calc(18 * var(--u));
     font-weight: 700;
     color: var(--text-primary);
   }
   .auth-pcard-caption span {
-    font-size: 14em;
-    line-height: 20em;
+    font-size: calc(14 * var(--u));
+    line-height: calc(20 * var(--u));
     color: var(--text-secondary);
   }
   .auth-chip {
     align-self: flex-start;
-    padding: 4em 10em;
+    padding: calc(4 * var(--u)) calc(10 * var(--u));
     border-radius: var(--radius-pill);
-    font-size: 12em;
+    font-size: calc(12 * var(--u));
     font-weight: 600;
   }
   .auth-chip.is-watch {
@@ -362,19 +400,19 @@
 
   /* Schedule card */
   .auth-week-label {
-    font-size: 13em;
+    font-size: calc(13 * var(--u));
     font-weight: 600;
     color: var(--text-primary);
   }
   .auth-week {
     display: flex;
-    gap: 6em;
+    gap: calc(6 * var(--u));
   }
   .auth-week-day {
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: 6em;
+    gap: calc(6 * var(--u));
     min-width: 0;
   }
   .auth-week-day > span,
@@ -384,8 +422,8 @@
   }
   .auth-week-day > i {
     display: block;
-    height: calc(var(--h) * 1em);
-    border-radius: 6em;
+    height: calc(var(--h) * var(--u));
+    border-radius: calc(6 * var(--u));
   }
   .auth-week-day > .is-accent {
     background: color-mix(in srgb, var(--accent) 22%, var(--surface));
@@ -399,7 +437,7 @@
 
   /* Workload card */
   .auth-pcard.is-workload .auth-pcard-preview {
-    gap: 12em;
+    gap: calc(12 * var(--u));
   }
   .auth-bars {
     display: flex;
@@ -410,12 +448,12 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6em;
+    gap: calc(6 * var(--u));
   }
   .auth-bars i {
-    width: 24em;
-    height: calc(var(--h) * 1em);
-    border-radius: 6em;
+    width: calc(24 * var(--u));
+    height: calc(var(--h) * var(--u));
+    border-radius: calc(6 * var(--u));
     background: color-mix(in srgb, var(--accent) 40%, var(--surface-2));
   }
   .auth-bars i.is-heavy {
@@ -424,13 +462,13 @@
   .auth-score {
     display: flex;
     align-items: center;
-    gap: 12em;
-    padding: 10em 12em;
-    border-radius: 10em;
+    gap: calc(12 * var(--u));
+    padding: calc(10 * var(--u)) calc(12 * var(--u));
+    border-radius: calc(10 * var(--u));
     background: var(--surface);
   }
   .auth-score > b {
-    font-size: 28em;
+    font-size: calc(28 * var(--u));
     font-weight: 700;
     color: var(--text-primary);
   }
@@ -438,7 +476,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 4em;
+    gap: calc(4 * var(--u));
   }
   .auth-score > div > span:first-child {
     font-weight: 500;
@@ -449,7 +487,7 @@
   .auth-source {
     display: flex;
     align-items: center;
-    gap: 6em;
+    gap: calc(6 * var(--u));
     font-weight: 500;
     color: var(--text-secondary);
   }
@@ -459,28 +497,28 @@
   }
   .auth-question {
     margin: 0;
-    font-size: 15em;
+    font-size: calc(15 * var(--u));
     font-weight: 600;
-    line-height: 21em;
+    line-height: calc(21 * var(--u));
     color: var(--text-primary);
   }
   .auth-option {
     display: flex;
     align-items: center;
-    gap: 8em;
-    padding: 8em 10em;
-    border: 1em solid var(--border);
-    border-radius: 8em;
+    gap: calc(8 * var(--u));
+    padding: calc(8 * var(--u)) calc(10 * var(--u));
+    border: calc(1 * var(--u)) solid var(--border);
+    border-radius: calc(8 * var(--u));
     background: var(--surface);
-    font-size: 14em;
+    font-size: calc(14 * var(--u));
     color: var(--text-primary);
   }
   .auth-option > i {
     flex: none;
-    width: 14em;
-    height: 14em;
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
     box-sizing: border-box;
-    border: 1.5em solid var(--border-input);
+    border: calc(1.5 * var(--u)) solid var(--border-input);
     border-radius: 50%;
   }
   .auth-option.is-correct {
@@ -491,18 +529,18 @@
   }
   .auth-option.is-correct > i {
     border-color: var(--good);
-    background: radial-gradient(circle, var(--good) 0 3em, transparent 3.5em);
+    background: radial-gradient(circle, var(--good) 0 calc(3 * var(--u)), transparent calc(3.5 * var(--u)));
   }
   .auth-progress {
-    height: 6em;
-    border-radius: 3em;
+    height: calc(6 * var(--u));
+    border-radius: calc(3 * var(--u));
     background: var(--surface-3);
   }
   .auth-progress > i {
     display: block;
-    width: 70em;
+    width: calc(70 * var(--u));
     height: 100%;
-    border-radius: 3em;
+    border-radius: calc(3 * var(--u));
     background: var(--accent);
   }
 
@@ -550,10 +588,28 @@
     }
   }
 
+  /* Below 1600px the pitch reaches the calendar sprite marked wide-only, so it goes. */
+  @media (max-width: 1599px) {
+    .auth-sprite.is-wide-only {
+      display: none;
+    }
+  }
+
+  /* ---- Small laptops and tablets: the cards would be too small to read, so only the pitch stays ---- */
+  @media (max-width: 1099px) {
+    .auth-stage {
+      display: none;
+    }
+    .auth-showcase-text {
+      margin-bottom: 0;
+    }
+  }
+
   /* ---- Phones and small tablets: the panel is the whole page ---- */
   @media (max-width: 899px) {
     .auth-split {
       display: block;
+      height: auto;
       min-height: 0;
     }
     .auth-backdrop,
@@ -573,7 +629,14 @@
       min-height: calc(100dvh - 120px);
       padding-block: var(--space-5) var(--space-6);
       padding-inline: max(var(--space-4), env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px), calc((100% - 460px) / 2));
+      overflow-y: visible;
       box-shadow: none;
+    }
+    /* Inline links in the notes get a 44px tall tap area. Vertical padding on an inline box widens
+       what a finger can hit without changing the line height, so the text looks the same. */
+    .auth-legal-note a,
+    .auth-support-note a {
+      padding-block: 14px;
     }
   }
 }
