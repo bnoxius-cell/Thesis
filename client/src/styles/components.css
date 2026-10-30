@@ -424,9 +424,6 @@
   .app.auth-layout > main {
     flex: 1;
   }
-  .app.auth-layout .auth-page {
-    min-height: 0;
-  }
 
   /* <main id="main"> is focusable so the skip link can land on it; it never needs a ring. */
   .app > main:focus,
@@ -914,8 +911,7 @@
     .about-page section[id] {
       scroll-margin-top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px) + var(--space-3));
     }
-    .app.auth-layout .dashboard,
-    .app.auth-layout .auth-page {
+    .app.auth-layout .dashboard {
       width: min(1080px, 100% - 32px); /* same 16px edge as the logo bar */
       padding-top: 20px;
     }

@@ -137,7 +137,6 @@
     --mist: rgba(0, 0, 0, 0.06);
     --border-light: var(--border);
     --card-bg: var(--surface);
-    --auth-card-bg: var(--surface);
     --panel-bg: var(--surface);
     --input-bg: var(--surface);
     --input-border: var(--border-input);

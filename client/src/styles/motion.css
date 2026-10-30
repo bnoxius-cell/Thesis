@@ -21,6 +21,12 @@
       transform: translate(3%, 4%) rotate(4deg);
     }
   }
+  /* Same idea for small icons, which need to travel a fraction of their own size to be seen. */
+  @keyframes ambient-float {
+    to {
+      transform: translate(35%, -55%) rotate(8deg);
+    }
+  }
 
   /* The first 6 children arrive one after another (item n waits (n-1) x --stagger); item 7 onward
      shares item 6's delay, so the longest wait is 200ms. A row that has .is-entering keeps its own

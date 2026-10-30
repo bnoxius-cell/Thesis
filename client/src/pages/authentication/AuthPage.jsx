@@ -2,13 +2,16 @@ import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import AppShell from "../../components/layout/AppShell";
 import "../../App.css";
+import "../../styles/pages/auth.css";
 import { toast } from "react-toastify";
 import { useAuth } from "./AuthContext";
 import { GoogleLogin } from '@react-oauth/google';
-import { ArrowLeftRight, BookOpenCheck, CalendarDays, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import BusySpinner from "../../components/BusySpinner";
+import AuthShowcase, { AuthBackdrop } from "../../components/auth/AuthShowcase";
+import Logo from '../../assets/logo.png';
 
 const SCHOOL_EMAIL_DOMAIN = "student.fatima.edu.ph";
 const RESEND_COOLDOWN_SECONDS = 180;
@@ -315,7 +318,7 @@ const AuthPage = () => {
   if (loading) {
     return (
       <AppShell variant="public" unframed mainClassName="auth-page">
-        <div className="auth-shell" style={{ justifyContent: 'center', textAlign: 'center' }}>
+        <div className="auth-loading">
           <p>Loading...</p>
         </div>
       </AppShell>
@@ -324,23 +327,16 @@ const AuthPage = () => {
 
   return (
     <AppShell variant="public" unframed mainClassName="auth-page">
-        <section className="auth-shell" id="login">
-          <div className="auth-copy">
-            <span className="eyebrow">For OLFU IT students</span>
-            <h1>See your week clearly and keep it manageable.</h1>
-            <p>
-              StressCare puts your classes, deadlines and quick check-ins together, then helps you spread
-              the work so no day is too much. Made for OLFU IT students.
-            </p>
-            <ul className="auth-points">
-              <li><CalendarDays size={20} aria-hidden="true" /> Your timetable and deadlines in one week</li>
-              <li><ArrowLeftRight size={20} aria-hidden="true" /> A plan that moves work off your heaviest days</li>
-              <li><BookOpenCheck size={20} aria-hidden="true" /> Practice questions from your own notes</li>
-            </ul>
-          </div>
+        <div className="auth-split" id="login">
+          <AuthBackdrop />
 
-          <div className="auth-card">
-            <div className="auth-card-header">
+          <section className="auth-panel">
+            <Link to="/" className="logo-link">
+              <img src={Logo} alt="" className="logo-svg" />
+              <div className="logo-text">Stress<span>Care</span></div>
+            </Link>
+
+            <div className="auth-panel-header">
               <span className="panel-kicker">{header[0]}</span>
               <h2>{header[1]}</h2>
               <p>{header[2]}</p>
@@ -356,7 +352,6 @@ const AuthPage = () => {
                   type="button"
                   onClick={handleResendOtp}
                   className="ghost-button"
-                  style={{ marginTop: '10px' }}
                   disabled={resendTimer > 0 || busy}
                 >
                   {resendTimer > 0 ? `Resend code in ${countdown}` : 'Resend code'}
@@ -463,25 +458,23 @@ const AuthPage = () => {
             )}
 
             {(authMode === 'login' || authMode === 'register') && (
-              <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '10px' }}>
-                  <hr style={{ flex: 1, border: 'none', borderTop: '1px solid var(--input-border)' }} />
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>or</span>
-                  <hr style={{ flex: 1, border: 'none', borderTop: '1px solid var(--input-border)' }} />
+              <div className="auth-alt">
+                <div className="auth-divider">or</div>
+                <div className="auth-google">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => toast.error('Google Login Failed')}
+                    text={authMode === 'login' ? 'signin_with' : 'signup_with'}
+                    shape="rectangular"
+                    hosted_domain={SCHOOL_EMAIL_DOMAIN}
+                    theme={theme === 'dark' ? 'filled_black' : 'outline'}
+                  />
+                  <p className="auth-legal-note">
+                    New to StressCare? Signing in with Google means you agree to our{' '}
+                    <Link to="/terms-of-service">Terms</Link> and <Link to="/privacy-policy">Privacy Policy</Link>.
+                    We'll ask you to confirm once you're in.
+                  </p>
                 </div>
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => toast.error('Google Login Failed')}
-                  text={authMode === 'login' ? 'signin_with' : 'signup_with'}
-                  shape="rectangular"
-                  hosted_domain={SCHOOL_EMAIL_DOMAIN}
-                  theme={theme === 'dark' ? 'filled_black' : 'outline'}
-                />
-                <p className="auth-legal-note">
-                  New to StressCare? Signing in with Google means you agree to our{' '}
-                  <Link to="/terms-of-service">Terms</Link> and <Link to="/privacy-policy">Privacy Policy</Link>.
-                  We'll ask you to confirm once you're in.
-                </p>
               </div>
             )}
 
@@ -508,8 +501,10 @@ const AuthPage = () => {
             <p className="auth-support-note">
               Need help? <Link to="/about#contact">See how to reach us</Link>.
             </p>
-          </div>
-        </section>
+          </section>
+
+          <AuthShowcase />
+        </div>
     </AppShell>
   );
 };
