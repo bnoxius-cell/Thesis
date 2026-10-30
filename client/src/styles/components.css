@@ -1133,6 +1133,23 @@
     font-size: var(--text-sm);
     line-height: var(--text-sm-lh);
   }
+  /* ---- Quick add, collapsed: one full-width row; opened, the form eases in (opacity and 4px, no height) ---- */
+  .quick-add.is-collapsed { padding: 0; }
+  .quick-add-row {
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--border);
+  }
+  .quick-add-form.is-revealed {
+    animation: quick-add-in var(--dur-2) var(--ease-out);
+  }
+  @keyframes quick-add-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+
   .quick-add-field {
     display: flex;
     flex-direction: column;

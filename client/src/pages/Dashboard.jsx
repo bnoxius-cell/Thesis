@@ -22,6 +22,7 @@ import { TODAY_MAX_ROWS } from "../components/today/TodayCard";
 import { DASHBOARD_TOUR } from "../utils/tours";
 import { Sprout } from "lucide-react";
 import useWorkload from "../utils/useWorkload";
+import useSubjectLookup from "../utils/useSubjectLookup";
 import { useAuth } from "./authentication/AuthContext";
 import { finishedThisWeek } from "../utils/doneThisWeek";
 import { toWeekReading } from "../utils/weekReading";
@@ -53,6 +54,7 @@ const COMING_UP_DAYS = 7;
 
 const Dashboard = () => {
   const work = useWorkload();
+  const subjectsById = useSubjectLookup();
   const { backendUrl } = useAuth();
   const [showPSSModal, setShowPSSModal] = useState(false);
   const [showWHOModal, setShowWHOModal] = useState(false);
@@ -195,11 +197,11 @@ const Dashboard = () => {
             quick={quickAdd}
             today={(
               <TodayCard
-                focus={focus} today={today} tasks={todayTasks} now={now} nextExam={nextExam} hasSchedule={hasSchedule}
+                focus={focus} today={today} tasks={todayTasks} subjectsById={subjectsById} now={now} nextExam={nextExam} hasSchedule={hasSchedule}
                 onComplete={completeTask} onEdit={(task) => setTaskModal({ task })}
               />
             )}
-            coming={<ComingUp tasks={comingTasks} now={now} onComplete={completeTask} onEdit={(task) => setTaskModal({ task })} />}
+            coming={<ComingUp tasks={comingTasks} subjectsById={subjectsById} now={now} onComplete={completeTask} onEdit={(task) => setTaskModal({ task })} />}
             next={showSetup ? (
               <SetupChecklist work={work} setup={setup} onStartCheckIn={() => setShowPSSModal(true)} onHide={hideSetupCard} />
             ) : (

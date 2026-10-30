@@ -16,7 +16,7 @@ const MAIN_PLACES = [
   { key: 'today', label: 'Today', Icon: House, to: '/dashboard', match: (p) => p === '/dashboard' },
   { key: 'schedule', label: 'Schedule', Icon: CalendarDays, to: '/schedule', match: (p) => p === '/schedule' },
   { key: 'wellbeing', label: 'Wellbeing', Icon: Heart, to: '/wellbeing', match: (p) => p === '/wellbeing' },
-  { key: 'study', label: 'Study', Icon: BookOpenCheck, to: '/reviewers', match: (p) => p === '/reviewers' },
+  { key: 'study', label: 'Study', Icon: BookOpenCheck, to: '/reviewers', match: (p) => p === '/reviewers' || p.startsWith('/subjects/') },
 ];
 // Another student's profile (/profile/<id>) belongs to Friends: its back link goes there.
 const PEOPLE_PLACES = [

@@ -13,7 +13,7 @@ const MAX_HOURS = MAX_TASK_HOURS;
 
 const blankForm = (date, draft) => ({
   title: draft?.title || "",
-  subject: "",
+  subject: draft?.subject || "",
   description: "",
   dueDate: draft?.dueDate || date || toISODate(addDays(new Date(), 1)),
   hours: draft?.hours ?? 3,
