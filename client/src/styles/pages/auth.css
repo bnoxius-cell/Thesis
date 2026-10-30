@@ -91,6 +91,7 @@
   }
   .auth-panel-header p {
     margin: 0;
+    text-wrap: pretty;
     font-size: var(--text-md);
     line-height: 1.5;
     color: var(--text-secondary);
@@ -110,6 +111,25 @@
   .auth-form input:not([type="checkbox"], .otp-input) {
     min-height: 52px;
     padding-inline: var(--space-4);
+  }
+  /* Input with a leading icon: the icon sits inside the box, so the text starts after it. */
+  .auth-field {
+    position: relative;
+  }
+  .auth-field-icon {
+    position: absolute;
+    top: 50%;
+    left: var(--space-4);
+    translate: 0 -50%;
+    color: var(--text-muted);
+    pointer-events: none;
+    transition: color var(--dur-2) ease;
+  }
+  .auth-field:focus-within .auth-field-icon {
+    color: var(--accent);
+  }
+  .auth-form .auth-field input {
+    padding-left: 48px;
   }
   .auth-form .password-field input {
     padding-right: 52px;
@@ -224,9 +244,15 @@
     line-height: 1.5;
     color: var(--text-secondary);
     overflow-wrap: anywhere;
+    text-wrap: pretty;
+    text-wrap: balance;
   }
   .auth-legal-note {
-    max-width: 34ch;
+    max-width: 36ch;
+    align-self: center;
+  }
+  .auth-legal-note a {
+    white-space: nowrap;
   }
   .auth-support-note {
     font-size: var(--text-sm);
@@ -316,8 +342,20 @@
     background: var(--surface);
     box-shadow: 0 calc(16 * var(--u)) calc(40 * var(--u)) color-mix(in srgb, var(--overlay) 40%, transparent);
     overflow: hidden;
+    z-index: var(--z);
   }
-  /* DOM order stacks them: schedule behind workload behind reviewers. */
+  /* Stacking comes from --z (set in AuthShowcase): schedule behind workload behind reviewers until
+     one is hovered, which then stays in front. The fan angles never change; the hovered card only
+     lifts a little and deepens its shadow. */
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .auth-pcard {
+      transition: translate var(--dur-2) ease-out, box-shadow var(--dur-2) ease-out;
+    }
+    .auth-pcard:hover {
+      translate: 0 calc(-6 * var(--u));
+      box-shadow: 0 calc(22 * var(--u)) calc(48 * var(--u)) color-mix(in srgb, var(--overlay) 48%, transparent);
+    }
+  }
   .auth-pcard.is-schedule {
     left: calc(25.6 * var(--u));
     top: calc(19 * var(--u));

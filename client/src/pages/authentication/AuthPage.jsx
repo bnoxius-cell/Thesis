@@ -6,7 +6,7 @@ import "../../styles/pages/auth.css";
 import { toast } from "react-toastify";
 import { useAuth } from "./AuthContext";
 import { GoogleLogin } from '@react-oauth/google';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import BusySpinner from "../../components/BusySpinner";
@@ -16,6 +16,19 @@ import Logo from '../../assets/logo.png';
 const SCHOOL_EMAIL_DOMAIN = "student.fatima.edu.ph";
 const RESEND_COOLDOWN_SECONDS = 180;
 const OTP_LENGTH = 6;
+
+// A labelled input with a decorative icon inside its left edge. `className` adds to the wrapper
+// (the password field passes `password-field` for its show/hide button); `trailing` goes after the input.
+const IconField = ({ Icon, label, className = '', trailing, children }) => (
+  <label>
+    {label}
+    <div className={`auth-field ${className}`.trim()}>
+      <Icon className="auth-field-icon" size={20} aria-hidden="true" />
+      {children}
+      {trailing}
+    </div>
+  </label>
+);
 
 // Navigation to /dashboard is left to the route guard in App.jsx: it redirects as soon as
 // isLoggedin flips, and an extra navigate() here competed with it.
@@ -282,18 +295,11 @@ const AuthPage = () => {
   const countdown = `${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}`;
 
   const passwordInput = (value, onChange, { label, autoComplete, placeholder }) => (
-    <label>
-      {label}
-      <div className="password-field">
-        <input
-          onChange={onChange}
-          value={value}
-          type={showPassword ? 'text' : 'password'}
-          autoComplete={autoComplete}
-          minLength={autoComplete === 'new-password' ? 8 : undefined}
-          placeholder={placeholder}
-          required
-        />
+    <IconField
+      Icon={Lock}
+      label={label}
+      className="password-field"
+      trailing={(
         <button
           type="button"
           className="password-toggle"
@@ -303,8 +309,18 @@ const AuthPage = () => {
         >
           {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
         </button>
-      </div>
-    </label>
+      )}
+    >
+      <input
+        onChange={onChange}
+        value={value}
+        type={showPassword ? 'text' : 'password'}
+        autoComplete={autoComplete}
+        minLength={autoComplete === 'new-password' ? 8 : undefined}
+        placeholder={placeholder}
+        required
+      />
+    </IconField>
   );
 
   const header = {
@@ -359,8 +375,7 @@ const AuthPage = () => {
               </form>
             ) : authMode === 'forgot' ? (
               <form className="auth-form" onSubmit={sendResetCode}>
-                <label>
-                  Email
+                <IconField Icon={Mail} label="Email">
                   <input
                     onChange={e => setEmail(e.target.value)}
                     value={email}
@@ -371,7 +386,7 @@ const AuthPage = () => {
                     placeholder="you@example.com"
                     required
                   />
-                </label>
+                </IconField>
                 <button type="submit" className="primary-button" disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                   {busy ? 'Sending...' : 'Send code'}
                 </button>
@@ -380,8 +395,7 @@ const AuthPage = () => {
               <form className="auth-form" onSubmit={onResetSubmit}>
                 {otpRow}
                 {passwordInput(password, e => setPassword(e.target.value), { label: 'New password', autoComplete: 'new-password', placeholder: 'At least 8 characters' })}
-                <label>
-                  Confirm new password
+                <IconField Icon={Lock} label="Confirm new password">
                   <input
                     onChange={e => setConfirmPassword(e.target.value)}
                     value={confirmPassword}
@@ -390,7 +404,7 @@ const AuthPage = () => {
                     placeholder="Type it again"
                     required
                   />
-                </label>
+                </IconField>
                 <button type="submit" className="primary-button" disabled={busy} aria-busy={busy}>{busy && <BusySpinner />}
                   {busy ? 'Saving...' : 'Change password'}
                 </button>
@@ -401,8 +415,7 @@ const AuthPage = () => {
             ) : (
               <form className="auth-form" onSubmit={onSubmitHandler}>
                 {authMode === 'register' && (
-                  <label>
-                    Full Name
+                  <IconField Icon={User} label="Full Name">
                     <input
                       onChange={e => setName(e.target.value)}
                       value={name}
@@ -411,10 +424,9 @@ const AuthPage = () => {
                       placeholder="Juan Dela Cruz"
                       required
                     />
-                  </label>
+                  </IconField>
                 )}
-                <label>
-                  Email
+                <IconField Icon={Mail} label="Email">
                   <input
                     onChange={e => setEmail(e.target.value)}
                     value={email}
@@ -425,7 +437,7 @@ const AuthPage = () => {
                     placeholder="you@example.com"
                     required
                   />
-                </label>
+                </IconField>
                 {passwordInput(password, e => setPassword(e.target.value), {
                   label: 'Password',
                   autoComplete: authMode === 'login' ? 'current-password' : 'new-password',
@@ -470,11 +482,6 @@ const AuthPage = () => {
                     theme={theme === 'dark' ? 'filled_black' : 'outline'}
                     containerProps={{ className: 'auth-google-button' }}
                   />
-                  <p className="auth-legal-note">
-                    New to StressCare? Signing in with Google means you agree to our{' '}
-                    <Link to="/terms-of-service">Terms</Link> and <Link to="/privacy-policy">Privacy Policy</Link>.
-                    We'll ask you to confirm once you're in.
-                  </p>
                 </div>
               </div>
             )}
@@ -499,6 +506,13 @@ const AuthPage = () => {
                 </button>
               )}
             </div>
+            {(authMode === 'login' || authMode === 'register') && (
+              <p className="auth-legal-note">
+                New to StressCare? Signing in with Google means you agree to our{' '}
+                <Link to="/terms-of-service">Terms</Link> and <Link to="/privacy-policy">Privacy Policy</Link>.
+                We'll ask you to confirm once you're in.
+              </p>
+            )}
             <p className="auth-support-note">
               Need help? <Link to="/about#contact">See how to reach us</Link>.
             </p>

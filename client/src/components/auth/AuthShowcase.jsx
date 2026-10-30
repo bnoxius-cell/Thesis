@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BookOpen, Calendar, ChartColumn, CircleCheck, FileText, Leaf } from 'lucide-react';
 
 // The right half of the sign-in page: the headline text, then three mock-up cards. The cards and the
@@ -48,9 +49,13 @@ export function AuthBackdrop() {
   );
 }
 
-function PreviewCard({ className, Icon, title, caption, sub, children }) {
+// Stack order, back to front. A hovered card goes on top and stays there until another is hovered.
+const STACK = ['schedule', 'workload', 'reviewers'];
+
+function PreviewCard({ id, front, onHover, Icon, title, caption, sub, children }) {
   return (
-    <div className={`auth-pcard ${className}`}>
+    <div className={`auth-pcard is-${id}`} style={{ '--z': front === id ? STACK.length + 1 : STACK.indexOf(id) + 1 }}
+      onMouseEnter={() => onHover(id)}>
       <div className="auth-pcard-head">
         <span className="auth-pcard-icon"><Icon className="auth-ic" strokeWidth={1.75} /></span>
         {title}
@@ -65,6 +70,8 @@ function PreviewCard({ className, Icon, title, caption, sub, children }) {
 }
 
 export default function AuthShowcase() {
+  const [front, setFront] = useState(null);
+  const card = { front, onHover: setFront };
   return (
     <div className="auth-showcase">
       <div className="auth-showcase-text">
@@ -78,7 +85,7 @@ export default function AuthShowcase() {
 
       <div className="auth-stage" aria-hidden="true">
         <div className="auth-fan">
-          <PreviewCard className="is-schedule" Icon={Calendar} title="Schedule"
+          <PreviewCard id="schedule" {...card} Icon={Calendar} title="Schedule"
             caption="Your week at a glance" sub="Classes and deadlines in one place.">
             <b className="auth-week-label">Nov 3 – 7</b>
             <div className="auth-week">
@@ -92,7 +99,7 @@ export default function AuthShowcase() {
             <span className="auth-chip is-watch">Report due Wed</span>
           </PreviewCard>
 
-          <PreviewCard className="is-workload" Icon={ChartColumn} title="Workload"
+          <PreviewCard id="workload" {...card} Icon={ChartColumn} title="Workload"
             caption="See which days are too heavy" sub="Plus a quick check-in on how you feel.">
             <div className="auth-bars">
               {LOAD.map(([day, h], i) => (
@@ -112,7 +119,7 @@ export default function AuthShowcase() {
             </div>
           </PreviewCard>
 
-          <PreviewCard className="is-reviewers" Icon={BookOpen} title="Reviewers"
+          <PreviewCard id="reviewers" {...card} Icon={BookOpen} title="Reviewers"
             caption="Practice from your own notes" sub="Questions made from what you study.">
             <span className="auth-source"><FileText className="auth-ic is-small" strokeWidth={1.75} />Data Structures notes</span>
             <span className="auth-qcount">QUESTION 3 OF 10</span>
