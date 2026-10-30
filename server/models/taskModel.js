@@ -9,6 +9,7 @@ const taskSchema = new mongoose.Schema({
     difficulty: { type: Number, default: 3, min: 1, max: 5 },
     importance: { type: Number, default: 3, min: 1, max: 5 },
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true },
+    subject: { type: mongoose.Schema.Types.ObjectId, ref: 'subject', default: null },
     group: { type: mongoose.Schema.Types.ObjectId, ref: 'group', default: null },
     shareTag: { type: String, match: /^\d{6}$/ },
     isCompleted: { type: Boolean, default: false },

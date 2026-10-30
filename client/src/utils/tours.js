@@ -120,7 +120,7 @@ export const REVIEWERS_TOUR = [
   // The list of reviewers
   {
     target: "rev-intro",
-    title: "Reviewers",
+    title: "Study",
     text: "Turn your notes, a handout or a module into a short reviewer with key terms and practice questions.",
   },
   {
@@ -132,6 +132,11 @@ export const REVIEWERS_TOUR = [
     target: "rev-list",
     title: "Your reviewers",
     text: "Each card shows your last score. Open one to read it or practice.",
+  },
+  {
+    target: "rev-subjects",
+    title: "Subjects",
+    text: "Add the classes you take. Your tasks and reviewers can sit under them, and we can suggest subjects from what you already have.",
   },
   // One open reviewer
   {

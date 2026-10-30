@@ -4,21 +4,29 @@ import axios from "axios";
 import { BookOpenCheck, FileText, FileUp, LoaderCircle, Info } from "lucide-react";
 import AppShell, { ShellOverlays } from "../components/layout/AppShell";
 import PageHeader from "../components/PageHeader";
+import Tabs from "../components/Tabs";
+import SubjectsTab from "../components/subject/SubjectsTab";
 import UploadReviewerDialog from "../components/reviewer/UploadReviewerDialog";
 import ReviewerView from "../components/reviewer/ReviewerView";
 import { REVIEWERS_TOUR } from "../utils/tours";
+import { useTabParam } from "../utils/useTabParam";
 import { formatDate } from "../components/reviewer/reviewerUtils";
 import { useAuth } from "./authentication/AuthContext";
 import "../App.css";
+import "../styles/pages/subjects.css";
 
 const LIST_POLL_MS = 4000;
+const TABS = [{ id: "reviewers", label: "Reviewers" }, { id: "subjects", label: "Subjects" }];
+const TAB_IDS = TABS.map((t) => t.id);
 
 // Reviewers made from the student's own PDFs. The list lives here; `?r=<id>` opens one
-// (notes, progress and Learning Mode), the same way Groups opens a chat with `?g=`.
+// (notes, progress and Learning Mode), the same way Groups opens a chat with `?g=`. The Subjects tab
+// (`?tab=subjects`) groups the student's tasks and reviewers by class; Reviewers is the default tab.
 export default function Reviewers() {
   const { backendUrl } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const openId = searchParams.get("r");
+  const [tab, setTab] = useTabParam(TAB_IDS);
 
   const [data, setData] = useState(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -68,9 +76,8 @@ export default function Reviewers() {
     <AppShell mainClassName="reviewer-page" tour={{ page: "reviewers", title: "Study", steps: REVIEWERS_TOUR, view: "list" }}>
         <div data-tour="rev-intro">
           <PageHeader
-            title="Reviewers"
-            description="Turn a PDF of your notes into a short reviewer, key terms and practice questions."
-            actions={(
+            title="Study"
+            actions={tab === "reviewers" && (
               <div className="reviewer-intro-actions" data-tour="rev-upload">
                 <button type="button" className="primary-button" onClick={() => setUploadOpen(true)} disabled={!canUpload}>
                   <FileUp size={18} aria-hidden="true" /> Upload a PDF
@@ -83,6 +90,18 @@ export default function Reviewers() {
           />
         </div>
 
+        <div data-tour="rev-subjects">
+          <Tabs tabs={TABS} value={tab} onChange={setTab} label="Study sections" />
+        </div>
+
+        {tab === "subjects" && (
+          <div role="tabpanel" id="panel-subjects" aria-labelledby="tab-subjects">
+            <SubjectsTab />
+          </div>
+        )}
+
+        {tab === "reviewers" && (
+        <div role="tabpanel" id="panel-reviewers" aria-labelledby="tab-reviewers">
         {data && !data.enabled && (
           <p className="reviewer-note" role="status">
             <Info size={16} aria-hidden="true" /> Reviewers aren't set up on this server yet, so new uploads are off for now.
@@ -111,6 +130,8 @@ export default function Reviewers() {
         )}
 
         {data && data.reviewers.length > 0 && (
+          <>
+          <p className="reviewer-lead">Turn a PDF of your notes into a short reviewer, key terms and practice questions.</p>
           <ul className="reviewer-grid stagger" data-tour="rev-list">
             {data.reviewers.map((r) => (
               <li key={r._id}>
@@ -143,6 +164,9 @@ export default function Reviewers() {
               </li>
             ))}
           </ul>
+          </>
+        )}
+        </div>
         )}
       <ShellOverlays>
       {uploadOpen && (

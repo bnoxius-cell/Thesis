@@ -118,10 +118,6 @@ const Dashboard = () => {
       toast.success("Task deleted.");
     }
   };
-  const courses = [...new Set([
-    ...work.tasks.map((t) => t.course),
-    ...work.week.flatMap((d) => d.entries.filter((e) => e.kind === "class").map((e) => e.title)),
-  ].filter(Boolean))];
 
   const todayEntryCount = focus.happeningNow.length + focus.laterToday.length;
   const reading = toWeekReading({ insights, plannedTasks: work.plannedTasks, now });
@@ -230,7 +226,6 @@ const Dashboard = () => {
           <TaskModal
             task={taskModal.task}
             draft={taskModal.draft}
-            courses={courses}
             onSave={saveTask}
             onDelete={taskModal.task ? () => setDeleting(taskModal.task) : undefined}
             onToggleDone={taskModal.task ? toggleModalTaskDone : undefined}
