@@ -1,0 +1,37 @@
+/* AddButton (Figma 13:79): 36px --accent-soft circle inside a 44px hit area. */
+@layer components {
+  .ui-add-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+  }
+  .ui-add-btn__face {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  .ui-add-btn:active .ui-add-btn__face {
+    transform: scale(0.96);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .ui-add-btn:hover .ui-add-btn__face {
+      background: color-mix(in srgb, var(--accent) 14%, var(--accent-soft));
+    }
+  }
+}

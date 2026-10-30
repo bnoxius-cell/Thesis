@@ -1,0 +1,30 @@
+/* Layout for the development-only /dev/ui page. Not shipped to students. */
+@layer pages {
+  .specimen {
+    box-sizing: border-box;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: var(--space-5) var(--space-4);
+  }
+  .specimen h1 {
+    margin: 0 0 var(--space-5);
+    font-size: var(--text-2xl);
+  }
+  .specimen-section {
+    margin-bottom: var(--space-5);
+  }
+  .specimen-section h2 {
+    margin: 0 0 var(--space-3);
+    font-size: var(--text-lg);
+    color: var(--text-secondary);
+  }
+  .specimen-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .specimen .ui-card {
+    max-width: 280px;
+  }
+}

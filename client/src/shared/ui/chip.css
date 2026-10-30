@@ -1,0 +1,34 @@
+/* Chip (Figma 13:70): Caption text on a soft tone. Neutral is --surface-2 with --text-secondary. */
+@layer components {
+  .ui-chip {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-1);
+    width: auto;
+    padding: var(--space-1) 10px;
+    border-radius: var(--radius-pill);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    white-space: nowrap;
+  }
+  .ui-chip--accent {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .ui-chip--good {
+    background: var(--good-soft);
+    color: var(--good);
+  }
+  .ui-chip--watch {
+    background: var(--watch-soft);
+    color: var(--watch);
+  }
+  .ui-chip--danger {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+  .ui-chip--neutral {
+    background: var(--surface-2);
+    color: var(--text-secondary);
+  }
+}

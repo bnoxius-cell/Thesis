@@ -8,7 +8,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
-import BusySpinner from "../../components/BusySpinner";
+import BusySpinner from "@/shared/ui/BusySpinner";
 import AuthShowcase, { AuthBackdrop } from "../../components/auth/AuthShowcase";
 import Logo from '../../assets/logo.png';
 

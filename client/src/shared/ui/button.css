@@ -1,0 +1,77 @@
+/* Button (Figma Components > Button 13:59). Explicit display, font and width so the legacy bare
+   button rules cannot leak in. */
+@layer components {
+  .ui-btn {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    width: auto;
+    min-height: 44px;
+    margin: 0;
+    padding: 0 20px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    letter-spacing: 0;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out),
+      color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  .ui-btn--sm {
+    min-height: 36px;
+    padding: 0 var(--space-4);
+  }
+
+  .ui-btn--primary {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  .ui-btn--secondary {
+    background: var(--surface);
+    border-color: var(--border-input);
+    color: var(--text-primary);
+  }
+  .ui-btn--ghost {
+    color: var(--accent);
+  }
+  .ui-btn--danger {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+
+  .ui-btn:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  .ui-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .ui-btn[aria-busy="true"] {
+    cursor: progress;
+  }
+
+  /* Hover is colour only, and only where a pointer can hover (touch fires false hovers). */
+  @media (hover: hover) and (pointer: fine) {
+    .ui-btn--primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+    .ui-btn--secondary:hover:not(:disabled) {
+      background: var(--surface-2);
+    }
+    .ui-btn--ghost:hover:not(:disabled) {
+      background: var(--accent-soft);
+    }
+    .ui-btn--danger:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--danger) 10%, var(--danger-soft));
+    }
+  }
+}

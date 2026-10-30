@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AuthPage from './pages/authentication/AuthPage';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { ToastContainer, Slide } from 'react-toastify';
 import './App.css';
 import { useAuth } from './pages/authentication/AuthContext';
+
+// Development-only specimen of the shared primitives. F3 moves this route into AppRoutes.
+const UiSpecimen = import.meta.env.DEV ? lazy(() => import('./app/dev/UiSpecimen')) : null;
 
 // Every page except sign-in was removed for the redesign. Signed-in students land here until the new pages are built.
 function SignedIn() {
@@ -29,6 +32,9 @@ const AppContent = () => {
       ) : (
         <Router>
           <Routes>
+            {UiSpecimen && (
+              <Route path="/dev/ui" element={<Suspense fallback={null}><UiSpecimen /></Suspense>} />
+            )}
             <Route path="*" element={isLoggedin ? <SignedIn /> : <AuthPage />} />
           </Routes>
         </Router>

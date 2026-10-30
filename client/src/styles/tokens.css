@@ -49,9 +49,9 @@
     --good: #2b7356;
     --good-soft: #e5f3ec;
     --watch: #8a5a12;
-    --watch-soft: #fbf1dc;
+    --watch-soft: #fbf0dc;
     --danger: #b4271d;
-    --danger-soft: #fdecea;
+    --danger-soft: #fbe9e7;
     --on-danger: #ffffff;
     --focus-ring: #3f5ba9;
     --overlay: rgba(15, 19, 25, 0.45);
@@ -107,7 +107,7 @@
     --radius-lg: 14px;
     --radius-xl: 20px;
     --radius-pill: 999px;
-    --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.05);
+    --shadow-1: 0 1px 3px rgba(26, 38, 64, 0.06);
     --shadow-2: 0 4px 16px rgba(16, 24, 40, 0.08), 0 1px 3px rgba(16, 24, 40, 0.06);
     --shadow-3: 0 20px 48px rgba(16, 24, 40, 0.18);
 
