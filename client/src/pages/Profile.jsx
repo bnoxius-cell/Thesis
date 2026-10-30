@@ -8,7 +8,6 @@ import AppShell from "../components/layout/AppShell";
 import PageHeader from "../components/PageHeader";
 import PictureField from "../components/PictureField";
 import NotificationPreferences from "../components/NotificationPreferences";
-import PublicProfile from "./PublicProfile";
 import { useTheme } from "../context/ThemeContext";
 import { readMotionPref, setMotionPref } from "../utils/motion";
 import { profileFromUser } from "../utils/useWorkload";
@@ -51,11 +50,12 @@ const lastCheckIn = (u) => {
 
 const sameValues = (a, b) => Object.keys(a).every((key) => String(a[key]) === String(b[key]));
 
-// Your own profile at /profile/:yourId, someone else's (a friend or groupmate) at any other id.
+// Your own profile at /profile/:yourId. Someone else's lives at /people/:uid, so an old /profile/<other id> link goes there.
 export default function Profile() {
   const { user } = useAuth();
   const { uid } = useParams();
-  if (uid && user?._id && uid !== "undefined" && uid !== user._id) return <PublicProfile uid={uid} />;
+  const { search, hash } = useLocation();
+  if (uid && user?._id && uid !== "undefined" && uid !== user._id) return <Navigate to={`/people/${uid}${search}${hash}`} replace />;
   return <OwnProfile />;
 }
 

@@ -108,7 +108,7 @@ export default function TodayCard({ focus, today, tasks, subjectsById, now, next
       )}
 
       {hidden > 0 && (
-        <Link to={hiddenIsTasks ? "/schedule?tab=tasks" : "/schedule"} className="today-more">
+        <Link to={hiddenIsTasks ? "/plan?view=tasks" : "/plan"} className="today-more">
           +{hidden} more
         </Link>
       )}
@@ -134,7 +134,7 @@ export default function TodayCard({ focus, today, tasks, subjectsById, now, next
 
       {!hasSchedule && (
         <div className="today-card-foot">
-          <Link to="/schedule" className="ghost-button"><CalendarDays size={16} aria-hidden="true" />Add your classes</Link>
+          <Link to="/plan" className="ghost-button"><CalendarDays size={16} aria-hidden="true" />Add your classes</Link>
         </div>
       )}
     </section>

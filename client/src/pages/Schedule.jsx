@@ -517,12 +517,13 @@ export default function Schedule() {
     }
   }, [taskParam, openId, scheduleId, loading, mainId, setSearchParams]);
 
-  // /schedule opens the main schedule. The list of every schedule lives at ?view=all.
+  // /plan opens the main schedule. The list of every schedule lives at ?view=all. `?view=tasks` (the old
+  // `?tab=tasks`) opens its Tasks tab.
   const viewAll = searchParams.get("view") === "all";
   useEffect(() => {
     if (openId || viewAll || taskParam || loading || !mainId) return;
     const next = { s: mainId };
-    const wantedTab = searchParams.get("tab");
+    const wantedTab = searchParams.get("tab") || (searchParams.get("view") === "tasks" ? "tasks" : null);
     if (wantedTab) next.tab = wantedTab;
     setSearchParams(next, { replace: true });
   }, [searchParams, openId, viewAll, taskParam, loading, mainId, setSearchParams]);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { BookOpenCheck, FileText, FileUp, LoaderCircle, Info } from "lucide-react";
 import AppShell, { ShellOverlays } from "../components/layout/AppShell";
@@ -7,7 +7,6 @@ import PageHeader from "../components/PageHeader";
 import Tabs from "../components/Tabs";
 import SubjectsTab from "../components/subject/SubjectsTab";
 import UploadReviewerDialog from "../components/reviewer/UploadReviewerDialog";
-import ReviewerView from "../components/reviewer/ReviewerView";
 import { REVIEWERS_TOUR } from "../utils/tours";
 import { useTabParam } from "../utils/useTabParam";
 import { formatDate } from "../components/reviewer/reviewerUtils";
@@ -19,13 +18,14 @@ const LIST_POLL_MS = 4000;
 const TABS = [{ id: "reviewers", label: "Reviewers" }, { id: "subjects", label: "Subjects" }];
 const TAB_IDS = TABS.map((t) => t.id);
 
-// Reviewers made from the student's own PDFs. The list lives here; `?r=<id>` opens one
-// (notes, progress and Learning Mode), the same way Groups opens a chat with `?g=`. The Subjects tab
+// Reviewers made from the student's own PDFs. The list lives here; one reviewer opens at
+// /study/reviewers/:id (ReviewerPage), and an old `?r=<id>` link is sent there. The Subjects tab
 // (`?tab=subjects`) groups the student's tasks and reviewers by class; Reviewers is the default tab.
 export default function Reviewers() {
   const { backendUrl } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const openId = searchParams.get("r");
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const oldLinkId = searchParams.get("r");
   const [tab, setTab] = useTabParam(TAB_IDS);
 
   const [data, setData] = useState(null);
@@ -47,27 +47,20 @@ export default function Reviewers() {
   }, [backendUrl]);
 
   useEffect(() => {
-    if (!openId) fetchList();
-  }, [fetchList, openId]);
+    fetchList();
+  }, [fetchList]);
 
   // Keep the cards current while any reviewer is still being made.
   const anyProcessing = data?.reviewers.some((r) => r.status === "processing");
   useEffect(() => {
-    if (!anyProcessing || openId) return undefined;
+    if (!anyProcessing) return undefined;
     const timer = setInterval(() => { if (!document.hidden) fetchList(); }, LIST_POLL_MS);
     return () => clearInterval(timer);
-  }, [anyProcessing, fetchList, openId]);
+  }, [anyProcessing, fetchList]);
 
-  const open = (id) => setSearchParams({ r: id });
-  const close = () => setSearchParams({});
+  const open = (id) => navigate(`/study/reviewers/${id}`);
 
-  if (openId) {
-    return (
-      <AppShell mainClassName="reviewer-page" tour={{ page: "reviewers", title: "Study", steps: REVIEWERS_TOUR, view: "detail" }}>
-        <ReviewerView key={openId} reviewerId={openId} onBack={close} />
-      </AppShell>
-    );
-  }
+  if (oldLinkId) return <Navigate to={`/study/reviewers/${oldLinkId}`} replace />;
 
   const left = data ? Math.max(0, data.dailyLimit - data.usedToday) : null;
   const canUpload = data?.enabled && left > 0;

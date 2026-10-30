@@ -127,7 +127,7 @@ export default function MemberDialog({ group, member, onClose, onGroupUpdated })
           {!isSelf && profile?.relation === "friends" && (
             <span className="relation-pill is-friends"><UserCheck size={15} aria-hidden="true" /> Friends</span>
           )}
-          <Link to={`/profile/${member._id}`} className="secondary-button small">
+          <Link to={`/people/${member._id}`} className="secondary-button small">
             <ExternalLink size={15} aria-hidden="true" /> {isSelf ? "Your profile" : "View profile"}
           </Link>
         </div>

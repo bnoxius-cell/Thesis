@@ -80,7 +80,7 @@ export default function PublicProfile({ uid }) {
     return shell(
       <div className="panel" style={{ textAlign: "center" }}>
         <p className="schedule-empty">{errorMessage}</p>
-        <Link to="/friends" className="secondary-button">Back to friends</Link>
+        <Link to="/people?tab=friends" className="secondary-button">Back to friends</Link>
       </div>
     );
   }
@@ -91,7 +91,7 @@ export default function PublicProfile({ uid }) {
 
   return shell(
     <>
-      <Link to="/friends" className="back-link"><ArrowLeft size={16} aria-hidden="true" /> Friends</Link>
+      <Link to="/people?tab=friends" className="back-link"><ArrowLeft size={16} aria-hidden="true" /> Friends</Link>
 
       <section className="panel public-profile">
         <UserAvatar name={profile.name} src={profile.avatar} size={112} />
@@ -142,7 +142,7 @@ export default function PublicProfile({ uid }) {
           <ul className="shared-groups">
             {profile.sharedGroups.map((group) => (
               <li key={group._id}>
-                <Link to={`/groups?g=${group._id}`}><Users size={15} aria-hidden="true" /> {group.name}</Link>
+                <Link to={`/people?g=${group._id}`}><Users size={15} aria-hidden="true" /> {group.name}</Link>
               </li>
             ))}
           </ul>

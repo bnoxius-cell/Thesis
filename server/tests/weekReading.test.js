@@ -95,7 +95,7 @@ describe('toWeekReading', () => {
         expect(calm.actions).toEqual([{ label: 'See details', to: '/wellbeing' }]);
 
         const late = toWeekReading({ insights: insightsFor('Heavy Workload'), plannedTasks: [{ dueDate: isoDay(-1) }], now: NOW });
-        expect(late.actions).toEqual([{ label: 'See overdue tasks', to: '/schedule?tab=tasks' }]);
+        expect(late.actions).toEqual([{ label: 'See overdue tasks', to: '/plan?view=tasks' }]);
     });
 
     test('score is carried for Wellbeing and the shape is exactly the contract', () => {

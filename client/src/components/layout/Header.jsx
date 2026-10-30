@@ -13,22 +13,23 @@ import Logo from '../../assets/logo.png';
 // it sits with Notifications and Sign out (sidebar footer, phone top bar and More sheet).
 // `badge` names the unread count from NotificationContext that belongs to the place.
 const MAIN_PLACES = [
-  { key: 'today', label: 'Today', Icon: House, to: '/dashboard', match: (p) => p === '/dashboard' },
-  { key: 'schedule', label: 'Schedule', Icon: CalendarDays, to: '/schedule', match: (p) => p === '/schedule' },
+  { key: 'today', label: 'Today', Icon: House, to: '/home', match: (p) => p === '/home' },
+  { key: 'schedule', label: 'Schedule', Icon: CalendarDays, to: '/plan', match: (p) => p === '/plan' },
   { key: 'wellbeing', label: 'Wellbeing', Icon: Heart, to: '/wellbeing', match: (p) => p === '/wellbeing' },
-  { key: 'study', label: 'Study', Icon: BookOpenCheck, to: '/reviewers', match: (p) => p === '/reviewers' || p.startsWith('/subjects/') },
+  { key: 'study', label: 'Study', Icon: BookOpenCheck, to: '/study', match: (p) => p === '/study' || p.startsWith('/study/') },
 ];
-// Another student's profile (/profile/<id>) belongs to Friends: its back link goes there.
+// People shows Groups, or Friends with `?tab=friends`. Another student's profile (/people/<id>) belongs to Friends.
+const onFriendsTab = (search) => new URLSearchParams(search).get('tab') === 'friends';
 const PEOPLE_PLACES = [
-  { key: 'groups', label: 'Groups', Icon: Users, to: '/groups', badge: 'groupsUnread', badgeLabel: 'unread chats', match: (p) => p === '/groups' },
+  { key: 'groups', label: 'Groups', Icon: Users, to: '/people', badge: 'groupsUnread', badgeLabel: 'unread chats', match: (p, search) => p === '/people' && !onFriendsTab(search) },
   {
-    key: 'friends', label: 'Friends', Icon: UserPlus, to: '/friends', badge: 'friendsUnread', badgeLabel: 'friend requests',
-    match: (p, ownProfile) => p === '/friends' || (p.startsWith('/profile/') && p !== ownProfile),
+    key: 'friends', label: 'Friends', Icon: UserPlus, to: '/people?tab=friends', badge: 'friendsUnread', badgeLabel: 'friend requests',
+    match: (p, search) => (p === '/people' && onFriendsTab(search)) || p.startsWith('/people/'),
   },
 ];
 // The phone bottom bar: four places, then More (Wellbeing and Friends live in the More sheet).
 const BOTTOM_PLACES = [MAIN_PLACES[0], MAIN_PLACES[1], MAIN_PLACES[3], PEOPLE_PLACES[0]];
-const MORE_PATHS = ['/wellbeing', '/friends', '/about'];
+const MORE_PATHS = ['/wellbeing', '/about'];
 
 function BellLink({ unreadCount, active }) {
   return (
@@ -46,10 +47,10 @@ function BellLink({ unreadCount, active }) {
   );
 }
 
-function SidebarLink({ place, pathname, ownProfile, counts }) {
+function SidebarLink({ place, pathname, search, counts }) {
   const { label, to, match, badge, badgeLabel } = place;
   const Icon = place.Icon;
-  const active = match(pathname, ownProfile);
+  const active = match(pathname, search);
   const count = badge ? counts[badge] : 0;
   return (
     <Link to={to} className={`sidepanel-link ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}>
@@ -63,7 +64,7 @@ export default function Header() {
   const { user, logout, isLoggedin } = useAuth();
   const { unreadCount, groupsUnread, friendsUnread } = useNotifications();
   const counts = { groupsUnread, friendsUnread };
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { tour, isOpen: guideOpen, toggle: toggleGuide } = useGuide();
   const asideRef = useRef(null);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -89,14 +90,14 @@ export default function Header() {
   // Only your own profile lights it up, not another student's.
   const onProfile = pathname === profileTarget || pathname === '/settings';
   const onNotifications = pathname === '/notifications';
-  const onMore = MORE_PATHS.includes(pathname);
+  const onMore = MORE_PATHS.includes(pathname) || PEOPLE_PLACES[1].match(pathname, search);
 
   return (
     <>
       {/* Laptop: left sidebar */}
       <aside className="sidepanel" ref={asideRef} onScroll={(e) => { sidebarScroll.top = e.currentTarget.scrollTop; }}>
         <div className="sidepanel-logo">
-          <Link to="/dashboard" className="logo-link">
+          <Link to="/home" className="logo-link">
             <img src={Logo} alt="" className="logo-svg" />
             <div className="logo-text">Stress<span>Care</span></div>
           </Link>
@@ -105,11 +106,11 @@ export default function Header() {
         <nav className="sidepanel-nav" aria-label="Main">
           <div className="sidepanel-menu">
             {MAIN_PLACES.map((place) => (
-              <SidebarLink key={place.key} place={place} pathname={pathname} ownProfile={profileTarget} counts={counts} />
+              <SidebarLink key={place.key} place={place} pathname={pathname} search={search} counts={counts} />
             ))}
             <div className="sidepanel-section">People</div>
             {PEOPLE_PLACES.map((place) => (
-              <SidebarLink key={place.key} place={place} pathname={pathname} ownProfile={profileTarget} counts={counts} />
+              <SidebarLink key={place.key} place={place} pathname={pathname} search={search} counts={counts} />
             ))}
           </div>
 
@@ -153,7 +154,7 @@ export default function Header() {
 
       {/* Phone: top bar and bottom bar */}
       <header className="topbar">
-        <Link to="/dashboard" className="logo-link" aria-label="StressCare, go to Today">
+        <Link to="/home" className="logo-link" aria-label="StressCare, go to Today">
           <img src={Logo} alt="" className="logo-svg" />
           <div className="logo-text">Stress<span>Care</span></div>
         </Link>
@@ -186,7 +187,7 @@ export default function Header() {
         {BOTTOM_PLACES.map((place) => {
           const { key, label, to, match, badge, badgeLabel } = place;
           const Icon = place.Icon;
-          const active = match(pathname, profileTarget);
+          const active = match(pathname, search);
           const count = badge ? counts[badge] : 0;
           return (
             <Link

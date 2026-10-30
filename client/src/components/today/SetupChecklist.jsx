@@ -76,14 +76,14 @@ export default function SetupChecklist({ work, setup, onStartCheckIn, onHide }) 
   };
 
   const rows = [
-    { key: "classes", label: "Add your classes", action: <Link to="/schedule" className="ghost-button">Open schedule</Link> },
+    { key: "classes", label: "Add your classes", action: <Link to="/plan" className="ghost-button">Open schedule</Link> },
     {
       key: "week",
       label: "Tell us about your week",
       action: <button type="button" className="ghost-button" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? "Close" : "Fill in"}</button>,
     },
     { key: "checkin", label: "Take your first check-in", action: <button type="button" className="ghost-button" onClick={onStartCheckIn}>Start</button> },
-    { key: "task", label: "Add a task", action: <Link to="/schedule?task=new" className="ghost-button">Add task</Link> },
+    { key: "task", label: "Add a task", action: <Link to="/plan?task=new" className="ghost-button">Add task</Link> },
   ];
 
   return (

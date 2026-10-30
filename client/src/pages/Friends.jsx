@@ -15,7 +15,7 @@ import BusySpinner from "../components/BusySpinner";
 
 const TAG_LENGTH = 6;
 
-// The Friends page (/friends).
+// The Friends page (/people?tab=friends).
 export default function Friends() {
   const { backendUrl, user } = useAuth();
   const { refresh: refreshNotifications } = useNotifications();
@@ -107,7 +107,7 @@ export default function Friends() {
   const person = (p, extra) => (
     <li key={p._id} className="person-row">
       <UserAvatar name={p.name} src={p.avatar} size={44} />
-      <Link to={`/profile/${p._id}`} className="person-info" aria-label={`View ${p.name}'s profile`}>
+      <Link to={`/people/${p._id}`} className="person-info" aria-label={`View ${p.name}'s profile`}>
         <strong>{p.name}</strong>
         <span>Code {p.profileTag}</span>
       </Link>

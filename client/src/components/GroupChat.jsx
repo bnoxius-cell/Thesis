@@ -89,7 +89,7 @@ function ScheduleCard({ message, onAdd, addedId }) {
       {addedByMe ? (
         <span className="chat-task-added">
           <Check size={14} aria-hidden="true" /> In your schedules
-          {addedId && <> · <Link to={`/schedule?s=${addedId}`}>Open</Link></>}
+          {addedId && <> · <Link to={`/plan?s=${addedId}`}>Open</Link></>}
         </span>
       ) : (
         <button type="button" className="primary-button small" onClick={() => onAdd(message)}>
@@ -577,7 +577,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
                 {myTasks === null && <p className="chat-state">Loading your tasks...</p>}
                 {myTasks?.length === 0 && (
                   <p className="chat-state">
-                    You don't have any open tasks to share. <Link to="/schedule?task=new">Create one</Link> first.
+                    You don't have any open tasks to share. <Link to="/plan?task=new">Create one</Link> first.
                   </p>
                 )}
                 {myTasks?.length > 0 && (
@@ -601,7 +601,7 @@ export default function GroupChat({ group, onBack, onLeave, onDelete, onGroupUpd
                 {mySchedules === null && <p className="chat-state">Loading your schedules...</p>}
                 {mySchedules?.length === 0 && (
                   <p className="chat-state">
-                    You don't have a schedule with anything in it yet. <Link to="/schedule">Build one</Link> first.
+                    You don't have a schedule with anything in it yet. <Link to="/plan">Build one</Link> first.
                   </p>
                 )}
                 {mySchedules?.length > 0 && (

@@ -36,7 +36,7 @@ export default function MoreSheet({ onClose, user, profileTarget, friendsUnread,
             </Link>
           </li>
           <li>
-            <Link to="/friends" className="more-link" onClick={onClose}>
+            <Link to="/people?tab=friends" className="more-link" onClick={onClose}>
               <UserPlus size={20} aria-hidden="true" /> <span>Friends</span>
               <Badge count={friendsUnread} label="friend requests" />
             </Link>

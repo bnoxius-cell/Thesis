@@ -13,7 +13,7 @@ export default function SubjectReviewerRows({ reviewers }) {
     <ul className="subject-list is-single stagger">
       {reviewers.map((r) => (
         <li key={r._id}>
-          <Link to={`/reviewers?r=${r._id}`} className="subject-row">
+          <Link to={`/study/reviewers/${r._id}`} className="subject-row">
             {r.status === "processing"
               ? <LoaderCircle size={20} aria-hidden="true" className="reviewer-spin subject-row-icon" />
               : <FileText size={20} aria-hidden="true" className="subject-row-icon" />}

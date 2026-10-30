@@ -10,7 +10,7 @@ export default function NotFound() {
         <span className="panel-kicker">Error 404</span>
         <h1>This page doesn't exist.</h1>
         <p>The link may be old, or the address may have a typo.</p>
-        <Link to={isLoggedin ? '/dashboard' : '/'} className="primary-button">
+        <Link to={isLoggedin ? '/home' : '/'} className="primary-button">
           {isLoggedin ? 'Go to Today' : 'Go to sign in'}
         </Link>
     </AppShell>

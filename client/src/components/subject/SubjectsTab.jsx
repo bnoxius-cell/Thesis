@@ -70,7 +70,7 @@ export default function SubjectsTab() {
         <ul className="subject-list stagger">
           {subjects.map((s) => (
             <li key={s._id}>
-              <Link to={`/subjects/${s._id}`} className="subject-row">
+              <Link to={`/study/subjects/${s._id}`} className="subject-row">
                 <SubjectDot color={s.color} />
                 <span className="subject-row-body">
                   <strong>{s.name}</strong>

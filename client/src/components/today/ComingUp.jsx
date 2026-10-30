@@ -37,7 +37,7 @@ export default function ComingUp({ tasks, subjectsById, now, onComplete, onEdit 
           );
         })}
       </ul>
-      {more > 0 && <Link to="/schedule?tab=tasks" className="today-more">+{more} more in Tasks</Link>}
+      {more > 0 && <Link to="/plan?view=tasks" className="today-more">+{more} more in Tasks</Link>}
     </section>
   );
 }

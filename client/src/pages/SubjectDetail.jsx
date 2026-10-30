@@ -140,7 +140,7 @@ export default function SubjectDetail() {
   const addTask = (task) => setTasks((list) => [...list, task]);
   const moreDetails = (draft) => setTaskModal({ draft: { ...draft, subject: id } });
 
-  const leaveToSubjects = () => navigate("/reviewers?tab=subjects", { replace: true });
+  const leaveToSubjects = () => navigate("/study?tab=subjects", { replace: true });
   const removeSubject = async () => {
     const { error } = await deleteSubjectRequest(backendUrl, id);
     setConfirmDelete(false);
@@ -184,7 +184,7 @@ export default function SubjectDetail() {
       <PageHeader
         title={<><SubjectDot color={subject.color} /><span className="subject-title-text">{subject.name}</span></>}
         description={description}
-        back={{ to: "/reviewers?tab=subjects", label: "Subjects" }}
+        back={{ to: "/study?tab=subjects", label: "Subjects" }}
         actions={(
           <div className="subject-head-actions" data-tour="subj-head">
             <button type="button" className="secondary-button" onClick={() => setEditing(true)}>

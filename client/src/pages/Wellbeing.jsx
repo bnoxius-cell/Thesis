@@ -50,7 +50,7 @@ export default function Wellbeing() {
   return (
     <AppShell tour={{ page: "wellbeing", title: "Wellbeing", steps: WELLBEING_TOUR }}>
         <PageHeader
-          back={{ to: "/dashboard", label: "Today" }}
+          back={{ to: "/home", label: "Today" }}
           title={insights.isNewUser ? "How you're doing" : bandLabel(insights.band)}
           description={insights.isNewUser ? "Add a task or your classes and this page fills in." : BAND_MESSAGE[insights.band]}
         >

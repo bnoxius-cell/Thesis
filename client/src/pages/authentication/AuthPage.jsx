@@ -30,7 +30,7 @@ const IconField = ({ Icon, label, className = '', trailing, children }) => (
   </label>
 );
 
-// Navigation to /dashboard is left to the route guard in App.jsx: it redirects as soon as
+// Navigation to /home is left to the route guard in App.jsx: it redirects as soon as
 // isLoggedin flips, and an extra navigate() here competed with it.
 const AuthPage = () => {
   const { theme } = useTheme();

@@ -1,7 +1,7 @@
 /* ==========================================================================
    SUBJECTS (TW-1a, TW-1b). The Subjects tab on Study, the subject rows, the suggestions checklist,
    the subject dialog's colour swatches, the subject picker inside the task and upload dialogs
-   and the subject page (/subjects/:id).
+   and the subject page (/study/subjects/:id).
    Role tokens only. Colours come from the --subject-<key> tokens (tokens.css).
    Shared pieces (.panel, .empty-state, .primary-button, .modal-*, .form-grid) live in App.css
    and components.css.

@@ -25,7 +25,7 @@ export default function LegalPage({ kind }) {
   const location = useLocation();
   const { doc, other } = DOCS[kind];
   // A page opened from the sign-up form or the consent prompt can send people back.
-  const backTo = location.state?.from || (isLoggedin ? "/dashboard" : "/");
+  const backTo = location.state?.from || (isLoggedin ? "/home" : "/");
 
   return (
     <AppShell variant={isLoggedin ? "app" : "public"} mainClassName="legal-page">

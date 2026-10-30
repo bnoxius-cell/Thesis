@@ -37,7 +37,7 @@ export function toWeekReading({ insights, plannedTasks = [], now = new Date() })
   }).length;
 
   const action = overdue > 0
-    ? { label: "See overdue tasks", to: "/schedule?tab=tasks" }
+    ? { label: "See overdue tasks", to: "/plan?view=tasks" }
     : { label: "See details", to: "/wellbeing" };
 
   return {

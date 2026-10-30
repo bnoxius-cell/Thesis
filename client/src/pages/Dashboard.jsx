@@ -176,7 +176,7 @@ const Dashboard = () => {
                 <EmptyState compact icon={Sprout} title="Nothing here yet">
                   Add a task above, or your classes, and your week starts to take shape.
                   <span className="empty-state-actions">
-                    <Link to="/schedule" className="secondary-button">Open schedule</Link>
+                    <Link to="/plan" className="secondary-button">Open schedule</Link>
                   </span>
                 </EmptyState>
               </section>
