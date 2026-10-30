@@ -44,6 +44,7 @@ const writeOpen = (userId, open) => {
 //
 //   onAdded(task)           the saved task, to put in the page's list
 //   onMoreDetails(draft)    open the full dialog with { title, dueDate, hours }
+//   subject                 a subject id to file every task under (no visible control)
 //   tour                    data-tour marker for the Guide
 //   flat                    no card of its own, for use inside a card
 //   focusOnMount            put the cursor in the title on mount (the page re-laid itself out after a first add)
@@ -51,7 +52,7 @@ const writeOpen = (userId, open) => {
 //   defaultOpen             with collapsible: open unless the student has left it closed (remembered per account)
 //   onOpenChange(open)      with collapsible: the open state on mount and whenever it changes
 export default function QuickAddTask({
-  onAdded, onMoreDetails, onOpenChange, tour, focusOnMount = false, flat = false, collapsible = false, defaultOpen = true,
+  onAdded, onMoreDetails, onOpenChange, subject, tour, focusOnMount = false, flat = false, collapsible = false, defaultOpen = true,
 }) {
   const { backendUrl, userData } = useAuth();
   const userId = userData?._id;
@@ -130,7 +131,7 @@ export default function QuickAddTask({
       return;
     }
     setSaving(true);
-    const { task, error: message } = await saveTaskRequest(backendUrl, { title: clean, dueDate: dueIso, hours });
+    const { task, error: message } = await saveTaskRequest(backendUrl, { title: clean, dueDate: dueIso, hours, ...(subject && { subject }) });
     setSaving(false);
     if (message) {
       setError(message);
