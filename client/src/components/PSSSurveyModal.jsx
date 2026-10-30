@@ -1,15 +1,21 @@
+import { Gauge } from "lucide-react";
 import CheckInStepper from "./CheckInStepper";
+import { CHECKIN_COPY } from "../utils/checkinCopy";
+
+const { measures, whyItHelps, meta } = CHECKIN_COPY.pss;
 
 // Perceived Stress Scale (PSS-10). Items 4, 5, 7 and 8 are reverse scored, which the server does
 // (server/utils/surveyScoring.js), so the answers are sent as picked.
 const CONFIG = {
   kind: "pss",
   title: "Stress check-in",
+  icon: Gauge,
   citation: "Perceived Stress Scale (PSS-10), Cohen, Kamarck & Mermelstein, 1983",
   introFirst: "Your first check-in",
   introAgain: "Time for your monthly check-in",
-  introBody: "Ten quick questions, about two minutes. Answer honestly. It helps us fit your plan to how you're actually doing, not just your deadlines.",
-  window: "These ask about the last month.",
+  measures,
+  whyItHelps,
+  meta,
   stem: "In the last month, how often have you...",
   questions: [
     "been upset because of something that happened unexpectedly?",

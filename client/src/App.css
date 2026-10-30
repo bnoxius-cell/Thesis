@@ -1172,14 +1172,8 @@ input[type="range"] {
   max-height: 90vh;
   overflow-y: auto;
 }
-.survey-citation {
-  margin: var(--space-3) 0 0;
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-}
 .checkin-intro h3 { margin: 0 0 var(--space-2); font-size: var(--text-lg); outline: none; }
 .checkin-intro p { margin: 0 0 var(--space-2); color: var(--text-secondary); line-height: 1.5; }
-.checkin-window { color: var(--text-primary) !important; }
 .checkin-progress {
   display: flex;
   align-items: center;

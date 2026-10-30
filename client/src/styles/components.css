@@ -1615,4 +1615,37 @@
     letter-spacing: 0.2em;
     font-weight: 700;
   }
+
+  /* ---- Check-in intro (CheckInStepper, intro step) ---- */
+  .checkin-intro-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+  .checkin-intro-head h3 { margin: 0; }
+  .checkin-intro-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .checkin-facts { display: grid; gap: var(--space-3); margin: 0 0 var(--space-4); }
+  .checkin-facts > div {
+    display: grid;
+    grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
+    gap: var(--space-1) var(--space-4);
+  }
+  .checkin-facts dt { color: var(--text-primary); font-weight: 600; }
+  .checkin-facts dd { margin: 0; color: var(--text-secondary); line-height: 1.5; overflow-wrap: anywhere; }
+  .checkin-meta { margin: 0 0 var(--space-4); color: var(--text-primary); font-size: var(--text-sm); }
+  .checkin-cite { color: var(--text-muted); font-size: var(--text-xs); line-height: 1.5; }
+  .checkin-cite p { margin: 0 0 var(--space-1); }
+  @media (max-width: 480px) {
+    .checkin-facts > div { grid-template-columns: minmax(0, 1fr); gap: var(--space-1); }
+  }
 }

@@ -8,6 +8,7 @@ import "../App.css";
 import BusySpinner from "./BusySpinner";
 
 const LEAVE_PROMPT = { title: "Leave the check-in?", body: "Your answers so far won't be saved.", confirmLabel: "Leave", cancelLabel: "Keep going" };
+const NOT_A_DIAGNOSIS = "This is a check-in, not a test or a diagnosis. There are no right or wrong answers.";
 const ADVANCE_MS = 220;
 
 // One question per screen, for both check-ins. `config` holds what differs (see PSSSurveyModal
@@ -71,6 +72,7 @@ export default function CheckInStepper({ config, isFirstTime = false, onClose, o
   const notToday = () => (onRemindLater ? onRemindLater() : onClose());
   const question = questions[step];
   const heading = result ? "Your check-in" : config.title;
+  const Icon = config.icon;
 
   return (
     <Modal
@@ -90,10 +92,25 @@ export default function CheckInStepper({ config, isFirstTime = false, onClose, o
 
       {step === -1 && !result && (
         <div className="checkin-intro">
-          <h3 ref={headingRef} tabIndex={-1}>{isFirstTime ? config.introFirst : config.introAgain}</h3>
-          <p>{config.introBody}</p>
-          <p className="checkin-window"><strong>{config.window}</strong></p>
-          <p className="survey-citation">{config.citation}</p>
+          <div className="checkin-intro-head">
+            <span className="checkin-intro-icon" aria-hidden="true"><Icon size={20} /></span>
+            <h3 ref={headingRef} tabIndex={-1}>{isFirstTime ? config.introFirst : config.introAgain}</h3>
+          </div>
+          <dl className="checkin-facts">
+            <div>
+              <dt>What it measures</dt>
+              <dd>{config.measures}</dd>
+            </div>
+            <div>
+              <dt>Why it helps</dt>
+              <dd>{config.whyItHelps}</dd>
+            </div>
+          </dl>
+          <p className="checkin-meta">{config.meta}</p>
+          <div className="checkin-cite">
+            <p>{config.citation}</p>
+            <p>{NOT_A_DIAGNOSIS}</p>
+          </div>
           <div className="modal-actions">
             <button type="button" className="secondary-button" onClick={notToday}>Not today</button>
             <button type="button" className="primary-button" onClick={() => go(0)}>Start</button>
