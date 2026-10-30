@@ -169,7 +169,7 @@ export default function Friends() {
               <h2>Waiting for your answer ({incoming.length})</h2>
             </div>
           </div>
-          <ul className="person-list">
+          <ul className="person-list stagger">
             {incoming.map((req) => person(req.user, (
               <>
                 <button type="button" className="primary-button small" onClick={() => accept(req._id)}>Accept</button>
@@ -188,7 +188,7 @@ export default function Friends() {
               <h2>Waiting for them ({sent.length})</h2>
             </div>
           </div>
-          <ul className="person-list">
+          <ul className="person-list stagger">
             {sent.map((req) => person(req.friend, (
               <button type="button" className="ghost-button small" onClick={() => dropRequest(req._id)}>Cancel</button>
             )))}
@@ -210,7 +210,7 @@ export default function Friends() {
             Share your code, or type a classmate's code above, to add your first study buddy.
           </EmptyState>
         ) : (
-          <ul className="person-list">
+          <ul className="person-list stagger">
             {friends.map((friend) => person(friend, (
               <button
                 type="button"

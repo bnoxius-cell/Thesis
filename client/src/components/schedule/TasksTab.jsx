@@ -162,11 +162,11 @@ export default function TasksTab({ tasks, week, now, onAdded, onMoreDetails, onU
               <h3 className={`task-group-title${group.id === "overdue" ? " is-overdue" : ""}`} id={`task-group-${group.id}`}>
                 {group.label} <span>{group.tasks.length}</span>
               </h3>
-              <ul className="task-rows">{group.tasks.map(renderRow)}</ul>
+              <ul className="task-rows stagger">{group.tasks.map(renderRow)}</ul>
             </section>
           ))
         ) : (
-          <ul className="task-rows">{shown.map(renderRow)}</ul>
+          <ul className="task-rows stagger">{shown.map(renderRow)}</ul>
         )}
       </section>
 

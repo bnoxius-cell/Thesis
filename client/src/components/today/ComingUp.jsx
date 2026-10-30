@@ -20,7 +20,7 @@ export default function ComingUp({ tasks, now, onComplete, onEdit }) {
   return (
     <section className="panel today-card coming-up" data-tour="dash-coming">
       <div className="today-card-head"><h2>Coming up</h2></div>
-      <ul className="row-list">
+      <ul className="row-list stagger">
         {rows.map((task) => {
           const chip = dueChip(task.dueDate, now);
           return (

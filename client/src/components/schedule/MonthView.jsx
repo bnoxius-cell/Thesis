@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { addDays, monthOfWeek, monthWeeks, toISODate } from "../../utils/scheduleUtils";
 import WeekView from "./WeekView";
+import { prefersLessMotion } from "../../utils/motion";
 
 const monthLabel = (d) => d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 const sameMonth = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
@@ -36,7 +37,7 @@ export default function MonthView({ month, onMonthChange, ...weekProps }) {
   const scrollToCurrent = () => {
     const card = rootRef.current?.querySelector("[data-current-week]");
     if (!card) return false;
-    card.scrollIntoView({ block: "start", behavior: "smooth" });
+    card.scrollIntoView({ block: "start", behavior: prefersLessMotion() ? "auto" : "smooth" });
     return true;
   };
   const goToThisWeek = () => {

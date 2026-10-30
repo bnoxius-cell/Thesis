@@ -161,7 +161,7 @@ const Dashboard = () => {
 
   return (
     <AppShell tour={{ page: "dashboard", title: "Today", steps: DASHBOARD_TOUR }}>
-        <section className="today-head" id="dashboard" data-tour="dash-greeting">
+        <section className="today-head ambient" id="dashboard" data-tour="dash-greeting">
           <div>
             <h1>{GREETING[focus.phase]}{firstName ? `, ${firstName}` : ""}.</h1>
             <p>{insights.isNewUser ? "Here's your space. Let's get it set up." : summarizeDay(today, focus)}</p>

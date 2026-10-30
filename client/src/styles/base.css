@@ -135,17 +135,28 @@
   }
 
   /* ---- People who ask for less motion get none ---- */
+  /* Applies when the device asks for less motion and the student hasn't picked "On", or when they
+     picked "Off" (html[data-motion], set before first paint and by utils/motion.js). Not the toast's
+     progress bar: react-toastify closes a toast when that animation ends, so squashing it to 0.01ms
+     dismissed every toast the moment it appeared. */
   @media (prefers-reduced-motion: reduce) {
-    /* Not the toast's progress bar: react-toastify closes a toast when that animation ends, so
-       squashing it to 0.01ms dismissed every toast the moment it appeared. */
-    *:not(.Toastify__progress-bar),
-    *::before,
-    *::after {
+    html:not([data-motion="on"]) *:not(.Toastify__progress-bar),
+    html:not([data-motion="on"]) *::before,
+    html:not([data-motion="on"]) *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       animation-delay: 0ms !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+  html[data-motion="off"] *:not(.Toastify__progress-bar),
+  html[data-motion="off"] *::before,
+  html[data-motion="off"] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
