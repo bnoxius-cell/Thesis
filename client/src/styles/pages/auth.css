@@ -367,13 +367,32 @@
       pointer-events: auto;
     }
   }
+  /* Hover pops the card out (scale + deeper shadow). This is a state change, not motion, so it stays
+     with reduced motion; only the easing, the rise and the float below are gated. */
+  @media (hover: hover) {
+    .auth-pcard:hover {
+      scale: 1.06;
+      translate: 0 calc(-10 * var(--u));
+      box-shadow: 0 calc(32 * var(--u)) calc(64 * var(--u)) color-mix(in srgb, var(--overlay) 55%, transparent);
+    }
+  }
   @media (hover: hover) and (prefers-reduced-motion: no-preference) {
     .auth-pcard {
-      transition: translate var(--dur-2) ease-out, box-shadow var(--dur-2) ease-out;
+      transition: scale var(--dur-2) ease-out, box-shadow var(--dur-2) ease-out;
     }
+    /* Rises into place, then keeps floating gently while hovered. */
     .auth-pcard:hover {
-      translate: 0 calc(-6 * var(--u));
-      box-shadow: 0 calc(22 * var(--u)) calc(48 * var(--u)) color-mix(in srgb, var(--overlay) 48%, transparent);
+      animation:
+        auth-pcard-rise 0.25s ease-out forwards,
+        auth-pcard-float 2.6s 0.25s ease-in-out infinite alternate;
+    }
+    @keyframes auth-pcard-rise {
+      from { translate: 0 0; }
+      to { translate: 0 calc(-10 * var(--u)); }
+    }
+    @keyframes auth-pcard-float {
+      from { translate: 0 calc(-10 * var(--u)); }
+      to { translate: 0 calc(-18 * var(--u)); }
     }
   }
   .auth-pcard.is-schedule {

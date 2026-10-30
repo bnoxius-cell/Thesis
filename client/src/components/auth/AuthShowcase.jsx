@@ -49,12 +49,20 @@ export function AuthBackdrop() {
   );
 }
 
-// Stack order, back to front. A hovered card goes on top and stays there until another is hovered.
+// Stack order, back to front. A hovered card goes on top and stays there until another is hovered;
+// the others stack by how close they sit to it (left, middle, right when the left one is hovered).
 const STACK = ['schedule', 'workload', 'reviewers'];
+
+function stackLevel(id, front) {
+  const i = STACK.indexOf(id);
+  if (front === null) return i + 1;
+  const gap = Math.abs(i - STACK.indexOf(front));
+  return (STACK.length - gap) * 2 + (i > STACK.indexOf(front) ? 1 : 0);
+}
 
 function PreviewCard({ id, front, onHover, Icon, title, caption, sub, children }) {
   return (
-    <div className={`auth-pcard is-${id}`} style={{ '--z': front === id ? STACK.length + 1 : STACK.indexOf(id) + 1 }}
+    <div className={`auth-pcard is-${id}`} style={{ '--z': stackLevel(id, front) }}
       onMouseEnter={() => onHover(id)}>
       <div className="auth-pcard-head">
         <span className="auth-pcard-icon"><Icon className="auth-ic" strokeWidth={1.75} /></span>
