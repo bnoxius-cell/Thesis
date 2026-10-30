@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import AppShell from "../../components/layout/AppShell";
 import "../../App.css";
 import "../../styles/pages/auth.css";
 import { toast } from "react-toastify";
@@ -32,6 +31,13 @@ const IconField = ({ Icon, label, className = '', trailing, children }) => (
 
 // Navigation to /home is left to the route guard in App.jsx: it redirects as soon as
 // isLoggedin flips, and an extra navigate() here competed with it.
+// The page frame: just the layout classes the sign-in styles hang on.
+const AuthFrame = ({ children }) => (
+  <div className="app auth-layout">
+    <main id="main" className="auth-page">{children}</main>
+  </div>
+);
+
 const AuthPage = () => {
   const { theme } = useTheme();
   const [authMode, setAuthMode] = useState('login');
@@ -335,16 +341,16 @@ const AuthPage = () => {
 
   if (loading) {
     return (
-      <AppShell variant="public" unframed mainClassName="auth-page">
+      <AuthFrame>
         <div className="auth-loading">
           <p>Loading...</p>
         </div>
-      </AppShell>
+      </AuthFrame>
     );
   }
 
   return (
-    <AppShell variant="public" unframed mainClassName="auth-page">
+    <AuthFrame>
         <div className="auth-split" id="login">
           <AuthBackdrop />
 
@@ -522,7 +528,7 @@ const AuthPage = () => {
 
           <AuthShowcase />
         </div>
-    </AppShell>
+    </AuthFrame>
   );
 };
 
