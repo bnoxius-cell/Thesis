@@ -161,7 +161,6 @@ export default function QuickAddTask({
           type="button"
           className="tonal-button quick-add-row"
           aria-expanded="false"
-          aria-controls={formId}
           onClick={() => toggle(true)}
         >
           <Plus size={16} aria-hidden="true" />Add a task
