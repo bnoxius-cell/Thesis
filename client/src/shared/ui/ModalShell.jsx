@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import "./modal.css";
 
 // The dialog shell. Use Modal (or ConfirmDialog), which build on this.
-// The one dialog shell for the app. It renders the existing .modal-overlay / .modal-content
-// markup, so nothing looks different, and adds the behaviour every dialog should share:
-// Escape closes only the top-most dialog, an overlay click closes only when the press
-// started on the overlay too (selecting text and releasing outside no longer closes it),
-// focus moves in and comes back, Tab stays inside, and the page doesn't scroll behind it.
+// The one dialog shell for the app. It renders the .ui-modal-overlay / .ui-modal card (look in
+// modal.css) and holds the behaviour every dialog shares: Escape closes only the top-most
+// dialog, an overlay click closes only when the press started on the overlay too (selecting
+// text and releasing outside doesn't close it), focus moves in and comes back, Tab stays inside,
+// and the page doesn't scroll behind it.
 //
 // `as="form"` makes the content element a <form> (pass onSubmit through as usual).
 // `busy` blocks every way of closing. `confirmClose` is a function that returns true when
@@ -15,7 +16,7 @@ const stack = [];
 let lockCount = 0;
 let savedOverflow = "";
 
-const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE = ':is(a[href], button, input, select, textarea, [tabindex]):not([tabindex="-1"])';
 
 function lockScroll() {
   if (lockCount === 0) {
@@ -131,7 +132,7 @@ export default function ModalShell({
 
   return (
     <div
-      className={`modal-overlay ${overlayClassName}`.trim()}
+      className={`ui-modal-overlay ${overlayClassName}`.trim()}
       onPointerDown={(e) => {
         pressedOverlay.current = e.target === e.currentTarget;
       }}
@@ -143,7 +144,7 @@ export default function ModalShell({
     >
       <Tag
         ref={contentRef}
-        className={`modal-content ${className}`.trim()}
+        className={`ui-modal ${className}`.trim()}
         role={role}
         aria-modal="true"
         aria-labelledby={labelledBy}

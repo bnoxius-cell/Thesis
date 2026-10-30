@@ -16,6 +16,38 @@
       transform: translateY(6px);
     }
   }
+  /* Shared primitives (shared/ui): popover and dialog entrances, the progress draw-in, the
+     skeleton pulse. Entrances only: nothing waits on an exit animation. */
+  @keyframes ui-fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes ui-menu-in {
+    from {
+      opacity: 0;
+      transform: scale(0.98);
+    }
+  }
+  @keyframes ui-modal-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+  }
+  @keyframes ui-bar-grow {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @keyframes ui-pulse {
+    from {
+      opacity: 0.6;
+    }
+    to {
+      opacity: 1;
+    }
+  }
   @keyframes ambient-drift {
     to {
       transform: translate(3%, 4%) rotate(4deg);

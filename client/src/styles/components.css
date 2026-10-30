@@ -68,16 +68,14 @@
     color: var(--text-muted);
   }
 
-  /* Filled danger (confirm dialogs): darker on hover and press in light, lighter in dark,
+  /* Filled danger: darker on hover and press in light, lighter in dark,
      by mixing toward the text colour. */
   @media (hover: hover) and (pointer: fine) {
-    .danger-button:hover:not(:disabled),
-    .primary-button.confirm-danger:hover:not(:disabled) {
+    .danger-button:hover:not(:disabled) {
       background: color-mix(in srgb, var(--danger) 85%, var(--text-primary));
     }
   }
-  .danger-button:active:not(:disabled),
-  .primary-button.confirm-danger:active:not(:disabled) {
+  .danger-button:active:not(:disabled) {
     background: color-mix(in srgb, var(--danger) 70%, var(--text-primary));
   }
 
@@ -252,70 +250,6 @@
   .table .num {
     text-align: right;
     font-variant-numeric: tabular-nums;
-  }
-
-  /* ---- Dialogs on phones: a bottom sheet ----
-     Lives here, not in App.css, so it beats the themed and per-dialog width and
-     radius rules the legacy file still has. Behaviour (focus, Escape, scroll lock)
-     is unchanged; this is only how the same markup looks. */
-  @keyframes sheet-in {
-    from {
-      transform: translateY(100%);
-    }
-  }
-  @media (max-width: 720px) {
-    .modal-overlay {
-      align-items: flex-end;
-    }
-    .modal-overlay > .modal-content {
-      width: 100%;
-      max-width: none;
-      max-height: 90vh;
-      max-height: 90dvh;
-      padding: var(--space-4) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
-      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-      animation: sheet-in var(--dur-3) var(--ease-out);
-    }
-    /* Header and actions stay on screen and only the form between them scrolls. They are
-       sticky inside the sheet (which is the scroll container), so this works whether the
-       markup is a form or a plain div, and the negative margins let their background and
-       divider run edge to edge over the sheet's padding. */
-    .modal-overlay .modal-header {
-      position: sticky;
-      top: calc(-1 * var(--space-4)); /* sticky offsets are measured inside the sheet's padding */
-      z-index: 2;
-      margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) var(--space-3);
-      padding: var(--space-4) var(--space-4) var(--space-2);
-      background: var(--s-surface, var(--surface));
-    }
-    /* Actions stack full width with the primary first (it is last in the markup) */
-    .modal-overlay .modal-actions {
-      position: sticky;
-      bottom: calc(-1 * (var(--space-4) + env(safe-area-inset-bottom, 0px)));
-      z-index: 2;
-      flex-direction: column-reverse;
-      align-items: stretch;
-      gap: var(--space-2);
-      margin: var(--space-4) calc(-1 * var(--space-4)) calc(-1 * (var(--space-4) + env(safe-area-inset-bottom, 0px)));
-      padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
-      border-top: 1px solid var(--s-line, var(--border));
-      background: var(--s-surface, var(--surface));
-    }
-    .modal-overlay .modal-actions > * {
-      width: 100%;
-    }
-    /* The consent prompt stays a centred card: it is a decision, not a form to fill in */
-    .terms-gate-overlay {
-      align-items: center;
-    }
-  }
-
-  /* 44px taps for the close button on touch */
-  @media (max-width: 720px), (pointer: coarse) {
-    .modal-close {
-      width: 44px;
-      height: 44px;
-    }
   }
 
   /* A toast with one action (Undo after ticking a task off) */
@@ -1494,12 +1428,6 @@
   }
 
   /* ---- The task dialog (add, edit, and "More details" from quick add) ---- */
-  .task-modal .modal-header {
-    align-items: flex-start;
-  }
-  .task-modal .modal-header h2 {
-    margin-top: 2px;
-  }
   .task-title-input {
     font-size: var(--text-lg);
     font-weight: 600;

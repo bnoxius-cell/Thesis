@@ -24,6 +24,23 @@
     align-items: center;
     gap: var(--space-3);
   }
+  .specimen-stack {
+    display: flex;
+    flex: 1 1 280px;
+    flex-direction: column;
+    gap: var(--space-4);
+    max-width: 420px;
+    min-width: 0;
+  }
+  .specimen-right {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+  }
+  .specimen-note {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+  }
   .specimen .ui-card {
     max-width: 280px;
   }

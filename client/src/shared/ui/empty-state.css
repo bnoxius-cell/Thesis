@@ -1,0 +1,52 @@
+/* EmptyState (Figma empty frames 53:459, 66:963, 78:1526): one soft icon blob, a Heading/H3 title,
+   a Body line, then the actions. The page variant also carries .ambient (motion.css). */
+@layer components {
+  .ui-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: var(--space-6) var(--space-4);
+    text-align: center;
+  }
+  .ui-empty--page {
+    justify-content: center;
+    min-height: 360px;
+    padding-block: var(--space-8);
+  }
+  .ui-empty__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .ui-empty__icon > svg {
+    opacity: 0.7;
+  }
+  .ui-empty__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+  }
+  .ui-empty__text {
+    max-width: 40ch;
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+    text-wrap: balance;
+  }
+  .ui-empty__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+  }
+}

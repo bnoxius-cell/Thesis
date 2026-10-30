@@ -1,0 +1,101 @@
+/* SelectButton (Figma 37:6): --surface box, --border-input outline, --radius-md, 40px high, Label
+   text and a 16px chevron. Explicit box, font and width so the legacy bare button and select rules
+   can't leak in. */
+@layer components {
+  .ui-select {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    width: auto;
+    max-width: 100%;
+    min-height: 40px;
+    margin: 0;
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: none;
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+    text-align: left;
+    cursor: pointer;
+    transition:
+      border-color var(--dur-2) var(--ease-out),
+      background-color var(--dur-2) var(--ease-out);
+  }
+  .ui-select--block {
+    width: 100%;
+  }
+  .ui-select__value {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ui-select__value--empty {
+    color: var(--text-placeholder);
+  }
+  .ui-select__chevron {
+    flex: none;
+    color: var(--text-secondary);
+    transition: transform var(--dur-2) var(--ease-out);
+  }
+  .ui-select[aria-expanded="true"] {
+    border-color: var(--accent);
+  }
+  .ui-select[aria-expanded="true"] .ui-select__chevron {
+    transform: rotate(180deg);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .ui-select:hover:not(:disabled):not([aria-expanded="true"]) {
+      border-color: var(--text-muted);
+    }
+  }
+  .ui-select:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .ui-select:disabled {
+    background: var(--surface-2);
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
+
+  /* The native <select>: same box, the chevron is drawn over it. */
+  .ui-select-native {
+    position: relative;
+    display: inline-flex;
+    max-width: 100%;
+  }
+  .ui-select-native--block {
+    display: flex;
+    width: 100%;
+  }
+  .ui-select--native {
+    appearance: none;
+    padding-right: calc(var(--space-4) + 16px + var(--space-2));
+  }
+  .ui-select-native > .ui-select__chevron {
+    position: absolute;
+    top: 50%;
+    right: var(--space-4);
+    translate: 0 -50%;
+    pointer-events: none;
+  }
+
+  /* 44px on phones and touch screens; 16px native text so iOS doesn't zoom in on focus. */
+  @media (max-width: 1023px), (pointer: coarse) {
+    .ui-select {
+      min-height: 44px;
+    }
+  }
+  @media (pointer: coarse) {
+    .ui-select--native {
+      font-size: 16px;
+    }
+  }
+}

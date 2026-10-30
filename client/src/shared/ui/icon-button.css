@@ -28,6 +28,9 @@
       background-color var(--dur-2) var(--ease-out),
       transform var(--dur-1) var(--ease-out);
   }
+  .ui-icon-btn--plain .ui-icon-btn__face {
+    border-color: transparent;
+  }
   .ui-icon-btn:active:not(:disabled) .ui-icon-btn__face {
     transform: scale(0.96);
   }

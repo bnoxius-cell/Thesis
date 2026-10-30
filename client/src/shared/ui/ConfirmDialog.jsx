@@ -1,10 +1,11 @@
-import { useRef } from "react";
+import { useId, useRef } from "react";
 import ModalShell from "./ModalShell";
-import BusySpinner from "./BusySpinner";
+import Button from "./Button";
 
-// In-app replacement for window.confirm. `tone="danger"` is for destructive actions
-// (delete, leave) and uses the clay color; everything else uses the normal button.
-// `cancelLabel={null}` drops the cancel button, for a notice with a single "Done".
+// In-app replacement for window.confirm. `tone="danger"` is for destructive actions (delete,
+// leave) and uses the danger Button; everything else uses the primary one. The confirm button
+// gets focus on open and Escape cancels. `cancelLabel={null}` drops the cancel button, for a
+// notice with a single "Done".
 export default function ConfirmDialog({
   open,
   title,
@@ -17,6 +18,7 @@ export default function ConfirmDialog({
   onCancel,
 }) {
   const confirmRef = useRef(null);
+  const titleId = useId();
 
   return (
     <ModalShell
@@ -24,28 +26,25 @@ export default function ConfirmDialog({
       onClose={onCancel}
       busy={busy}
       role="alertdialog"
-      labelledBy="confirm-dialog-title"
-      className="confirm-dialog"
+      labelledBy={titleId}
+      className="ui-modal--confirm"
       initialFocusRef={confirmRef}
     >
-      <h2 id="confirm-dialog-title" className="confirm-dialog-title">{title}</h2>
-      <div className="confirm-dialog-body">{children}</div>
-      <div className="modal-actions">
+      <div className="ui-modal__head">
+        <h2 id={titleId} className="ui-modal__title">
+          {title}
+        </h2>
+      </div>
+      <div className="ui-modal__body ui-modal__body--text">{children}</div>
+      <div className="ui-modal__actions">
         {cancelLabel !== null && (
-          <button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>
+          <Button variant="ghost" onClick={onCancel} disabled={busy}>
             {cancelLabel}
-          </button>
+          </Button>
         )}
-        <button
-          type="button"
-          ref={confirmRef}
-          className={tone === "danger" ? "primary-button confirm-danger" : "primary-button"}
-          onClick={onConfirm}
-          disabled={busy}
-          aria-busy={busy}
-        >{busy && <BusySpinner />}
+        <Button ref={confirmRef} variant={tone === "danger" ? "danger" : "primary"} busy={busy} onClick={onConfirm}>
           {busy ? "Working..." : confirmLabel}
-        </button>
+        </Button>
       </div>
     </ModalShell>
   );

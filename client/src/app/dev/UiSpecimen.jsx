@@ -1,18 +1,12 @@
 import { Bell, Plus } from "lucide-react";
 import { AddButton, Avatar, Badge, Button, Card, Chip, IconButton } from "@/shared/ui";
+import Section from "./Section";
+import SpecimenInputs from "./SpecimenInputs";
+import SpecimenFeedback from "./SpecimenFeedback";
 import "./ui-specimen.css";
 
 const VARIANTS = ["primary", "secondary", "ghost", "danger"];
 const TONES = ["accent", "good", "watch", "danger", "neutral"];
-
-function Section({ title, children }) {
-  return (
-    <section className="specimen-section">
-      <h2>{title}</h2>
-      <div className="specimen-row">{children}</div>
-    </section>
-  );
-}
 
 // Every shared primitive in every state. Development only: App.jsx mounts it at /dev/ui.
 export default function UiSpecimen() {
@@ -71,6 +65,9 @@ export default function UiSpecimen() {
           <span>Lifts 2px on hover with a mouse.</span>
         </Card>
       </Section>
+
+      <SpecimenInputs />
+      <SpecimenFeedback />
     </main>
   );
 }

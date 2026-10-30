@@ -1,0 +1,91 @@
+/* Segment (Figma Components > Segment, used as the Pace switch in 53:909): a --surface-2 pill
+   track with 4px padding; the chosen option sits on a --surface thumb that slides with transform
+   only. Options share the width equally. */
+@layer components {
+  .ui-segment {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: var(--space-1);
+    border-radius: var(--radius-pill);
+    background: var(--surface-2);
+  }
+  .ui-segment__thumb {
+    position: absolute;
+    top: var(--space-1);
+    bottom: var(--space-1);
+    left: var(--space-1);
+    z-index: 0;
+    width: calc((100% - 2 * var(--space-1)) / var(--count));
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    transform: translateX(calc(var(--index) * 100%));
+    transition: transform var(--dur-3) var(--ease-out);
+  }
+  .ui-segment[data-empty] .ui-segment__thumb {
+    opacity: 0;
+  }
+
+  .ui-segment__option {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 0;
+    box-sizing: border-box;
+    width: auto;
+    min-width: 0;
+    min-height: 36px;
+    margin: 0;
+    padding: var(--space-2) var(--space-4);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--text-secondary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    text-align: center;
+    cursor: pointer;
+    transition:
+      color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  /* The track's 4px padding on top and bottom joins the hit area: 44px tall. */
+  .ui-segment__option::after {
+    content: "";
+    position: absolute;
+    inset: calc(-1 * var(--space-1)) 0;
+  }
+  .ui-segment__option[aria-checked="true"] {
+    color: var(--text-primary);
+  }
+  .ui-segment__option:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  .ui-segment__option:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .ui-segment__option:hover:not(:disabled) {
+      color: var(--text-primary);
+    }
+  }
+  .ui-segment__option:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 0;
+  }
+
+  /* Narrow phones: tighter padding, and long labels may wrap onto a second line. */
+  @media (max-width: 480px) {
+    .ui-segment__option {
+      padding-inline: var(--space-2);
+    }
+  }
+}

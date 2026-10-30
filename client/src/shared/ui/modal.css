@@ -1,0 +1,125 @@
+/* Dialog (Figma "Dialog / Your rhythm" 53:909): --surface card, --radius-xl, 32px padding, Shadow/3
+   (the --shadow-3 token), a title row with a close button, the body, then right-aligned actions. The
+   overlay is the --overlay scrim. The card never grows past the screen: the head and the actions
+   stay put and only the body scrolls, so the buttons are always reachable. */
+@layer components {
+  .ui-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding:
+      max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    background: var(--overlay);
+    overscroll-behavior: contain;
+    animation: ui-fade-in var(--dur-2) var(--ease-out);
+  }
+
+  .ui-modal {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 560px;
+    max-height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    box-shadow: var(--shadow-3);
+    color: var(--text-primary);
+    animation: ui-modal-in var(--dur-3) var(--ease-out);
+  }
+  .ui-modal:focus-visible {
+    outline: none; /* the card takes focus only as a fallback, it isn't a control */
+  }
+  .ui-modal--confirm {
+    max-width: 440px;
+  }
+
+  .ui-modal__head {
+    display: flex;
+    flex: none;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-6) var(--space-6) 0;
+  }
+  .ui-modal__titles {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+  .ui-modal__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .ui-modal__subtitle {
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  /* The close icon is 36px in the frame; its 44px hit area overhangs the padding, so it lines up
+     with the title and the card's top-right corner stays even. */
+  .ui-modal__head .ui-icon-btn {
+    margin: -4px -4px 0 0;
+  }
+
+  .ui-modal__body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-height: 0;
+    padding: var(--space-5) var(--space-6);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+  }
+  .ui-modal__body:last-child {
+    padding-bottom: var(--space-6);
+  }
+  /* Running text (ConfirmDialog) flows normally instead of stacking each node with a gap. */
+  .ui-modal__body--text {
+    display: block;
+    padding-top: var(--space-3);
+  }
+
+  .ui-modal__actions {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    padding: 0 var(--space-6) var(--space-6);
+  }
+
+  /* Phones: less padding, and the actions stack full width with the main one first. */
+  @media (max-width: 480px) {
+    .ui-modal__head {
+      padding: var(--space-5) var(--space-5) 0;
+    }
+    .ui-modal__body {
+      padding: var(--space-4) var(--space-5);
+    }
+    .ui-modal__body:last-child {
+      padding-bottom: var(--space-5);
+    }
+    .ui-modal__actions {
+      flex-direction: column-reverse;
+      align-items: stretch;
+      padding: 0 var(--space-5) var(--space-5);
+    }
+  }
+}
