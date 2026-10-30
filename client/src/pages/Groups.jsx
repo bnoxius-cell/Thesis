@@ -314,7 +314,7 @@ export default function Groups() {
 
       {noGroups ? (
         <section className="panel" data-tour="groups-list">
-          <EmptyState icon={Users} title="No groups yet">
+          <EmptyState compact icon={Users} title="No groups yet">
             Create one for your class, or join a classmate's with their 6-character code.
           </EmptyState>
         </section>
