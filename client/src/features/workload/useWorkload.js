@@ -14,6 +14,7 @@ const DEFAULT_PROFILE = {
   travelMinutesPerDay: 0,
   hasRegularSleepSchedule: true,
   usualSleepStart: "23:00",
+  wellbeingGoal: "steady",
 };
 
 // What the week maths reads from the account, with the same defaults the old pages used.
@@ -25,6 +26,7 @@ function profileFromUser(u) {
     travelMinutesPerDay: u.travelMinutesPerDay ?? 0,
     hasRegularSleepSchedule: u.hasRegularSleepSchedule !== false,
     usualSleepStart: u.usualSleepStart || DEFAULT_PROFILE.usualSleepStart,
+    wellbeingGoal: u.wellbeingGoal || "steady",
   };
 }
 
