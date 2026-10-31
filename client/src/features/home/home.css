@@ -203,6 +203,30 @@
   }
 
   /* ---- This week ---- */
+  /* Bars on the left, the key stacked beside them (Today first, then Heaviest). The bars give up width
+     before the key moves, so the key always stays at the side. */
+  .home-week__chart {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .home-week__chart .workload-bars {
+    flex: 1 1 0;
+    min-width: 0;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: var(--space-1);
+  }
+  .home-week__chart .workload-bars__legend {
+    flex: none;
+  }
+  .home-week__chart .workload-bars__legend {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+  }
+  .home-week__chart .workload-bars__legend li:first-child {
+    order: 2;
+  }
   .home-week__sentence {
     margin: 0;
     font: 400 var(--text-md) / 24px var(--font-ui);

@@ -26,7 +26,7 @@ export default function WeekBars({ days, heaviestKey = null, size = "md", legend
           <div key={day.key} className="workload-bars__col" style={{ "--i": Math.min(i, 5) }}>
             <span className="workload-bars__track">
               <span
-                className={`workload-bars__bar${day.key === heaviestKey ? " is-heaviest" : ""}`}
+                className={`workload-bars__bar${i === 0 ? " is-today" : ""}${day.key === heaviestKey ? " is-heaviest" : ""}`}
                 style={{ "--level": Math.max(totals[i] / tallest, BAR_MIN) }}
               />
             </span>
@@ -36,7 +36,7 @@ export default function WeekBars({ days, heaviestKey = null, size = "md", legend
       </div>
       {legend && (
         <ul className="workload-bars__legend" aria-hidden="true">
-          <li><span className="workload-bars__key is-heaviest" />Heaviest day</li>
+          <li><span className="workload-bars__key is-heaviest" />Heaviest</li>
           <li><span className="workload-bars__key is-today" />Today</li>
         </ul>
       )}

@@ -1,5 +1,5 @@
 /* WeekBars (Figma 16:96): seven 24px bars 8px apart (a fixed 216px box), 12 to 64px tall, 6px radius,
-   accent at 55% with the heaviest day in the watch tone. The labels under them are an addition so the
+   grey, today in the accent and the heaviest day in the watch tone. The labels under them are an addition so the
    days can be told apart. */
 @layer pages {
   .workload-bars {
@@ -24,15 +24,18 @@
     width: 100%;
     height: calc(var(--level) * var(--bar-h, 64px));
     border-radius: var(--radius-sm);
-    background: var(--accent);
-    opacity: 0.55;
+    background: color-mix(in srgb, var(--text-muted) 32%, transparent);
     transform-origin: bottom;
     animation: workload-bar-grow var(--dur-4) var(--ease-out) backwards;
     animation-delay: calc(var(--i) * var(--stagger));
   }
+  /* Only today is blue and only the heaviest day is brown; every other day stays a quiet grey.
+     The heaviest rule comes last, so it wins when today is also the heaviest. */
+  .workload-bars__bar.is-today {
+    background: var(--accent);
+  }
   .workload-bars__bar.is-heaviest {
     background: var(--watch);
-    opacity: 1;
   }
   .workload-bars__label {
     white-space: nowrap;
@@ -54,9 +57,6 @@
   }
   .workload-bars--lg .workload-bars__track {
     max-width: 44px;
-  }
-  .workload-bars--lg .workload-bars__bar {
-    opacity: 1;
   }
   .workload-bars--lg .workload-bars__label {
     display: flex;

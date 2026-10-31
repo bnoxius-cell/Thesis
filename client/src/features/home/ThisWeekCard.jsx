@@ -23,7 +23,9 @@ export default function ThisWeekCard({ work, tasks, now }) {
         <p className="home-card__empty">Add your classes or a task, and your week shows up here.</p>
       ) : (
         <>
-          <WeekBars days={week} heaviestKey={heaviest?.key ?? null} />
+          <div className="home-week__chart">
+            <WeekBars days={week} heaviestKey={heaviest?.key ?? null} legend />
+          </div>
           <p className="home-week__sentence">{heaviest ? `${heaviest.name} looks heaviest.` : reading.headline}</p>
           {progress.total > 0 && (
             <div className="home-week__progress">
