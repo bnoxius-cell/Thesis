@@ -19,3 +19,6 @@ export const fetchHolidays = (year) => request("get", `/api/schedules/holidays?y
 // True when the server itself said the timetable is gone or no longer shared. A bare 404 from a
 // proxy in the middle of a deploy is not an answer, so the caller keeps what it has.
 export const isTimetableGone = (res) => res.fromApi === true && [403, 404].includes(res.status);
+
+// The student's main timetable with its entries: { schedule } (null when they have none yet).
+export const fetchMainTimetable = () => request("get", "/api/schedules/main");

@@ -1,0 +1,260 @@
+/* Study hub (Figma 72:3 desktop, 75:799 phone, 78:1526 empty). Phone below 720px, the frame's
+   three-across grid where 300px columns fit. */
+@layer pages {
+  .study-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+  @media (min-width: 721px) {
+    .study-body {
+      gap: var(--space-6);
+    }
+  }
+  .study-skeleton {
+    border-radius: var(--radius-xl);
+  }
+  .study-failed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    color: var(--text-secondary);
+  }
+  .study-failed p {
+    margin: 0;
+  }
+
+  /* ---- Pick up where you left off ---- */
+  .study-hero {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border-radius: var(--radius-xl);
+    background: var(--accent-soft);
+  }
+  .study-hero__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+  }
+  .study-hero__rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .study-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-4);
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    color: inherit;
+    text-decoration: none;
+    transition: background-color var(--dur-2) var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .study-row:hover {
+      background: var(--surface-2);
+    }
+  }
+  .study-row__icon,
+  .study-row__open {
+    display: none;
+  }
+  .study-row__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .study-row__title {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .study-row__meta {
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  @media (min-width: 721px) {
+    .study-hero {
+      padding: var(--space-5);
+      gap: var(--space-4);
+    }
+    .study-hero__title {
+      font: 600 var(--text-xl) / 28px var(--font-ui);
+    }
+    .study-hero__rows {
+      gap: var(--space-3);
+    }
+    .study-row {
+      padding: var(--space-3) var(--space-4);
+      border-color: transparent;
+      border-radius: 16px;
+    }
+    .study-row__icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-lg);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .study-row__meta {
+      color: var(--text-secondary);
+    }
+    .study-row__open {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 20px;
+      border: 1px solid var(--border-input);
+      border-radius: var(--radius-pill);
+      color: var(--text-primary);
+      font: 600 var(--text-sm) / 20px var(--font-ui);
+    }
+  }
+
+  /* ---- Tabs: a full-width track on phones ---- */
+  @media (max-width: 720px) {
+    .study-tabs {
+      display: flex;
+      width: 100%;
+    }
+    .study-tabs .ui-tab {
+      flex: 1;
+    }
+  }
+
+  /* ---- Subject cards ---- */
+  .study-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+    gap: var(--space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .study-grid > li {
+    display: flex;
+  }
+  .study-subject {
+    flex: 1;
+    min-width: 0;
+    gap: var(--space-2);
+    padding: var(--space-4);
+  }
+  @media (min-width: 721px) {
+    .study-subject {
+      gap: var(--space-3);
+      padding: 20px;
+    }
+  }
+  .study-subject__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .study-subject__name {
+    min-width: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .study-dot {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-pill);
+  }
+  .study-dot--accent { background: var(--accent); }
+  .study-dot--good { background: var(--good); }
+  .study-dot--watch { background: var(--watch); }
+  .study-dot--neutral { background: var(--text-muted); }
+  .study-subject__meta,
+  .study-subject__counts {
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .study-subject__next {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .study-subject__next svg {
+    flex: none;
+  }
+  .study-subject__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: auto;
+  }
+  .study-subject__counts {
+    flex: 1;
+  }
+
+  /* ---- Empty Study (a new account) ---- */
+  .study-empty {
+    gap: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    background: var(--surface);
+    padding-inline: var(--space-4);
+  }
+  .study-empty .ui-empty__title {
+    font: 700 var(--text-3xl) / 1.2 var(--font-display);
+  }
+  .study-empty .ui-empty__text {
+    max-width: 480px;
+    font: 400 var(--text-md) / var(--text-md-lh) var(--font-ui);
+  }
+  @media (min-width: 721px) {
+    .study-empty {
+      gap: 20px;
+      padding-inline: var(--space-7);
+    }
+    .study-empty .ui-empty__title {
+      font: 700 42px / 48px var(--font-display);
+    }
+  }
+  .study-steps {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .study-steps li {
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-pill);
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .study-steps b {
+    color: var(--accent);
+    font-weight: 600;
+  }
+}
