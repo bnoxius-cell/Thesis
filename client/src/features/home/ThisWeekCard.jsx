@@ -14,7 +14,7 @@ export default function ThisWeekCard({ work, tasks, now }) {
   const progress = weekProgress(tasks, now);
 
   return (
-    <Card as="section" aria-labelledby="home-week">
+    <Card as="section" className="home-week" aria-labelledby="home-week">
       <header className="home-card__head">
         <span className="home-chip home-chip--soft" aria-hidden="true"><ChartColumn size={18} /></span>
         <h2 id="home-week" className="home-card__title">This week</h2>
