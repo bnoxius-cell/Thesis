@@ -21,3 +21,6 @@ export async function request(method, path, body) {
 }
 
 export const get = (path) => request("get", path);
+export const put = (path, body) => request("put", path, body);
+export const post = (path, body) => request("post", path, body);
+export const del = (path) => request("delete", path);
