@@ -23,3 +23,9 @@ export function reviewerMeta(reviewer) {
   const added = `added ${daysAgoText(reviewer.createdAt).toLowerCase()}`;
   return ["PDF", pages ? `${pages} page${pages === 1 ? "" : "s"}` : "", added].filter(Boolean).join(" · ");
 }
+
+// "PDF · 14 pages · Databases": what the reviewer was made from (Figma 76:1270).
+export function reviewerSourceLine(reviewer) {
+  const pages = reviewer.source?.pages;
+  return ["PDF", pages ? `${pages} page${pages === 1 ? "" : "s"}` : "", reviewer.course].filter(Boolean).join(" · ");
+}

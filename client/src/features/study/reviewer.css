@@ -1,0 +1,108 @@
+/* Reviewer page (Figma 76:1110). The notes are one reader card; phones get one column. */
+@layer pages {
+  .reviewer-body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+  @media (min-width: 721px) {
+    .reviewer-body {
+      gap: var(--space-5);
+    }
+  }
+  .reviewer-skeleton {
+    align-self: stretch;
+    border-radius: var(--radius-xl);
+  }
+  .reviewer-failed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    color: var(--text-secondary);
+  }
+  .reviewer-failed p {
+    margin: 0;
+  }
+
+  .reviewer-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+
+  .reviewer-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+    align-self: stretch;
+  }
+  .reviewer-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  /* ---- Reader ---- */
+  .reviewer-reader {
+    gap: var(--space-5);
+    min-width: 0;
+    padding: var(--space-5) var(--space-4);
+  }
+  @media (min-width: 721px) {
+    .reviewer-reader {
+      padding: 28px var(--space-6);
+    }
+  }
+  .reviewer-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .reviewer-section__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .reviewer-text {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .reviewer-points {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: 0;
+    padding-left: 20px;
+  }
+  .reviewer-terms {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+  }
+  .reviewer-terms dt {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .reviewer-terms dd {
+    margin: 0;
+  }
+
+  .reviewer-note {
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+}

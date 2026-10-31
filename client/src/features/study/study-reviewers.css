@@ -129,14 +129,6 @@
     }
   }
 
-  /* The status chip: a soft pulse while the reviewer is being made, then a one-off settle. */
-  .study-chip {
-    animation: study-chip-settle var(--dur-3) var(--ease-out);
-  }
-  .study-chip--busy {
-    animation: ui-pulse 1.2s ease-in-out infinite alternate;
-  }
-
   /* ---- Drop zone ---- */
   .study-drop {
     position: relative;
