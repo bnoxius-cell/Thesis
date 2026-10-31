@@ -3,9 +3,11 @@ import { CalendarDays, ListChecks } from "lucide-react";
 import { Button, EmptyState, Skeleton } from "@/shared/ui";
 import Page from "@/app/shell/Page";
 import { useAuth } from "@/pages/authentication/AuthContext";
+import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import useNow from "@/shared/hooks/useNow";
 import { profileFromUser } from "@/features/workload/useWorkload";
 import useTaskDone from "@/features/tasks/useTaskDone";
+import PhoneWeek from "./PhoneWeek";
 import PlanControls from "./PlanControls";
 import WeekGrid from "./WeekGrid";
 import { buildPlanDays } from "./planDays";
@@ -20,7 +22,8 @@ const COMING = {
   tasks: { icon: ListChecks, text: "The task list is coming soon. Your tasks sit under their due day in Week view for now." },
 };
 
-// Plan (Figma 38:3): the week's classes and tasks. The view, the week and the timetable live in the
+// Plan (Figma 38:3 desktop, 40:387 phone): the week's classes and tasks, as seven columns from 1024px
+// and a day strip with one day's agenda below that. The view, the week and the timetable live in the
 // URL (planParams.js), so a reload or a shared link lands on the same screen.
 export default function PlanPage() {
   const { userData } = useAuth();
@@ -30,6 +33,9 @@ export default function PlanPage() {
   const setDone = useTaskDone(data.setTasks);
   // Which way the week was last stepped, so the new one slides in from that side.
   const [direction, setDirection] = useState("none");
+  // The day the phone agenda shows; until one is tapped it follows today (or Monday in another week).
+  const [pickedKey, setPickedKey] = useState(null);
+  const sevenColumns = useMediaQuery("(min-width: 1024px)");
 
   const profile = useMemo(() => profileFromUser(userData), [userData]);
   const days = useMemo(
@@ -39,6 +45,8 @@ export default function PlanPage() {
     [params.weekStart, data.overview, data.tasks, data.subjectsById, profile, now],
   );
 
+  const weekKey = params.weekStart.getTime();
+  const selected = days.find((day) => day.key === pickedKey) ?? days.find((day) => day.isToday) ?? days[0];
   const nothingPlanned = days.every((day) => !day.holiday && day.entries.length === 0 && day.tasks.length === 0);
 
   const shiftWeek = (weeks) => {
@@ -47,6 +55,7 @@ export default function PlanPage() {
   };
   const goToday = () => {
     setDirection(params.weekStart > now ? "prev" : "next");
+    setPickedKey(null);
     params.goToday();
   };
 
@@ -77,7 +86,19 @@ export default function PlanPage() {
           )}
           {data.status === "ready" && (
             <>
-              <WeekGrid key={params.weekStart.getTime()} days={days} now={now} onToggle={setDone} direction={direction} />
+              {sevenColumns ? (
+                <WeekGrid key={weekKey} days={days} now={now} onToggle={setDone} direction={direction} />
+              ) : (
+                <PhoneWeek
+                  key={weekKey}
+                  days={days}
+                  selected={selected}
+                  onSelect={setPickedKey}
+                  now={now}
+                  onToggle={setDone}
+                  direction={direction}
+                />
+              )}
               {nothingPlanned && <p className="plan-quiet">Nothing is planned for this week yet.</p>}
             </>
           )}

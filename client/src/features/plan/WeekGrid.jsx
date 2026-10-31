@@ -8,7 +8,7 @@ import TaskChip from "./TaskChip";
 // the week was stepped, so the new week slides in from that side.
 export default function WeekGrid({ days, now, onToggle, direction }) {
   return (
-    <ol className="plan-grid" data-direction={direction} aria-label="This week by day">
+    <ol className="plan-grid plan-slide" data-direction={direction} aria-label="This week by day">
       {days.map((day) => (
         <li key={day.key} className={`plan-col${day.isToday ? " is-today" : ""}`} aria-label={day.label} aria-current={day.isToday ? "date" : undefined}>
           <header className="plan-col__head">

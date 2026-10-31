@@ -16,7 +16,13 @@
       margin-bottom: var(--space-5);
     }
   }
-  /* The segment fills the row on phones and is a fixed 232px on desktop (equal thirds, as drawn). */
+  /* The segment fills the row on phones (44px options, as drawn) and is a fixed 232px on desktop
+     (equal thirds). */
+  @media (max-width: 1023px) {
+    .plan-views .ui-segment__option {
+      min-height: 44px;
+    }
+  }
   @media (min-width: 1024px) {
     .plan-views {
       flex: none;
@@ -121,13 +127,17 @@
     border-radius: var(--radius-xl);
     background: var(--surface);
     box-shadow: var(--shadow-1);
+  }
+
+  /* A week arriving (the grid, or the phone strip and agenda): from the side it was stepped to. */
+  .plan-slide {
     animation: plan-week-in var(--dur-3) var(--ease-out) backwards;
   }
-  .plan-grid[data-direction="next"] {
+  .plan-slide[data-direction="next"] {
     --plan-from: 16px;
     --plan-rise: 0px;
   }
-  .plan-grid[data-direction="prev"] {
+  .plan-slide[data-direction="prev"] {
     --plan-from: -16px;
     --plan-rise: 0px;
   }
@@ -340,5 +350,145 @@
   .plan-dayoff__name {
     font: 400 var(--text-sm) / 20px var(--font-ui);
     color: var(--text-primary);
+  }
+
+  /* ---- Phone and tablet: day strip and agenda (Figma 40:387) ---- */
+  .plan-phone {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .plan-strip {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: var(--space-1);
+    box-sizing: border-box;
+    padding: var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+  }
+  /* The pill under the chosen day: one day wide, moved with transform only. */
+  .plan-strip__thumb {
+    position: absolute;
+    z-index: 0;
+    top: var(--space-2);
+    bottom: var(--space-2);
+    left: var(--space-2);
+    width: calc((100% - 2 * var(--space-2) - 6 * var(--space-1)) / 7);
+    border-radius: var(--radius-lg);
+    background: var(--accent);
+    transform: translateX(calc(var(--index) * (100% + var(--space-1))));
+    transition: transform var(--dur-3) var(--ease-out);
+  }
+  .plan-strip__day {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    box-sizing: border-box;
+    width: auto;
+    min-height: 72px;
+    margin: 0;
+    padding: var(--space-2) 0;
+    border: 0;
+    border-radius: var(--radius-lg);
+    background: transparent;
+    box-shadow: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform var(--dur-1) var(--ease-out);
+  }
+  .plan-strip__day:active {
+    transform: scale(0.97);
+  }
+  .plan-strip__day:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .plan-strip__letter {
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-muted);
+  }
+  .plan-strip__num {
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+  }
+  .plan-strip__day .plan-dot {
+    width: 6px;
+    height: 6px;
+  }
+  .plan-strip__day.is-today .plan-strip__letter,
+  .plan-strip__day.is-today .plan-strip__num {
+    color: var(--accent);
+  }
+  .plan-strip__day[aria-selected="true"] .plan-strip__letter,
+  .plan-strip__day[aria-selected="true"] .plan-strip__num {
+    color: var(--on-accent);
+  }
+  .plan-strip__day[aria-selected="true"] .plan-dot {
+    background: var(--on-accent);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .plan-strip__day[aria-selected="false"]:hover {
+      background: var(--surface-2);
+    }
+  }
+
+  .plan-agenda {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .plan-agenda__head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .plan-agenda__title {
+    margin: 0;
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .plan-agenda__empty {
+    margin: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-secondary);
+  }
+  .plan-agenda__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .plan-agenda .plan-entry,
+  .plan-agenda .plan-dayoff {
+    border-radius: var(--radius-lg);
+  }
+  .plan-agenda .plan-entry__text,
+  .plan-agenda .plan-dayoff {
+    padding: var(--space-3);
+  }
+  .plan-task.is-roomy {
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 56px;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
+  }
+  .plan-task.is-roomy .plan-task__title {
+    font-weight: 500;
   }
 }
