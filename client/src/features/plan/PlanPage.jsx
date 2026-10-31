@@ -1,20 +1,24 @@
 import { useCallback, useMemo, useState } from "react";
-import { CalendarDays, ListChecks } from "lucide-react";
 import { toast } from "react-toastify";
-import { Button, EmptyState, Skeleton } from "@/shared/ui";
+import { Button, Skeleton } from "@/shared/ui";
 import Page from "@/app/shell/Page";
 import { useAuth } from "@/pages/authentication/AuthContext";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import useNow from "@/shared/hooks/useNow";
+import { monthOfWeek, toISODate } from "@/utils/scheduleUtils";
 import { profileFromUser } from "@/features/workload/useWorkload";
 import useTaskDone from "@/features/tasks/useTaskDone";
+import MonthGrid from "./MonthGrid";
 import PhoneWeek from "./PhoneWeek";
 import PlanControls from "./PlanControls";
 import WeekGrid from "./WeekGrid";
+import { buildMonthRows } from "./monthDays";
 import { buildPlanDays } from "./planDays";
+import TasksView from "./TasksView";
 import TimetableSwitcher from "./TimetableSwitcher";
 import { usePlanParams } from "./planParams";
 import usePlanData from "./usePlanData";
+import useMonthData from "./useMonthData";
 import useTimetables from "./useTimetables";
 import "./plan.css";
 
@@ -22,13 +26,11 @@ const DATE_FORMAT = { weekday: "long", month: "short", day: "numeric" };
 
 const TIMETABLE_GONE = "That timetable isn't available anymore. It may have been deleted or is no longer shared with you.";
 
-const COMING = {
-  month: { icon: CalendarDays, text: "The month view is coming soon. Your classes and tasks are in Week view for now." },
-  tasks: { icon: ListChecks, text: "The task list is coming soon. Your tasks sit under their due day in Week view for now." },
-};
+const MONTH_LABEL = { month: "long", year: "numeric" };
 
 // Plan (Figma 38:3 desktop, 40:387 phone): the week's classes and tasks, as seven columns from 1024px
-// and a day strip with one day's agenda below that. The view, the week and the timetable live in the
+// and a day strip with one day's agenda below that. Month (38:234) is the month grid and Tasks
+// (38:276) is every task in groups. The view, the week and the timetable live in the
 // URL (planParams.js), so a reload or a shared link lands on the same screen.
 export default function PlanPage() {
   const { userData } = useAuth();
@@ -41,7 +43,11 @@ export default function PlanPage() {
     toast.error(TIMETABLE_GONE, { toastId: "plan-timetable-gone" });
     setTimetable(null);
   }, [setTimetable]);
-  const data = usePlanData(params.weekStart, params.timetable, leaveTimetable);
+  const view = params.view;
+  // Month and Tasks always read the student's own plan; a timetable only applies to Week view.
+  const data = usePlanData(params.weekStart, view === "week" ? params.timetable : null, leaveTimetable);
+  const month = monthOfWeek(params.weekStart);
+  const monthData = useMonthData(month, view === "month");
   const setDone = useTaskDone(data.setTasks);
   // Which way the week was last stepped, so the new one slides in from that side.
   const [direction, setDirection] = useState("none");
@@ -62,9 +68,29 @@ export default function PlanPage() {
   const selected = days.find((day) => day.key === pickedKey) ?? days.find((day) => day.isToday) ?? days[0];
   const nothingPlanned = days.every((day) => !day.holiday && day.entries.length === 0 && day.tasks.length === 0);
 
-  const shiftWeek = (weeks) => {
-    setDirection(weeks > 0 ? "next" : "prev");
-    params.shiftWeek(weeks);
+  const monthRows = useMemo(
+    () => buildMonthRows({ month, overviews: monthData.overviews, tasks: data.tasks, subjectsById: data.subjectsById, now }),
+    [month, monthData.overviews, data.tasks, data.subjectsById, now],
+  );
+
+  // The arrows step by the unit of the open view.
+  const shift = (steps) => {
+    setDirection(steps > 0 ? "next" : "prev");
+    if (view === "month") params.shiftMonth(steps);
+    else params.shiftWeek(steps);
+  };
+  const openDay = (date) => {
+    setPickedKey(toISODate(date));
+    params.openWeek(date);
+  };
+
+  // The page waits for what the open view reads: tasks and subjects always, the month's weeks in Month.
+  const failed = data.status === "failed" || (view === "month" && monthData.status === "failed");
+  const loading = !failed && (data.status === "loading" || (view === "month" && monthData.status === "loading"));
+  const ready = !loading && !failed;
+  const retry = () => {
+    if (data.status === "failed") data.reload();
+    if (view === "month" && monthData.status === "failed") monthData.reload();
   };
   const goToday = () => {
     setDirection(params.weekStart > now ? "prev" : "next");
@@ -75,14 +101,14 @@ export default function PlanPage() {
   return (
     <Page title="Plan" subtitle={now.toLocaleDateString("en-US", DATE_FORMAT)}>
       <PlanControls
-        view={params.view}
+        view={view}
         onView={params.setView}
         weekStart={params.weekStart}
         now={now}
-        onShift={shiftWeek}
+        onShift={shift}
         onToday={goToday}
       >
-        {params.view === "week" && (
+        {view === "week" && (
           <TimetableSwitcher
             timetableId={params.timetable}
             timetables={timetables.timetables}
@@ -92,40 +118,46 @@ export default function PlanPage() {
           />
         )}
       </PlanControls>
-      {params.view !== "week" ? (
-        <EmptyState icon={COMING[params.view].icon} title="On its way">{COMING[params.view].text}</EmptyState>
-      ) : (
+      {loading && (
+        <div role="status" aria-label="Loading your plan">
+          <Skeleton className="plan-skeleton" height="480px" />
+        </div>
+      )}
+      {failed && (
+        <div className="plan-failed" role="alert">
+          <p>{data.error || monthData.error}</p>
+          <Button variant="secondary" onClick={retry}>Try again</Button>
+        </div>
+      )}
+      {ready && view === "month" && (
+        <MonthGrid
+          key={month.getTime()}
+          rows={monthRows}
+          label={month.toLocaleDateString("en-US", MONTH_LABEL)}
+          onOpen={openDay}
+          direction={direction}
+        />
+      )}
+      {ready && view === "tasks" && (
+        <TasksView tasks={data.tasks} subjectsById={data.subjectsById} now={now} onToggle={setDone} />
+      )}
+      {ready && view === "week" && (
         <>
-          {data.status === "loading" && (
-            <div role="status" aria-label="Loading your week">
-              <Skeleton className="plan-skeleton" height="480px" />
-            </div>
+          {sevenColumns ? (
+            <WeekGrid key={weekKey} days={days} now={now} onToggle={setDone} direction={direction} />
+          ) : (
+            <PhoneWeek
+              key={weekKey}
+              days={days}
+              selected={selected}
+              onSelect={setPickedKey}
+              now={now}
+              onToggle={setDone}
+              direction={direction}
+            />
           )}
-          {data.status === "failed" && (
-            <div className="plan-failed" role="alert">
-              <p>{data.error}</p>
-              <Button variant="secondary" onClick={data.reload}>Try again</Button>
-            </div>
-          )}
-          {data.status === "ready" && (
-            <>
-              {sevenColumns ? (
-                <WeekGrid key={weekKey} days={days} now={now} onToggle={setDone} direction={direction} />
-              ) : (
-                <PhoneWeek
-                  key={weekKey}
-                  days={days}
-                  selected={selected}
-                  onSelect={setPickedKey}
-                  now={now}
-                  onToggle={setDone}
-                  direction={direction}
-                />
-              )}
-              {data.holidayError && <p className="plan-quiet">{data.holidayError}</p>}
-              {nothingPlanned && <p className="plan-quiet">Nothing is planned for this week yet.</p>}
-            </>
-          )}
+          {data.holidayError && <p className="plan-quiet">{data.holidayError}</p>}
+          {nothingPlanned && <p className="plan-quiet">Nothing is planned for this week yet.</p>}
         </>
       )}
     </Page>

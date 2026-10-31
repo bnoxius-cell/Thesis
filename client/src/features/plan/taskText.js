@@ -3,7 +3,7 @@ import { dueWords } from "@/shared/lib/dueChip";
 import { effortLabel } from "@/shared/lib/effort";
 
 // The weekday a task was due on, or the date once that is more than a week ago.
-function dueDay(dueIso, now) {
+export function dueDay(dueIso, now) {
   const daysAgo = Math.round((fromISODate(toISODate(now)) - fromISODate(dueIso)) / 86400000);
   return fromISODate(dueIso).toLocaleDateString("en-US", daysAgo < 7 ? { weekday: "short" } : { month: "short", day: "numeric" });
 }

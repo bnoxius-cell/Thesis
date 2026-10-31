@@ -10,7 +10,7 @@ const minutes = (hhmm) => {
 
 // Classes take their subject's tone when the title matches a subject's name or code (timetable
 // entries carry no subject id); every other kind of entry reads as neutral. Exams draw themselves.
-function withLook(entry, subjects) {
+export function withLook(entry, subjects) {
   const subject = entry.kind === "class" ? subjectForLabel(entry.title, subjects) : null;
   return {
     ...entry,

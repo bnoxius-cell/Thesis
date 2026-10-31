@@ -1,0 +1,140 @@
+/* Plan, Tasks view (Figma 38:276): every task in groups. One column on phones and tablets; from
+   1280px Later and Done move to a 380px column beside the rest. */
+@layer pages {
+  .plan-tasks {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+    align-items: start;
+  }
+  @media (min-width: 1280px) {
+    .plan-tasks {
+      grid-template-columns: minmax(0, 1fr) 380px;
+    }
+  }
+  .plan-tasks__main,
+  .plan-tasks__side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+
+  /* Overdue and Today share one tinted panel, as drawn. */
+  .plan-tasks__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding: var(--space-4);
+    border-radius: var(--radius-xl);
+    background: var(--accent-soft);
+    box-shadow: var(--shadow-1);
+  }
+  @media (min-width: 768px) {
+    .plan-tasks__panel {
+      padding: 20px;
+    }
+  }
+
+  /* ---- A group ---- */
+  .plan-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+  .plan-group__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .plan-group__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+  }
+  .plan-group__note {
+    color: var(--text-muted);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .plan-group__rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* ---- A task row ---- */
+  .plan-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--space-3);
+    row-gap: var(--space-2);
+    box-sizing: border-box;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+  }
+  .plan-row.is-overdue {
+    border-color: var(--danger);
+  }
+  .plan-row.is-overdue .tasks-check:not(.is-checked) svg {
+    border-color: var(--danger);
+  }
+  .plan-row__text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .plan-row__title,
+  .plan-row__subject {
+    margin: 0;
+  }
+  .plan-row__title {
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+  .plan-row.is-done .plan-row__title {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+  .plan-row__subject {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-1);
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .plan-row__dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+  .plan-row__dot--accent { background: var(--accent); }
+  .plan-row__dot--good { background: var(--good); }
+  .plan-row__dot--watch { background: var(--watch); }
+
+  /* The chips sit under the text on a phone and at the row's end from 640px. */
+  .plan-row__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    grid-column: 2;
+  }
+  @media (min-width: 640px) {
+    .plan-row {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+    .plan-row__chips {
+      grid-column: auto;
+      justify-content: flex-end;
+    }
+  }
+}

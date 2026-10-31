@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button, IconButton, Segment } from "@/shared/ui";
+import { monthOfWeek } from "@/utils/scheduleUtils";
 import { weekRange, weekTitle } from "./weekLabel";
 
 const VIEWS = [
@@ -8,21 +9,30 @@ const VIEWS = [
   { value: "tasks", label: "Tasks" },
 ];
 
-// The row under the page title (Figma 38:3, 40:387): the view switch and, in Week view, the date
-// stepper with a Today button. The Filter button is not built (nothing to filter by yet). `children`
+const MONTH_FORMAT = { month: "long", year: "numeric" };
+
+// The row under the page title (Figma 38:3, 38:234, 40:387): the view switch and, in Week and Month
+// view, the date stepper with a Today button. Week steps by week and shows "This week, Oct 27 - Nov 2";
+// Month steps by month and shows "October 2026". `onShift(-1 | 1)` steps by that view's unit. The Filter button is not built (nothing to filter by yet). `children`
 // is the slot at the end of the row, where Week view puts the timetable switcher.
 export default function PlanControls({ view, onView, weekStart, now, onShift, onToday, children }) {
   return (
     <div className="plan-controls">
       <Segment className="plan-views" label="View" options={VIEWS} value={view} onChange={onView} />
-      {view === "week" && (
+      {view !== "tasks" && (
         <div className="plan-step">
-          <IconButton className="plan-step__btn" icon={ChevronLeft} label="Previous week" onClick={() => onShift(-1)} />
+          <IconButton className="plan-step__btn" icon={ChevronLeft} label={`Previous ${view}`} onClick={() => onShift(-1)} />
           <p className="plan-step__range" aria-live="polite">
-            <strong>{weekTitle(weekStart, now)}</strong>
-            <span>{weekRange(weekStart, now)}</span>
+            {view === "week" ? (
+              <>
+                <strong>{weekTitle(weekStart, now)}</strong>
+                <span>{weekRange(weekStart, now)}</span>
+              </>
+            ) : (
+              <strong>{monthOfWeek(weekStart).toLocaleDateString("en-US", MONTH_FORMAT)}</strong>
+            )}
           </p>
-          <IconButton className="plan-step__btn" icon={ChevronRight} label="Next week" onClick={() => onShift(1)} />
+          <IconButton className="plan-step__btn" icon={ChevronRight} label={`Next ${view}`} onClick={() => onShift(1)} />
           <Button variant="secondary" className="plan-step__today" onClick={onToday}>Today</Button>
         </div>
       )}

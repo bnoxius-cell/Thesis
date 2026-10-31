@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { addDays, fromISODate, startOfWeek, toISODate } from "@/utils/scheduleUtils";
+import { addDays, fromISODate, monthOfWeek, monthWeeks, startOfWeek, toISODate } from "@/utils/scheduleUtils";
 
 export const PLAN_VIEWS = ["week", "month", "tasks"];
 
@@ -33,6 +33,12 @@ function withParam(searchParams, key, value) {
   return next;
 }
 
+// The ?week= value for a Monday: nothing for the current week, which is the default.
+const weekValue = (weekStart) => {
+  const iso = toISODate(weekStart);
+  return iso === toISODate(startOfWeek(new Date())) ? null : iso;
+};
+
 // The Plan page's view, week and timetable, read from and written to the URL (one source of truth,
 // so a reload or a shared link lands on the same screen). Week steps replace the history entry so
 // Back leaves the page instead of walking through weeks.
@@ -46,13 +52,24 @@ export function usePlanParams() {
 
   // `weekStart` is a Monday; the current week is the default, so it leaves no ?week= behind.
   const setWeekStart = useCallback((weekStart) => {
-    const isCurrent = toISODate(weekStart) === toISODate(startOfWeek(new Date()));
-    setSearchParams((prev) => withParam(prev, "week", isCurrent ? null : toISODate(weekStart)), { replace: true });
+    setSearchParams((prev) => withParam(prev, "week", weekValue(weekStart)), { replace: true });
   }, [setSearchParams]);
 
   const shiftWeek = useCallback((weeks) => {
     setWeekStart(addDays(params.weekStart, weeks * 7));
   }, [params.weekStart, setWeekStart]);
+
+  // Month view steps by month: the shown week becomes the first week of the month before or after
+  // (the month on show is the one the shown week belongs to, so the URL needs no month of its own).
+  const shiftMonth = useCallback((months) => {
+    const shown = monthOfWeek(params.weekStart);
+    setWeekStart(monthWeeks(new Date(shown.getFullYear(), shown.getMonth() + months, 1))[0]);
+  }, [params.weekStart, setWeekStart]);
+
+  // Opens the week a day of the month grid belongs to, in Week view.
+  const openWeek = useCallback((date) => {
+    setSearchParams((prev) => withParam(withParam(prev, "view", null), "week", weekValue(startOfWeek(date))));
+  }, [setSearchParams]);
 
   const goToday = useCallback(() => setWeekStart(startOfWeek(new Date())), [setWeekStart]);
 
@@ -60,5 +77,5 @@ export function usePlanParams() {
     setSearchParams((prev) => withParam(prev, "timetable", id), { replace: true });
   }, [setSearchParams]);
 
-  return { ...params, setView, shiftWeek, goToday, setTimetable };
+  return { ...params, setView, shiftWeek, shiftMonth, openWeek, goToday, setTimetable };
 }
