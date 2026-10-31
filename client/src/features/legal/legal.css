@@ -1,0 +1,83 @@
+/* Terms and Privacy text, and the consent dialog. Plain reading layout; no Figma frame. */
+@layer pages {
+  .legal {
+    color: var(--text-secondary);
+    font: 400 var(--text-md) / 1.6 var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .legal h1 {
+    margin: 0;
+    color: var(--text-primary);
+    font: 700 var(--text-3xl) / var(--text-3xl-lh) var(--font-ui);
+  }
+  .legal h2 {
+    margin: var(--space-6) 0 var(--space-2);
+    color: var(--text-primary);
+    font: 700 var(--text-xl) / var(--text-xl-lh) var(--font-ui);
+    scroll-margin-top: var(--space-5);
+  }
+  .legal p,
+  .legal ul {
+    margin: 0 0 var(--space-3);
+  }
+  .legal ul {
+    padding-left: var(--space-5);
+  }
+  .legal li + li {
+    margin-top: var(--space-1);
+  }
+  .legal a {
+    color: var(--accent);
+    text-underline-offset: 2px;
+  }
+  .legal__back {
+    margin: 0 0 var(--space-3) calc(-1 * var(--space-4));
+  }
+  .legal__head {
+    margin-bottom: var(--space-4);
+  }
+  .legal__head p {
+    margin-top: var(--space-2);
+  }
+  .legal__updated {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+  }
+
+  /* TermsGate: the checkbox row. A bare <label> is a column flex in the legacy CSS, so say it all. */
+  .legal-gate__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    margin: var(--space-3) 0;
+    padding: 0;
+    list-style: none;
+  }
+  .legal-gate__links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .legal-gate__check {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / 1.4 var(--font-ui);
+    cursor: pointer;
+  }
+  .legal-gate__check input {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: var(--accent);
+  }
+}

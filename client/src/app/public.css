@@ -1,0 +1,35 @@
+/* PublicLayout: logo bar and a 720px reading column. */
+@layer components {
+  .shell-public {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--bg-app);
+  }
+  .shell-public__bar {
+    box-sizing: border-box;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: var(--space-3) max(var(--space-4), env(safe-area-inset-right)) 0
+      max(var(--space-4), env(safe-area-inset-left));
+  }
+  .shell-public__logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    color: var(--text-primary);
+    font: 700 var(--text-xl) / 1 var(--font-ui);
+    text-decoration: none;
+  }
+  .shell-public__logo img {
+    display: block;
+    width: 32px;
+    height: 32px;
+  }
+  .shell-public__logo-accent {
+    color: var(--brand); /* the logo is one of the few places red is allowed */
+  }
+  .shell-public__main {
+    max-width: 720px;
+  }
+}

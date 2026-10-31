@@ -1,0 +1,52 @@
+/* The layouts around every page (AppLayout, FocusLayout, PublicLayout). F4 and F5 add the sidebar and
+   phone bars next to these rules. */
+@layer components {
+  .shell-app {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--bg-app);
+  }
+  .shell-main {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--content-max);
+    margin: 0 auto;
+    padding: var(--space-5) max(var(--space-4), env(safe-area-inset-right)) var(--space-6)
+      max(var(--space-4), env(safe-area-inset-left));
+  }
+  /* Page arrival (motion.md). "backwards" drops the transform afterwards, so the page never becomes
+     the containing block for a position: fixed child. Skipped while the skeleton shows. */
+  .shell-page {
+    animation: page-in var(--dur-3) var(--ease-out) backwards;
+  }
+  .shell-page:has(> .shell-fallback) {
+    animation: none;
+  }
+  .shell-main--focus {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--bg-app);
+  }
+  .shell-main:focus,
+  .shell-main:focus-visible {
+    outline: none; /* focus lands here on purpose; it is not a control */
+  }
+  @media (min-width: 721px) {
+    .shell-main {
+      padding-inline: var(--space-6);
+    }
+  }
+
+  .shell-fallback {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .shell-placeholder__title {
+    margin: 0 0 var(--space-4);
+    font: 700 var(--text-2xl) / var(--text-2xl-lh) var(--font-ui);
+    color: var(--text-primary);
+  }
+}
