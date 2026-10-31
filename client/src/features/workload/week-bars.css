@@ -18,12 +18,12 @@
     align-items: flex-end;
     width: 100%;
     max-width: 32px;
-    height: 64px;
+    height: var(--bar-h, 64px);
   }
   .workload-bars__bar {
     display: block;
     width: 100%;
-    height: calc(var(--level) * 64px);
+    height: calc(var(--level) * var(--bar-h, 64px));
     border-radius: var(--radius-sm);
     background: var(--accent);
     opacity: 0.55;
@@ -42,5 +42,74 @@
   .workload-bars__label.is-today {
     font-weight: 600;
     color: var(--text-primary);
+  }
+
+  /* The Wellbeing chart (Figma 51:2, 52:117): 44px bars up to 120px tall at full strength, today's
+     label as an accent pill, and the key underneath. On phones the seven columns share the width. */
+  .workload-bars--lg {
+    --bar-h: 120px;
+    grid-template-columns: repeat(7, 44px);
+    gap: var(--space-3);
+    max-width: none;
+  }
+  .workload-bars--lg .workload-bars__track {
+    max-width: 44px;
+  }
+  .workload-bars--lg .workload-bars__bar {
+    opacity: 1;
+  }
+  .workload-bars--lg .workload-bars__label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 24px;
+    border-radius: var(--radius-pill);
+    color: var(--text-secondary);
+  }
+  .workload-bars--lg .workload-bars__label.is-today {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  @media (max-width: 720px) {
+    .workload-bars--lg {
+      --bar-h: 96px;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: var(--space-1);
+    }
+    .workload-bars--lg .workload-bars__track {
+      max-width: 36px;
+    }
+    .workload-bars--lg .workload-bars__label {
+      min-width: 0;
+      width: 100%;
+      max-width: 44px;
+    }
+  }
+
+  .workload-bars__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-secondary);
+  }
+  .workload-bars__legend li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .workload-bars__key {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+  }
+  .workload-bars__key.is-heaviest {
+    background: var(--watch);
   }
 }

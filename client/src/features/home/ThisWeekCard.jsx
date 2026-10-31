@@ -2,10 +2,8 @@ import { Link } from "react-router-dom";
 import { ChartColumn } from "lucide-react";
 import { Card, Chip, ProgressBar } from "@/shared/ui";
 import WeekBars from "@/features/workload/WeekBars";
+import { BAND_TONE } from "@/features/workload/bandTone";
 import { weekProgress } from "@/features/workload/weekProgress";
-
-// Light and steady weeks read as good news, full ones as worth a look. Never red.
-const BAND_TONE = { light: "good", steady: "good", full: "watch", over: "watch" };
 
 // This week (Figma 16:89): the band, seven bars, one sentence, how many tasks due this week are done,
 // the workload note and a way into the details. A new account sees one line instead.

@@ -1,0 +1,439 @@
+/* Wellbeing (Figma 51:2 desktop, 52:117 phone, 53:170 Why open, 53:459 new account). One column of
+   cards. The hero is the page's one ambient layer (motion.css). Phones switch at 720px, the same
+   point WeekBars uses for its narrow chart. */
+@layer pages {
+  .wellbeing-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+  @media (max-width: 720px) {
+    .wellbeing-stack {
+      gap: var(--space-5);
+    }
+  }
+  .wellbeing-skeleton {
+    border-radius: var(--radius-xl);
+  }
+  .wellbeing-failed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    color: var(--text-secondary);
+  }
+  .wellbeing-failed p {
+    margin: 0;
+  }
+
+  /* Anchors for the sidebar links sit below the sticky header. */
+  #load,
+  #feeling,
+  #sleep {
+    scroll-margin-top: calc(var(--space-7) + var(--space-5) + env(safe-area-inset-top, 0px));
+  }
+
+  /* ---- Shared bits ---- */
+  .wellbeing-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .wellbeing-chip--surface {
+    background: var(--surface);
+  }
+  .wellbeing-eyebrow {
+    margin: 0;
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .wellbeing-section-heading {
+    margin: 0;
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .wellbeing-section-title {
+    margin: 0;
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+    color: var(--text-primary);
+  }
+
+  /* ---- Hero: this week's load ---- */
+  .wellbeing-hero {
+    gap: var(--space-4);
+    padding: var(--space-5);
+    background: var(--accent-soft);
+    border-color: transparent;
+  }
+  @media (max-width: 720px) {
+    .wellbeing-hero {
+      padding: var(--space-4);
+    }
+  }
+  .wellbeing-hero__head {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .wellbeing-hero__heading {
+    margin: 0;
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .wellbeing-hero__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "text chart"
+      "note chart";
+    column-gap: var(--space-6);
+    row-gap: var(--space-3);
+  }
+  @media (max-width: 720px) {
+    .wellbeing-hero__body {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: none;
+      grid-template-areas:
+        "text"
+        "chart"
+        "note";
+      row-gap: var(--space-4);
+    }
+  }
+  .wellbeing-hero__text {
+    grid-area: text;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  @media (max-width: 720px) {
+    .wellbeing-hero__text {
+      gap: var(--space-2);
+    }
+  }
+  .wellbeing-hero__title {
+    margin: 0;
+    font: 600 var(--text-2xl) / 32px var(--font-ui);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .wellbeing-hero__detail {
+    margin: 0;
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+  }
+  .wellbeing-hero__chart {
+    grid-area: chart;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+  .wellbeing-hero__note {
+    grid-area: note;
+    margin: 0;
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-muted);
+  }
+
+  /* New account (53:459): one line and seven empty stubs where the bars will draw. */
+  .wellbeing-empty {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-6);
+    padding-block: var(--space-4);
+  }
+  .wellbeing-empty .wellbeing-hero__title {
+    flex: 1;
+    min-width: 0;
+  }
+  .wellbeing-empty__stubs {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-3);
+  }
+  .wellbeing-empty__stubs span {
+    width: 44px;
+    height: 8px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+  }
+  @media (max-width: 720px) {
+    .wellbeing-empty {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-4);
+      padding-block: var(--space-2);
+    }
+    .wellbeing-empty__stubs {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: var(--space-1);
+    }
+    .wellbeing-empty__stubs span {
+      width: 100%;
+      max-width: 44px;
+      justify-self: center;
+    }
+  }
+
+  /* ---- Why ---- */
+  .wellbeing-why {
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border);
+  }
+  .wellbeing-why__toggle {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    width: auto;
+    min-height: 44px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    color: var(--accent);
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wellbeing-why__toggle svg {
+    transition: transform var(--dur-2) var(--ease-out);
+  }
+  .wellbeing-why__toggle[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .wellbeing-why__toggle:hover {
+      color: var(--accent-hover);
+    }
+  }
+  .wellbeing-why__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .wellbeing-reason {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+  }
+  .wellbeing-reason__text {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 200px;
+    min-width: 0;
+  }
+  .wellbeing-reason__text strong {
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .wellbeing-reason__text span {
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+  .wellbeing-reason__actions {
+    display: flex;
+    flex: none;
+    gap: var(--space-2);
+  }
+
+  /* ---- How you've been (W2 fills the cards) ---- */
+  .wellbeing-feeling {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .wellbeing-feeling__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .wellbeing-feeling__head p {
+    margin: 0;
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-muted);
+  }
+
+  /* ---- Sleep ---- */
+  .wellbeing-sleep {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-5);
+    padding: var(--space-5);
+  }
+  .wellbeing-sleep__tonight {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+  .wellbeing-sleep__headline {
+    margin: 0;
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .wellbeing-sleep__note {
+    margin: 0;
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+  .wellbeing-sleep__window {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .wellbeing-time {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+  .wellbeing-time svg {
+    color: var(--accent);
+  }
+  .wellbeing-sleep__target {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .wellbeing-sleep__bar {
+    width: 160px;
+    height: 8px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+  }
+  @media (max-width: 720px) {
+    .wellbeing-sleep {
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: var(--space-4) var(--space-3);
+      padding: var(--space-4);
+    }
+    .wellbeing-sleep__window {
+      grid-column: 1 / -1;
+      gap: var(--space-2);
+    }
+    .wellbeing-sleep__target {
+      flex: 1;
+      min-width: 0;
+    }
+    .wellbeing-sleep__bar {
+      width: 100%;
+    }
+  }
+
+  /* ---- Your rhythm ---- */
+  .wellbeing-rhythm {
+    gap: var(--space-4);
+    padding: var(--space-5);
+  }
+  .wellbeing-rhythm__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  @media (max-width: 720px) {
+    .wellbeing-rhythm {
+      padding: var(--space-4);
+    }
+  }
+
+  /* ---- How this works ---- */
+  .wellbeing-how {
+    gap: 0;
+    padding: 0;
+  }
+  .wellbeing-how__summary {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    min-height: 56px;
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--radius-xl);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-primary);
+    list-style: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wellbeing-how__summary::-webkit-details-marker {
+    display: none;
+  }
+  .wellbeing-how__summary svg {
+    flex: none;
+    color: var(--text-secondary);
+  }
+  .wellbeing-how__chevron {
+    margin-left: auto;
+    transition: transform var(--dur-2) var(--ease-out);
+  }
+  .wellbeing-how[open] .wellbeing-how__chevron {
+    transform: rotate(180deg);
+  }
+  .wellbeing-how__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    max-width: 72ch;
+    padding: 0 var(--space-5) var(--space-5);
+    font: 400 var(--text-sm) / 22px var(--font-ui);
+    color: var(--text-secondary);
+  }
+  .wellbeing-how__body p {
+    margin: 0;
+  }
+  .wellbeing-how__sources {
+    font-size: var(--text-xs);
+    line-height: 18px;
+    color: var(--text-muted);
+  }
+  @media (max-width: 720px) {
+    .wellbeing-how__summary {
+      padding-inline: var(--space-4);
+    }
+    .wellbeing-how__body {
+      padding: 0 var(--space-4) var(--space-4);
+    }
+  }
+}
