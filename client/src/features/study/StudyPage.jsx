@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { FileText } from "lucide-react";
-import { Button, EmptyState, Skeleton, Tabs } from "@/shared/ui";
+import { AddButton, Button, EmptyState, Skeleton, Tabs } from "@/shared/ui";
 import Page from "@/app/shell/Page";
 import useNow from "@/shared/hooks/useNow";
 import PickUpHero from "./PickUpHero";
 import StudyEmpty from "./StudyEmpty";
+import SubjectDialogs from "./SubjectDialogs";
 import SubjectGrid from "./SubjectGrid";
 import useReviewers from "./useReviewers";
 import useSubjects from "./useSubjects";
@@ -25,12 +27,14 @@ function StudySkeleton() {
 
 // Study (Figma 72:3, 75:799, 78:1526): Pick up where you left off, then Subjects | Reviewers as a
 // URL-driven tab pair (?tab=). The Reviewers list arrives with the next batch. The "+", the dashed
-// New subject card, a card's More menu, Active | Archived and End this term wait for what they open
-// (no dialog is drawn yet, and archiving has no backend), so none of them render.
+// New subject card, a card's More menu and the empty page's button open the New subject, Edit and
+// Delete dialogs (not drawn in Figma). On the Reviewers tab the "+" stays hidden until its dialog
+// exists. Active | Archived and End this term wait for an archive backend, so they don't render.
 export default function StudyPage() {
   const [params] = useSearchParams();
   const tab = TABS.includes(params.get("tab")) ? params.get("tab") : "subjects";
   const now = useNow();
+  const [dialog, setDialog] = useState(null);
   const data = useSubjects();
   const { reviewers, settled } = useReviewers();
 
@@ -40,8 +44,12 @@ export default function StudyPage() {
     { value: "reviewers", label: "Reviewers", count: reviewers?.length, to: "/study?tab=reviewers", id: "study-tab-reviewers", panelId: "study-panel" },
   ];
 
+  const openNew = () => setDialog({ type: "new" });
+  const open = (type) => (subject) => setDialog({ type, subject });
+  const showAdd = data.status === "ready" && !isNewAccount && tab === "subjects";
+
   return (
-    <Page title="Study">
+    <Page title="Study" action={showAdd && <AddButton label="Add a subject" onClick={openNew} />}>
       {data.status === "loading" && <StudySkeleton />}
       {data.status === "failed" && (
         <div className="study-failed" role="alert">
@@ -49,17 +57,24 @@ export default function StudyPage() {
           <Button variant="secondary" onClick={data.reload}>Try again</Button>
         </div>
       )}
-      {isNewAccount && <StudyEmpty />}
+      {isNewAccount && <StudyEmpty onAddSubject={openNew} />}
       {data.status === "ready" && !isNewAccount && (
         <div className="study-body">
           <PickUpHero reviewers={reviewers} />
           <Tabs items={tabs} value={tab} label="Study sections" className="study-tabs" />
           <div role="tabpanel" id="study-panel" aria-labelledby={`study-tab-${tab}`}>
             {tab === "subjects" && data.subjects.length > 0 && (
-              <SubjectGrid subjects={data.subjects} entries={data.entries} now={now} />
+              <SubjectGrid
+                subjects={data.subjects}
+                entries={data.entries}
+                now={now}
+                onNew={openNew}
+                onEdit={open("edit")}
+                onDelete={open("delete")}
+              />
             )}
             {tab === "subjects" && data.subjects.length === 0 && (
-              <EmptyState icon={FileText} title="No subjects yet">
+              <EmptyState icon={FileText} title="No subjects yet" actions={<Button onClick={openNew}>Add subject</Button>}>
                 They will show up here once you add them.
               </EmptyState>
             )}
@@ -71,6 +86,7 @@ export default function StudyPage() {
           </div>
         </div>
       )}
+      <SubjectDialogs dialog={dialog} onClose={() => setDialog(null)} onChanged={data.refresh} />
     </Page>
   );
 }
