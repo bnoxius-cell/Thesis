@@ -81,7 +81,7 @@ export default function StudyPage() {
       {isNewAccount && <StudyEmpty onAddSubject={openNew} onUpload={openUpload} />}
       {data.status === "ready" && !isNewAccount && (
         <div className="study-body">
-          <PickUpHero reviewers={reviewers} />
+          {!reviewersTab && <PickUpHero reviewers={reviewers} />}
           <div className="study-tabsrow">
             <Tabs items={tabs} value={tab} label="Study sections" className="study-tabs" />
             {reviewersTab && (

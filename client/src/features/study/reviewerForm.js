@@ -6,7 +6,7 @@ export const DEFAULT_QUESTION_COUNT = 15;
 export const MAX_PDF_MB = 10;
 
 export const formatBytes = (bytes) =>
-  bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(Math.ceil((bytes / (1024 * 1024)) * 10) / 10).toFixed(1)} MB`;
 
 // A plain message when the picked file can't be used, or "" when it can.
 export function pdfProblem(file) {
