@@ -45,7 +45,7 @@ export default function PlanPage() {
   }, [setTimetable]);
   const view = params.view;
   // Month and Tasks always read the student's own plan; a timetable only applies to Week view.
-  const data = usePlanData(params.weekStart, view === "week" ? params.timetable : null, leaveTimetable);
+  const data = usePlanData(params.weekStart, view === "week" ? params.timetable : null, leaveTimetable, view === "week");
   const month = monthOfWeek(params.weekStart);
   const monthData = useMonthData(month, view === "month");
   const setDone = useTaskDone(data.setTasks);

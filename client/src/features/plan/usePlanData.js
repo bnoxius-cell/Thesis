@@ -12,9 +12,9 @@ const NO_TASKS = [];
 // Returns usePlanWeek's shape (`status`, `error`, `overview`, `tasks`, `setTasks`, `subjectsById`,
 // `reload`) plus `holidayError`, a plain message when public holidays couldn't load for a timetable.
 // `onTimetableGone` runs once when the open timetable was deleted or is no longer shared.
-export default function usePlanData(weekStart, timetableId, onTimetableGone) {
+export default function usePlanData(weekStart, timetableId, onTimetableGone, withOverview = true) {
   const myWeek = !timetableId;
-  const week = usePlanWeek(weekStart, { myWeek });
+  const week = usePlanWeek(weekStart, { myWeek, withOverview });
   const timetable = useTimetable(timetableId, onTimetableGone);
   const holidays = useHolidays(weekYears(weekStart), !myWeek);
 

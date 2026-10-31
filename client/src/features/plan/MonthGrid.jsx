@@ -3,12 +3,12 @@ import "./month.css";
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MAX_LABELS = 2;
 
-const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 // "Mon, Oct 6: 2 classes, Lab 1 due". Said by a screen reader instead of the dots and labels.
 function spoken(day) {
   const date = day.date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-  const parts = [day.classCount > 0 && plural(day.classCount, "class"), ...day.labels.map((label) => label.text)];
+  const parts = [day.classCount > 0 && plural(day.classCount, "class", "classes"), ...day.labels.map((label) => label.text)];
   return `${date}${day.isToday ? ", today" : ""}${parts.some(Boolean) ? `: ${parts.filter(Boolean).join(", ")}` : ""}`;
 }
 
