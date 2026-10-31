@@ -6,12 +6,11 @@ import useStuck from "./useStuck";
 import "./shell.css";
 
 // Every signed-in page renders through this: the header (the page's one h1, an optional action,
-// subtitle and back link, then the bell and the avatar menu) and the page body below it.
+// subtitle and back link, then the search, the bell and the avatar menu) and the page body below it.
 //   title     the h1, also the browser tab title
 //   subtitle  a quiet line under the title (Home's date)
 //   action    a node next to the title, usually an AddButton
 //   back      { to, label } shows a back arrow before the title; label says where it goes
-// The header search from the frame is not built (no search backend), so nothing is hidden or dead.
 export default function Page({ title, subtitle, action, back, children }) {
   usePageTitle(title);
   const [sentinel, stuck] = useStuck();

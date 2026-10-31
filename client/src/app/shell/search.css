@@ -1,0 +1,181 @@
+/* Header search (Figma 16:3): a 300px pill left of the bell, with a list under it. Under 1024px it
+   is a full-width bar opened from an icon (no frame; built from the same parts). */
+@layer components {
+  .shell-search {
+    position: relative;
+    width: 300px;
+    max-width: 100%;
+  }
+  .shell-search__input {
+    box-sizing: border-box;
+    width: 100%;
+    height: 42px;
+    margin: 0;
+    padding: 0 var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    color: var(--text-primary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    appearance: none;
+    transition: border-color var(--dur-2) var(--ease-out);
+  }
+  .shell-search__input::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+  .shell-search__input::-webkit-search-cancel-button {
+    appearance: none;
+  }
+  .shell-search__input:focus-visible {
+    border-color: var(--focus-ring);
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 0;
+  }
+
+  .shell-search__panel {
+    position: absolute;
+    top: calc(100% + var(--space-2));
+    right: 0;
+    left: 0;
+    z-index: 30;
+    max-height: min(360px, 60vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-2);
+    transform-origin: top center;
+    animation: shell-search-in var(--dur-2) var(--ease-out) backwards;
+  }
+  @keyframes shell-search-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+  }
+
+  .shell-search__list {
+    margin: 0;
+    padding: var(--space-2);
+    list-style: none;
+  }
+  .shell-search__option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 44px;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .shell-search__option[data-active] {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .shell-search__option:hover {
+      background: var(--surface-2);
+    }
+    .shell-search__option[data-active]:hover {
+      background: var(--accent-soft);
+    }
+  }
+  .shell-search__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .shell-search__label {
+    overflow: hidden;
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .shell-search__sub {
+    overflow: hidden;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .shell-search__kind {
+    flex: none;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .shell-search__note {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    margin: 0;
+    padding: var(--space-4);
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .shell-search__note p {
+    margin: 0;
+  }
+
+  /* Phone: a bar across the top with the list under it, ending above the bottom bar. */
+  .shell-search-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+  }
+  .shell-search-sheet__scrim {
+    position: absolute;
+    inset: 0;
+    background: var(--overlay);
+  }
+  .shell-search-sheet__bar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    max-height: calc(100dvh - 65px - env(safe-area-inset-bottom));
+    padding: calc(var(--space-3) + env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right))
+      var(--space-3) max(var(--space-4), env(safe-area-inset-left));
+    background: var(--bg-app);
+    box-shadow: var(--shadow-2);
+    animation: shell-search-drop var(--dur-3) var(--ease-out) backwards;
+  }
+  @keyframes shell-search-drop {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+  }
+  .shell-search-sheet__row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .shell-search-sheet__row .shell-search__input {
+    flex: 1;
+    height: 44px;
+    font-size: 16px; /* under 16px, iOS zooms the page on focus */
+  }
+  .shell-search-sheet .shell-search__panel {
+    position: static;
+    animation: none;
+    max-height: none;
+    overflow-y: auto;
+    box-shadow: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shell-search__panel,
+    .shell-search-sheet__bar {
+      animation: none;
+    }
+  }
+}

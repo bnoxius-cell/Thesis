@@ -1,0 +1,8 @@
+/* New task dialog: the shell and fields come from Modal and Field; this is the failed-save line. */
+@layer pages {
+  .task-dialog__error {
+    margin: 0;
+    color: var(--danger);
+    font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+  }
+}

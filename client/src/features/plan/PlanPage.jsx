@@ -8,6 +8,7 @@ import useNow from "@/shared/hooks/useNow";
 import { monthOfWeek, toISODate } from "@/utils/scheduleUtils";
 import { profileFromUser } from "@/features/workload/useWorkload";
 import useTaskDone from "@/features/tasks/useTaskDone";
+import AddTaskButton from "@/features/tasks/AddTaskButton";
 import MonthGrid from "./MonthGrid";
 import PhoneWeek from "./PhoneWeek";
 import PlanControls from "./PlanControls";
@@ -98,8 +99,16 @@ export default function PlanPage() {
     params.goToday();
   };
 
+  // A timetable shared by someone else has no tasks of the student's own, so the "+" waits for My week.
+  const addTask = ready && !(view === "week" && params.timetable) && (
+    <AddTaskButton
+      subjects={[...data.subjectsById.values()]}
+      onAdded={(task) => data.setTasks((prev) => [...prev, task])}
+    />
+  );
+
   return (
-    <Page title="Plan" subtitle={now.toLocaleDateString("en-US", DATE_FORMAT)}>
+    <Page title="Plan" subtitle={now.toLocaleDateString("en-US", DATE_FORMAT)} action={addTask}>
       <PlanControls
         view={view}
         onView={params.setView}

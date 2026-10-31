@@ -55,6 +55,7 @@ export default function AppRoutes() {
           <Route path="/study" element={<StudyPage />} />
           <Route path="/study/subjects/:subjectId" element={placeholder("Subject")} />
           <Route path="/study/reviewers/:reviewerId" element={placeholder("Reviewer")} />
+          <Route path="/study/flashcards" element={placeholder("Flashcards")} />
           <Route path="/wellbeing" element={<WellbeingPage />} />
           <Route path="/people" element={placeholder("People")} />
           <Route path="/people/groups/:groupId" element={placeholder("People")} />

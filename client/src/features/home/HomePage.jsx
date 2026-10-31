@@ -7,6 +7,7 @@ import useWorkload from "@/features/workload/useWorkload";
 import useTaskDone from "@/features/tasks/useTaskDone";
 import useMoveSuggestions from "@/features/tasks/useMoveSuggestions";
 import { finishedRecently } from "@/features/tasks/finishedRecently";
+import AddTaskButton from "@/features/tasks/AddTaskButton";
 import TodayHero from "./TodayHero";
 import ThisWeekCard from "./ThisWeekCard";
 import NextStepCard from "./NextStepCard";
@@ -54,8 +55,15 @@ export default function HomePage() {
   const title = `${GREETING[work.focus.phase]}${firstName ? `, ${firstName}` : ""}`;
   const dueToday = work.enrichedTasks.filter((task) => task.daysLeft <= 0).sort((a, b) => a.daysLeft - b.daysLeft);
 
+  const addTask = data.status === "ready" && (
+    <AddTaskButton
+      subjects={[...data.subjectsById.values()]}
+      onAdded={(task) => data.setTasks((prev) => [...prev, task])}
+    />
+  );
+
   return (
-    <Page title={title} subtitle={now.toLocaleDateString("en-US", DATE_FORMAT)}>
+    <Page title={title} subtitle={now.toLocaleDateString("en-US", DATE_FORMAT)} action={addTask}>
       {data.status === "loading" && <HomeSkeleton />}
       {data.status === "failed" && (
         <div className="home-failed" role="alert">

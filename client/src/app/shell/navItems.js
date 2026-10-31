@@ -5,6 +5,7 @@ import {
   FileText,
   HeartPulse,
   House,
+  Layers,
   ListChecks,
   Moon,
   Settings,
@@ -16,7 +17,7 @@ import {
 // location; the rules read path, query and hash, and no two items can be lit at once (Plan is not
 // lit on Tasks, Overview is not lit on Check-ins).
 // `badge` names a count from useUnread, `badgeNoun` is what a screen reader hears after it.
-// Flashcards is left out until it has a backend.
+// Flashcards is a titled placeholder page until its batch: navigation is never hidden.
 
 const under = (pathname, base) => pathname === base || pathname.startsWith(`${base}/`);
 const param = ({ search }, key) => new URLSearchParams(search).get(key);
@@ -24,6 +25,7 @@ const param = ({ search }, key) => new URLSearchParams(search).get(key);
 const onPlan = (loc) => under(loc.pathname, "/plan");
 const onStudyReviewers = (loc) =>
   under(loc.pathname, "/study/reviewers") || (loc.pathname === "/study" && param(loc, "tab") === "reviewers");
+const onStudyFlashcards = (loc) => under(loc.pathname, "/study/flashcards");
 const onWellbeing = (loc) => under(loc.pathname, "/wellbeing");
 
 export const NAV_GROUPS = [
@@ -44,9 +46,10 @@ export const NAV_GROUPS = [
         label: "Subjects",
         to: "/study",
         icon: BookOpen,
-        isActive: (loc) => under(loc.pathname, "/study") && !onStudyReviewers(loc),
+        isActive: (loc) => under(loc.pathname, "/study") && !onStudyReviewers(loc) && !onStudyFlashcards(loc),
       },
       { key: "reviewers", label: "Reviewers", to: "/study?tab=reviewers", icon: FileText, isActive: onStudyReviewers },
+      { key: "flashcards", label: "Flashcards", to: "/study/flashcards", icon: Layers, isActive: onStudyFlashcards },
     ],
   },
   {

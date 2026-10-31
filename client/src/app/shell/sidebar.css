@@ -145,4 +145,74 @@
       transform var(--dur-3) var(--ease-out),
       opacity var(--dur-2) var(--ease-out);
   }
+
+  /* The unread dot is for the rail only; the full sidebar shows the count. */
+  .shell-nav__dot {
+    display: none;
+  }
+
+  /* Collapsed: a 72px rail of icons. The grid column snaps (layout is not animated); the labels
+     come back with a quick fade. Labels stay in the page for screen readers, and each link carries a
+     title for the pointer. */
+  .shell-sidebar[data-collapsed] {
+    padding-inline: var(--space-3);
+  }
+  .shell-sidebar[data-collapsed] .shell-sidebar__logo {
+    justify-content: center;
+    padding-inline: 0;
+  }
+  .shell-sidebar[data-collapsed] .shell-sidebar__logo span,
+  .shell-sidebar[data-collapsed] .shell-nav__label,
+  .shell-sidebar[data-collapsed] .shell-nav__eyebrow {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .shell-sidebar[data-collapsed] .shell-nav__group + .shell-nav__group {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border);
+  }
+  .shell-sidebar[data-collapsed] .shell-nav__link {
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+  }
+  .shell-sidebar[data-collapsed] .shell-nav__badge {
+    display: none;
+  }
+  .shell-sidebar[data-collapsed] .shell-nav__dot {
+    position: absolute;
+    top: 7px;
+    right: 12px;
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+  .shell-nav__link--collapse {
+    font-weight: 500;
+  }
+  .shell-sidebar:not([data-collapsed]) .shell-nav__label,
+  .shell-sidebar:not([data-collapsed]) .shell-sidebar__logo span {
+    animation: shell-label-in var(--dur-3) var(--ease-out) backwards;
+  }
+  @keyframes shell-label-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shell-sidebar:not([data-collapsed]) .shell-nav__label,
+    .shell-sidebar:not([data-collapsed]) .shell-sidebar__logo span {
+      animation: none;
+    }
+  }
 }
