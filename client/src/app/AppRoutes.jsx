@@ -14,6 +14,7 @@ const LegalPage = lazy(() => import("@/features/legal/LegalPage"));
 const HomePage = lazy(() => import("@/features/home/HomePage"));
 const PlanPage = lazy(() => import("@/features/plan/PlanPage"));
 const WellbeingPage = lazy(() => import("@/features/wellbeing/WellbeingPage"));
+const CheckInPage = lazy(() => import("@/features/checkin/CheckInPage"));
 // Development-only specimen of the shared primitives.
 const UiSpecimen = import.meta.env.DEV ? lazy(() => import("./dev/UiSpecimen")) : null;
 
@@ -64,7 +65,7 @@ export default function AppRoutes() {
         </Route>
         <Route element={<FocusLayout />}>
           <Route path="/study/reviewers/:reviewerId/practice" element={barePlaceholder("Practice")} />
-          <Route path="/wellbeing/check-in/:kind" element={barePlaceholder("Check-in")} />
+          <Route path="/wellbeing/check-in/:kind" element={<CheckInPage />} />
         </Route>
       </Route>
     </Routes>

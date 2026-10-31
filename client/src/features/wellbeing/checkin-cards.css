@@ -1,0 +1,100 @@
+/* The two check-in cards in "How you've been" (Figma 51:294). Side by side from 721px, stacked on
+   phones. The chip and the section title come from wellbeing.css. */
+@layer pages {
+  .wellbeing-checkins {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
+  @media (max-width: 720px) {
+    .wellbeing-checkins {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-4);
+    }
+  }
+  .wellbeing-checkin {
+    gap: var(--space-4);
+    padding: var(--space-5);
+  }
+  @media (max-width: 720px) {
+    .wellbeing-checkin {
+      padding: var(--space-4);
+    }
+  }
+  .wellbeing-checkin .ui-btn {
+    align-self: flex-start;
+  }
+  .wellbeing-checkin__head {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .wellbeing-checkin__titles {
+    flex: 1;
+    min-width: 0;
+  }
+  .wellbeing-checkin__titles .wellbeing-section-title {
+    overflow-wrap: anywhere;
+  }
+  .wellbeing-checkin__due {
+    flex: none;
+  }
+  .wellbeing-checkin__subtitle {
+    margin: 0;
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-muted);
+  }
+  .wellbeing-checkin__result {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+  .wellbeing-checkin__words {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+  .wellbeing-checkin__headline {
+    margin: 0;
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+
+  /* The history line: oldest to latest, in the accent. */
+  .wellbeing-history {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-1);
+    max-width: 100%;
+  }
+  .wellbeing-history__svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+  .wellbeing-history__line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .wellbeing-history__dot {
+    fill: var(--accent);
+  }
+  .wellbeing-history__label {
+    margin: 0;
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+}

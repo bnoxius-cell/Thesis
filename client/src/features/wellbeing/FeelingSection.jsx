@@ -1,4 +1,4 @@
-// "How you've been" (Figma 51:2): the home of the two check-in cards, which W2 passes in as children.
+// "How you've been" (Figma 51:2): the home of the two check-in cards, which the page passes in as children.
 // The Check-ins link in the sidebar and the header's Check in button scroll here.
 export default function FeelingSection({ children }) {
   return (
