@@ -1,0 +1,19 @@
+/* Your rhythm dialog (Figma 53:909). The shell and fields come from Modal and Field. */
+@layer pages {
+  .rhythm-dialog__times {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
+  .rhythm-dialog__error {
+    margin: 0;
+    color: var(--danger);
+    font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+  }
+  /* Two time pickers side by side don't fit a narrow phone. */
+  @media (max-width: 400px) {
+    .rhythm-dialog__times {
+      grid-template-columns: 1fr;
+    }
+  }
+}
