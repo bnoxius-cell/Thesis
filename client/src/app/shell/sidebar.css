@@ -68,7 +68,7 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
-  .shell-nav__foot {
+  .shell-sidebar .shell-nav__foot {
     margin-top: auto;
   }
 
