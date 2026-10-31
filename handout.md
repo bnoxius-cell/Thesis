@@ -2,7 +2,7 @@
 
 Main session only: read this first after a `/clear` (subagents skip it unless their brief says otherwise). It's the short "where we left off" note. Rules are in `CLAUDE.md`, feature notes in `.claude/docs/`, older session notes in `handout-archive.md`.
 
-Last updated: 2026-10-31 (night). Branch `redesign/site-v3` (off `redesign/login-figma`), tag `pre-site-v3`. 524 server tests pass, client builds clean. Branch pushed and merged into `staging` (a0d7f51, at owner's request; W1 and earlier). `main` untouched. W2 is on staging (e115ce8); W3 is not.
+Last updated: 2026-10-31 (night). Branch `redesign/site-v3` (off `redesign/login-figma`), tag `pre-site-v3`. 524 server tests pass, client builds clean. Branch pushed and merged into `staging` (a0d7f51, at owner's request; W1 and earlier). `main` untouched. W3 is on staging too.
 
 ## STATE AT LAST SAVE (2026-10-31 late, read first)
 - **Done and tested on `redesign/site-v3`:** F1, F2 (+ fix rounds 8ae47e4, b98834f, tester passed), F3 (3d5b48f: routes, RequireAuth, layouts, placeholders, 404, legal pages, TermsGate; tester Pass), F4 (236739a: `app/shell/` Page header, Sidebar v2, avatar menu, UnreadProvider polling `GET /api/notifications` every 20s; tester Fail on one item, fixed by orchestrator in the next commit: `.shell-sidebar .shell-nav__foot` specificity so Settings and Log out pin to the bottom. Re-measure it at 1280x800 in F5's tester run).
