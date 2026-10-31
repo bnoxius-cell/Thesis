@@ -100,3 +100,21 @@ export const SETTINGS_ITEM = {
 };
 
 export const ALL_ITEMS = [...NAV_GROUPS.flatMap((group) => group.items), SETTINGS_ITEM];
+
+// The phone's bottom bar: five places, each lit for its whole area (Tasks lights Plan, a friend's
+// profile lights People, Profile and Settings light none). `badge` reads the shared unread counts.
+export const PHONE_ITEMS = [
+  { key: "home", label: "Home", to: "/home", icon: House, isActive: (loc) => under(loc.pathname, "/home") },
+  { key: "plan", label: "Plan", to: "/plan", icon: CalendarDays, isActive: onPlan },
+  { key: "study", label: "Study", to: "/study", icon: BookOpen, isActive: (loc) => under(loc.pathname, "/study") },
+  { key: "wellbeing", label: "Wellbeing", to: "/wellbeing", icon: HeartPulse, isActive: onWellbeing },
+  {
+    key: "people",
+    label: "People",
+    to: "/people",
+    icon: Users,
+    badge: ({ groupsUnread, friendRequests }) => groupsUnread + friendRequests,
+    badgeNoun: "new in People",
+    isActive: (loc) => under(loc.pathname, "/people"),
+  },
+];

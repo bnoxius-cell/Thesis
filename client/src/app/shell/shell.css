@@ -1,6 +1,5 @@
 /* Page header and avatar menu (Figma 16:3 and 20:68). Transparent at the top, a frosted bar once
-   the page scrolls under it. Under 1024px the same header stays as it is until F5 turns it into the
-   phone top bar. */
+   the page scrolls under it. Under 1024px it is the phone top bar (see below). */
 @layer components {
   .shell-pagewrap {
     position: relative;
@@ -44,6 +43,14 @@
       background: var(--surface);
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
+    }
+  }
+
+  /* Phone top bar (Figma 52:117): the same header, with the notch's safe area on top. The frame's
+     44px spacer stands for the notch, so it is not literal padding. */
+  @media (max-width: 1023px) {
+    .shell-header {
+      padding-top: calc(var(--space-3) + env(safe-area-inset-top));
     }
   }
 
@@ -129,7 +136,7 @@
     align-items: center;
     gap: var(--space-3);
     box-sizing: border-box;
-    min-width: 232px;
+    min-width: min(232px, calc(100vw - 50px)); /* inside the menu's own 320px floor at a 320px phone */
     padding: 10px var(--space-2);
   }
   .shell-account__who {

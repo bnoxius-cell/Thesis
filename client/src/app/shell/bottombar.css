@@ -1,0 +1,98 @@
+/* Phone bottom bar (Figma 52:117): surface, 1px top border, five equal items. The frame's 24px of
+   bottom padding stands for the home indicator, so the real padding is the safe area. */
+@layer components {
+  .shell-bottombar {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 30; /* above the sticky header (20), under dialogs (1000) and menus (1100) */
+    box-sizing: border-box;
+    padding: var(--space-2) max(var(--space-2), env(safe-area-inset-right))
+      max(var(--space-2), env(safe-area-inset-bottom)) max(var(--space-2), env(safe-area-inset-left));
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  @media (min-width: 1024px) {
+    .shell-bottombar {
+      display: none;
+    }
+  }
+  .shell-bottombar ul {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .shell-bottombar li {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .shell-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    min-height: 56px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .shell-tab[aria-current="page"] {
+    color: var(--accent);
+  }
+  .shell-tab:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+    border-radius: var(--radius-lg);
+  }
+  .shell-tab__label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+
+  /* The pill: its tint sits on ::before so it can grow in with transform and opacity only. */
+  .shell-tab__pill {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 32px;
+    transition: transform var(--dur-1) var(--ease-out);
+  }
+  .shell-tab__pill::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    opacity: 0;
+    transform: scaleX(0.6);
+    transition:
+      opacity var(--dur-2) var(--ease-out),
+      transform var(--dur-2) var(--ease-out);
+  }
+  .shell-tab[aria-current="page"] .shell-tab__pill::before {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  .shell-tab__pill > svg {
+    position: relative; /* above the tint */
+  }
+  .shell-tab:active .shell-tab__pill {
+    transform: scale(0.94);
+  }
+  .shell-tab__badge {
+    position: absolute;
+    top: -4px;
+    right: 2px;
+    animation: shell-badge-in var(--dur-2) var(--ease-out) backwards;
+  }
+}

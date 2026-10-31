@@ -1,5 +1,5 @@
-/* The layouts around every page (AppLayout, FocusLayout, PublicLayout). F5 adds the phone bars next to
-   these rules; the sidebar and the page header live in app/shell. */
+/* The layouts around every page (AppLayout, FocusLayout, PublicLayout). The sidebar, bottom bar and
+   page header live in app/shell. */
 @layer components {
   .shell-app {
     --shell-sidebar-w: 256px;
@@ -36,6 +36,13 @@
     max-width: none;
     margin: 0;
     padding: 0;
+  }
+  /* Under 1024px the bottom bar (65px: 8 + 56 + 1 border, plus its bottom padding) covers the foot of
+     the page, so main leaves that much room. No bar (focus view) means no extra room. */
+  @media (max-width: 1023px) {
+    .shell-app:has(.shell-bottombar) .shell-main--app {
+      padding-bottom: calc(65px + max(var(--space-2), env(safe-area-inset-bottom)));
+    }
   }
   .shell-main--focus {
     min-height: 100vh;
