@@ -37,11 +37,22 @@
     overflow-wrap: anywhere;
   }
 
+  .reviewer-meta__start {
+    margin-left: auto;
+  }
+
   .reviewer-columns {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-4);
     align-self: stretch;
+  }
+  @media (min-width: 1100px) {
+    .reviewer-columns {
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: var(--space-5);
+      align-items: start;
+    }
   }
   .reviewer-main {
     display: flex;
@@ -104,5 +115,42 @@
     margin: 0;
     color: var(--text-muted);
     font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+
+  /* ---- Side panel ---- */
+  .reviewer-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+  .reviewer-card {
+    min-width: 0;
+  }
+  .reviewer-card__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+  }
+  .reviewer-card__line {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .reviewer-card__action {
+    align-self: flex-start;
+  }
+  .reviewer-weak {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .reviewer-dialog-error {
+    color: var(--danger);
+    font-weight: 500;
   }
 }

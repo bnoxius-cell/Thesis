@@ -1,10 +1,13 @@
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { FileQuestion } from "lucide-react";
 import { Button, EmptyState, Skeleton } from "@/shared/ui";
 import Page from "@/app/shell/Page";
+import ReviewerMoreMenu from "./ReviewerMoreMenu";
 import ReviewerReader from "./ReviewerReader";
+import ReviewerSidePanel from "./ReviewerSidePanel";
 import ReviewerStatusChip from "./ReviewerStatusChip";
 import ReviewerWaiting from "./ReviewerWaiting";
+import { practiceLink } from "./practiceLink";
 import { reviewerSourceLine } from "./reviewerStatus";
 import useReviewer from "./useReviewer";
 import "./reviewer.css";
@@ -16,6 +19,7 @@ const BACK = { to: "/study?tab=reviewers", label: "Back to reviewers" };
 // foreign id shows "Reviewer not found".
 export default function ReviewerPage() {
   const { reviewerId } = useParams();
+  const location = useLocation();
   const data = useReviewer(reviewerId);
   const { reviewer, status } = data;
 
@@ -47,14 +51,24 @@ export default function ReviewerPage() {
   }
 
   const ready = reviewer.status === "ready";
+  const link = (mode) => practiceLink(reviewer._id, mode, location);
+  const links = {
+    resume: link(data.openSession?.mode === "weak" ? "weak" : "all"),
+    weak: link("weak"),
+  };
   const withProgress = { ...reviewer, sessions: data.progress?.sessions, lastScore: data.progress?.lastScore };
 
   return (
-    <Page title={reviewer.title} back={BACK}>
+    <Page
+      title={reviewer.title}
+      back={BACK}
+      action={reviewer.status !== "processing" && <ReviewerMoreMenu reviewer={reviewer} />}
+    >
       <div className="reviewer-body">
         <div className="reviewer-meta">
           <span>{reviewerSourceLine(reviewer)}</span>
           <ReviewerStatusChip reviewer={withProgress} />
+          {ready && <Button className="reviewer-meta__start" {...link("all")}>Start Learning Mode</Button>}
         </div>
         {ready ? (
           <div className="reviewer-columns">
@@ -69,6 +83,12 @@ export default function ReviewerPage() {
                 Made by AI from your PDF. It can get things wrong, so check anything that looks off against your notes.
               </p>
             </div>
+            <ReviewerSidePanel
+              reviewer={reviewer}
+              openSession={data.openSession}
+              progress={data.progress}
+              links={links}
+            />
           </div>
         ) : (
           <ReviewerWaiting reviewer={reviewer} />
