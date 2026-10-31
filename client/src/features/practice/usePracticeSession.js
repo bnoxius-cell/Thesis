@@ -25,6 +25,15 @@ async function openSession(reviewerId, mode, fresh) {
   return { ...LOADING, status: "loaded", reviewer, session: started.data.session };
 }
 
+// A refresh of a `?new=1` address must not start yet another session, so once the fresh one exists
+// the flag leaves the address. It is a silent history edit: the page itself must not re-launch.
+function dropFreshFlag() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("new")) return;
+  url.searchParams.delete("new");
+  window.history.replaceState(window.history.state, "", url);
+}
+
 // The session behind the Practice page, for one reviewer, mode ("all" | "weak") and `fresh` flag.
 //   status    "loading" | "loaded" | "missing" (no such reviewer) | "unready" (still being made, or
 //             failed) | "failed" (with `error`, e.g. no weak topics yet)
@@ -46,6 +55,7 @@ export default function usePracticeSession(reviewerId, mode, fresh) {
     let cancelled = false;
     request.current.promise.then((result) => {
       if (!cancelled) setDone({ id, result });
+      if (fresh && result.status === "loaded") dropFreshFlag();
     });
     return () => {
       cancelled = true;

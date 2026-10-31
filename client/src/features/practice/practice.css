@@ -2,6 +2,13 @@
    shell: Exit and the reviewer name on top, one 640px column in the middle. Phones use the same
    column with smaller type and the gutters of the rest of the app. */
 @layer pages {
+  /* The practice screen runs edge to edge; the focus layout's own page padding would push the 100dvh
+     screen past the viewport and add a scrollbar. */
+  .shell-main--focus:has(.practice) {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
   .practice {
     display: flex;
     flex-direction: column;
