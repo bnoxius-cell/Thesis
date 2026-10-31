@@ -289,6 +289,6 @@
   .checkin-answer__check {
     flex: none;
     color: var(--accent);
-    animation: checkin-check-pop var(--dur-2) var(--ease-spring) backwards;
+    animation: checkin-check-pop var(--dur-2) var(--ease-out) backwards;
   }
 }
