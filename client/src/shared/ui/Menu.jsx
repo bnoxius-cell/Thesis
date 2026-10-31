@@ -74,22 +74,26 @@ export default function Menu({
       }
     };
     const onPointerDown = (e) => {
-      if (!menuRef.current.contains(e.target) && !triggerRef.current.contains(e.target)) close(false);
+      if (menuRef.current.contains(e.target) || triggerRef.current.contains(e.target)) return;
+      // Swallow the press so a dialog overlay under it doesn't also see it and close.
+      e.stopPropagation();
+      close(false);
     };
     // A fixed menu would drift away from its trigger, so a page scroll or resize closes it.
+    // Focus goes back to the trigger when it was inside the menu, so it doesn't drop to body.
+    const closeOnMove = () => close(menuRef.current.contains(document.activeElement));
     const onScroll = (e) => {
-      if (!menuRef.current.contains(e.target)) close(false);
+      if (!menuRef.current.contains(e.target)) closeOnMove();
     };
-    const onResize = () => close(false);
     document.addEventListener("keydown", onKeyDown, true);
     document.addEventListener("pointerdown", onPointerDown, true);
     window.addEventListener("scroll", onScroll, true);
-    window.addEventListener("resize", onResize);
+    window.addEventListener("resize", closeOnMove);
     return () => {
       document.removeEventListener("keydown", onKeyDown, true);
       document.removeEventListener("pointerdown", onPointerDown, true);
       window.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("resize", closeOnMove);
     };
   }, [open, close]);
 

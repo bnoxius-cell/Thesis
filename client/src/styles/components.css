@@ -84,7 +84,7 @@
     color: var(--accent);
   }
 
-  /* Spinner that goes before a busy button's label (components/BusySpinner.jsx) */
+  /* Spinner that goes before a busy button's label (shared/ui/BusySpinner.jsx) */
   .busy-spinner {
     flex: none;
     animation: busy-spin 700ms linear infinite;
