@@ -16,6 +16,7 @@ const PlanPage = lazy(() => import("@/features/plan/PlanPage"));
 const StudyPage = lazy(() => import("@/features/study/StudyPage"));
 const SubjectPage = lazy(() => import("@/features/study/SubjectPage"));
 const ReviewerPage = lazy(() => import("@/features/study/ReviewerPage"));
+const PracticePage = lazy(() => import("@/features/practice/PracticePage"));
 const WellbeingPage = lazy(() => import("@/features/wellbeing/WellbeingPage"));
 const CheckInPage = lazy(() => import("@/features/checkin/CheckInPage"));
 // Development-only specimen of the shared primitives.
@@ -30,8 +31,8 @@ function SignInRoute() {
   return <AuthPage />;
 }
 
-// Each signed-in page is a titled placeholder inside the shell until its own batch replaces it
-// with a lazy-loaded page. The focus screens (Practice, Check-in) have no shell, so they stay bare.
+// Each signed-in page that is still unbuilt is a titled placeholder inside the shell until its own
+// batch replaces it with a lazy-loaded page. Focus screens have no shell.
 const placeholder = (title) => <PlaceholderPage title={title} shell />;
 const barePlaceholder = (title) => <PlaceholderPage title={title} />;
 
@@ -68,7 +69,7 @@ export default function AppRoutes() {
           <Route path="/notifications" element={placeholder("Notifications")} />
         </Route>
         <Route element={<FocusLayout />}>
-          <Route path="/study/reviewers/:reviewerId/practice" element={barePlaceholder("Practice")} />
+          <Route path="/study/reviewers/:reviewerId/practice" element={<PracticePage />} />
           <Route path="/wellbeing/check-in/:kind" element={<CheckInPage />} />
         </Route>
       </Route>

@@ -51,11 +51,14 @@ export default function ReviewerPage() {
   }
 
   const ready = reviewer.status === "ready";
-  const link = (mode) => practiceLink(reviewer._id, mode, location);
+  const from = location.pathname + location.search;
+  const link = (mode, options) => practiceLink(reviewer._id, mode, from, options);
   const links = {
     resume: link(data.openSession?.mode === "weak" ? "weak" : "all"),
     weak: link("weak"),
   };
+  // With a session open, plain Start would pick it up again: that is Resume's job.
+  const start = link("all", { fresh: Boolean(data.openSession) });
   const withProgress = { ...reviewer, sessions: data.progress?.sessions, lastScore: data.progress?.lastScore };
 
   return (
@@ -68,7 +71,7 @@ export default function ReviewerPage() {
         <div className="reviewer-meta">
           <span>{reviewerSourceLine(reviewer)}</span>
           <ReviewerStatusChip reviewer={withProgress} />
-          {ready && <Button className="reviewer-meta__start" {...link("all")}>Start Learning Mode</Button>}
+          {ready && <Button className="reviewer-meta__start" {...start}>Start Learning Mode</Button>}
         </div>
         {ready ? (
           <div className="reviewer-columns">

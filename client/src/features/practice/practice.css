@@ -1,0 +1,269 @@
+/* Practice session (Figma 76:840 question, 77:452 feedback, 77:494 result). A focus screen with no
+   shell: Exit and the reviewer name on top, one 640px column in the middle. Phones use the same
+   column with smaller type and the gutters of the rest of the app. */
+@layer pages {
+  .practice {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  .practice-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: max(var(--space-5), env(safe-area-inset-top)) max(var(--space-6), env(safe-area-inset-right)) var(--space-5)
+      max(var(--space-6), env(safe-area-inset-left));
+  }
+  .practice-top__label {
+    min-width: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-muted);
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+  .practice-main {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4) max(var(--space-4), env(safe-area-inset-right))
+      calc(var(--space-7) + env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
+  }
+  @media (max-width: 720px) {
+    .practice-top {
+      padding-inline: max(var(--space-2), env(safe-area-inset-left)) max(var(--space-4), env(safe-area-inset-right));
+    }
+    .practice-main {
+      align-items: flex-start;
+      padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+    }
+  }
+
+  /* A question's own content arrives with the page's quiet fade; the score never animates. */
+  .practice-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 640px;
+    min-width: 0;
+  }
+  .practice-column--enter {
+    animation: page-in var(--dur-3) var(--ease-out) backwards;
+  }
+
+  /* ---- Headings and copy ---- */
+  .practice-eyebrow {
+    margin: 0;
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+  .practice-title {
+    margin: 0;
+    font: 600 var(--text-3xl) / 38px var(--font-ui);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .practice-title--result {
+    font-size: var(--text-4xl);
+    font-weight: 700;
+    line-height: 48px;
+  }
+  .practice-title:focus {
+    outline: none; /* focus lands here on purpose so the result is read out; it is not a control */
+  }
+  @media (max-width: 720px) {
+    .practice-title {
+      font-size: var(--text-2xl);
+      line-height: 32px;
+    }
+    .practice-title--result {
+      font-size: var(--text-3xl);
+      line-height: 38px;
+    }
+  }
+  .practice-lead {
+    margin: 0;
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    color: var(--text-secondary);
+  }
+
+  /* ---- Progress ---- */
+  .practice-progress {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .practice-progress__text {
+    margin: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-muted);
+  }
+  .practice-progress__bar {
+    height: 8px;
+  }
+
+  /* ---- Answers ---- */
+  .practice-answers {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  /* An answer row: a button in a radiogroup. Everything the bare button rules set is declared again.
+     --tone colours the border, the ring and the tag for the state. */
+  .practice-answer {
+    --tone: var(--border-input);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-4);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 56px;
+    margin: 0;
+    padding: var(--space-3) var(--space-5);
+    border: 1px solid var(--tone);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: none;
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out),
+      box-shadow var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  @media (max-width: 720px) {
+    .practice-answer {
+      padding-inline: var(--space-4);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .practice-answer--idle:enabled:hover {
+      border-color: var(--text-muted);
+    }
+  }
+  .practice-answer:enabled:active {
+    transform: scale(0.98);
+  }
+  /* A graded row stays full strength (it is locked, not unavailable) and no longer reacts to taps. */
+  .practice-answer:disabled {
+    cursor: default;
+    opacity: 1;
+  }
+  /* The thicker border is an inset ring, so a state change never moves the rows below it. */
+  .practice-answer--selected {
+    --tone: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: inset 0 0 0 1px var(--tone);
+  }
+  .practice-answer--correct {
+    --tone: var(--good);
+    background: var(--good-soft);
+  }
+  .practice-answer--yours {
+    --tone: var(--watch);
+    background: var(--watch-soft);
+    box-shadow: inset 0 0 0 1px var(--tone);
+  }
+  .practice-answer__radio {
+    position: relative;
+    flex: none;
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--tone);
+    border-radius: var(--radius-pill);
+  }
+  .practice-answer[aria-checked="true"] .practice-answer__radio::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+  }
+  .practice-answer__label {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .practice-answer__tag {
+    flex: none;
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    color: var(--tone);
+  }
+  .practice-answer__check {
+    flex: none;
+    color: var(--tone);
+    animation: checkin-check-pop var(--dur-2) var(--ease-out) backwards;
+  }
+
+  /* ---- Why ---- */
+  .practice-why {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+  }
+  .practice-why__text {
+    margin: 0;
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+
+  /* ---- Buttons ---- */
+  .practice-nav {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-3);
+  }
+  .practice-nav--result {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  /* ---- Result ---- */
+  .practice-review {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .practice-review__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .practice-review__name {
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .practice-review__note {
+    min-width: 0;
+    color: var(--text-secondary);
+  }
+}
