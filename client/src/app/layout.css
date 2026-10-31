@@ -1,7 +1,8 @@
-/* The layouts around every page (AppLayout, FocusLayout, PublicLayout). F4 and F5 add the sidebar and
-   phone bars next to these rules. */
+/* The layouts around every page (AppLayout, FocusLayout, PublicLayout). F5 adds the phone bars next to
+   these rules; the sidebar and the page header live in app/shell. */
 @layer components {
   .shell-app {
+    --shell-sidebar-w: 256px;
     min-height: 100vh;
     min-height: 100dvh;
     background: var(--bg-app);
@@ -22,6 +23,19 @@
   }
   .shell-page:has(> .shell-fallback) {
     animation: none;
+  }
+  /* Signed-in pages: the sidebar beside the column from 1024px. <Page> sets its own width and gutters,
+     so its sticky header can run edge to edge. */
+  @media (min-width: 1024px) {
+    .shell-app {
+      display: grid;
+      grid-template-columns: var(--shell-sidebar-w) minmax(0, 1fr);
+    }
+  }
+  .shell-main.shell-main--app {
+    max-width: none;
+    margin: 0;
+    padding: 0;
   }
   .shell-main--focus {
     min-height: 100vh;

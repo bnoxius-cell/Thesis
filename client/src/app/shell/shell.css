@@ -1,0 +1,151 @@
+/* Page header and avatar menu (Figma 16:3 and 20:68). Transparent at the top, a frosted bar once
+   the page scrolls under it. Under 1024px the same header stays as it is until F5 turns it into the
+   phone top bar. */
+@layer components {
+  .shell-pagewrap {
+    position: relative;
+    --shell-gutter: var(--space-4);
+    /* 1120px of content plus the gutters, as in the frames. */
+    --shell-page-max: 1184px;
+  }
+  @media (min-width: 721px) {
+    .shell-pagewrap {
+      --shell-gutter: var(--space-6);
+    }
+  }
+  .shell-pagewrap__sentinel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: var(--space-4); /* the header's top padding that scrolls away before it sticks */
+    pointer-events: none;
+  }
+
+  .shell-header {
+    position: sticky;
+    top: calc(-1 * var(--space-4));
+    z-index: 20;
+    padding-top: var(--space-5);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid transparent;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out);
+  }
+  .shell-header[data-stuck] {
+    border-bottom-color: var(--border);
+    background: color-mix(in srgb, var(--surface) 90%, transparent);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .shell-header[data-stuck] {
+      background: var(--surface);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+
+  .shell-header__inner,
+  .shell-body {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--shell-page-max);
+    margin: 0 auto;
+    padding-left: max(var(--shell-gutter), env(safe-area-inset-left));
+    padding-right: max(var(--shell-gutter), env(safe-area-inset-right));
+  }
+  .shell-header__inner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .shell-header__main {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .shell-header__row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .shell-header__title {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--text-primary);
+    font: 600 var(--text-2xl) / 32px var(--font-ui);
+  }
+  .shell-header__subtitle {
+    margin: 2px 0 0;
+    color: var(--text-muted);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .shell-header__tools {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .shell-body {
+    padding-top: var(--space-3); /* with the header's bottom padding, the frame's 24px gap */
+    padding-bottom: var(--space-6);
+  }
+
+  /* The avatar: a 36px circle in a 44px hit area. */
+  .shell-avatar-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    cursor: pointer;
+  }
+  .shell-avatar-btn .ui-avatar {
+    transition: transform var(--dur-1) var(--ease-out);
+  }
+  .shell-avatar-btn:active .ui-avatar {
+    transform: scale(0.96);
+  }
+  .shell-avatar-btn:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+  }
+  .shell-header__tools .ui-icon-btn__badge {
+    animation: shell-badge-in var(--dur-2) var(--ease-out) backwards;
+  }
+
+  /* The menu's first row: not a choice, so it is plain text. 232px plus the menu's own padding is
+     the frame's 248px. */
+  .shell-account {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    min-width: 232px;
+    padding: 10px var(--space-2);
+  }
+  .shell-account__who {
+    min-width: 0;
+  }
+  .shell-account__name,
+  .shell-account__role {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .shell-account__name {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+  }
+  .shell-account__role {
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+}

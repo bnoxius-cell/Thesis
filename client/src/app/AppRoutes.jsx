@@ -23,8 +23,10 @@ function SignInRoute() {
   return <AuthPage />;
 }
 
-// Each page is a titled placeholder until its own batch replaces it with a lazy-loaded page.
-const placeholder = (title) => <PlaceholderPage title={title} />;
+// Each signed-in page is a titled placeholder inside the shell until its own batch replaces it
+// with a lazy-loaded page. The focus screens (Practice, Check-in) have no shell, so they stay bare.
+const placeholder = (title) => <PlaceholderPage title={title} shell />;
+const barePlaceholder = (title) => <PlaceholderPage title={title} />;
 
 export default function AppRoutes() {
   return (
@@ -37,7 +39,7 @@ export default function AppRoutes() {
       <Route element={<PublicLayout />}>
         <Route path="/terms-of-service" element={<LegalPage kind="terms" />} />
         <Route path="/privacy-policy" element={<LegalPage kind="privacy" />} />
-        <Route path="/about" element={placeholder("About")} />
+        <Route path="/about" element={barePlaceholder("About")} />
         <Route path="*" element={<NotFound />} />
       </Route>
 
@@ -58,8 +60,8 @@ export default function AppRoutes() {
           <Route path="/notifications" element={placeholder("Notifications")} />
         </Route>
         <Route element={<FocusLayout />}>
-          <Route path="/study/reviewers/:reviewerId/practice" element={placeholder("Practice")} />
-          <Route path="/wellbeing/check-in/:kind" element={placeholder("Check-in")} />
+          <Route path="/study/reviewers/:reviewerId/practice" element={barePlaceholder("Practice")} />
+          <Route path="/wellbeing/check-in/:kind" element={barePlaceholder("Check-in")} />
         </Route>
       </Route>
     </Routes>
