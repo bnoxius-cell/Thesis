@@ -1,0 +1,81 @@
+/* The timetable switcher (Figma 38:318): a SelectButton-style trigger and a 300px popover whose
+   rows carry a name, a dot and a chip. The popover itself is the shared Menu. */
+@layer pages {
+  /* On phones the trigger fills its own row; from 1024px it sits at the end of the controls row. */
+  .plan-tt {
+    display: flex;
+    width: 100%;
+  }
+  .plan-tt__trigger {
+    width: 100%;
+  }
+  @media (min-width: 1024px) {
+    .plan-tt {
+      display: inline-flex;
+      width: auto;
+      margin-left: auto;
+    }
+    .plan-tt__trigger {
+      width: auto;
+      max-width: 260px;
+    }
+  }
+
+  /* Rows are 300px wide with the menu's padding, and never wider than the screen (320px phones). */
+  .plan-tt__row {
+    min-width: min(284px, calc(100vw - 34px));
+    padding: var(--space-3);
+  }
+  .plan-tt__row[aria-selected="true"] {
+    background: var(--accent-soft);
+  }
+  .plan-tt__retry {
+    color: var(--text-secondary);
+  }
+
+  .plan-tt__text {
+    display: flex;
+    flex-direction: column;
+  }
+  .plan-tt__title {
+    font-weight: 600;
+  }
+  .plan-tt__hint {
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+
+  .plan-tt__eyebrow {
+    padding: var(--space-2) var(--space-3);
+    color: var(--text-muted);
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .plan-tt__line {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .plan-tt__name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .plan-tt__dot {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-pill);
+  }
+  .plan-tt__dot--accent {
+    background: var(--accent);
+  }
+  .plan-tt__dot--good {
+    background: var(--good);
+  }
+  .plan-tt__dot--watch {
+    background: var(--watch);
+  }
+}

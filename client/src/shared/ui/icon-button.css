@@ -1,0 +1,51 @@
+/* IconButton (Figma 13:77): a 36px outlined circle inside a 44px hit area. */
+@layer components {
+  .ui-icon-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .ui-icon-btn__face {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--text-primary);
+    border-radius: var(--radius-pill);
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  .ui-icon-btn--plain .ui-icon-btn__face {
+    border-color: transparent;
+  }
+  .ui-icon-btn:active:not(:disabled) .ui-icon-btn__face {
+    transform: scale(0.96);
+  }
+  .ui-icon-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .ui-icon-btn__badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .ui-icon-btn:hover:not(:disabled) .ui-icon-btn__face {
+      background: var(--surface-2);
+    }
+  }
+}

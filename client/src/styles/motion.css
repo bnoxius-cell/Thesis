@@ -16,6 +16,65 @@
       transform: translateY(6px);
     }
   }
+  /* Shared primitives (shared/ui): popover and dialog entrances, the progress draw-in, the
+     skeleton pulse. Entrances only: nothing waits on an exit animation. */
+  @keyframes ui-fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes ui-menu-in {
+    from {
+      opacity: 0;
+      transform: scale(0.98);
+    }
+  }
+  @keyframes ui-modal-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+  }
+  /* Shell badges (sidebar rows, the bell) pop in when a count first appears. */
+  @keyframes shell-badge-in {
+    from {
+      opacity: 0;
+      transform: scale(0.85);
+    }
+  }
+  @keyframes ui-bar-grow {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  /* Feature bars (the week's workload) rise once from the baseline. */
+  @keyframes workload-bar-grow {
+    from {
+      transform: scaleY(0);
+    }
+  }
+  /* The done box settling after a tick: the one place the guide allows a spring curve. */
+  @keyframes tasks-check-pop {
+    from {
+      transform: scale(0.85);
+    }
+  }
+  /* Plan: a new week slides in from the side it was stepped to (--plan-from), or rises a little on
+     first load. */
+  @keyframes plan-week-in {
+    from {
+      opacity: 0;
+      transform: translate(var(--plan-from, 0), var(--plan-rise, 6px));
+    }
+  }
+  @keyframes ui-pulse {
+    from {
+      opacity: 0.6;
+    }
+    to {
+      opacity: 1;
+    }
+  }
   @keyframes ambient-drift {
     to {
       transform: translate(3%, 4%) rotate(4deg);

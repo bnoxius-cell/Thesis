@@ -1,0 +1,100 @@
+/* Menu (anchored popover, Figma avatar menu 20:68 and the SelectButton list). Fixed position and
+   a portal, so the JS sets top, left and max-height; CSS sets everything else. */
+@layer components {
+  .ui-menu-anchor {
+    display: inline-flex;
+    max-width: 100%;
+  }
+  .ui-menu-anchor--block {
+    display: flex;
+    width: 100%;
+  }
+
+  .ui-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1100; /* above the dialog overlay (1000) */
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    box-sizing: border-box;
+    width: max-content;
+    min-width: 176px;
+    max-width: calc(100vw - 16px);
+    max-height: 320px;
+    margin: 0;
+    padding: var(--space-2);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-2);
+    animation: ui-menu-in var(--dur-2) var(--ease-out);
+  }
+
+  .ui-menu__item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 40px;
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--dur-1) var(--ease-out);
+  }
+  .ui-menu__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .ui-menu__check {
+    flex: none;
+    color: var(--accent);
+  }
+  .ui-menu__item[aria-selected="true"],
+  .ui-menu__item[aria-checked="true"] {
+    font-weight: 600;
+  }
+  .ui-menu__item--danger {
+    color: var(--danger);
+  }
+  .ui-menu__item:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  /* Keyboard focus sits inside the row so the scrolling menu can't clip it. */
+  .ui-menu__item:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+    background: var(--surface-2);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .ui-menu__item:hover:not(:disabled) {
+      background: var(--surface-2);
+    }
+  }
+  .ui-menu__divider {
+    height: 1px;
+    margin: var(--space-1) 0;
+    background: var(--border);
+  }
+
+  /* 44px rows on phones and any touch screen. */
+  @media (max-width: 1023px), (pointer: coarse) {
+    .ui-menu__item {
+      min-height: 44px;
+    }
+  }
+}

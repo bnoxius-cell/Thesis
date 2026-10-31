@@ -1,0 +1,316 @@
+/* Home (Figma 16:3). One column on phones, two from 721px, the frame's 5 / 4 / 3 split from 1280px.
+   Plan for you and the quiet line always take a full row. */
+@layer pages {
+  .home-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: stretch;
+  }
+  @media (min-width: 721px) {
+    .home-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+  }
+  @media (min-width: 1280px) {
+    .home-grid {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(0, 3fr);
+    }
+  }
+
+  .home-plan,
+  .home-quiet {
+    grid-column: 1 / -1;
+  }
+  /* Phones read Today, Plan for you, This week, Next step (no frame; 12 section 5.1). */
+  @media (max-width: 720px) {
+    .home-hero { order: 0; }
+    .home-plan { order: 1; }
+    .home-week { order: 2; }
+    .home-next { order: 3; }
+    .home-quiet { order: 4; }
+  }
+  /* In two columns Next step would sit alone in its row, so it takes the full width. */
+  @media (min-width: 721px) and (max-width: 1279px) {
+    .home-next {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .home-skeleton {
+    border-radius: var(--radius-xl);
+  }
+  .home-skeleton--next {
+    grid-column: 1 / -1;
+  }
+  @media (min-width: 1280px) {
+    .home-skeleton--next {
+      grid-column: auto;
+      height: 360px;
+    }
+  }
+  .home-failed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    color: var(--text-secondary);
+  }
+  .home-failed p {
+    margin: 0;
+  }
+
+  /* ---- Card heads ---- */
+  .home-card__head {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+  .home-card__title {
+    margin: 0;
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .home-card__empty {
+    margin: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-secondary);
+  }
+  .home-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    color: var(--accent);
+  }
+  .home-chip--soft {
+    background: var(--accent-soft);
+  }
+  .home-chip--good {
+    background: var(--good-soft);
+    color: var(--good);
+  }
+
+  /* ---- Today hero ---- */
+  .home-hero {
+    background: var(--accent-soft);
+    border-color: transparent;
+  }
+  .home-hero__headline {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .home-hero__title {
+    margin: 0;
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .home-hero__detail,
+  .home-hero__empty {
+    margin: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-secondary);
+  }
+  .home-hero__more {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-block: -10px;
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .home-hero__more:hover {
+      color: var(--accent);
+    }
+  }
+
+  .home-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .home-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    min-height: 56px;
+    padding: 10px var(--space-3);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+  }
+  .home-row__text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+  .home-row__title {
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .home-row__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0 var(--space-1);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-muted);
+  }
+  .home-row__end {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex: none;
+    gap: var(--space-2);
+  }
+
+  .home-dot {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-pill);
+    background: var(--text-muted);
+  }
+  .home-dot--small {
+    width: 8px;
+    height: 8px;
+  }
+  .home-dot--accent {
+    background: var(--accent);
+  }
+  .home-dot--good {
+    background: var(--good);
+  }
+  .home-dot--watch {
+    background: var(--watch);
+  }
+
+  /* ---- This week ---- */
+  .home-week__sentence {
+    margin: 0;
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .home-week__progress {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .home-week__count,
+  .home-week__note {
+    margin: 0;
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-muted);
+  }
+  .home-link {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-block: -10px;
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    color: var(--accent);
+    text-decoration: none;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .home-link:hover {
+      text-decoration: underline;
+    }
+  }
+
+  /* ---- Next step ---- */
+  .home-next__title {
+    margin: 0;
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .home-next__detail {
+    margin: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+  }
+  .home-next__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  /* ---- Plan for you ---- */
+  .home-plan {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .home-plan__all {
+    align-self: center;
+    margin-left: auto;
+    min-width: 44px;
+    justify-content: center;
+  }
+  .home-plan__cards {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  @media (min-width: 561px) {
+    .home-plan__cards {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1024px) {
+    .home-plan__cards {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--space-4);
+    }
+  }
+  .home-plan__card {
+    gap: var(--space-2);
+    padding: var(--space-4);
+  }
+  .home-plan__label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-muted);
+  }
+  .home-plan__title {
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .home-plan__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  /* ---- Quiet line ---- */
+  .home-quiet {
+    margin: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-muted);
+  }
+}

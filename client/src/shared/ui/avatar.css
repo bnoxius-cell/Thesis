@@ -1,0 +1,24 @@
+/* Avatar (Figma 13:81): circle with a SemiBold initial in --on-accent on --accent. Pictures cover it. */
+@layer components {
+  .ui-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    box-sizing: border-box;
+    width: var(--avatar-size);
+    height: var(--avatar-size);
+    border-radius: var(--radius-pill);
+    object-fit: cover;
+  }
+  .ui-avatar--initial {
+    background: var(--accent);
+    color: var(--on-accent);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    user-select: none;
+  }
+  .ui-avatar--xl.ui-avatar--initial {
+    font-size: var(--text-3xl);
+    line-height: var(--lh-tight);
+  }
+}

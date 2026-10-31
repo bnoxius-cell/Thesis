@@ -1,0 +1,191 @@
+/* Plan, Month view (Figma 38:234): the month as a grid of days. From 768px each day shows short
+   labels under its date; below that it keeps the date, the class dots and one small bar for
+   "something is due", so seven columns still fit a phone. */
+@layer pages {
+  .plan-month {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+  }
+
+  .plan-month__head,
+  .plan-month__row {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+  .plan-month__row {
+    border-top: 1px solid var(--border);
+  }
+  .plan-month__head span {
+    padding: var(--space-3) var(--space-1);
+    color: var(--text-muted);
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+  @media (min-width: 768px) {
+    .plan-month__head span {
+      padding: var(--space-3);
+      text-align: left;
+    }
+  }
+
+  /* ---- A day ---- */
+  .plan-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    box-sizing: border-box;
+    width: auto;
+    min-width: 0;
+    min-height: 60px;
+    margin: 0;
+    padding: var(--space-1);
+    border: 0;
+    border-right: 1px solid var(--border);
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  .plan-day:last-child {
+    border-right: 0;
+  }
+  .plan-day:active {
+    transform: scale(0.98);
+  }
+  .plan-day:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -3px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .plan-day:hover {
+      background: var(--surface-2);
+    }
+  }
+  @media (min-width: 768px) {
+    .plan-day {
+      align-items: flex-start;
+      gap: var(--space-2);
+      min-height: 104px;
+      padding: var(--space-2);
+    }
+  }
+  .plan-day.is-today,
+  .plan-day.is-today:hover {
+    background: var(--accent-soft);
+  }
+  .plan-day.is-outside .plan-day__num {
+    color: var(--text-muted);
+  }
+  .plan-day.is-outside .plan-day__dots,
+  .plan-day.is-outside .plan-day__label {
+    opacity: 0.7;
+  }
+
+  .plan-day__num {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-pill);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .plan-day.is-today .plan-day__num {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .plan-day__dots {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3px;
+  }
+  @media (min-width: 768px) {
+    .plan-day__dots {
+      justify-content: flex-start;
+      gap: var(--space-1);
+    }
+  }
+  .plan-day__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+  @media (min-width: 768px) {
+    .plan-day__dot {
+      width: 8px;
+      height: 8px;
+    }
+  }
+  .plan-day__dot--accent { background: var(--accent); }
+  .plan-day__dot--good { background: var(--good); }
+  .plan-day__dot--watch { background: var(--watch); }
+
+  /* The phone's stand-in for the labels. */
+  .plan-day__flag {
+    width: 14px;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--text-secondary);
+  }
+  .plan-day__labels {
+    display: none;
+  }
+  @media (min-width: 768px) {
+    .plan-day__flag {
+      display: none;
+    }
+    .plan-day__labels {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+      align-self: stretch;
+      min-width: 0;
+    }
+  }
+
+  .plan-day__label {
+    overflow: hidden;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    color: var(--text-primary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .plan-day__label--accent { background: var(--accent-soft); }
+  .plan-day__label--good { background: var(--good-soft); }
+  .plan-day__label--watch { background: var(--watch-soft); }
+  .plan-day__label--danger {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+  /* On today's tint a soft label would vanish, so it goes white with a hairline, as drawn. */
+  .plan-day.is-today .plan-day__label--accent,
+  .plan-day.is-today .plan-day__label--neutral {
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .plan-day__more {
+    padding-left: var(--space-2);
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+}

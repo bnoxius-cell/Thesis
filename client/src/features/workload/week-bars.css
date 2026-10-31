@@ -1,0 +1,115 @@
+/* WeekBars (Figma 16:96): bars 12 to 64px tall, 6px radius, accent at 55% with the heaviest day in the
+   watch tone. The labels under them are an addition so the days can be told apart. */
+@layer pages {
+  .workload-bars {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: var(--space-2);
+    max-width: 280px;
+  }
+  .workload-bars__col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+  }
+  .workload-bars__track {
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+    max-width: 32px;
+    height: var(--bar-h, 64px);
+  }
+  .workload-bars__bar {
+    display: block;
+    width: 100%;
+    height: calc(var(--level) * var(--bar-h, 64px));
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    opacity: 0.55;
+    transform-origin: bottom;
+    animation: workload-bar-grow var(--dur-4) var(--ease-out) backwards;
+    animation-delay: calc(var(--i) * var(--stagger));
+  }
+  .workload-bars__bar.is-heaviest {
+    background: var(--watch);
+    opacity: 1;
+  }
+  .workload-bars__label {
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-muted);
+  }
+  .workload-bars__label.is-today {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* The Wellbeing chart (Figma 51:2, 52:117): 44px bars up to 120px tall at full strength, today's
+     label as an accent pill, and the key underneath. On phones the seven columns share the width. */
+  .workload-bars--lg {
+    --bar-h: 120px;
+    grid-template-columns: repeat(7, 44px);
+    gap: var(--space-3);
+    max-width: none;
+  }
+  .workload-bars--lg .workload-bars__track {
+    max-width: 44px;
+  }
+  .workload-bars--lg .workload-bars__bar {
+    opacity: 1;
+  }
+  .workload-bars--lg .workload-bars__label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 24px;
+    border-radius: var(--radius-pill);
+    color: var(--text-secondary);
+  }
+  .workload-bars--lg .workload-bars__label.is-today {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  @media (max-width: 720px) {
+    .workload-bars--lg {
+      --bar-h: 96px;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: var(--space-1);
+    }
+    .workload-bars--lg .workload-bars__track {
+      max-width: 36px;
+    }
+    .workload-bars--lg .workload-bars__label {
+      min-width: 0;
+      width: 100%;
+      max-width: 44px;
+    }
+  }
+
+  .workload-bars__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-secondary);
+  }
+  .workload-bars__legend li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .workload-bars__key {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+  }
+  .workload-bars__key.is-heaviest {
+    background: var(--watch);
+  }
+}

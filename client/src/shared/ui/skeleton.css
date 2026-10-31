@@ -1,0 +1,15 @@
+/* Skeleton: a --surface-3 block with a slow opacity pulse (one of the loops motion.md allows). */
+@layer components {
+  .ui-skeleton {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: 1em;
+    border-radius: var(--radius-sm);
+    background: var(--surface-3);
+    animation: ui-pulse 1.2s ease-in-out infinite alternate;
+  }
+  .ui-skeleton--circle {
+    border-radius: var(--radius-pill);
+  }
+}

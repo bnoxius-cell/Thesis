@@ -1,0 +1,26 @@
+/* ProgressBar: a 6px --surface-3 track; the fill is full width and scales with transform. */
+@layer components {
+  .ui-progress {
+    box-sizing: border-box;
+    width: 100%;
+    height: 6px;
+    margin: 0;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: var(--surface-3);
+  }
+  .ui-progress__fill {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    transform: scaleX(var(--value));
+    transform-origin: left;
+    transition: transform var(--dur-4) var(--ease-out);
+    animation: ui-bar-grow var(--dur-4) var(--ease-out) backwards;
+  }
+  .ui-progress--good .ui-progress__fill {
+    background: var(--good);
+  }
+}

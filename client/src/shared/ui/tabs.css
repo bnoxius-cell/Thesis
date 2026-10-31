@@ -1,0 +1,71 @@
+/* Tabs (Figma Tab 61:73): a --surface-2 pill track with 4px padding. The selected tab is a
+   --surface pill with --text-primary label; idle tabs use --text-secondary. Label Strong text. */
+@layer components {
+  .ui-tabs {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: stretch;
+    box-sizing: border-box;
+    max-width: 100%;
+    margin: 0;
+    padding: var(--space-1);
+    border-radius: var(--radius-pill);
+    background: var(--surface-2);
+  }
+  .ui-tabs--block {
+    display: flex;
+    width: 100%;
+  }
+
+  .ui-tab {
+    position: relative;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    width: auto;
+    min-width: 0;
+    min-height: 36px;
+    margin: 0;
+    padding: var(--space-2) var(--space-4);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--text-secondary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  .ui-tabs--block .ui-tab {
+    flex: 1 1 0;
+  }
+  /* The track's 4px padding on top and bottom joins the hit area: 44px tall. */
+  .ui-tab::after {
+    content: "";
+    position: absolute;
+    inset: calc(-1 * var(--space-1)) 0;
+  }
+  .ui-tab[aria-selected="true"] {
+    background: var(--surface);
+    color: var(--text-primary);
+  }
+  .ui-tab:active {
+    transform: scale(0.98);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .ui-tab[aria-selected="false"]:hover {
+      color: var(--text-primary);
+    }
+  }
+  .ui-tab:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 0;
+  }
+}

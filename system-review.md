@@ -161,13 +161,13 @@ The dashboard "Next exam" pill wraps into narrow columns at 375px (`.today-exam-
 4. Never start test servers on port 5000 (the owner's real dev server). Use an in-memory MongoDB on another port, like 5070 (see `handout.md`, Gotchas).
 5. Batches marked **Opus review** touch auth or security. Stop before merging and ask the owner to have Opus review the diff.
 6. Items marked **Ask the owner first** need a decision. Ask in one short question, then continue with the rest.
-7. UI work follows `frontend-plan.md` (added 2026-10-12). Don't ask design questions beyond its Open list. Don't spawn subagents without asking.
+7. UI work follows the Figma file (`.claude/docs/design.md`); the old `.claude/docs/old-design/frontend-plan.md` is archived in `.claude/docs/old-design/`. Don't ask design questions beyond its Open list. Don't spawn subagents without asking.
 8. Tick the boxes here as items are done, and add a line to CLAUDE.md for anything that changes how the app behaves.
-9. **Order**: `frontend-plan.md` section 9 merges these batches with the frontend revamp over the next 3 weeks. Batch 9 is done inside FE-1; B2, B3, B10, B11, B17 and R6 from Batch 6 inside FE-2 and FE-4; Batch 8's UI inside FE-4; Batch 2, R5 and D2 inside FE-5. Don't do those twice. Must-have before the panel: Batches 1, 2, 3, 7.
+9. **Order**: `.claude/docs/old-design/frontend-plan.md` section 9 merges these batches with the frontend revamp over the next 3 weeks. Batch 9 is done inside FE-1; B2, B3, B10, B11, B17 and R6 from Batch 6 inside FE-2 and FE-4; Batch 8's UI inside FE-4; Batch 2, R5 and D2 inside FE-5. Don't do those twice. Must-have before the panel: Batches 1, 2, 3, 7.
 
 ## Owner decisions to collect first
-- [x] **B3** (answered 2026-10-12, wellbeing first): "Lighter pace" (`catch-up`) warns sooner (+10), "Balanced pace" (`steady`) unchanged, "Fuller pace" (`high-performance`) tolerates more (-10) only while the fresh check-ins aren't strained. Labels, hints and steps in `frontend-plan.md` section 8 and FE-4 step 1b, which replaces the B3 step in Batch 6.
-- [x] **R5 / D2** (answered 2026-10-12): keep the sleep fields and use them (bedtime suggestion, `frontend-plan.md` section 7.2); list them, travel time, task completion times and check-in history in the Privacy Policy and bump `LEGAL_VERSION` (FE-5 step 5).
+- [x] **B3** (answered 2026-10-12, wellbeing first): "Lighter pace" (`catch-up`) warns sooner (+10), "Balanced pace" (`steady`) unchanged, "Fuller pace" (`high-performance`) tolerates more (-10) only while the fresh check-ins aren't strained. Labels, hints and steps in `.claude/docs/old-design/frontend-plan.md` section 8 and FE-4 step 1b, which replaces the B3 step in Batch 6.
+- [x] **R5 / D2** (answered 2026-10-12): keep the sleep fields and use them (bedtime suggestion, `.claude/docs/old-design/frontend-plan.md` section 7.2); list them, travel time, task completion times and check-in history in the Privacy Policy and bump `LEGAL_VERSION` (FE-5 step 5).
 - [x] **S6** (answered 2026-10-13): neutral wording on reset only ("If that email has an account, we sent a code."); login keeps "User not found". Built in `build-queue.md` Q1.
 - [x] **S4** (answered 2026-10-13): yes, a password reset ends other sessions (one extra DB read per request is fine). Built in Q1.
 - [x] **R4** (answered 2026-10-13): delete the dead wellbeing controller and routes. Built in Q5.

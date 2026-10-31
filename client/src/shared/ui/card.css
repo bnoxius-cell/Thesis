@@ -1,0 +1,38 @@
+/* Card (Figma 13:74): surface, 1px border, --radius-xl, 20px padding, Shadow/1. */
+@layer components {
+  .ui-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    width: auto;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+    color: inherit;
+    text-align: left;
+    text-decoration: none;
+  }
+  .ui-card--interactive {
+    cursor: pointer;
+    transition: transform var(--dur-2) var(--ease-out);
+  }
+  /* The lift is for a mouse only, and off under reduced motion or Animations Off (the same two
+     switches base.css uses). */
+  @media (hover: hover) and (pointer: fine) {
+    .ui-card--interactive:hover {
+      transform: translateY(-2px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html:not([data-motion="on"]) .ui-card--interactive:hover {
+      transform: none;
+    }
+  }
+  html[data-motion="off"] .ui-card--interactive:hover {
+    transform: none;
+  }
+}

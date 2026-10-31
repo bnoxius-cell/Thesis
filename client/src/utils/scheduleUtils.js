@@ -130,7 +130,7 @@ export const meetingProvider = (value) => {
 
 // The link a share code makes. Opening it shows the schedule (as a viewer or editor, whatever
 // the code allows) with the option to copy it instead.
-export const shareLinkFor = (code) => `${window.location.origin}/schedule?code=${code}`;
+export const shareLinkFor = (code) => `${window.location.origin}/plan?code=${code}`;
 
 // ---- Tasks -----------------------------------------------------------------
 
