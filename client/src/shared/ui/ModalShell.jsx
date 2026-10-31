@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import "./modal.css";
 
 // The dialog shell. Use Modal (or ConfirmDialog), which build on this.
@@ -99,11 +100,13 @@ export default function ModalShell({
       unlockScroll();
       // Back to the opener. If it is gone (a dialog opened by a link on another page, like Today's
       // "Add task", or a button that left the page when its dialog finished), land on <main> instead
-      // of dropping to <body>.
-      const back = opener && opener !== document.body && document.contains(opener)
-        ? opener
-        : document.getElementById("main");
-      back?.focus({ preventScroll: true });
+      // of dropping to <body>, but only when nothing else has taken focus: a "Leave?" prompt closes in
+      // the same commit as the dialog under it, and must not pull focus off that dialog's own opener.
+      if (opener && opener !== document.body && document.contains(opener)) {
+        opener.focus({ preventScroll: true });
+      } else if (!document.activeElement || document.activeElement === document.body) {
+        document.getElementById("main")?.focus({ preventScroll: true });
+      }
     };
   }, [open, requestClose, initialFocusRef, opener]);
 
@@ -130,7 +133,9 @@ export default function ModalShell({
     }
   };
 
-  return (
+  // In the body, so no ancestor (the stuck header's backdrop blur, a page's stacking context) can
+  // trap the overlay under the phone bottom bar or turn it into a box inside the header.
+  return createPortal(
     <div
       className={`ui-modal-overlay ${overlayClassName}`.trim()}
       onPointerDown={(e) => {
@@ -154,6 +159,7 @@ export default function ModalShell({
       >
         {children}
       </Tag>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -80,7 +80,7 @@
       min-height: 44px;
     }
   }
-  @media (pointer: coarse) {
+  @media (max-width: 480px), (pointer: coarse) {
     .ui-field__control {
       font-size: 16px;
     }

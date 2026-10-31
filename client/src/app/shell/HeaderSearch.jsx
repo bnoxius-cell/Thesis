@@ -47,6 +47,7 @@ export default function HeaderSearch() {
   const edit = (event) => {
     setText(event.target.value);
     setActive(-1);
+    setOpen(true);
   };
   const openSearch = () => {
     setOpen(true);
@@ -65,6 +66,7 @@ export default function HeaderSearch() {
   const onKeyDown = (event) => {
     if (event.key === "Escape") {
       event.stopPropagation();
+      event.preventDefault(); // a type=search field would otherwise clear its text
       if (compact) closePhone();
       else if (open) close();
       else setText("");
@@ -75,7 +77,10 @@ export default function HeaderSearch() {
       event.preventDefault();
       if (!open) return openSearch();
       const step = event.key === "ArrowDown" ? 1 : -1;
-      setActive((prev) => (prev + step + results.length) % results.length);
+      setActive((prev) => {
+        if (prev < 0) return step === 1 ? 0 : results.length - 1;
+        return (prev + step + results.length) % results.length;
+      });
     } else if (event.key === "Enter" && results.length > 0) {
       event.preventDefault();
       pick(results[Math.max(active, 0)]);
