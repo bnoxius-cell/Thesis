@@ -362,6 +362,12 @@
     gap: var(--space-4);
     padding: var(--space-5);
   }
+  .wellbeing-rhythm__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
   .wellbeing-rhythm__chips {
     display: flex;
     flex-wrap: wrap;

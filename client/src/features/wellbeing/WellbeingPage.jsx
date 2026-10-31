@@ -79,7 +79,7 @@ export default function WellbeingPage() {
           <SleepCard
             summary={sleepSummary({ week: work.week, profile: work.profile, usualWakeTime: userData?.usualWakeTime })}
           />
-          <RhythmCard profile={work.profile} />
+          <RhythmCard profile={work.profile} user={userData} />
           <HowThisWorks />
         </div>
       )}
