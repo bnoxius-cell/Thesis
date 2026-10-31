@@ -8,7 +8,9 @@ const OFFLINE = "Can't reach StressCare. Check your connection and try again.";
 const FAILED = "Something went wrong. Please try again.";
 
 // One request, never throws. Answers { data } on success or { error } with a message that is safe
-// to show: the server's own plain message when it sent one, a generic line otherwise.
+// to show: the server's own plain message when it sent one, a generic line otherwise. A failed
+// answer from the server also carries `status` (the HTTP code) and `fromApi` (true when the body
+// is the API's own { success: false } reply, false for a bare proxy or deploy error page).
 export async function request(method, path, body) {
   try {
     const { data } = await axios({ method, url: backendUrl + path, data: body, withCredentials: true });
@@ -16,7 +18,11 @@ export async function request(method, path, body) {
     return { data };
   } catch (err) {
     if (!err.response) return { error: OFFLINE };
-    return { error: err.response.data?.message || FAILED };
+    return {
+      error: err.response.data?.message || FAILED,
+      status: err.response.status,
+      fromApi: err.response.data?.success === false,
+    };
   }
 }
 

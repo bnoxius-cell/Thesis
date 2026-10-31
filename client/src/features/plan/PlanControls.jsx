@@ -9,9 +9,9 @@ const VIEWS = [
 ];
 
 // The row under the page title (Figma 38:3, 40:387): the view switch and, in Week view, the date
-// stepper with a Today button. The Filter button is not built (nothing to filter by yet) and the
-// timetable switcher joins this row in P2.
-export default function PlanControls({ view, onView, weekStart, now, onShift, onToday }) {
+// stepper with a Today button. The Filter button is not built (nothing to filter by yet). `children`
+// is the slot at the end of the row, where Week view puts the timetable switcher.
+export default function PlanControls({ view, onView, weekStart, now, onShift, onToday, children }) {
   return (
     <div className="plan-controls">
       <Segment className="plan-views" label="View" options={VIEWS} value={view} onChange={onView} />
@@ -26,6 +26,7 @@ export default function PlanControls({ view, onView, weekStart, now, onShift, on
           <Button variant="secondary" className="plan-step__today" onClick={onToday}>Today</Button>
         </div>
       )}
+      {children}
     </div>
   );
 }

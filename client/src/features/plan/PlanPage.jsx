@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { CalendarDays, ListChecks } from "lucide-react";
+import { toast } from "react-toastify";
 import { Button, EmptyState, Skeleton } from "@/shared/ui";
 import Page from "@/app/shell/Page";
 import { useAuth } from "@/pages/authentication/AuthContext";
@@ -11,11 +12,15 @@ import PhoneWeek from "./PhoneWeek";
 import PlanControls from "./PlanControls";
 import WeekGrid from "./WeekGrid";
 import { buildPlanDays } from "./planDays";
+import TimetableSwitcher from "./TimetableSwitcher";
 import { usePlanParams } from "./planParams";
-import usePlanWeek from "./usePlanWeek";
+import usePlanData from "./usePlanData";
+import useTimetables from "./useTimetables";
 import "./plan.css";
 
 const DATE_FORMAT = { weekday: "long", month: "short", day: "numeric" };
+
+const TIMETABLE_GONE = "That timetable isn't available anymore. It may have been deleted or is no longer shared with you.";
 
 const COMING = {
   month: { icon: CalendarDays, text: "The month view is coming soon. Your classes and tasks are in Week view for now." },
@@ -29,7 +34,14 @@ export default function PlanPage() {
   const { userData } = useAuth();
   const now = useNow();
   const params = usePlanParams();
-  const data = usePlanWeek(params.weekStart);
+  const timetables = useTimetables();
+  // A timetable that was deleted, made private or never existed sends the student back to My week.
+  const setTimetable = params.setTimetable;
+  const leaveTimetable = useCallback(() => {
+    toast.error(TIMETABLE_GONE, { toastId: "plan-timetable-gone" });
+    setTimetable(null);
+  }, [setTimetable]);
+  const data = usePlanData(params.weekStart, params.timetable, leaveTimetable);
   const setDone = useTaskDone(data.setTasks);
   // Which way the week was last stepped, so the new one slides in from that side.
   const [direction, setDirection] = useState("none");
@@ -45,7 +57,8 @@ export default function PlanPage() {
     [params.weekStart, data.overview, data.tasks, data.subjectsById, profile, now],
   );
 
-  const weekKey = params.weekStart.getTime();
+  // New key, new arrival: the grid eases in again when the week or the timetable changes.
+  const weekKey = `${params.weekStart.getTime()}-${params.timetable ?? ""}`;
   const selected = days.find((day) => day.key === pickedKey) ?? days.find((day) => day.isToday) ?? days[0];
   const nothingPlanned = days.every((day) => !day.holiday && day.entries.length === 0 && day.tasks.length === 0);
 
@@ -68,7 +81,17 @@ export default function PlanPage() {
         now={now}
         onShift={shiftWeek}
         onToday={goToday}
-      />
+      >
+        {params.view === "week" && (
+          <TimetableSwitcher
+            timetableId={params.timetable}
+            timetables={timetables.timetables}
+            status={timetables.status}
+            onReload={timetables.reload}
+            onPick={setTimetable}
+          />
+        )}
+      </PlanControls>
       {params.view !== "week" ? (
         <EmptyState icon={COMING[params.view].icon} title="On its way">{COMING[params.view].text}</EmptyState>
       ) : (
@@ -99,6 +122,7 @@ export default function PlanPage() {
                   direction={direction}
                 />
               )}
+              {data.holidayError && <p className="plan-quiet">{data.holidayError}</p>}
               {nothingPlanned && <p className="plan-quiet">Nothing is planned for this week yet.</p>}
             </>
           )}
