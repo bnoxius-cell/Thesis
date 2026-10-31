@@ -9,6 +9,7 @@ import { nextDueSurvey } from "@/features/checkin/surveyDue";
 import useWeekData from "@/features/workload/useWeekData";
 import useWorkload from "@/features/workload/useWorkload";
 import useMoveSuggestions from "@/features/tasks/useMoveSuggestions";
+import CheckInCards from "./CheckInCards";
 import FeelingSection from "./FeelingSection";
 import HowThisWorks from "./HowThisWorks";
 import LoadHero from "./LoadHero";
@@ -28,7 +29,7 @@ function WellbeingSkeleton() {
 }
 
 // Wellbeing (Figma 51:2 desktop, 52:117 phone, 53:170 Why open, 53:459 new account): this week's load,
-// how the student has been (the check-in cards come in W2), tonight's sleep, their rhythm and how it
+// how the student has been (the check-in cards), tonight's sleep, their rhythm and how it
 // all works. #load, #feeling and #sleep are the targets of the sidebar links.
 export default function WellbeingPage() {
   const { userData } = useAuth();
@@ -72,7 +73,9 @@ export default function WellbeingPage() {
       {ready && (
         <div className="wellbeing-stack">
           <LoadHero work={work} moves={moves} />
-          <FeelingSection />
+          <FeelingSection>
+            <CheckInCards user={userData} now={now} />
+          </FeelingSection>
           <SleepCard
             summary={sleepSummary({ week: work.week, profile: work.profile, usualWakeTime: userData?.usualWakeTime })}
           />

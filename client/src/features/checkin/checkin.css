@@ -1,0 +1,294 @@
+/* Check-in flow (Figma 54:536 intro, 54:581 question, 54:619 result). A focus screen with no shell:
+   Exit and the check-in's name on top, one 640px column in the middle. Phones use the same column
+   with smaller type and the gutters of the rest of the app. */
+@layer pages {
+  .checkin {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  .checkin-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: max(var(--space-5), env(safe-area-inset-top)) max(var(--space-6), env(safe-area-inset-right)) var(--space-5)
+      max(var(--space-6), env(safe-area-inset-left));
+  }
+  .checkin-top__label {
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-muted);
+    text-align: right;
+  }
+  .checkin-main {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4) max(var(--space-4), env(safe-area-inset-right))
+      calc(var(--space-7) + env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
+  }
+  @media (max-width: 720px) {
+    .checkin-top {
+      padding-inline: max(var(--space-2), env(safe-area-inset-left)) max(var(--space-4), env(safe-area-inset-right));
+    }
+    .checkin-main {
+      align-items: flex-start;
+      padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+    }
+  }
+
+  /* Every screen is one column. A screen's own content arrives with the page's quiet fade, never the result. */
+  .checkin-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 640px;
+    min-width: 0;
+  }
+  .checkin-column--enter {
+    animation: page-in var(--dur-3) var(--ease-out) backwards;
+  }
+
+  /* ---- Headings ---- */
+  .checkin-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-lg);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .checkin-heading {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .checkin-eyebrow {
+    margin: 0;
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .checkin-title {
+    margin: 0;
+    font: 600 var(--text-3xl) / 38px var(--font-ui);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .checkin-title:focus {
+    outline: none; /* focus lands here on purpose so the result is read out; it isn't a control */
+  }
+  @media (max-width: 720px) {
+    .checkin-title {
+      font-size: var(--text-2xl);
+      line-height: 32px;
+    }
+  }
+  .checkin-lead {
+    margin: 0;
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    color: var(--text-secondary);
+  }
+
+  /* ---- Cards: what it is, what this changes ---- */
+  .checkin-card {
+    gap: var(--space-4);
+    padding: var(--space-5);
+    box-shadow: none;
+  }
+  @media (max-width: 720px) {
+    .checkin-card {
+      padding: var(--space-4);
+    }
+  }
+  .checkin-card__title {
+    margin: 0;
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .checkin-fact {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .checkin-fact__icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .checkin-fact__text {
+    min-width: 0;
+  }
+  .checkin-fact__title,
+  .checkin-fact__body {
+    margin: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .checkin-fact__title {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .checkin-fact__body {
+    color: var(--text-secondary);
+  }
+  .checkin-notes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .checkin-notes p {
+    margin: 0;
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-muted);
+  }
+  .checkin-encouragement {
+    margin: 0;
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    background: var(--accent-soft);
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .checkin-quiet {
+    margin: 0;
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    color: var(--text-secondary);
+  }
+  .checkin-skeleton {
+    display: block;
+    width: 100%;
+    border-radius: var(--radius-xl);
+  }
+
+  /* ---- Buttons ---- */
+  .checkin-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .checkin-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  /* ---- Question ---- */
+  .checkin-progress {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .checkin-progress__text {
+    margin: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-muted);
+  }
+  .checkin-progress__bar {
+    height: 8px;
+  }
+  .checkin-answers {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .checkin-error {
+    margin: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--danger);
+  }
+
+  /* An answer row: a button in a radiogroup. Everything the bare button rules set is declared again. */
+  .checkin-answer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-4);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 56px;
+    margin: 0;
+    padding: var(--space-3) var(--space-5);
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: none;
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out),
+      box-shadow var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  @media (max-width: 720px) {
+    .checkin-answer {
+      padding-inline: var(--space-4);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .checkin-answer[aria-checked="false"]:hover {
+      border-color: var(--text-muted);
+    }
+  }
+  .checkin-answer:active {
+    transform: scale(0.98);
+  }
+  /* The thicker accent border is an inset ring, so picking a row never moves the ones below it. */
+  .checkin-answer[aria-checked="true"] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .checkin-answer__radio {
+    position: relative;
+    flex: none;
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-input);
+    border-radius: var(--radius-pill);
+    transition: border-color var(--dur-2) var(--ease-out);
+  }
+  .checkin-answer[aria-checked="true"] .checkin-answer__radio {
+    border-color: var(--accent);
+  }
+  .checkin-answer[aria-checked="true"] .checkin-answer__radio::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+  }
+  .checkin-answer__label {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .checkin-answer__check {
+    flex: none;
+    color: var(--accent);
+    animation: checkin-check-pop var(--dur-2) var(--ease-spring) backwards;
+  }
+}
