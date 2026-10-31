@@ -18,7 +18,7 @@ const DEFAULT_PROFILE = {
 };
 
 // What the week maths reads from the account, with the same defaults the old pages used.
-function profileFromUser(u) {
+export function profileFromUser(u) {
   if (!u) return DEFAULT_PROFILE;
   return {
     studyHoursPerDay: u.studyHoursPerDay || 4,

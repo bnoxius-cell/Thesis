@@ -12,6 +12,7 @@ import usePageTitle from "./usePageTitle";
 
 const LegalPage = lazy(() => import("@/features/legal/LegalPage"));
 const HomePage = lazy(() => import("@/features/home/HomePage"));
+const PlanPage = lazy(() => import("@/features/plan/PlanPage"));
 // Development-only specimen of the shared primitives.
 const UiSpecimen = import.meta.env.DEV ? lazy(() => import("./dev/UiSpecimen")) : null;
 
@@ -47,7 +48,7 @@ export default function AppRoutes() {
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
           <Route path="/home" element={<HomePage />} />
-          <Route path="/plan" element={placeholder("Plan")} />
+          <Route path="/plan" element={<PlanPage />} />
           <Route path="/study" element={placeholder("Study")} />
           <Route path="/study/subjects/:subjectId" element={placeholder("Subject")} />
           <Route path="/study/reviewers/:reviewerId" element={placeholder("Reviewer")} />

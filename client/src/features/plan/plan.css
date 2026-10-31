@@ -1,0 +1,344 @@
+/* Plan, Week view (Figma 38:3 desktop, 40:387 phone). The controls row, the seven-column grid from
+   1024px, and the blocks inside it. Week columns and entry blocks are narrow on purpose: text wraps
+   instead of scrolling sideways. */
+@layer pages {
+  /* ---- Controls: view switch and date stepper ---- */
+  .plan-controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+  @media (min-width: 1024px) {
+    .plan-controls {
+      flex-direction: row;
+      align-items: center;
+      margin-bottom: var(--space-5);
+    }
+  }
+  /* The segment fills the row on phones and is a fixed 232px on desktop (equal thirds, as drawn). */
+  @media (min-width: 1024px) {
+    .plan-views {
+      flex: none;
+      width: 232px;
+    }
+  }
+
+  .plan-step {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  @media (min-width: 1024px) {
+    .plan-step {
+      gap: var(--space-3);
+    }
+  }
+  /* The drawn stepper buttons are light outlined circles, not the dark bell ring. */
+  .plan-step__btn .ui-icon-btn__face {
+    width: 44px;
+    height: 44px;
+    border-color: var(--border);
+    background: var(--surface);
+  }
+  @media (min-width: 1024px) {
+    .plan-step__btn .ui-icon-btn__face {
+      width: 40px;
+      height: 40px;
+    }
+    .plan-step__btn .ui-icon-btn__face svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .plan-step__btn:hover:not(:disabled) .ui-icon-btn__face {
+      background: var(--surface-2);
+    }
+  }
+  .plan-step__range {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    min-width: 0;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    text-align: center;
+  }
+  .plan-step__range strong {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+  }
+  @media (min-width: 1024px) {
+    .plan-step__range {
+      flex: none;
+      flex-direction: row;
+      gap: var(--space-2);
+      font-size: var(--text-sm);
+      line-height: 20px;
+    }
+  }
+  @media (min-width: 1024px) {
+    .plan-step__today {
+      min-height: 40px;
+    }
+  }
+
+  /* ---- States ---- */
+  .plan-skeleton {
+    width: 100%;
+    border-radius: var(--radius-xl);
+  }
+  .plan-failed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    color: var(--text-secondary);
+  }
+  .plan-failed p {
+    margin: 0;
+  }
+  .plan-quiet {
+    margin: var(--space-3) 0 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-muted);
+  }
+
+  /* ---- Week grid ---- */
+  .plan-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    box-sizing: border-box;
+    min-height: 480px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    list-style: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+    animation: plan-week-in var(--dur-3) var(--ease-out) backwards;
+  }
+  .plan-grid[data-direction="next"] {
+    --plan-from: 16px;
+    --plan-rise: 0px;
+  }
+  .plan-grid[data-direction="prev"] {
+    --plan-from: -16px;
+    --plan-rise: 0px;
+  }
+
+  .plan-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    min-width: 0;
+    padding: var(--space-2);
+    border-right: 1px solid var(--border);
+  }
+  .plan-col:last-child {
+    border-right: 0;
+  }
+  .plan-col.is-today {
+    background: var(--accent-soft);
+  }
+  @media (min-width: 1280px) {
+    .plan-col {
+      padding: var(--space-3);
+    }
+  }
+
+  .plan-col__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+  .plan-col__name {
+    margin: 0 0 var(--space-1);
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .plan-col.is-today .plan-col__name {
+    color: var(--accent);
+  }
+  .plan-col__num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-pill);
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .plan-col.is-today .plan-col__num {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .plan-dot {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-pill);
+  }
+  .plan-dot--light {
+    background: var(--good);
+  }
+  .plan-dot--heavy {
+    background: var(--watch);
+  }
+
+  .plan-col__items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* ---- Classes, exams and events ---- */
+  .plan-entry {
+    display: flex;
+    box-sizing: border-box;
+    /* A class is as tall as it is long: 36px an hour, never under 72px (frame 38:3). */
+    min-height: max(72px, calc(var(--hours, 0) * 36px));
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    background: var(--tone-bg);
+  }
+  .plan-entry--accent {
+    --tone-bg: var(--accent-soft);
+    --tone-bar: var(--accent);
+  }
+  .plan-entry--good {
+    --tone-bg: var(--good-soft);
+    --tone-bar: var(--good);
+  }
+  .plan-entry--watch {
+    --tone-bg: var(--watch-soft);
+    --tone-bar: var(--watch);
+  }
+  .plan-entry--neutral {
+    --tone-bg: var(--surface-2);
+    --tone-bar: var(--text-muted);
+  }
+  .plan-entry--exam {
+    min-height: 0;
+    border: 1px solid var(--watch);
+    background: var(--watch-soft);
+  }
+  .plan-entry__bar {
+    flex: none;
+    align-self: stretch;
+    width: 4px;
+    background: var(--tone-bar);
+  }
+  .plan-entry__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+    padding: var(--space-2);
+    overflow-wrap: anywhere;
+  }
+  .plan-entry__text p {
+    margin: 0;
+  }
+  .plan-entry__time {
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-secondary);
+  }
+  .plan-entry__title {
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .plan-entry__chip,
+  .plan-join {
+    align-self: flex-start;
+    margin-top: var(--space-1);
+  }
+  .plan-join {
+    margin-top: var(--space-2);
+  }
+
+  /* ---- Tasks ---- */
+  .plan-task {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    min-width: 0;
+    padding: var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+  }
+  .plan-task.is-overdue {
+    border-color: var(--danger);
+  }
+  .plan-task__text {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .plan-task__text p {
+    margin: 0;
+  }
+  .plan-task__title {
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .plan-task__meta {
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-muted);
+  }
+  .plan-task.is-overdue .plan-task__meta {
+    color: var(--danger);
+  }
+  /* The week column's done box is the drawn 16px circle (the day agenda keeps the full 24px one). */
+  .plan-task:not(.is-roomy) .tasks-check {
+    width: 28px;
+    height: 28px;
+    margin: -6px -2px -6px -6px;
+  }
+  .plan-task:not(.is-roomy) .tasks-check svg {
+    width: 10px;
+    height: 10px;
+    padding: 2px;
+    border-width: 1.5px;
+  }
+  .plan-task.is-overdue .tasks-check:not(.is-checked) svg {
+    border-color: var(--danger);
+  }
+
+  /* ---- Day off ---- */
+  .plan-dayoff {
+    box-sizing: border-box;
+    padding: var(--space-2);
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+    overflow-wrap: anywhere;
+  }
+  .plan-dayoff p {
+    margin: 0;
+  }
+  .plan-dayoff__label {
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    color: var(--text-secondary);
+  }
+  .plan-dayoff__name {
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-primary);
+  }
+}
