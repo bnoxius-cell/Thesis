@@ -77,3 +77,6 @@ Last updated: 2026-10-31 (night). Branch `redesign/site-v3` (off `redesign/login
 
 ## Gotchas
 In `.claude/docs/testing-and-gotchas.md`: UI harness quick start, headless Chrome, Chrome extension quirks, ports.
+
+## Domain (2026-10-31)
+Bought stresscare.xyz (GoDaddy), added to Vercel, GoDaddy A record set. Waiting on DNS propagation. Next: Vercel Refresh until Valid, then Render `CLIENT_URL`, Google OAuth origin. Details in `.claude/docs/deployment.md`.
