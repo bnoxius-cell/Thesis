@@ -19,7 +19,7 @@ export default function Page({ title, subtitle, action, back, children }) {
     <div className="shell-pagewrap">
       <span ref={sentinel} className="shell-pagewrap__sentinel" aria-hidden="true" />
       <header className="shell-header" data-stuck={stuck || undefined}>
-        <div className="shell-header__inner">
+        <div className={`shell-header__inner${back ? " shell-header__inner--back" : ""}`}>
           {back && <IconButton to={back.to} icon={ArrowLeft} label={back.label} plain />}
           <div className="shell-header__main">
             <div className="shell-header__row">

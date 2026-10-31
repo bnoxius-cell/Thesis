@@ -68,6 +68,20 @@
     align-items: center;
     gap: var(--space-3);
   }
+  /* With a back arrow the row is too tight for a long title on a phone: the arrow and the tools
+     share the first row and the title gets the full width below. */
+  @media (max-width: 479px) {
+    .shell-header__inner--back {
+      flex-wrap: wrap;
+    }
+    .shell-header__inner--back .shell-header__tools {
+      margin-left: auto;
+    }
+    .shell-header__inner--back .shell-header__main {
+      order: 3;
+      flex-basis: 100%;
+    }
+  }
   .shell-header__main {
     flex: 1 1 auto;
     min-width: 0;
