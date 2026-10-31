@@ -4,7 +4,7 @@ import { fetchTimetables } from "@/shared/api/schedules";
 // The main timetable first, then the student's own extras, then the ones shared with them. Each
 // group keeps the server's order (most recently changed first).
 export function sortTimetables(list) {
-  const rank = (t) => (t.isMain ? 0 : t.role === "owner" ? 1 : 2);
+  const rank = (t) => (t.role !== "owner" ? 2 : t.isMain ? 0 : 1);
   return [...list].sort((a, b) => rank(a) - rank(b));
 }
 

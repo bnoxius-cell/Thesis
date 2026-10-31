@@ -4,13 +4,13 @@ import "./timetable-switcher.css";
 
 // What the chip beside a timetable's name says, if anything (Figma 38:318: Main, Shared).
 function chipFor(timetable) {
-  if (timetable.isMain) return { tone: "accent", text: "Main" };
   if (timetable.role !== "owner") return { tone: "neutral", text: "Shared" };
+  if (timetable.isMain) return { tone: "accent", text: "Main" };
   if (!timetable.countInWorkload) return { tone: "neutral", text: "Not in My week" };
   return null;
 }
 
-const dotTone = (timetable) => (timetable.isMain ? "accent" : timetable.role === "owner" ? "watch" : "good");
+const dotTone = (timetable) => (timetable.role !== "owner" ? "good" : timetable.isMain ? "accent" : "watch");
 
 function TimetableRow({ timetable, selected, onPick }) {
   const chip = chipFor(timetable);

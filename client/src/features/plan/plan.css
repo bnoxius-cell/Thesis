@@ -12,6 +12,7 @@
   @media (min-width: 1024px) {
     .plan-controls {
       flex-direction: row;
+      flex-wrap: wrap;
       align-items: center;
       margin-bottom: var(--space-5);
     }
@@ -264,6 +265,12 @@
   }
   .plan-entry__text p {
     margin: 0;
+  }
+  /* Narrow week columns (1024 to 1199): less padding so long words like "Information" stay whole. */
+  @media (min-width: 1024px) and (max-width: 1199px) {
+    .plan-entry__text {
+      padding: var(--space-2) 6px;
+    }
   }
   .plan-entry__time {
     font: 400 var(--text-xs) / 18px var(--font-ui);
