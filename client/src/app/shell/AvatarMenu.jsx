@@ -13,6 +13,7 @@ export default function AvatarMenu() {
     <Menu
       align="end"
       label="Your account"
+      menuClassName="shell-menu"
       trigger={(props) => (
         <button type="button" className="shell-avatar-btn" aria-label="Your account" {...props}>
           <Avatar name={name} src={userData?.avatar} />

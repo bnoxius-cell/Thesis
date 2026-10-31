@@ -15,7 +15,7 @@ const menuItems = (menu) => [...menu.querySelectorAll(ITEMS)].filter((el) => !el
 // focus to the trigger; Tab and a click outside close it. It renders in a portal with fixed
 // position so a scrolling dialog can't clip it, and stays inside the viewport.
 // align: start | end (which trigger edge it lines up with). matchWidth: at least as wide as the
-// trigger. block: the anchor fills its row.
+// trigger. block: the anchor fills its row. className goes on the anchor, menuClassName on the popover.
 export default function Menu({
   trigger,
   children,
@@ -25,6 +25,7 @@ export default function Menu({
   block = false,
   label,
   className = "",
+  menuClassName = "",
 }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef(null);
@@ -124,7 +125,7 @@ export default function Menu({
       {open &&
         createPortal(
           <MenuContext.Provider value={{ role: role === "listbox" ? "option" : "menuitem", close }}>
-            <div ref={menuRef} id={menuId} role={role} aria-label={label} className="ui-menu" onKeyDown={onMenuKeyDown}>
+            <div ref={menuRef} id={menuId} role={role} aria-label={label} className={`ui-menu ${menuClassName}`.trim()} onKeyDown={onMenuKeyDown}>
               {children}
             </div>
           </MenuContext.Provider>,

@@ -13,9 +13,11 @@ const DEBOUNCE_MS = 150;
 
 // The header search (Figma 16:3): a pill with "Search" in it, left of the bell. It looks through the
 // student's subjects, reviewers and tasks, loaded the first time it is used. Arrows move, Enter opens,
-// Escape closes. Under 1024px (no frame) it is an icon that opens a full-width bar with the list under it.
+// Escape closes. Under 1024px (no frame) it is an icon that opens a full-width bar with the list under it,
+// and on phones the icon is gone too (the Plan phone frame has none).
 export default function HeaderSearch() {
   const compact = useMediaQuery("(max-width: 1023px)");
+  const phone = useMediaQuery("(max-width: 720px)");
   const navigate = useNavigate();
   const index = useSearchIndex();
   const [text, setText] = useState("");
@@ -141,6 +143,8 @@ export default function HeaderSearch() {
       </div>
     );
   }
+
+  if (phone) return null;
 
   return (
     <>

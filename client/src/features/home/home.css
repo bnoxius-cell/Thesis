@@ -10,7 +10,7 @@
   @media (min-width: 721px) {
     .home-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 20px;
+      gap: var(--space-5) 20px; /* 24px between rows, 20px between the three cards */
     }
   }
   @media (min-width: 1280px) {
@@ -259,12 +259,6 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-  }
-  .home-plan__all {
-    align-self: center;
-    margin-left: auto;
-    min-width: 44px;
-    justify-content: center;
   }
   .home-plan__cards {
     display: grid;

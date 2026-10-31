@@ -8,7 +8,8 @@ import { formatTime, meetingProvider } from "@/utils/scheduleUtils";
 
 const KIND_CHIP = { exam: { label: "Exam", tone: "watch" }, event: { label: "Event", tone: "neutral" } };
 
-// A class, exam or event on today's timetable. Join shows only when the entry has a meeting link.
+// A class, exam or event on today's timetable: a start-time chip (not on a live one), then Join when the
+// entry has a meeting link (Figma 16:54).
 export function EntryRow({ entry, live }) {
   const kind = KIND_CHIP[entry.kind];
   const provider = entry.meetingUrl ? meetingProvider(entry.meetingUrl) : null;
@@ -30,10 +31,10 @@ export function EntryRow({ entry, live }) {
       </div>
       <div className="home-row__end">
         {kind && <Chip tone={kind.tone}>{kind.label}</Chip>}
-        {!live && !entry.meetingUrl && <Chip tone="neutral">{formatTime(entry.startTime)}</Chip>}
+        {!live && <Chip tone="neutral">{formatTime(entry.startTime)}</Chip>}
         {entry.meetingUrl && (
           <a
-            className="ui-btn ui-btn--primary ui-btn--sm"
+            className="ui-btn ui-btn--primary"
             href={entry.meetingUrl}
             target="_blank"
             rel="noopener noreferrer"

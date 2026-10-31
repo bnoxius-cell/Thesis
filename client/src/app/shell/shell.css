@@ -91,6 +91,13 @@
     align-items: center;
     gap: var(--space-3);
   }
+  /* The frame's title row is 36px (title y26, "+" at y24, subtitle y62): the "+" keeps its 44px hit
+     area, its extra 4px hanging out of the row. Phones use a 44px row instead (below). */
+  @media (min-width: 721px) {
+    .shell-header__row .ui-add-btn {
+      margin: calc(-1 * var(--space-1));
+    }
+  }
   .shell-header__title {
     margin: 0;
     min-width: 0;
@@ -112,6 +119,35 @@
   .shell-body {
     padding-top: var(--space-3); /* with the header's bottom padding, the frame's 24px gap */
     padding-bottom: var(--space-6);
+  }
+
+  /* Phone top bar (the Plan phone frame, 40:387, is the pattern for every page): one 44px row at
+     y16 holding the title, the "+", then the bell and the avatar side by side. No subtitle and no
+     search icon; a long greeting wraps to two lines at most. The frame's 16px gap to the first
+     block is 8px of header padding plus 8px of body padding. */
+  @media (max-width: 720px) {
+    .shell-header {
+      padding-top: calc(var(--space-4) + env(safe-area-inset-top));
+      padding-bottom: var(--space-2);
+    }
+    .shell-header__row {
+      gap: var(--space-2);
+    }
+    .shell-header__title {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+    .shell-header__subtitle {
+      display: none;
+    }
+    .shell-header__tools {
+      gap: 0;
+    }
+    .shell-body {
+      padding-top: var(--space-2);
+    }
   }
 
   /* The avatar: a 36px circle in a 44px hit area. */
@@ -143,14 +179,30 @@
     animation: shell-badge-in var(--dur-2) var(--ease-out) backwards;
   }
 
-  /* The menu's first row: not a choice, so it is plain text. 232px plus the menu's own padding is
-     the frame's 248px. */
+  /* The avatar menu (Figma 20:68), tighter than the shared menu: 40px rows with 20px icons 8px in,
+     dividers sitting in the 2px gaps, the Shadow/3 effect. */
+  .ui-menu.shell-menu {
+    box-shadow: var(--shadow-3);
+  }
+  .shell-menu .ui-menu__item {
+    padding: 10px var(--space-2);
+  }
+  .shell-menu .ui-menu__item svg {
+    width: 20px;
+    height: 20px;
+  }
+  .shell-menu .ui-menu__divider {
+    margin: 0;
+  }
+
+  /* The menu's first row: not a choice, so it is plain text. 230px plus the menu's own padding and
+     border is the frame's 248px. */
   .shell-account {
     display: flex;
     align-items: center;
     gap: var(--space-3);
     box-sizing: border-box;
-    min-width: min(232px, calc(100vw - 50px)); /* inside the menu's own 320px floor at a 320px phone */
+    min-width: min(230px, calc(100vw - 50px)); /* inside the menu's own 320px floor at a 320px phone */
     padding: 10px var(--space-2);
   }
   .shell-account__who {

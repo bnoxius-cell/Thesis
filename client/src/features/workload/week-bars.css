@@ -1,11 +1,11 @@
-/* WeekBars (Figma 16:96): bars 12 to 64px tall, 6px radius, accent at 55% with the heaviest day in the
-   watch tone. The labels under them are an addition so the days can be told apart. */
+/* WeekBars (Figma 16:96): seven 24px bars 8px apart (a fixed 216px box), 12 to 64px tall, 6px radius,
+   accent at 55% with the heaviest day in the watch tone. The labels under them are an addition so the
+   days can be told apart. */
 @layer pages {
   .workload-bars {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(7, 24px);
     gap: var(--space-2);
-    max-width: 280px;
   }
   .workload-bars__col {
     display: flex;
@@ -17,7 +17,6 @@
     display: flex;
     align-items: flex-end;
     width: 100%;
-    max-width: 32px;
     height: var(--bar-h, 64px);
   }
   .workload-bars__bar {
@@ -36,6 +35,7 @@
     opacity: 1;
   }
   .workload-bars__label {
+    white-space: nowrap;
     font: 400 var(--text-xs) / 18px var(--font-ui);
     color: var(--text-muted);
   }

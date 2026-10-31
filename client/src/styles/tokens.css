@@ -34,6 +34,7 @@
     --surface: #ffffff;
     --surface-2: #f0f2f5;
     --surface-3: #e6e9ee;
+    --progress-track: var(--surface-2); /* Figma: an 8px --bg/surface-2 track */
     --border: #e3e6eb;
     --border-input: #8a94a3;
     --text-primary: #1d2532;
@@ -109,7 +110,7 @@
     --radius-pill: 999px;
     --shadow-1: 0 1px 3px rgba(26, 38, 64, 0.06);
     --shadow-2: 0 4px 16px rgba(16, 24, 40, 0.08), 0 1px 3px rgba(16, 24, 40, 0.06);
-    --shadow-3: 0 20px 48px rgba(16, 24, 40, 0.18);
+    --shadow-3: 0 12px 32px rgba(26, 38, 64, 0.12); /* Figma Shadow/3 */
 
     /* Motion */
     --dur-1: 120ms;
@@ -209,6 +210,7 @@
     --surface: #161b23;
     --surface-2: #1d232d;
     --surface-3: #262d39;
+    --progress-track: var(--surface-3);
     --border: #29303c;
     --border-input: #6a7486;
     --text-primary: #e7eaf0;

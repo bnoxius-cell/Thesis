@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { ListChecks } from "lucide-react";
 import { Card, Chip } from "@/shared/ui";
 import { planCards } from "./planCards";
@@ -13,7 +12,6 @@ export default function PlanForYou({ tasks, exam, subjectsById, now }) {
       <header className="home-card__head">
         <span className="home-chip home-chip--soft" aria-hidden="true"><ListChecks size={18} /></span>
         <h2 id="home-plan" className="home-card__title">Plan for you</h2>
-        <Link to="/plan?view=tasks" className="home-link home-plan__all">See all</Link>
       </header>
       <ul className="home-plan__cards stagger">
         {cards.map((card) => (
