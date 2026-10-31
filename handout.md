@@ -4,6 +4,12 @@ Main session only: read this first after a `/clear` (subagents skip it unless th
 
 Last updated: 2026-10-31 (night). Branch `redesign/site-v3` (off `redesign/login-figma`), tag `pre-site-v3`. 524 server tests pass, client builds clean. Branch pushed and merged into `staging` (a0d7f51, at owner's request; W1 and earlier). `main` untouched. W3 is on staging too.
 
+## SESSION END NOTE (2026-10-31, after SH)
+- **Next task = St2** (Reviewers tab + New reviewer dialog), builder-sonnet, then tester. It's in `next-prompt.md`.
+- Last tester run ("Test SH shell completion") got stuck waiting on background work and was killed by the owner's request; its output was empty. SH already had "Pass on retest" below, so no re-run needed unless the owner asks.
+- **Domain fixed (2026-10-31):** `www.stresscare.xyz` was missing from the Vercel project (cert error). Added it with a 308 redirect to `stresscare.xyz`; both now serve valid HTTPS. `CLIENT_URL` + Google OAuth switch to the new domain is still open.
+- Dev servers 5000/5173 are running again (owner's).
+
 ## STATE AT LAST SAVE (2026-10-31 late, read first)
 - **Done and tested on `redesign/site-v3`:** F1, F2 (+ fix rounds 8ae47e4, b98834f, tester passed), F3 (3d5b48f: routes, RequireAuth, layouts, placeholders, 404, legal pages, TermsGate; tester Pass), F4 (236739a: `app/shell/` Page header, Sidebar v2, avatar menu, UnreadProvider polling `GET /api/notifications` every 20s; tester Fail on one item, fixed by orchestrator in the next commit: `.shell-sidebar .shell-nav__foot` specificity so Settings and Log out pin to the bottom. Re-measure it at 1280x800 in F5's tester run).
 - **F5 DONE (090be3f), tester Pass:** `app/shell/BottomBar.jsx`, `focusView.js` (`useFocusView(active)` for Pe1's phone chat), `FocusViewProvider.jsx`, safe-area padding on header, bar and main. F4 sidebar foot re-measured OK at 1280x800. Small open items: press scale still applies instantly under reduced motion (`bottombar.css:90`); stuck header `top:-16px` with a notch leaves 4px of the bell hit area in the safe area (`shell.css:25`); bar height 65px is duplicated in `bottombar.css` and `layout.css`; inactive tab colour is `--text-secondary`, frames look a shade darker.
