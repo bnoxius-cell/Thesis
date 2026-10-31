@@ -35,7 +35,7 @@
   .ui-btn--sm::after {
     content: "";
     position: absolute;
-    inset: calc(-1 * var(--space-1)) 0;
+    inset: calc(-1 * var(--space-1) - 1px) 0;
   }
 
   .ui-btn--primary {
