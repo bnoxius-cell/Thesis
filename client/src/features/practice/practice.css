@@ -35,8 +35,9 @@
     flex: 1;
     align-items: center;
     justify-content: center;
-    padding: var(--space-4) max(var(--space-4), env(safe-area-inset-right))
-      calc(var(--space-7) + env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
+    /* Equal top and bottom padding, so the column sits in the middle of the area as in the frames. */
+    padding: var(--space-4) max(var(--space-4), env(safe-area-inset-right)) var(--space-4)
+      max(var(--space-4), env(safe-area-inset-left));
   }
   @media (max-width: 720px) {
     .practice-top {
@@ -169,11 +170,12 @@
     cursor: default;
     opacity: 1;
   }
-  /* The thicker border is an inset ring, so a state change never moves the rows below it. */
+  /* The chosen row has a 2px border, as in the frames. The row keeps its 56px height, so nothing
+     below it moves; its content shifts 1px right, as the frames' does. */
   .practice-answer--selected {
     --tone: var(--accent);
+    border-width: 2px;
     background: var(--accent-soft);
-    box-shadow: inset 0 0 0 1px var(--tone);
   }
   .practice-answer--correct {
     --tone: var(--good);
@@ -181,8 +183,8 @@
   }
   .practice-answer--yours {
     --tone: var(--watch);
+    border-width: 2px;
     background: var(--watch-soft);
-    box-shadow: inset 0 0 0 1px var(--tone);
   }
   .practice-answer__radio {
     position: relative;
@@ -221,7 +223,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
-    padding: var(--space-4) var(--space-5);
+    padding: 20px var(--space-5);
     border-radius: var(--radius-lg);
     background: var(--surface-2);
   }

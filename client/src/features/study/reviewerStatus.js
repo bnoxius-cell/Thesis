@@ -2,10 +2,12 @@ import { daysAgoText } from "@/shared/lib/dates";
 
 // What a reviewer row says about itself, from one list item. The list carries the last finished
 // Learning Mode score (lastScore) and how many sessions are done, not an open session, so a
-// reviewer reads "New" until its first session, "In progress" after, and "Done" from 80%.
+// reviewer reads "New" until its first session, "In progress" after, and "Done" from 80%. The
+// reviewer page knows about an open session too (hasOpenSession), which is always "In progress".
 export function reviewerChip(reviewer) {
   if (reviewer.status === "processing") return { tone: "accent", label: "Making it", busy: true };
   if (reviewer.status === "failed") return { tone: "danger", label: "Didn't work" };
+  if (reviewer.hasOpenSession) return { tone: "accent", label: "In progress" };
   if (!reviewer.sessions) return { tone: "neutral", label: "New" };
   return reviewer.lastScore >= 80 ? { tone: "good", label: "Done" } : { tone: "accent", label: "In progress" };
 }

@@ -32,18 +32,22 @@ export function nextClassText(entries, subject, now = new Date()) {
   return "";
 }
 
+// Whole calendar days from `now` to a YYYY-MM-DD date.
+export const daysUntilIso = (iso, now = new Date()) =>
+  Math.round((fromISODate(iso) - fromISODate(toISODate(now))) / 86400000);
+
+// "Exam in 6 days", "Exam tomorrow" or "Exam today".
+export const examWords = (days) => (days === 0 ? "Exam today" : days === 1 ? "Exam tomorrow" : `Exam in ${days} days`);
+
 // "Exam in 6 days" for the subject's nearest exam within two weeks, or "".
 export function examChipText(entries, subject, now = new Date()) {
   const todayIso = toISODate(now);
-  const today = fromISODate(todayIso);
   const days = entriesFor(entries, subject, "exam")
     .filter((entry) => entry.date && entry.date >= todayIso)
-    .map((entry) => Math.round((fromISODate(entry.date) - today) / 86400000))
+    .map((entry) => daysUntilIso(entry.date, now))
     .filter((n) => n <= EXAM_WINDOW_DAYS)
     .sort((a, b) => a - b)[0];
-  if (days === undefined) return "";
-  if (days === 0) return "Exam today";
-  return days === 1 ? "Exam tomorrow" : `Exam in ${days} days`;
+  return days === undefined ? "" : examWords(days);
 }
 
 // The entries of the given kinds that belong to the subject, one per day they occur on, from

@@ -8,7 +8,6 @@ const STEPS = ["Add a subject", "Add classes and tasks", "Upload a reviewer"];
 export default function StudyEmpty({ onAddSubject, onUpload }) {
   return (
     <EmptyState
-      page
       icon={BookOpen}
       title="Add your first subject"
       className="study-empty"
@@ -20,8 +19,8 @@ export default function StudyEmpty({ onAddSubject, onUpload }) {
             ))}
           </ol>
           <div className="study-empty__buttons">
+            <Button variant="ghost" onClick={onUpload}>Upload a reviewer</Button>
             <Button onClick={onAddSubject}>Add subject</Button>
-            <Button variant="secondary" onClick={onUpload}>Upload a reviewer</Button>
           </div>
         </>
       }

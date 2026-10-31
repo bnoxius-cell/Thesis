@@ -97,7 +97,7 @@
       font: 600 var(--text-xl) / 28px var(--font-ui);
     }
     .study-hero__rows {
-      gap: var(--space-3);
+      gap: var(--space-4);
     }
     .study-row {
       padding: var(--space-3) var(--space-4);
@@ -111,7 +111,7 @@
       flex: none;
       width: 40px;
       height: 40px;
-      border-radius: var(--radius-lg);
+      border-radius: 12px;
       background: var(--accent-soft);
       color: var(--accent);
     }
@@ -146,6 +146,7 @@
   .study-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+    align-items: start; /* cards keep their own height, as in the frame (234 to 242px) */
     gap: var(--space-5);
     margin: 0;
     padding: 0;
@@ -153,6 +154,9 @@
   }
   .study-grid > li {
     display: flex;
+  }
+  .study-grid > .study-grid__new {
+    align-self: stretch;
   }
   .study-subject {
     flex: 1;
@@ -170,6 +174,16 @@
     display: flex;
     align-items: center;
     gap: 10px;
+  }
+  /* Desktop: the frame's head holds a 100px spacer, so the name sits centred in a 100px band and the
+     More button is centred in it too (border 1 + padding 20 + half the band, less half the button). */
+  @media (min-width: 721px) {
+    .study-subject__head {
+      min-height: 100px;
+    }
+    .study-grid .study-more {
+      top: 49px;
+    }
   }
   .study-subject__name {
     min-width: 0;
@@ -207,19 +221,19 @@
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-2);
-    margin-top: auto;
   }
   .study-subject__counts {
     flex: 1;
   }
 
-  /* ---- Empty Study (a new account) ---- */
+  /* ---- Empty Study (a new account, Figma 78:1526) ----
+     A bordered card, 20px between every part: icon, title, line, the steps, then the buttons. */
   .study-empty {
-    gap: var(--space-4);
+    gap: 20px;
+    padding: var(--space-7) var(--space-4);
     border: 1px solid var(--border);
     border-radius: 24px;
     background: var(--surface);
-    padding-inline: var(--space-4);
   }
   .study-empty .ui-empty__title {
     font: 700 var(--text-3xl) / 1.2 var(--font-display);
@@ -228,10 +242,15 @@
     max-width: 480px;
     font: 400 var(--text-md) / var(--text-md-lh) var(--font-ui);
   }
+  .study-empty .ui-empty__actions {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    margin-top: 0;
+  }
   @media (min-width: 721px) {
     .study-empty {
-      gap: 20px;
-      padding-inline: var(--space-7);
+      padding: var(--space-8) var(--space-7);
     }
     .study-empty .ui-empty__title {
       font: 700 42px / 48px var(--font-display);
@@ -241,12 +260,15 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: var(--space-3);
+    gap: var(--space-2) var(--space-4);
     margin: 0;
     padding: 0;
     list-style: none;
   }
   .study-steps li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-pill);
     background: var(--surface-2);

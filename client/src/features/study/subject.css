@@ -90,17 +90,9 @@
     min-height: 44px;
     padding-block: 6px;
   }
-  /* The done box's 44px hit area reaches into the card's padding, so its circle lines up with the
-     left edge of the card's text. */
-  .subject-row .tasks-check {
-    margin: -10px;
-  }
-  .subject-row__lead {
-    display: inline-flex;
-    flex: none;
-    width: 24px;
-    justify-content: center;
-    color: var(--text-secondary);
+  /* Pick up (76:1082) is 124px tall: its row is just the 44px button, with no row padding. */
+  .subject-row--flush {
+    padding-block: 0;
   }
   .subject-row__text {
     display: flex;
@@ -149,10 +141,7 @@
       flex-wrap: wrap;
     }
     .subject-row__text {
-      flex-basis: calc(100% - 44px);
-    }
-    .subject-row .ui-chip {
-      margin-left: 36px;
+      flex-basis: 100%;
     }
   }
 }

@@ -8,8 +8,8 @@ import "./study-dialog.css";
 
 const COUNT_OPTIONS = QUESTION_COUNTS.map((n) => ({ value: n, label: String(n) }));
 
-// New reviewer (Figma 78:1272). Title and Subject are optional: a blank title is named from the PDF
-// and "No subject" files it nowhere. Pasting notes and question types have no backend, so they
+// New reviewer (Figma 78:1272). Title and Subject can stay as they are: a blank title is named from
+// the PDF and "No subject" files it nowhere. Pasting notes and question types have no backend, so they
 // aren't offered. The server reads the PDF and writes the reviewer in the background, so the
 // dialog closes as soon as the upload lands (onCreated) and the row shows up as processing.
 // `limits` is { dailyLimit, usedToday, enabled } from the list: at the limit, Create is off and
@@ -65,7 +65,7 @@ export default function NewReviewerDialog({ subjects, limits, onClose, onCreated
       }
     >
       <Field
-        label="Title (optional)"
+        label="Title"
         value={title}
         onChange={(event) => setTitle(event.target.value)}
         placeholder="Leave it blank and we'll name it"
@@ -73,7 +73,7 @@ export default function NewReviewerDialog({ subjects, limits, onClose, onCreated
         autoComplete="off"
         disabled={creating}
       />
-      <Field label="Subject (optional)">
+      <Field label="Subject">
         {(wiring) => (
           <SelectButton
             {...wiring}
@@ -96,10 +96,6 @@ export default function NewReviewerDialog({ subjects, limits, onClose, onCreated
           <Segment labelId={labelId} options={COUNT_OPTIONS} value={count} onChange={setCount} disabled={creating} />
         )}
       </Field>
-      <p className="study-dialog__note">
-        The text of your PDF goes to Google's Gemini AI to write the reviewer, so leave out anything personal.
-        AI can get things wrong, so check anything that looks off against your notes.
-      </p>
       {message && <p id="reviewer-note" className="study-dialog__error" role="alert">{message}</p>}
     </Modal>
   );

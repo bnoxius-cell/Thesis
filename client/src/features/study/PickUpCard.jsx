@@ -12,7 +12,7 @@ export default function PickUpCard({ reviewers, now }) {
   return (
     <Card as="section" className="subject-card" aria-labelledby="subject-pickup-title">
       <h2 id="subject-pickup-title" className="subject-card__title">Pick up where you left off</h2>
-      <div className="subject-row">
+      <div className="subject-row subject-row--flush">
         <span className="subject-row__text">
           <strong className="subject-row__title">{reviewer.title}</strong>
           <span className="subject-row__meta">Reviewer · added {added}</span>

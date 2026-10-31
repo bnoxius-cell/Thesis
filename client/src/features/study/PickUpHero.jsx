@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { FileText } from "lucide-react";
 import { daysAgoText } from "@/shared/lib/dates";
+import useMediaQuery from "@/shared/hooks/useMediaQuery";
 
 const MAX_ROWS = 3;
 
@@ -11,8 +12,10 @@ const metaFor = (reviewer) =>
 
 // "Pick up where you left off" (Figma 72:305, 75:969): the most recent reviewers that are ready to
 // open, up to three. Nothing renders when there are none. The list doesn't say which reviewers have a
-// Learning Mode session open, so this is recency only; notes have no backend yet.
+// Learning Mode session open, so this is recency only; notes have no backend yet. On a phone (75:969)
+// a row says what Open does ("Open reviewer") over the reviewer's name, with no icon or button.
 export default function PickUpHero({ reviewers }) {
+  const phone = useMediaQuery("(max-width: 720px)");
   const ready = (reviewers ?? []).filter((r) => r.status === "ready").slice(0, MAX_ROWS);
   if (ready.length === 0) return null;
 
@@ -25,8 +28,8 @@ export default function PickUpHero({ reviewers }) {
             <Link to={`/study/reviewers/${reviewer._id}`} className="study-row">
               <span className="study-row__icon" aria-hidden="true"><FileText size={20} /></span>
               <span className="study-row__text">
-                <strong className="study-row__title">{reviewer.title}</strong>
-                <span className="study-row__meta">{metaFor(reviewer)}</span>
+                <strong className="study-row__title">{phone ? "Open reviewer" : reviewer.title}</strong>
+                <span className="study-row__meta">{phone ? reviewer.title : metaFor(reviewer)}</span>
               </span>
               <span className="study-row__open" aria-hidden="true">Open</span>
             </Link>

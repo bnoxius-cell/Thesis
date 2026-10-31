@@ -31,24 +31,56 @@
     padding-right: var(--space-7);
   }
 
-  /* The dashed card that ends the grid. */
+  /* The dashed card that ends the grid (Figma 72:452, phone 75:1056). Desktop: a 40px chip with the
+     plus, the label and a hint, centred. Phone: one 62px row reading "+ New subject". */
   .study-new {
     display: flex;
     flex: 1;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: var(--space-2);
+    gap: var(--space-1);
     box-sizing: border-box;
-    min-height: 120px;
+    min-height: 62px;
     padding: var(--space-4);
-    border: 1.5px dashed var(--border-input);
+    border: 1px dashed var(--border);
     border-radius: var(--radius-xl);
     background: transparent;
-    color: var(--text-secondary);
+    color: var(--accent);
     font: 600 var(--text-sm) / 20px var(--font-ui);
+    text-align: center;
     cursor: pointer;
-    transition: background-color var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out);
+    transition: background-color var(--dur-2) var(--ease-out);
+  }
+  .study-new__chip {
+    display: inline-flex;
+    flex: none;
+  }
+  .study-new__hint {
+    display: none;
+  }
+  @media (min-width: 721px) {
+    .study-new {
+      flex-direction: column;
+      gap: var(--space-2);
+      min-height: 0;
+      padding: 20px;
+      border: 1.5px dashed var(--border-input);
+    }
+    .study-new__chip {
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--accent-soft);
+    }
+    .study-new__hint {
+      display: block;
+      color: var(--text-muted);
+      font: 400 var(--text-xs) / 18px var(--font-ui);
+      text-wrap: balance;
+    }
   }
   .study-new:focus-visible {
     outline: 2px solid var(--accent);
@@ -57,7 +89,6 @@
   @media (hover: hover) and (pointer: fine) {
     .study-new:hover {
       background: var(--accent-soft);
-      color: var(--accent);
     }
   }
 }

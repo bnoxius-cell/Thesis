@@ -3,7 +3,6 @@ import { FileQuestion } from "lucide-react";
 import { Button, Chip, EmptyState, Skeleton, Tabs } from "@/shared/ui";
 import Page from "@/app/shell/Page";
 import useNow from "@/shared/hooks/useNow";
-import useTaskDone from "@/features/tasks/useTaskDone";
 import { subjectMeta } from "@/utils/subjectColors";
 import ClassSchedule from "./ClassSchedule";
 import NextUpList from "./NextUpList";
@@ -38,7 +37,6 @@ export default function SubjectPage() {
   const { subjectId } = useParams();
   const now = useNow();
   const data = useSubject(subjectId);
-  const setDone = useTaskDone(data.setTasks);
   const { subject, status } = data;
 
   if (status !== "ready") {
@@ -83,7 +81,6 @@ export default function SubjectPage() {
               tasks={data.tasks}
               upcoming={upcomingEntries(data.entries, subject, now)}
               now={now}
-              onToggle={setDone}
             />
             <PickUpCard reviewers={data.reviewers} now={now} />
           </div>

@@ -28,6 +28,7 @@
 
   .reviewer-meta {
     display: flex;
+    align-self: stretch; /* so Start Learning Mode can reach the right edge (frame x950 to 1120) */
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-3);
@@ -63,7 +64,7 @@
 
   /* ---- Reader ---- */
   .reviewer-reader {
-    gap: var(--space-5);
+    gap: var(--space-4);
     min-width: 0;
     padding: var(--space-5) var(--space-4);
   }

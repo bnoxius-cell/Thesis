@@ -34,6 +34,7 @@ function StudySkeleton() {
 // and the empty page's button open the New subject, Edit and Delete dialogs (not drawn in Figma).
 // On Reviewers, the "+", the "New reviewer" link and the empty states' Upload button open the New
 // reviewer dialog (78:1272); a new reviewer shows as a processing row and turns ready by itself.
+// The Subjects tab row is 100px tall on desktop (the frame's spacer, built literally, owner choice).
 // Active | Archived and End this term wait for an archive backend, so they don't render.
 export default function StudyPage() {
   const [params] = useSearchParams();
@@ -54,7 +55,7 @@ export default function StudyPage() {
   const openNew = () => setDialog({ type: "new" });
   const open = (type) => (subject) => setDialog({ type, subject });
   const openUpload = () => setUploading(true);
-  const showAdd = data.status === "ready" && !isNewAccount;
+  const showAdd = data.status === "ready";
   const reviewersTab = tab === "reviewers";
 
   const uploaded = () => {
@@ -82,7 +83,7 @@ export default function StudyPage() {
       {data.status === "ready" && !isNewAccount && (
         <div className="study-body">
           {!reviewersTab && <PickUpHero reviewers={reviewers} />}
-          <div className="study-tabsrow">
+          <div className={`study-tabsrow${reviewersTab ? "" : " study-tabsrow--subjects"}`}>
             <Tabs items={tabs} value={tab} label="Study sections" className="study-tabs" />
             {reviewersTab && (
               <button type="button" className="study-tabsrow__link" onClick={openUpload}>New reviewer</button>

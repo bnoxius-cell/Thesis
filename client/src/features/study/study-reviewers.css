@@ -17,6 +17,10 @@
     .study-tabsrow__link {
       margin-left: auto;
     }
+    /* The hub frame (72:3) has a 100px spacer in this row; the Reviewers frame (73:130) has none. */
+    .study-tabsrow--subjects {
+      min-height: 100px;
+    }
   }
   .study-tabsrow__link {
     display: inline-flex;
@@ -200,11 +204,6 @@
   .study-drop__name small {
     color: var(--text-muted);
     font-size: var(--text-xs);
-  }
-  .study-dialog__note {
-    margin: 0;
-    color: var(--text-muted);
-    font: 400 var(--text-xs) / 18px var(--font-ui);
   }
 
   /* The empty Study page's two buttons. */

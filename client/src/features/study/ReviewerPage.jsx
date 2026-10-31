@@ -59,7 +59,12 @@ export default function ReviewerPage() {
   };
   // With a session open, plain Start would pick it up again: that is Resume's job.
   const start = link("all", { fresh: Boolean(data.openSession) });
-  const withProgress = { ...reviewer, sessions: data.progress?.sessions, lastScore: data.progress?.lastScore };
+  const withProgress = {
+    ...reviewer,
+    sessions: data.progress?.sessions,
+    lastScore: data.progress?.lastScore,
+    hasOpenSession: Boolean(data.openSession),
+  };
 
   return (
     <Page
@@ -82,9 +87,6 @@ export default function ReviewerPage() {
                   Your PDF was long, so only the first part was used. For the rest, split it and upload the second half.
                 </p>
               )}
-              <p className="reviewer-note">
-                Made by AI from your PDF. It can get things wrong, so check anything that looks off against your notes.
-              </p>
             </div>
             <ReviewerSidePanel
               reviewer={reviewer}

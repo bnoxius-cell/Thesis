@@ -1,9 +1,9 @@
 import { useId, useRef, useState } from "react";
-import { FileText, FileUp } from "lucide-react";
+import { FileText } from "lucide-react";
 import { Button } from "@/shared/ui";
 import { MAX_PDF_MB, formatBytes } from "./reviewerForm";
 
-// The Source field of New reviewer (Figma 78:1410): a dashed zone you drop a PDF on or click to
+// The Source field of New reviewer (Figma 78:1410, two lines of text, 95px tall): a dashed zone you drop a PDF on or click to
 // choose from. `onPick` gets the file; checking it is the form's job. The zone is a label around a
 // real file input, so it works with the keyboard and a screen reader. Dragging over it lifts it a
 // little and tints it; nothing happens while `disabled`.
@@ -59,7 +59,6 @@ export default function PdfDropZone({ file, onPick, disabled = false, describedB
         </div>
       ) : (
         <label htmlFor={inputId} className="study-drop__prompt">
-          <FileUp size={20} aria-hidden="true" />
           <strong>Drop a PDF here or choose a file</strong>
           <span>Up to {MAX_PDF_MB} MB.</span>
         </label>
