@@ -14,6 +14,7 @@ const LegalPage = lazy(() => import("@/features/legal/LegalPage"));
 const HomePage = lazy(() => import("@/features/home/HomePage"));
 const PlanPage = lazy(() => import("@/features/plan/PlanPage"));
 const StudyPage = lazy(() => import("@/features/study/StudyPage"));
+const SubjectPage = lazy(() => import("@/features/study/SubjectPage"));
 const WellbeingPage = lazy(() => import("@/features/wellbeing/WellbeingPage"));
 const CheckInPage = lazy(() => import("@/features/checkin/CheckInPage"));
 // Development-only specimen of the shared primitives.
@@ -53,7 +54,7 @@ export default function AppRoutes() {
           <Route path="/home" element={<HomePage />} />
           <Route path="/plan" element={<PlanPage />} />
           <Route path="/study" element={<StudyPage />} />
-          <Route path="/study/subjects/:subjectId" element={placeholder("Subject")} />
+          <Route path="/study/subjects/:subjectId" element={<SubjectPage />} />
           <Route path="/study/reviewers/:reviewerId" element={placeholder("Reviewer")} />
           <Route path="/study/flashcards" element={placeholder("Flashcards")} />
           <Route path="/wellbeing" element={<WellbeingPage />} />

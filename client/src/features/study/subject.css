@@ -1,0 +1,158 @@
+/* Subject overview (Figma 76:878). Two columns (left, then a 340px right column) from 1100px; one
+   column below, with the right-hand cards after the left ones. */
+@layer pages {
+  .subject-body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+  @media (min-width: 721px) {
+    .subject-body {
+      gap: var(--space-5);
+    }
+  }
+  .subject-failed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    color: var(--text-secondary);
+  }
+  .subject-failed p {
+    margin: 0;
+  }
+  .subject-skeleton {
+    border-radius: var(--radius-xl);
+  }
+
+  .subject-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .subject-tabs {
+    max-width: 100%;
+  }
+
+  .subject-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+    align-self: stretch;
+  }
+  .subject-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+  @media (min-width: 1100px) {
+    .subject-columns {
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: var(--space-5);
+      align-items: start;
+    }
+  }
+
+  /* ---- Cards and rows ---- */
+  .subject-card {
+    min-width: 0;
+  }
+  .subject-card__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+  }
+  .subject-card__line,
+  .subject-card__quiet {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .subject-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .subject-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 44px;
+    padding-block: 6px;
+  }
+  /* The done box's 44px hit area reaches into the card's padding, so its circle lines up with the
+     left edge of the card's text. */
+  .subject-row .tasks-check {
+    margin: -10px;
+  }
+  .subject-row__lead {
+    display: inline-flex;
+    flex: none;
+    width: 24px;
+    justify-content: center;
+    color: var(--text-secondary);
+  }
+  .subject-row__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .subject-row__title {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .subject-row__meta {
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .subject-row .ui-chip {
+    flex: none;
+  }
+
+  .subject-class {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 44px;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .subject-class svg {
+    flex: none;
+  }
+  .subject-class__when {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .subject-class .ui-btn {
+    flex: none;
+  }
+
+  /* Phones: a row's chip drops under its text so long titles keep their width. */
+  @media (max-width: 480px) {
+    .subject-row {
+      flex-wrap: wrap;
+    }
+    .subject-row__text {
+      flex-basis: calc(100% - 44px);
+    }
+    .subject-row .ui-chip {
+      margin-left: 36px;
+    }
+  }
+}

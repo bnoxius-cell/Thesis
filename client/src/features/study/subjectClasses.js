@@ -1,4 +1,4 @@
-import { addDays, entryOccursOn, fromISODate, toISODate } from "@/utils/scheduleUtils";
+import { addDays, entryOccursOn, fromISODate, startOfWeek, toISODate } from "@/utils/scheduleUtils";
 import { subjectForLabel } from "@/utils/subjectColors";
 import { lower } from "@/features/plan/entryTime";
 
@@ -45,3 +45,30 @@ export function examChipText(entries, subject, now = new Date()) {
   if (days === 0) return "Exam today";
   return days === 1 ? "Exam tomorrow" : `Exam in ${days} days`;
 }
+
+// The entries of the given kinds that belong to the subject, one per day they occur on, from
+// `first` for `days` days, in date then time order: [{ iso, entry }].
+function occurrences(entries, subject, kinds, first, days) {
+  const mine = kinds.flatMap((kind) => entriesFor(entries, subject, kind));
+  const found = [];
+  for (let i = 0; i < days; i += 1) {
+    const iso = toISODate(addDays(first, i));
+    mine
+      .filter((entry) => entryOccursOn(entry, iso))
+      .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""))
+      .forEach((entry) => found.push({ iso, entry }));
+  }
+  return found;
+}
+
+// The subject's classes in this Monday-to-Sunday week.
+export const classesThisWeek = (entries, subject, now = new Date()) =>
+  occurrences(entries, subject, ["class"], startOfWeek(now), 7);
+
+// The subject's classes and exams still to come in the next week, today's finished ones left out.
+export const upcomingEntries = (entries, subject, now = new Date()) => {
+  const todayIso = toISODate(now);
+  return occurrences(entries, subject, ["class", "exam"], now, LOOKAHEAD_DAYS + 1).filter(
+    ({ iso, entry }) => iso > todayIso || (entry.endTime || entry.startTime || "") > clock(now),
+  );
+};
