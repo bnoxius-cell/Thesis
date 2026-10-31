@@ -4,6 +4,8 @@ Main session only: read this first after a `/clear` (subagents skip it unless th
 
 Last updated: 2026-10-31 (night). Branch `redesign/site-v3` (off `redesign/login-figma`), tag `pre-site-v3`. 524 server tests pass, client builds clean. Branch pushed and merged into `staging` (a0d7f51, at owner's request; W1 and earlier). `main` untouched. W3 is on staging too.
 
+- **St2 DONE (b98f515 + fix), tester Pass after fix.** `features/study/`: ReviewerList/Row, NewReviewerDialog, PdfDropZone, useCreateReviewer, reviewerForm, reviewerStatus, study-reviewers.css; `useReviewers` polls /:id/status every 4s only while a row processes. Hidden: paste notes, question types (no backend), exam chip. Status chip from list data (Making it / Didn't work / New / In progress / Done = last score 80%+). Title optional. Fixed: phone native select 16px, hero only on Subjects tab, 10MB size rounds up. Open: drag-over lift still instant under reduced motion; no sessions API yet (St5); hero needs `openSession` on the list. **NEXT = St3 (Subject page), builder-sonnet, then tester.**
+
 ## SESSION END NOTE (2026-10-31, after SH)
 - **Next task = St2** (Reviewers tab + New reviewer dialog), builder-sonnet, then tester. It's in `next-prompt.md`.
 - Last tester run ("Test SH shell completion") got stuck waiting on background work and was killed by the owner's request; its output was empty. SH already had "Pass on retest" below, so no re-run needed unless the owner asks.
