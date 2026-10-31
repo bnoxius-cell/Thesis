@@ -3,9 +3,9 @@ import { Button, EmptyState } from "@/shared/ui";
 
 const STEPS = ["Add a subject", "Add classes and tasks", "Upload a reviewer"];
 
-// A new account (Figma 78:1526). "Add subject" opens the New subject dialog. "Upload a reviewer" is
-// left out until its dialog is built; the three steps stay as the plain picture of how Study works.
-export default function StudyEmpty({ onAddSubject }) {
+// A new account (Figma 78:1526). "Add subject" opens the New subject dialog and "Upload a reviewer"
+// the New reviewer one; the three steps are the plain picture of how Study works.
+export default function StudyEmpty({ onAddSubject, onUpload }) {
   return (
     <EmptyState
       page
@@ -19,7 +19,10 @@ export default function StudyEmpty({ onAddSubject }) {
               <li key={step}><b>{i + 1}</b> {step}</li>
             ))}
           </ol>
-          <Button onClick={onAddSubject}>Add subject</Button>
+          <div className="study-empty__buttons">
+            <Button onClick={onAddSubject}>Add subject</Button>
+            <Button variant="secondary" onClick={onUpload}>Upload a reviewer</Button>
+          </div>
         </>
       }
     >

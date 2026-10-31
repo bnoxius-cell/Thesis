@@ -74,6 +74,13 @@
       transform: translate(var(--plan-from, 0), var(--plan-rise, 6px));
     }
   }
+  /* A reviewer's status chip settling when its state changes (Study Reviewers tab). */
+  @keyframes study-chip-settle {
+    from {
+      opacity: 0.4;
+      transform: scale(0.92);
+    }
+  }
   @keyframes ui-pulse {
     from {
       opacity: 0.6;

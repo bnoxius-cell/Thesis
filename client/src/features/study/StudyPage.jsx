@@ -1,16 +1,20 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import { FileText } from "lucide-react";
 import { AddButton, Button, EmptyState, Skeleton, Tabs } from "@/shared/ui";
 import Page from "@/app/shell/Page";
 import useNow from "@/shared/hooks/useNow";
+import NewReviewerDialog from "./NewReviewerDialog";
 import PickUpHero from "./PickUpHero";
+import ReviewerList from "./ReviewerList";
 import StudyEmpty from "./StudyEmpty";
 import SubjectDialogs from "./SubjectDialogs";
 import SubjectGrid from "./SubjectGrid";
 import useReviewers from "./useReviewers";
 import useSubjects from "./useSubjects";
 import "./study.css";
+import "./study-reviewers.css";
 
 const TABS = ["subjects", "reviewers"];
 
@@ -26,17 +30,20 @@ function StudySkeleton() {
 }
 
 // Study (Figma 72:3, 75:799, 78:1526): Pick up where you left off, then Subjects | Reviewers as a
-// URL-driven tab pair (?tab=). The Reviewers list arrives with the next batch. The "+", the dashed
-// New subject card, a card's More menu and the empty page's button open the New subject, Edit and
-// Delete dialogs (not drawn in Figma). On the Reviewers tab the "+" stays hidden until its dialog
-// exists. Active | Archived and End this term wait for an archive backend, so they don't render.
+// URL-driven tab pair (?tab=). On Subjects, the "+", the dashed New subject card, a card's More menu
+// and the empty page's button open the New subject, Edit and Delete dialogs (not drawn in Figma).
+// On Reviewers, the "+", the "New reviewer" link and the empty states' Upload button open the New
+// reviewer dialog (78:1272); a new reviewer shows as a processing row and turns ready by itself.
+// Active | Archived and End this term wait for an archive backend, so they don't render.
 export default function StudyPage() {
   const [params] = useSearchParams();
   const tab = TABS.includes(params.get("tab")) ? params.get("tab") : "subjects";
   const now = useNow();
+  const navigate = useNavigate();
   const [dialog, setDialog] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const data = useSubjects();
-  const { reviewers, settled } = useReviewers();
+  const { reviewers, settled, limits, refresh: refreshReviewers } = useReviewers();
 
   const isNewAccount = data.status === "ready" && settled && data.subjects.length === 0 && !reviewers?.length;
   const tabs = [
@@ -46,10 +53,24 @@ export default function StudyPage() {
 
   const openNew = () => setDialog({ type: "new" });
   const open = (type) => (subject) => setDialog({ type, subject });
-  const showAdd = data.status === "ready" && !isNewAccount && tab === "subjects";
+  const openUpload = () => setUploading(true);
+  const showAdd = data.status === "ready" && !isNewAccount;
+  const reviewersTab = tab === "reviewers";
+
+  const uploaded = () => {
+    toast.success("Making your reviewer. It will be ready here in a moment.");
+    refreshReviewers();
+    setUploading(false);
+    if (!reviewersTab) navigate("/study?tab=reviewers");
+  };
 
   return (
-    <Page title="Study" action={showAdd && <AddButton label="Add a subject" onClick={openNew} />}>
+    <Page
+      title="Study"
+      action={showAdd && (
+        <AddButton label={reviewersTab ? "New reviewer" : "Add a subject"} onClick={reviewersTab ? openUpload : openNew} />
+      )}
+    >
       {data.status === "loading" && <StudySkeleton />}
       {data.status === "failed" && (
         <div className="study-failed" role="alert">
@@ -57,11 +78,16 @@ export default function StudyPage() {
           <Button variant="secondary" onClick={data.reload}>Try again</Button>
         </div>
       )}
-      {isNewAccount && <StudyEmpty onAddSubject={openNew} />}
+      {isNewAccount && <StudyEmpty onAddSubject={openNew} onUpload={openUpload} />}
       {data.status === "ready" && !isNewAccount && (
         <div className="study-body">
           <PickUpHero reviewers={reviewers} />
-          <Tabs items={tabs} value={tab} label="Study sections" className="study-tabs" />
+          <div className="study-tabsrow">
+            <Tabs items={tabs} value={tab} label="Study sections" className="study-tabs" />
+            {reviewersTab && (
+              <button type="button" className="study-tabsrow__link" onClick={openUpload}>New reviewer</button>
+            )}
+          </div>
           <div role="tabpanel" id="study-panel" aria-labelledby={`study-tab-${tab}`}>
             {tab === "subjects" && data.subjects.length > 0 && (
               <SubjectGrid
@@ -78,13 +104,22 @@ export default function StudyPage() {
                 They will show up here once you add them.
               </EmptyState>
             )}
-            {tab === "reviewers" && (
-              <EmptyState icon={FileText} title="On its way">
-                Your reviewers will be listed here soon.
+            {reviewersTab && reviewers && <ReviewerList reviewers={reviewers} onNew={openUpload} />}
+            {reviewersTab && !reviewers && (
+              <EmptyState icon={FileText} title="Couldn't load your reviewers">
+                Check your connection, then reload the page.
               </EmptyState>
             )}
           </div>
         </div>
+      )}
+      {uploading && (
+        <NewReviewerDialog
+          subjects={data.subjects}
+          limits={limits}
+          onClose={() => setUploading(false)}
+          onCreated={uploaded}
+        />
       )}
       <SubjectDialogs dialog={dialog} onClose={() => setDialog(null)} onChanged={data.refresh} />
     </Page>
