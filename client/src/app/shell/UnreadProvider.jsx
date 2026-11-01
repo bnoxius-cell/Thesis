@@ -17,6 +17,7 @@ const NONE = { total: 0, friendRequests: 0, groupEntries: [] };
 //   friendRequests incoming friend requests still waiting (People > Friends)
 //   markGroupRead  clears one group's count at once, once its chat has been opened (the server
 //                  has already marked them read; this only saves waiting for the next poll)
+//   refresh        polls now, so a count follows an action at once (accepting a friend request)
 // The friend-request count comes in the same response, so there is no second request.
 export default function UnreadProvider({ children }) {
   const [counts, setCounts] = useState(NONE);
@@ -60,8 +61,9 @@ export default function UnreadProvider({ children }) {
       groupUnread,
       friendRequests: counts.friendRequests,
       markGroupRead,
+      refresh,
     };
-  }, [counts, markGroupRead]);
+  }, [counts, markGroupRead, refresh]);
 
   return <UnreadContext.Provider value={value}>{children}</UnreadContext.Provider>;
 }

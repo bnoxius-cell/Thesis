@@ -1,0 +1,312 @@
+/* People > Friends (Figma 66:452, 115:922, 115:1091, empty 66:1130; phone 67:1017, 116:1105,
+   116:1234). From 1024px the sub-tab row and the list sit in a column beside a 360px column with the
+   friend code and the add form. Below that everything is one column: tabs, the friend code (Friends
+   view only), the list, the add form. Phone rules sit next to the desktop ones. */
+@layer pages {
+  .people-friends {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-areas:
+      "tabs ."
+      "list side";
+    column-gap: var(--space-5);
+    row-gap: var(--space-5);
+    align-items: start;
+  }
+  .people-friends__tabs {
+    grid-area: tabs;
+    min-width: 0;
+  }
+  .people-friends__list {
+    grid-area: list;
+    min-width: 0;
+  }
+  .people-friends__side {
+    grid-area: side;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+  @media (max-width: 1023px) {
+    .people-friends {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    .people-friends__side {
+      display: contents;
+    }
+    .people-friends__tabs {
+      order: 0;
+    }
+    .people-friends__side > .people-code {
+      order: 1;
+    }
+    .people-friends__list {
+      order: 2;
+    }
+    .people-friends__side > .people-add {
+      order: 3;
+    }
+    /* The friend code row belongs to the Friends view only. */
+    .people-friends--requests .people-code,
+    .people-friends--pending .people-code {
+      display: none;
+    }
+  }
+
+  /* ---- Sub-tabs (Subtab 115:14): an underline row with a count pill on each ---- */
+  .people-subtabs {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-5);
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .people-subtabs::-webkit-scrollbar {
+    display: none;
+  }
+  .people-subtab {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    min-height: 48px;
+    padding: 0 var(--space-1);
+    color: var(--text-secondary);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+    text-decoration: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .people-subtab[aria-selected="true"] {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .people-subtab:focus-visible {
+    outline-offset: -2px;
+  }
+  /* The underline grows from the middle on the tab being opened and shrinks on the one left. */
+  .people-subtab::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform var(--dur-2) var(--ease-out);
+  }
+  .people-subtab[aria-selected="true"]::after {
+    transform: scaleX(1);
+  }
+  .people-subtab__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    font-variant-numeric: tabular-nums;
+  }
+  .people-subtab[aria-selected="true"] .people-subtab__count {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  .people-subtab__count--alert {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  @media (max-width: 1023px) {
+    .people-subtabs {
+      justify-content: space-between;
+      gap: var(--space-1);
+    }
+    .people-subtab {
+      gap: 6px;
+    }
+  }
+
+  /* ---- Cards ---- */
+  .people-card {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+  .people-card--list {
+    gap: var(--space-1);
+    padding: var(--space-5) var(--space-5) var(--space-4);
+  }
+  .people-card--quiet {
+    align-items: center;
+    padding: var(--space-5);
+  }
+  @media (max-width: 1023px) {
+    .people-card--list {
+      padding: var(--space-2) var(--space-4);
+    }
+  }
+
+  /* The empty Friends page reuses the empty Groups card, a little shorter for the sub-tab row. */
+  .people-empty--friends {
+    height: max(480px, calc(100dvh - 264px));
+    padding: 0;
+  }
+  @media (max-width: 1023px) {
+    .people-empty--friends {
+      height: auto;
+      min-height: 360px;
+    }
+  }
+
+  .people-failed {
+    gap: var(--space-3);
+    text-align: center;
+  }
+  .people-failed p {
+    margin: 0;
+    max-width: 40ch;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+  }
+  .people-person__skeleton {
+    border-radius: var(--radius-lg);
+  }
+
+  .people-more {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: var(--space-1);
+    min-height: 44px;
+    margin: var(--space-1) 0 0;
+    padding: var(--space-2) 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--accent);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .people-more:hover {
+      color: var(--accent-hover);
+    }
+  }
+
+  /* ---- Friend code (66:746; phone 67:1017 is one slim row) ---- */
+  .people-code {
+    gap: var(--space-3);
+    padding: var(--space-5);
+  }
+  .people-code__main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+  .people-code__value {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-2xl) / var(--text-2xl-lh) var(--font-ui);
+    letter-spacing: 0.04em;
+    overflow-wrap: anywhere;
+    -webkit-user-select: all;
+    user-select: all;
+  }
+  .people-code__hint {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .people-code__copy {
+    width: 100%;
+  }
+  @media (max-width: 1023px) {
+    .people-code {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4) var(--space-5);
+    }
+    .people-code__main {
+      gap: 2px;
+    }
+    .people-code__value {
+      font-size: var(--text-xl);
+    }
+    .people-code__main + .people-code__hint {
+      display: none;
+    }
+    .people-code__copy {
+      width: auto;
+    }
+    .people-code__long {
+      display: none;
+    }
+  }
+
+  /* ---- Add a friend (66:752). The field is a pill, 44px, 16px text so phones don't zoom. ---- */
+  .people-add {
+    gap: var(--space-3);
+    padding: var(--space-5);
+  }
+  .people-add__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+  }
+  .people-add__hint {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .people-add__input {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: 44px;
+    margin: 0;
+    padding: 0 var(--space-4);
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    box-shadow: none;
+    color: var(--text-primary);
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    letter-spacing: 0.04em;
+    transition: border-color var(--dur-2) var(--ease-out);
+  }
+  .people-add__input::placeholder {
+    color: var(--text-placeholder);
+    letter-spacing: 0;
+    opacity: 1;
+  }
+  .people-add__input:focus {
+    border-color: var(--accent);
+    box-shadow: none;
+  }
+  .people-add__input:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .people-add .ui-btn {
+    width: 100%;
+  }
+}
