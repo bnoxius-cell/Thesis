@@ -23,7 +23,14 @@ Last updated: 2026-11-01. Open work: see `roadmap.md`.
 - Motion: pages get animation, subtle sprites and shading, never clutter. Every UI brief has a "Motion and effects" section (guide `.claude/docs/motion.md`) and the tester checks it. The owner's Threads reference (@kopp morphing effect) needs a description or recording before it can be built.
 - Docs: after each task put feature facts in the matching `.claude/docs/` file (CLAUDE.md only gets rules and pointers), tick items in `roadmap.md` only, and keep this file to state.
 - No `Co-Authored-By` lines. Writing style: plain sentences, no em-dashes as connectors, no emojis in the UI (lucide-react).
-- Owner decisions on record: AI-use notice stays in Terms and Privacy only (no strip in the reviewer UI; LEGAL bump comes with A1b); Subject page has a task tick box (ST1); files go on Cloudflare R2 (100 MB per student, 10 MB per file); chat reactions are native emoji; delete = sender or admin; no GIFs. Pe3 accepted differences are in roadmap J.
+- Owner decisions on record: AI-use notice stays in Terms and Privacy only (no strip in the reviewer UI; LEGAL bump comes with A1b); Subject page has a task tick box (ST1); files go on Cloudflare R2, free only (caps and per-student limits now live in plan 18, which replaces the old 100 MB / 10 MB numbers; see Storage below); chat reactions are native emoji; delete = sender or admin; no GIFs. Pe3 accepted differences are in roadmap J.
+
+## Storage (2026-11-01, top priority)
+- Plan: `.claude/docs/revamp/18-free-file-storage-plan.md`. Render free + R2 free, $0 hard rule, our own server enforces the caps (Cloudflare has no spend cap, its alerts only email).
+- Render workspace (second account) checked 2026-11-01: Hobby plan, no card, $0 invoices. Limits: 5 GB outbound, 750 instance hours, shared by `stresscare-api` and `stresscare-api-staging`. Over either one means suspension, not a bill. Usage on Nov 1 was 7 MB and 12.9 h.
+- Owner added R2 to the Cloudflare account. Bucket, tokens and env vars are not done yet.
+- Biggest Render bandwidth risk is notification polling (every 20 s, up to 100 items with avatars), not files. BW1 fixes it.
+- Alternatives considered and rejected: Google Drive (no expiring links, one personal account, rate limits), disk on Hetzner (fine later), Hetzner VPS (about 300 pesos a month, Singapore location, only if Render's free limits bite).
 
 ## Behaviour notes worth keeping
 - Task effort labels: up to 1.5h Small, up to 4h Medium, else Large.

@@ -4,6 +4,25 @@ This file is the only place for open work. Tick items here and do not copy them 
 
 Plans: `.claude/docs/revamp/15-parity-first-plan.md` (parity, account and trust, new features), `16-chat-attachments-reactions-plan.md` (chat extras), `17-navigation-and-feedback-plan.md` (navigation and feedback), `.claude/docs/priority-2-redesign-backlog.md` (older leftovers). Team feedback list: `docs/KNOWN_ISSUES.md` (shared, tick boxes there as fixes merge).
 
+## E. Storage (TOP PRIORITY, owner 2026-11-01: ship storage asap, free only)
+Status: planned. Plan: `.claude/docs/revamp/18-free-file-storage-plan.md` (Revision 2 block at the top; replaces the FS0 spec in plan 16). Decision: stay on Render free + Cloudflare R2 free, no paying, no Hetzner for now (Hetzner VPS in Singapore is the upgrade path if Render's limits bite). Uploads go through our server; downloads use 60 s presigned R2 links; every R2 call is reserved against caps in Mongo. Letters stay as they are so references like "needs E" still work.
+Owner steps (no Claude usage):
+- [x] Cloudflare account with R2 added (free tier, no charge unless over limits)
+- [ ] Private R2 bucket `stresscare-files` (public access off; Claude can do it in Chrome)
+- [ ] R2 API token: Object Read and Write, that one bucket only; second read-only Account Analytics token for the reconciliation job; expiry 2027-06-30; $1 budget alert; 2FA (click path in plan 18 section 5)
+- [ ] Set the R2 env vars, `FILES_ENABLED`, caps and `FILES_RESUME_KEY` on production Render srv-dbeai2jrjlhs73f25dqg (never the owner's Gmail-account service)
+- [ ] Suspend `stresscare-api-staging` and stop pinging it (production pinged 24/7 uses 744 of the 750 free instance hours; past 750 Render suspends everything)
+- [ ] Answer plan 18 questions O1 to O11 (defaults apply until answered), and check the Render Billing page weekly
+Build order (efficiency order agreed 2026-11-01; one builder at a time, `/clear` after each batch, builders run only build and `npm test`):
+- [ ] Figma frames for the first storage surface (default: files per subject, TW-8b; chat attachments CH4 later): upload and attach, file row and card, "uploads paused" state, owner usage page; phone and desktop, light only; owner approves before any UI builder
+- [ ] BW1 `fix/api-bandwidth` (builder-sonnet medium): small unread-count endpoint, gzip, slower chat polling, group lists every 60 s (do first; can run beside the Figma work)
+- [ ] FS0a content checks (builder-sonnet high), FS0b config, kill switch, signing (builder-sonnet high), FS0c call counter and cleanup (builder-opus high), FS0d upload and download helpers plus usage page (builder-sonnet high), FS0e Cloudflare reconciliation job (builder-opus medium); all on `feature/file-store-foundation` after tag `pre-chat-files`
+- [ ] Storage UI from the approved frames (builder-sonnet), tester at 375 and 1280
+- [ ] One code-reviewer and security-review pass on the whole branch, then merge and release
+- [ ] Then CH4 chat uploads, TW-9 source picker
+Right after the storage items:
+- [ ] Site footer: one item (owner to say what goes in it; default Terms, Privacy, About and Help links; draw in Figma first, phone and desktop, light only)
+
 ## A. Wrap up what is built
 Status: the Tasks fix and Pe3 are built but not merged. Production is bb80e13 (Pe2).
 - [ ] Browser check `fix/tasks-empty-main` at 375 and 1280 (empty Tasks view, no logout toast), then merge it into `main`
@@ -48,13 +67,6 @@ Status: not drawn. Ask the owner quick-answer design questions first, record nod
 - [ ] Delete my account dialog (in Me Privacy)
 - [ ] Owner approval of the Friends sub-tab frames (Friends 66:452, Requests 115:922, Pending 115:1091, phone 67:1017, 116:1105, 116:1234) and empty Friends 66:1130; no phone empty-Friends frame exists
 - [ ] Frames for chat extras (section H) and Canvas (section I)
-
-## E. Storage setup (owner)
-Status: not started. Needed before any file feature (FS0, CH4, files per subject).
-- [ ] Cloudflare account with a payment method
-- [ ] Private R2 bucket `stresscare-files`
-- [ ] R2 API token scoped to that bucket
-- [ ] Set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `FILE_STORAGE_CAP_MB` on production Render srv-dbeai2jrjlhs73f25dqg (never the owner's Gmail-account service)
 
 ## F. Build the drawn pages
 Status: waits on D (and E for anything with files).
