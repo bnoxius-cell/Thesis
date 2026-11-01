@@ -1,11 +1,11 @@
 import { useMemo } from "react";
-import { CalendarClock } from "lucide-react";
-import { EmptyState } from "@/shared/ui";
 import { useUnread } from "@/app/shell/unreadContext";
 import { useAuth } from "@/pages/authentication/AuthContext";
 import Composer from "./chat/Composer";
+import PinnedNote from "./chat/PinnedNote";
 import MessageList from "./chat/MessageList";
 import GroupHeader from "./GroupHeader";
+import GroupUpcoming from "./GroupUpcoming";
 import GroupNotFound from "./GroupNotFound";
 import useGroupChat from "./useGroupChat";
 import "./people-group.css";
@@ -24,6 +24,7 @@ export default function GroupView({ group, tab, desktop }) {
     [userData?._id, userData?.name, userData?.avatar],
   );
   const chat = useGroupChat(group._id, { me, onRead: markGroupRead });
+  const plan = useMemo(() => ({ groupId: group._id, onAdded: chat.markAdded }), [group._id, chat.markAdded]);
 
   if (chat.status === "gone") return <GroupNotFound asPage={!desktop} />;
 
@@ -37,12 +38,11 @@ export default function GroupView({ group, tab, desktop }) {
         aria-labelledby={`people-group-tab-${tab}`}
       >
         {tab === "upcoming" ? (
-          <EmptyState icon={CalendarClock} title="On its way">
-            Deadlines your group shares will be listed here soon.
-          </EmptyState>
+          <GroupUpcoming groupId={group._id} />
         ) : (
           <>
-            <MessageList items={chat.items} myId={userData?._id} status={chat.status} error={chat.error} onRetry={chat.retry} />
+            <PinnedNote pinned={group.pinned} />
+            <MessageList items={chat.items} myId={userData?._id} status={chat.status} error={chat.error} onRetry={chat.retry} plan={plan} />
             <Composer
               label={`Message ${group.name}`}
               placeholder={desktop ? `Message ${shortName(group.name)}` : "Message"}

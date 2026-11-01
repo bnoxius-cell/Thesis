@@ -4,11 +4,13 @@ import { EmptyState } from "@/shared/ui";
 import Page from "@/app/shell/Page";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import GroupsPane from "./GroupsPane";
+import PeopleAddMenu from "./PeopleAddMenu";
 import PeopleTabs from "./PeopleTabs";
 import PhoneChat from "./PhoneChat";
 import useGroups from "./useGroups";
 import "./people.css";
 import "./chat/chat.css";
+import "./chat/chat-cards.css";
 
 const WIDE = "(min-width: 1024px)"; // where the sidebar appears and the two panes fit
 
@@ -28,7 +30,7 @@ export default function PeoplePage({ tab = "groups" }) {
   }
 
   return (
-    <Page title="People">
+    <Page title="People" action={<PeopleAddMenu />}>
       <div className="people-body">
         <PeopleTabs tab={tab} block={!desktop} />
         <div role="tabpanel" id="people-panel" aria-labelledby={`people-tab-${tab}`}>

@@ -1,0 +1,47 @@
+/* The People "+" menu (Figma 64:302) and the empty Groups page (66:963). */
+@layer pages {
+  .people-addmenu {
+    min-width: 240px;
+  }
+  .people-addmenu .ui-menu__item {
+    min-height: 44px;
+  }
+
+  /* The card fills the height the panes would have; the frame's blob is 112px with a 48px icon. */
+  .people-empty {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    height: max(480px, calc(100dvh - 192px));
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+  .people-empty > .ui-empty {
+    flex: 1 1 auto;
+    gap: var(--space-4);
+  }
+  .people-empty .ui-empty__icon {
+    width: 112px;
+    height: 112px;
+  }
+  .people-empty .ui-empty__icon > svg {
+    width: 48px;
+    height: 48px;
+  }
+  .people-empty .ui-empty__text {
+    font-size: var(--text-md);
+    line-height: var(--text-md-lh);
+  }
+  @media (max-width: 1023px) {
+    .people-empty {
+      height: auto;
+      min-height: 60dvh;
+    }
+    .people-empty .ui-empty__icon {
+      width: 88px;
+      height: 88px;
+    }
+  }
+}

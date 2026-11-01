@@ -12,6 +12,7 @@ const POLL_MS = 3000;
 //   send     send(text) shows the message at once and answers { ok }. On failure the row goes away
 //            and a toast says why, so the caller can put the text back in the box
 //   retry    tries the first load again
+//   markAdded  markAdded(messageId) flags a shared timetable as added to the student's plan
 // It polls every 3 seconds while the tab is in front. `onRead` runs when the server has just marked
 // this group's notifications read (on opening the chat and when new messages arrive).
 export default function useGroupChat(groupId, { me, onRead }) {
@@ -69,11 +70,16 @@ export default function useGroupChat(groupId, { me, onRead }) {
     return { ok: true };
   }, [groupId, me]);
 
+  // A timetable card turns into "In your plan" once its copy is in. Polls don't carry that flag.
+  const markAdded = useCallback((messageId) => {
+    setMessages((prev) => prev.map((m) => (m._id === messageId ? { ...m, addedByMe: true } : m)));
+  }, []);
+
   const retry = useCallback(() => {
     setStatus("loading");
     poll();
   }, [poll]);
 
   const items = useMemo(() => [...messages, ...pending], [messages, pending]);
-  return { items, status, error, send, retry };
+  return { items, status, error, send, retry, markAdded };
 }

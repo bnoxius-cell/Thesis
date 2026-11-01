@@ -5,7 +5,7 @@ import MessageBubble from "./MessageBubble";
 
 // Messages from one person in a row: a name and time line, the bubbles, and (for others) their
 // avatar beside the last bubble. Your own messages sit on the right with just the time.
-export default function MessageRun({ run }) {
+export default function MessageRun({ run, plan }) {
   const { mine, sender, messages } = run;
   const name = sender?.name ?? "Someone";
   const first = messages[0];
@@ -18,7 +18,7 @@ export default function MessageRun({ run }) {
           <time dateTime={first.createdAt}>{clockTime(first.createdAt)}</time>
         </p>
         {messages.map((message) => (
-          <MessageBubble key={messageKey(message)} message={message} />
+          <MessageBubble key={messageKey(message)} message={message} mine={mine} sender={sender} plan={plan} />
         ))}
       </div>
     </div>

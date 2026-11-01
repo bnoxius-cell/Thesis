@@ -1,22 +1,19 @@
-import { MessageCircle, UsersRound } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { EmptyState, Skeleton } from "@/shared/ui";
 import GroupList from "./GroupList";
+import GroupsEmpty from "./GroupsEmpty";
 import GroupNotFound from "./GroupNotFound";
 import GroupView from "./GroupView";
 
 // The Groups tab. On a wide screen (Figma 64:2) the list is on the left and the open group on the
 // right; on a phone (67:818) it is the list alone, and a group opens as its own screen (PhoneChat).
-// The empty page for a student with no groups at all is Pe2's (66:963), so this is a placeholder.
+// A student with no groups at all gets the empty page (66:963).
 export default function GroupsPane({ data, groupId, tab, desktop }) {
   const { groups, status, error, reload } = data;
   const group = groups?.find((g) => g._id === groupId);
 
   if (status === "ready" && groups.length === 0) {
-    return (
-      <EmptyState page icon={UsersRound} title="No groups yet">
-        Groups you join will show up here.
-      </EmptyState>
-    );
+    return <GroupsEmpty />;
   }
 
   const list = <GroupList groups={groups} status={status} error={error} onRetry={reload} activeId={groupId} />;
