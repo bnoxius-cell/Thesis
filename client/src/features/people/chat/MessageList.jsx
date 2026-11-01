@@ -17,8 +17,9 @@ function LoadingMessages() {
 }
 
 // The chat's scrolling list. It follows new messages while the reader is at the bottom (and when
-// they send one), and leaves them alone while they read further up.
-export default function MessageList({ items, myId, status, error, onRetry }) {
+// they send one), and leaves them alone while they read further up. `plan` is for the timetable
+// cards: { groupId, onAdded }.
+export default function MessageList({ items, myId, status, error, onRetry, plan }) {
   const list = useRef(null);
   const following = useRef(true);
   const timeline = useMemo(() => buildTimeline(items, myId), [items, myId]);
@@ -54,7 +55,7 @@ export default function MessageList({ items, myId, status, error, onRetry }) {
             <span className="people-day__chip">{item.label}</span>
           </div>
         ) : (
-          <MessageRun key={item.key} run={item} />
+          <MessageRun key={item.key} run={item} plan={plan} />
         ),
       )}
     </div>

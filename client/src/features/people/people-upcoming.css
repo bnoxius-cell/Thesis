@@ -1,0 +1,126 @@
+/* The Upcoming tab (Figma 64:618): eyebrow, then rows of date, text, chip and the add button. */
+@layer pages {
+  .people-up {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-height: 0;
+    padding: 20px var(--space-5) var(--space-5);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .people-up--center {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .people-up__failed {
+    max-width: 40ch;
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+  }
+  .people-up__skeleton {
+    flex: none;
+    border-radius: var(--radius-lg);
+  }
+  .people-up__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .people-up__eyebrow {
+    margin: 0;
+    color: var(--text-muted);
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .people-up__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .people-up-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    box-sizing: border-box;
+    padding: 14px var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+  }
+  .people-up-row__date {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    align-items: center;
+    width: 48px;
+    text-align: center;
+  }
+  .people-up-row__weekday {
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .people-up-row__day {
+    color: var(--text-primary);
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+  }
+  .people-up-row__text {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .people-up-row__title,
+  .people-up-row__sub {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--text-sm);
+    line-height: 20px;
+  }
+  .people-up-row__title {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .people-up-row__sub {
+    color: var(--text-secondary);
+  }
+  .people-up-row__end {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  /* Phone: the text takes the row beside the date, and the chip and button sit on a row below. */
+  @media (max-width: 720px) {
+    .people-up {
+      padding: var(--space-4) max(var(--space-4), env(safe-area-inset-right)) var(--space-4)
+        max(var(--space-4), env(safe-area-inset-left));
+    }
+    .people-up-row {
+      flex-wrap: wrap;
+      gap: var(--space-3) var(--space-4);
+    }
+    .people-up-row__title,
+    .people-up-row__sub {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .people-up-row__end {
+      flex: 1 1 100%;
+      justify-content: space-between;
+      gap: var(--space-3);
+    }
+  }
+}

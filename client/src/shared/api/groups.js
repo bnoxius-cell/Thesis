@@ -17,3 +17,8 @@ export function fetchMessages(groupId, cursor) {
 
 // Posts plain text (the server trims it and allows up to 1000 characters): { message }.
 export const sendMessage = (groupId, text) => post(`/api/groups/${groupId}/messages`, { text });
+
+// The deadlines people shared in a group, soonest first: { deadlines }. Each has _id, task (title,
+// course, dueDate, shareTag...), addedByMe, sharedBy ({ _id, name } or null) and sharedAt. It lists
+// shared tasks only: classes and exams are not part of it.
+export const fetchUpcoming = (groupId) => get(`/api/groups/${groupId}/upcoming`);

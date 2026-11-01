@@ -22,3 +22,8 @@ export const isTimetableGone = (res) => res.fromApi === true && [403, 404].inclu
 
 // The student's main timetable with its entries: { schedule } (null when they have none yet).
 export const fetchMainTimetable = () => request("get", "/api/schedules/main");
+
+// Copies every entry of a timetable posted in a group's chat into the student's main timetable:
+// { added, schedule }. `entryIds` are the _ids of the entries inside that message's snapshot.
+export const importSharedTimetable = (groupId, messageId, entryIds) =>
+  request("post", "/api/schedules/import", { groupId, messageId, selections: entryIds.map((id) => ({ id })) });
