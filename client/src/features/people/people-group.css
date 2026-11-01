@@ -47,12 +47,27 @@
   }
   .people-head__meta {
     margin: 0;
+    white-space: nowrap;
     color: var(--text-muted);
     font: 400 var(--text-xs) / 18px var(--font-ui);
   }
   .people-head__tabs {
     flex: none;
     margin-left: auto;
+  }
+  /* Narrow desktop (the chat card is under about 500px): the tabs take a row of their own so the
+     group's name keeps its room. */
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    .people-head {
+      flex-wrap: wrap;
+    }
+    .people-head__id {
+      flex: 1 1 0;
+    }
+    .people-head__tabs {
+      flex-basis: 100%;
+      margin-left: 0;
+    }
   }
 
   /* Phone chat screen (67:939): the whole height, the head is a top bar (back, icon, name) with the

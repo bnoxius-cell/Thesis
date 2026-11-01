@@ -10,6 +10,9 @@ import GroupNotFound from "./GroupNotFound";
 import useGroupChat from "./useGroupChat";
 import "./people-group.css";
 
+// A long group name would wrap the placeholder and grow the box.
+const shortName = (name) => (name.length > 24 ? `${name.slice(0, 23)}…` : name);
+
 // One open group: its head, then the chat or the Upcoming tab. The chat keeps polling behind
 // Upcoming, so coming back to Chat finds it up to date. Mount it with the group id as its `key`.
 // `desktop` picks the wide layout (the name is an h2 under the page's h1) or the phone screen.
@@ -42,7 +45,7 @@ export default function GroupView({ group, tab, desktop }) {
             <MessageList items={chat.items} myId={userData?._id} status={chat.status} error={chat.error} onRetry={chat.retry} />
             <Composer
               label={`Message ${group.name}`}
-              placeholder={desktop ? `Message ${group.name}` : "Message"}
+              placeholder={desktop ? `Message ${shortName(group.name)}` : "Message"}
               onSend={chat.send}
             />
           </>
