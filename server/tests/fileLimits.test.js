@@ -61,7 +61,7 @@ describe('limits', () => {
         expect(withEnv({ FILE_LINK_TTL_SECONDS: '90' }).linkTtlSeconds).toBe(90);
     });
 
-    test.each(['abc', '0', '-5', '', '12.5', 'Infinity', '1e999'])('%j falls back to the default, never "unlimited"', (raw) => {
+    test.each(['abc', '0', '-5', '', '12.5', 'Infinity', '1e999', '1e3', '0x10', '+5', '5 000'])('%j falls back to the default, never "unlimited"', (raw) => {
         expect(withEnv({ FILE_CLASS_A_MONTHLY_CAP: raw }).classAMonthlyCap).toBe(100_000);
     });
 

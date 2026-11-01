@@ -2,8 +2,7 @@
 // DELETE one object, and presign a GET (computed locally, no network: the browser does the GET).
 // No listing, HEAD, multipart or copy calls, so every billed operation is one we reserved first.
 import { AwsClient } from 'aws4fetch';
-import { MAX_LINK_TTL_SECONDS } from '../fileLimits.js';
-import { StoreError, assertAsciiHeaders, assertStoreKey } from './storeError.js';
+import { StoreError, assertAsciiHeaders, assertExpiresIn, assertStoreKey } from './storeError.js';
 
 const PUT_TIMEOUT_MS = 15_000;
 const REMOVE_TIMEOUT_MS = 10_000;
@@ -52,9 +51,7 @@ export const createR2Store = ({ accountId, accessKeyId, secretAccessKey, bucket,
         // The expiry is set before signing so it is part of the signature; a holder can't change it.
         async presignGet(key, { expiresIn }) {
             assertStoreKey(key);
-            if (!Number.isInteger(expiresIn) || expiresIn < 1 || expiresIn > MAX_LINK_TTL_SECONDS) {
-                throw new StoreError('BadExpiry', { key });
-            }
+            assertExpiresIn(expiresIn, key);
             const url = objectUrl(key);
             url.searchParams.set('X-Amz-Expires', String(expiresIn));
             const signed = await client.sign(url.href, { method: 'GET', aws: { signQuery: true } });

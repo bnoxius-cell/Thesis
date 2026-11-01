@@ -6,7 +6,7 @@ const MIB = 1024 * 1024;
 const TEN_MINUTES_MS = 10 * 60 * 1000;
 
 export const MAX_LINK_TTL_SECONDS = 120;
-const MIN_LINK_TTL_SECONDS = 10;
+export const MIN_LINK_TTL_SECONDS = 10;
 
 const NUMBER_SETTINGS = {
     storageCapMb: { env: 'FILE_STORAGE_CAP_MB', fallback: 5000, max: 8000 },
@@ -40,9 +40,10 @@ const FIXED_LIMITS = {
 
 const R2_VARS = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET', 'CF_ANALYTICS_TOKEN'];
 
-// Positive whole numbers only; anything else is "not set". Clamped into [min, max] with a warning.
+// Plain positive whole numbers only ("0x10" or "1e3" count as not set). Clamped into [min, max] with a warning.
 const readNumber = (env, { env: name, fallback, min = 1, max }) => {
-    const parsed = Number(env[name]?.trim());
+    const raw = env[name]?.trim() ?? '';
+    const parsed = /^\d+$/.test(raw) ? Number(raw) : NaN;
     if (!Number.isSafeInteger(parsed) || parsed <= 0) return fallback;
     const clamped = Math.min(Math.max(parsed, min), max);
     if (clamped !== parsed) console.warn(`[files] ${name} is outside ${min}..${max}; using ${clamped}`);
@@ -68,6 +69,7 @@ const readFileLimits = () => {
         classBMonthlyCap: value('classBMonthlyCap'),
         uploadMonthlyBytes: value('uploadMonthlyMb') * MIB,
         linkTtlSeconds: value('linkTtlSeconds'),
+        alertEmail: env.FILES_ALERT_EMAIL?.trim() ?? '',
         availability: Object.freeze(readAvailability(env)),
     });
 };
@@ -79,6 +81,13 @@ export const getFileLimits = () => (limits ??= readFileLimits());
 // Re-reads the env. Tests call this after changing process.env; the store is rebuilt on its next use.
 export const reloadFileLimits = () => {
     limits = readFileLimits();
+    return limits;
+};
+
+// For tests: the env limits with some values replaced (per-student numbers aren't env). Like
+// reloadFileLimits, it drops the cached store.
+export const setFileLimitsForTests = (overrides) => {
+    limits = Object.freeze({ ...readFileLimits(), ...overrides });
     return limits;
 };
 

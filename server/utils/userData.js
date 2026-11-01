@@ -11,7 +11,10 @@ import notificationModel from '../models/notificationModel.js';
 import pushSubscriptionModel from '../models/pushSubscriptionModel.js';
 import friendModel from '../models/Friend.js';
 import userModel from '../models/userModel.js';
+import fileModel from '../models/fileModel.js';
+import fileUserDayModel from '../models/fileUserDayModel.js';
 import { PSSResponse, WHOResponse } from '../models/Survey.js';
+import { removeFiles } from './storedFiles.js';
 
 // Every place a student's id is stored. `field` is the path to the id inside the model
 // (`collaborators.user` is inside an array of sub-documents).
@@ -19,6 +22,8 @@ import { PSSResponse, WHOResponse } from '../models/Survey.js';
 //   how: 'pending' the id sits in something other people use (a shared group, a schedule,
 //                  a friend's list). Account deletion (P-1) decides what happens to those:
 //                  remove the id, hand a group over, and so on. deleteUserData skips them.
+//   cleanup        optional, for 'delete': runs instead of deleteMany when deleting needs more
+//                  than removing rows (stored files must have their objects deleted too).
 // A test checks that every `ref: 'user'` path in server/models/ is listed here, so a new
 // collection can't be forgotten. Add the entry in the same change as the model.
 export const USER_DATA = [
@@ -32,6 +37,8 @@ export const USER_DATA = [
     { model: pushSubscriptionModel, field: 'user', how: 'delete' },
     { model: notificationModel, field: 'recipient', how: 'delete' },
     { model: friendModel, field: 'user', how: 'delete' },
+    { model: fileModel, field: 'owner', how: 'delete', cleanup: (filter) => removeFiles(filter) },
+    { model: fileUserDayModel, field: 'user', how: 'delete' },
 
     { model: notificationModel, field: 'sender', how: 'pending' },
     { model: friendModel, field: 'friend', how: 'pending' },
@@ -51,5 +58,7 @@ export const USER_DATA = [
 
 export const deleteUserData = async (userId) => {
     const owned = USER_DATA.filter((entry) => entry.how === 'delete');
-    await Promise.all(owned.map(({ model, field }) => model.deleteMany({ [field]: userId })));
+    await Promise.all(owned.map(({ model, field, cleanup }) => (
+        cleanup ? cleanup({ [field]: userId }) : model.deleteMany({ [field]: userId })
+    )));
 };

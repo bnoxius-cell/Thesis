@@ -47,6 +47,10 @@ describe.each([
         await store.remove(key);
     });
 
+    test.each([0, -1, 9, 1.5, 121, 604800, '60', undefined])('a lifetime of %j is refused', async (expiresIn) => {
+        await expect(make().presignGet(newKey(), { expiresIn })).rejects.toMatchObject({ name: 'BadExpiry' });
+    });
+
     test('keys that are not server-made are refused', async () => {
         const store = make();
         for (const key of ['f/../x', 'f/abc', `x/${randomUUID()}`, `f/${randomUUID()}?a=b`, undefined]) {
@@ -239,10 +243,6 @@ describe('r2 presigned links', () => {
         expect(long.searchParams.get('X-Amz-Expires')).toBe('120');
     });
 
-    test.each([0, -1, 1.5, 121, 604800, '60', undefined])('a lifetime of %j is refused', async (expiresIn) => {
-        const store = makeR2(makeFakeFetch().fetchImpl);
-        await expect(store.presignGet(newKey(), { expiresIn })).rejects.toMatchObject({ name: 'BadExpiry' });
-    });
 });
 
 describe('getFileStore', () => {

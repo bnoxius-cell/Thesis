@@ -30,6 +30,8 @@ const userSchema = new mongoose.Schema({
     // Which version of the Terms and Privacy Policy this user agreed to, and when.
     termsVersion: { type: String, default: '' },
     termsAcceptedAt: { type: Date, default: null },
+    // Bytes this student's files hold in storage (fileBudget reserves and releases it atomically).
+    storageUsedBytes: { type: Number, default: 0, min: 0 },
     // What this user wants to hear about. Everything is on by default. groupOverrides
     // tune it per group: 'all' follows the toggles, 'tasks' only lets shared tasks
     // through, 'muted' silences the group completely.

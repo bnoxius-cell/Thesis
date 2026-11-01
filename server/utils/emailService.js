@@ -131,3 +131,13 @@ export const sendPasswordResetSuccessEmail = async (email) => {
 
     await sendMail({ fromName: 'Stress Care Security', to: email, subject: 'Password successfully updated', html: baseHtmlTemplate(content) });
 };
+
+const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
+
+// Plain-text warnings to the site owner (file usage alerts). Each line becomes a paragraph.
+export const sendOwnerAlertEmail = async (to, subject, text) => {
+    const content = String(text).split('\n')
+        .map((line) => `<p style="margin: 0 0 12px 0; color: #475569; font-size: 15px; line-height: 1.5;">${escapeHtml(line)}</p>`)
+        .join('');
+    await sendMail({ fromName: 'Stress Care', to, subject, html: baseHtmlTemplate(content) });
+};
