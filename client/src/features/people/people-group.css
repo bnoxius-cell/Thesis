@@ -1,0 +1,109 @@
+/* The open group (Figma 64:2 right card, 67:939 phone screen): its head and the panel under it. */
+@layer pages {
+  /* ---- The open group ---- */
+  .people-group {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    box-sizing: border-box;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+  .people-group__panel {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .people-group__panel > .ui-empty {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .people-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex: none;
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--border);
+  }
+  .people-head__id {
+    display: flex;
+    flex: 0 1 auto;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .people-head__name {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-primary);
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+  }
+  .people-head__meta {
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .people-head__tabs {
+    flex: none;
+    margin-left: auto;
+  }
+
+  /* Phone chat screen (67:939): the whole height, the head is a top bar (back, icon, name) with the
+     tabs on a row of their own, and the composer sits above the home bar. */
+  .people-chatscreen {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    background: var(--bg-app);
+  }
+  .people-chatscreen > .ui-empty {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .people-chatscreen__loading {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: calc(var(--space-4) + env(safe-area-inset-top)) var(--space-4);
+  }
+  .people-chatscreen__skeleton {
+    border-radius: var(--radius-lg);
+  }
+  @media (max-width: 1023px) {
+    .people-chatscreen > .people-group {
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+    }
+    .people-head {
+      flex-wrap: wrap;
+      padding: calc(var(--space-4) + env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right))
+        var(--space-3) max(var(--space-4), env(safe-area-inset-left));
+      border-bottom: 0;
+    }
+    .people-head__avatar {
+      --people-avatar: 40px;
+      --people-avatar-font: var(--text-sm);
+    }
+    .people-head__id {
+      flex: 1 1 0;
+    }
+    .people-head__name {
+      font-size: var(--text-sm);
+      line-height: 20px;
+    }
+    .people-head__tabs {
+      order: 3;
+      flex: 1 1 100%;
+      margin-left: 0;
+    }
+  }
+}

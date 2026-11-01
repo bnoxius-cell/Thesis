@@ -8,6 +8,7 @@ import MessageList from "./chat/MessageList";
 import GroupHeader from "./GroupHeader";
 import GroupNotFound from "./GroupNotFound";
 import useGroupChat from "./useGroupChat";
+import "./people-group.css";
 
 // One open group: its head, then the chat or the Upcoming tab. The chat keeps polling behind
 // Upcoming, so coming back to Chat finds it up to date. Mount it with the group id as its `key`.

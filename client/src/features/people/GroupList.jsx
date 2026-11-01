@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { Button, Skeleton } from "@/shared/ui";
 import { useUnread } from "@/app/shell/unreadContext";
 import GroupListRow from "./GroupListRow";
+import "./people-list.css";
 
 function ListSkeleton() {
   return (
