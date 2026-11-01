@@ -143,5 +143,12 @@
     .subject-row__text {
       flex-basis: 100%;
     }
+    /* A task row keeps its box beside the text; the chip drops under the text, not under the box. */
+    .subject-row--task .subject-row__text {
+      flex-basis: calc(100% - 44px - var(--space-3));
+    }
+    .subject-row--task .ui-chip {
+      margin-left: calc(44px + var(--space-3));
+    }
   }
 }

@@ -11,6 +11,7 @@ import { fetchMainTimetable } from "@/shared/api/schedules";
 //   tasks     this subject's open tasks, soonest due first
 //   reviewers this subject's reviewers, newest first
 //   entries   main timetable entries; empty when there is none or it could not load
+//   setTasks  the task list setter (useTaskDone); ticked tasks drop out of `tasks`
 //   reload    fetches again behind the skeleton (Try again)
 // Only the subject itself decides between ready, missing and failed: a failed task, reviewer or
 // timetable fetch leaves that part empty instead of blocking the page.
@@ -45,6 +46,8 @@ export default function useSubject(id) {
 
   const reload = useCallback(() => setAttempt((n) => n + 1), []);
 
+  const setTasks = useCallback((update) => setData((d) => ({ ...d, tasks: update(d.tasks) })), []);
+
   const openTasks = useMemo(
     () =>
       data.tasks
@@ -54,5 +57,5 @@ export default function useSubject(id) {
   );
   const reviewers = useMemo(() => data.reviewers.filter((r) => r.subject === id), [data.reviewers, id]);
 
-  return { ...state, tasks: openTasks, reviewers, entries: data.entries, reload };
+  return { ...state, tasks: openTasks, reviewers, entries: data.entries, setTasks, reload };
 }
