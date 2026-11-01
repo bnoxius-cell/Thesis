@@ -1,8 +1,9 @@
 import axios from "axios";
 
-// Same rule as AuthContext: the deployed site goes through Vercel's same-origin /api rewrite so the
-// session cookie stays first-party, and local development talks to Express directly.
-export const backendUrl = import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV ? "http://localhost:5000" : "");
+// Same rule as AuthContext: a deployed build always calls its own /api (Vercel rewrites it to the API),
+// so the session cookie stays first-party on every address the site is served from (vercel.app and
+// stresscare.xyz). VITE_BACKEND_URL only matters in local development.
+export const backendUrl = import.meta.env.DEV ? (import.meta.env.VITE_BACKEND_URL || "http://localhost:5000") : "";
 
 const OFFLINE = "Can't reach StressCare. Check your connection and try again.";
 const FAILED = "Something went wrong. Please try again.";
