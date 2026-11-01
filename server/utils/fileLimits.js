@@ -70,6 +70,8 @@ const readFileLimits = () => {
         uploadMonthlyBytes: value('uploadMonthlyMb') * MIB,
         linkTtlSeconds: value('linkTtlSeconds'),
         alertEmail: env.FILES_ALERT_EMAIL?.trim() ?? '',
+        // Verified accounts allowed to open the owner usage page (comma separated, any case).
+        adminEmails: Object.freeze((env.FILES_ADMIN_EMAILS ?? '').split(',').map((email) => email.trim().toLowerCase()).filter(Boolean)),
         availability: Object.freeze(readAvailability(env)),
     });
 };

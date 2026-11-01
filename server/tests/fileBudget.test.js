@@ -78,6 +78,17 @@ describe('student storage', () => {
         await expect(reserveUserStorage(user._id, -5)).rejects.toThrow(TypeError);
         await expect(releaseUserStorage(user._id, 1.5)).rejects.toThrow(TypeError);
     });
+
+    test.each([-1, 1.5, NaN, '3', Infinity])('a month or day reservation of %j is a bug, not a refund', async (amount) => {
+        await expect(reserveMonth({ classB: amount }, NOW)).rejects.toThrow(TypeError);
+        await expect(reserveMonth({ classA: amount }, NOW)).rejects.toThrow(TypeError);
+        await expect(reserveMonth({ uploadBytes: amount }, NOW)).rejects.toThrow(TypeError);
+        await expect(reserveUserDay(user._id, { links: amount }, NOW)).rejects.toThrow(TypeError);
+        await expect(reserveUserDay(user._id, { uploads: amount }, NOW)).rejects.toThrow(TypeError);
+        await expect(reserveUserDay(user._id, { uploadBytes: amount }, NOW)).rejects.toThrow(TypeError);
+        await expect(reserveLinks(user._id, amount, NOW)).rejects.toThrow(TypeError);
+        expect(await fileUsageModel.findById(monthId(NOW)).lean()).toBeNull();
+    });
 });
 
 describe('server storage', () => {

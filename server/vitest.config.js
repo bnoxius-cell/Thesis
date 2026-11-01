@@ -16,7 +16,7 @@ export default defineConfig({
             GOOGLE_CLIENT_ID: 'test-google-client-id',
             // Files: blank so a developer's server/.env can never reach R2 or Cloudflare from a test.
             ...Object.fromEntries(
-                ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET', 'CF_ANALYTICS_TOKEN', 'FILES_ENABLED', 'FILES_RESUME_KEY', 'FILES_ALERT_EMAIL']
+                ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET', 'CF_ANALYTICS_TOKEN', 'FILES_ENABLED', 'FILES_RESUME_KEY', 'FILES_ALERT_EMAIL', 'FILES_ADMIN_EMAILS']
                     .map((name) => [name, '']),
             ),
         },

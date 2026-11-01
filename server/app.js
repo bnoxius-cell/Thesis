@@ -12,6 +12,7 @@ import notificationRouter from './routes/notificationRoutes.js';
 import scheduleRouter from './routes/scheduleRoutes.js';
 import reviewerRouter from './routes/reviewerRoutes.js';
 import subjectRouter from './routes/subjectRoutes.js';
+import fileRouter from './routes/fileRoutes.js';
 
 // Express app wiring only — no DB connection, no app.listen(). Kept separate from
 // server.js so tests can import the app directly (via supertest) without booting
@@ -65,5 +66,6 @@ app.use('/api/schedules', scheduleRouter);
 // PDF uploads are multipart, parsed by multer inside this router; express.json() skips them.
 app.use('/api/reviewers', reviewerRouter);
 app.use('/api/subjects', subjectRouter);
+app.use('/api/files', fileRouter);
 
 export default app;

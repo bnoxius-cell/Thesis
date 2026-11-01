@@ -65,6 +65,11 @@ describe('limits', () => {
         expect(withEnv({ FILE_CLASS_A_MONTHLY_CAP: raw }).classAMonthlyCap).toBe(100_000);
     });
 
+    test('the owner page list is trimmed and lower-cased, and empty when unset', () => {
+        expect(reloadFileLimits().adminEmails).toEqual([]);
+        expect(withEnv({ FILES_ADMIN_EMAILS: ' Owner@Example.com , ,two@example.com' }).adminEmails).toEqual(['owner@example.com', 'two@example.com']);
+    });
+
     test('the limits object can not be changed', () => {
         const limits = reloadFileLimits();
         expect(Object.isFrozen(limits)).toBe(true);

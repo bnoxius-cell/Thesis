@@ -9,7 +9,7 @@ import { getFileLimits } from './fileLimits.js';
 import { sendOwnerAlertEmail } from './emailService.js';
 
 const MIB = 1024 * 1024;
-const STORAGE_ID = 'storage';
+export const STORAGE_ID = 'storage';
 const ALERT_THRESHOLDS = [50, 80, 100];
 
 // Month and day keys are UTC, from an injected `now` so tests can cross a boundary.
@@ -52,6 +52,7 @@ const ERRORS = {
         code: 'bad_type',
         message: () => "This kind of file can't be sent. Try a photo, PDF, Word, PowerPoint, Excel or text file.",
     },
+    bad_upload: { status: 400, code: 'bad_upload', message: () => "The upload didn't go through. Try again." },
     store_failed: { status: 502, code: 'store_failed', message: () => "Couldn't save the file. Try again." },
     too_many: { status: 400, code: 'too_many', message: () => `Ask for ${getFileLimits().maxLinksPerRequest} files or fewer at a time.` },
     not_found: { status: 404, code: 'not_found', message: () => 'File not found.' },
@@ -73,8 +74,9 @@ export const fileError = (kind, { resumesAt = null } = {}) => {
     return new FileLimitError({ status, code, message: message({ resumesAt }), resumesAt });
 };
 
-const assertBytes = (bytes) => {
-    if (!Number.isSafeInteger(bytes) || bytes < 0) throw new TypeError('bytes must be a whole number of bytes');
+// Every reservation and release takes a whole number, zero or more. A negative amount would hand budget back.
+const assertAmount = (amount) => {
+    if (!Number.isSafeInteger(amount) || amount < 0) throw new TypeError('amount must be a whole number, zero or more');
 };
 
 // Two concurrent upserts can both try to insert; the loser's duplicate key error is harmless.
@@ -129,7 +131,7 @@ const checkAlerts = async (id, readings) => {
 // Atomic: the student's storage can't pass their quota however many uploads race. A student who
 // signed up before files existed has no storageUsedBytes yet, which counts as 0.
 export const reserveUserStorage = async (userId, bytes) => {
-    assertBytes(bytes);
+    assertAmount(bytes);
     const room = getFileLimits().userStorageBytes - bytes;
     if (room < 0) throw fileError('quota_full');
     const user = await userModel.findOneAndUpdate(
@@ -141,7 +143,7 @@ export const reserveUserStorage = async (userId, bytes) => {
 };
 
 export const reserveGlobalStorage = async (bytes, now = new Date()) => {
-    assertBytes(bytes);
+    assertAmount(bytes);
     const { storageCapBytes } = getFileLimits();
     await ensureUsageDoc(STORAGE_ID);
     const doc = await fileUsageModel.findOneAndUpdate(
@@ -159,7 +161,7 @@ export const reserveGlobalStorage = async (bytes, now = new Date()) => {
 const minusClamped = (path, bytes) => ({ $max: [0, { $subtract: [{ $ifNull: [path, 0] }, bytes] }] });
 
 export const releaseUserStorage = async (userId, bytes) => {
-    assertBytes(bytes);
+    assertAmount(bytes);
     await userModel.updateOne(
         { _id: userId },
         [{ $set: { storageUsedBytes: minusClamped('$storageUsedBytes', bytes) } }],
@@ -168,7 +170,7 @@ export const releaseUserStorage = async (userId, bytes) => {
 };
 
 export const releaseGlobalStorage = async (bytes) => {
-    assertBytes(bytes);
+    assertAmount(bytes);
     await fileUsageModel.updateOne(
         { _id: STORAGE_ID },
         [{ $set: { bytes: minusClamped('$bytes', bytes) } }],
@@ -197,9 +199,9 @@ export const raiseGlobalStorage = async (bytes) => {
 // Monthly R2 operations and upload traffic. The caps and the trips are in the same filter, so a
 // trip blocks at once and nothing is taken when the reservation doesn't fit.
 export const reserveMonth = async ({ classA = 0, classB = 0, uploadBytes = 0 }, now = new Date()) => {
-    assertBytes(classA);
-    assertBytes(classB);
-    assertBytes(uploadBytes);
+    assertAmount(classA);
+    assertAmount(classB);
+    assertAmount(uploadBytes);
     const { classAMonthlyCap, classBMonthlyCap, uploadMonthlyBytes } = getFileLimits();
     const id = monthId(now);
     await ensureUsageDoc(id);
@@ -233,6 +235,7 @@ export const reserveMonth = async ({ classA = 0, classB = 0, uploadBytes = 0 }, 
 
 // Durable daily limits per student. A link reservation that doesn't fit says so in link words.
 export const reserveUserDay = async (userId, { uploads = 0, uploadBytes = 0, links = 0 }, now = new Date()) => {
+    [uploads, uploadBytes, links].forEach(assertAmount);
     const { uploadsPerDay, uploadBytesPerDay, linksPerDay } = getFileLimits();
     const day = dayKey(now);
     await ensureDoc(fileUserDayModel, { user: userId, day }, { uploads: 0, uploadBytes: 0, links: 0, createdAt: now });
