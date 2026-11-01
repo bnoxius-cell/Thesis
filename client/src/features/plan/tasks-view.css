@@ -12,6 +12,17 @@
       grid-template-columns: minmax(0, 1fr) 380px;
     }
   }
+  /* Nothing due soon: drop the side column so Later and Done sit under the note, not at the edge. */
+  @media (min-width: 1280px) {
+    .plan-tasks--single {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .plan-tasks__clear {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-md) / 24px var(--font-ui);
+  }
   .plan-tasks__main,
   .plan-tasks__side {
     display: flex;

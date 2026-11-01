@@ -19,7 +19,8 @@ export default function TasksView({ tasks, subjectsById, now, onToggle }) {
   const rows = (list) => list.map((task) => (
     <TaskRow key={task._id} task={task} subject={subjectForLabel(task.course, subjects)} now={now} onToggle={onToggle} />
   ));
-  const open = groups.overdue.length + groups.today.length + groups.week.length + groups.later.length;
+  const dueSoon = groups.overdue.length + groups.today.length + groups.week.length;
+  const open = dueSoon + groups.later.length;
 
   if (tasks.length === 0) {
     return (
@@ -30,10 +31,13 @@ export default function TasksView({ tasks, subjectsById, now, onToggle }) {
   }
 
   return (
-    <div className="plan-tasks">
+    <div className={`plan-tasks${dueSoon === 0 ? " plan-tasks--single" : ""}`}>
       <div className="plan-tasks__main stagger">
         {open === 0 && (
           <EmptyState icon={CheckCheck} title="All clear">Nothing is waiting on you right now.</EmptyState>
+        )}
+        {open > 0 && dueSoon === 0 && (
+          <p className="plan-tasks__clear">Nothing due this week. Your next tasks are below.</p>
         )}
         {(groups.overdue.length > 0 || groups.today.length > 0) && (
           <div className="plan-tasks__panel">
