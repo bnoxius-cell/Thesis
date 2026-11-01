@@ -99,6 +99,45 @@ describe('inbox', () => {
     });
 });
 
+describe('unread summary', () => {
+    test('counts match the full inbox and carry no senders or avatars', async () => {
+        const { alice, bob, group } = await groupSetup();
+        const other = await signUp('Cara');
+        for (const text of ['one', 'two', 'three']) {
+            await bob.agent.post(`/api/groups/${group._id}/messages`).send({ text });
+        }
+        await notificationModel.create({ recipient: alice.id, sender: bob.id, type: 'system', message: 'hello' });
+        await bob.agent.post('/api/friends/request').send({ profileTag: other.user.profileTag });
+        await other.agent.post('/api/friends/request').send({ profileTag: alice.user.profileTag });
+
+        const full = await inbox(alice);
+        const res = await alice.agent.get('/api/notifications/summary');
+        expect(res.body.success).toBe(true);
+        expect(res.body.unreadCount).toBe(full.unreadCount);
+        expect(res.body.pendingFriendRequests).toBe(full.pendingFriendRequests);
+        expect(res.body.groups).toEqual([{ group: group._id, count: 3 }]);
+        expect(JSON.stringify(res.body)).not.toMatch(/sender|avatar/);
+    });
+
+    test('read notifications and notifications for other students are not counted', async () => {
+        const { alice, bob, group } = await groupSetup();
+        await bob.agent.post(`/api/groups/${group._id}/messages`).send({ text: 'hi' });
+        await alice.agent.put('/api/notifications/read-all');
+
+        const own = (await alice.agent.get('/api/notifications/summary')).body;
+        expect(own).toMatchObject({ unreadCount: 0, groups: [] });
+
+        await notificationModel.create({ recipient: bob.id, type: 'group_task', message: 'x', group: group._id });
+        expect((await alice.agent.get('/api/notifications/summary')).body.groups).toEqual([]);
+        expect((await bob.agent.get('/api/notifications/summary')).body.groups).toEqual([{ group: group._id, count: 1 }]);
+    });
+
+    test('needs a login', async () => {
+        const res = await request(app).get('/api/notifications/summary');
+        expect(res.body.success).toBe(false);
+    });
+});
+
 describe('friends', () => {
     test('a friend request notifies the receiver, accepting notifies the sender', async () => {
         const alice = await signUp('Alice');

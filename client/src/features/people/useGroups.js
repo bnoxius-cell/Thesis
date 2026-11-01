@@ -2,9 +2,9 @@ import { useCallback, useState } from "react";
 import { fetchGroups } from "@/shared/api/groups";
 import usePolling from "@/shared/hooks/usePolling";
 
-const POLL_MS = 30000;
+const POLL_MS = 60000;
 
-// The student's groups, refreshed every 30 seconds while the tab is in front so a group they were
+// The student's groups, refreshed every minute while the tab is in front so a group they were
 // removed from or added to shows up without a reload.
 //   groups  null until the first answer
 //   status  "loading" | "ready" | "failed" (failed only when nothing has loaded yet)

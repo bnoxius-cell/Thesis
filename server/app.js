@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import authRouter from './routes/authRoutes.js';
 import userRouter from './routes/userRoutes.js';
 import surveyRouter from './routes/surveyRoutes.js';
@@ -19,6 +20,7 @@ const app = express();
 // Schedule entries can carry a small inline picture, which needs more headroom than
 // the 100kb default. Registered first so the body is parsed once, with this limit;
 // every other route keeps the default.
+app.use(compression());
 app.use('/api/schedules', express.json({ limit: '300kb' }));
 app.use(express.json());
 

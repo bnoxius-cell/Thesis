@@ -4,9 +4,9 @@ import { fetchUpcoming } from "@/shared/api/groups";
 import { importSharedTask } from "@/shared/api/tasks";
 import usePolling from "@/shared/hooks/usePolling";
 
-const POLL_MS = 30000;
+const POLL_MS = 60000;
 
-// One group's shared deadlines, refreshed every 30 seconds while the tab is in front.
+// One group's shared deadlines, refreshed every minute while the tab is in front.
 //   deadlines  null until the first answer (a failed refresh keeps the last list)
 //   status     "loading" | "ready" | "failed" (failed only when nothing has loaded yet)
 //   addingId   the deadline being added right now, if any

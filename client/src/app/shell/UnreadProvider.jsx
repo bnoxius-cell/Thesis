@@ -1,16 +1,12 @@
 import { useCallback, useMemo, useState } from "react";
-import { fetchInbox } from "@/shared/api/notifications";
+import { fetchUnreadSummary } from "@/shared/api/notifications";
 import usePolling from "@/shared/hooks/usePolling";
 import { UnreadContext } from "./unreadContext";
 
 const POLL_MS = 20000;
-// Chat-like notifications fold into one entry per group while unread, so counting the groups
-// that have one tells how many chats have news.
-const GROUP_TYPES = ["group_message", "group_task", "group_schedule"];
-
 const NONE = { total: 0, friendRequests: 0, groupEntries: [] };
 
-// Polls the inbox for the whole signed-in area and shares the numbers the badges need:
+// Polls the unread summary for the whole signed-in area and shares the numbers the badges need:
 //   total          unread notifications (the bell)
 //   groupsUnread   groups with something new (People > Groups)
 //   groupUnread    { [groupId]: unread messages } for the badge on each group row
@@ -22,15 +18,13 @@ export default function UnreadProvider({ children }) {
   const [counts, setCounts] = useState(NONE);
 
   const refresh = useCallback(async () => {
-    const { data } = await fetchInbox();
+    const { data } = await fetchUnreadSummary();
     // A failed poll keeps the last numbers: a badge that vanishes offline would be wrong news.
     if (!data) return;
     setCounts({
       total: data.unreadCount ?? 0,
       friendRequests: data.pendingFriendRequests ?? 0,
-      groupEntries: (data.notifications ?? [])
-        .filter((n) => !n.isRead && n.group && GROUP_TYPES.includes(n.type))
-        .map((n) => ({ id: String(n.group), count: n.count ?? 1 })),
+      groupEntries: (data.groups ?? []).map((g) => ({ id: String(g.group), count: g.count })),
     });
   }, []);
 
