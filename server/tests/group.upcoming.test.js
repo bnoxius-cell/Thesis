@@ -55,7 +55,7 @@ describe('GET /api/groups/:id/upcoming', () => {
     test('only members can read it, and a bad id is a 404', async () => {
         const { carol, group } = await setup();
         const outsider = await carol.get(`/api/groups/${group._id}/upcoming`);
-        expect(outsider.status).toBe(403);
+        expect(outsider.status).toBe(404);
         const bad = await carol.get('/api/groups/not-an-id/upcoming');
         expect(bad.status).toBe(404);
     });
@@ -139,7 +139,7 @@ describe('pinned note', () => {
     test('an outsider cannot pin a note either', async () => {
         const { carol, group } = await setup();
         const res = await carol.patch(`/api/groups/${group._id}`).send({ pinned: 'Hello' });
-        expect(res.status).toBe(403);
+        expect(res.status).toBe(404);
     });
 
     test('281 characters is refused and 280 is fine', async () => {

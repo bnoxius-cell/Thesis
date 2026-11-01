@@ -11,10 +11,17 @@ import { ensureShareTemplateForTask } from './taskController.js';
 import { containsProfanity } from '../utils/familyFilter.js';
 import { isId, serverError } from '../utils/httpErrors.js';
 import { isValidPicture } from '../utils/images.js';
+import { isSingleEmoji } from '../utils/emoji.js';
+import { hit } from '../utils/rateLimit.js';
 
 const MAX_MESSAGE_LENGTH = 1000;
 const INITIAL_MESSAGE_LIMIT = 50;
 const POLL_MESSAGE_LIMIT = 100;
+const MAX_CHANGES = 200;
+// A write can commit while the previous poll's query runs, so each poll looks back a little.
+const CHANGES_OVERLAP_MS = 5000;
+const MAX_REACTION_KINDS = 20;
+const REACTION_RATE = { limit: 120, windowMs: 60 * 1000 };
 
 // No 0/O/1/I so codes are easy to read out or type from a screenshot.
 const JOIN_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -74,15 +81,35 @@ const loadGroupForMember = async (req, res) => {
         res.status(404).json({ success: false, message: 'Group not found' });
         return null;
     }
+    // 404, not 403, so outsiders can't tell a real group from a missing one.
     if (!isMember(group, req.userId)) {
-        res.status(403).json({ success: false, message: 'You are not a member of this group' });
+        res.status(404).json({ success: false, message: 'Group not found' });
         return null;
     }
     return group;
 };
 
-// Adds `addedByMe` to task messages so the chat can show "In your schedule"
-// instead of offering the same task again.
+// [{ emoji, count, userIds, mine }] in the order the emoji were first used.
+const serializeReactions = (reactions, userId) => Object.entries(reactions || {}).map(([emoji, ids]) => {
+    const userIds = ids.map(String);
+    return { emoji, count: userIds.length, userIds, mine: userIds.includes(String(userId)) };
+});
+
+// What a poll sends for a message the client already has: its new reactions, or that it was removed.
+const serializeChange = (message, userId) => {
+    const plain = message.toObject({ flattenMaps: true });
+    const deleted = plain.type === 'deleted';
+    return {
+        _id: plain._id,
+        reactions: serializeReactions(plain.reactions, userId),
+        deleted,
+        ...(deleted && { type: 'deleted', deletedByAdmin: plain.deletedByAdmin }),
+    };
+};
+
+// Adds `addedByMe` to task and schedule messages so the chat can show "In your schedule"
+// instead of offering them again, turns reactions into an ordered list, and shrinks
+// deleted messages to a tombstone.
 const serializeMessages = async (messages, userId) => {
     const tags = [...new Set(messages.filter((m) => m.type === 'task').map((m) => m.task.shareTag))];
     const owned = tags.length
@@ -98,7 +125,18 @@ const serializeMessages = async (messages, userId) => {
     }
 
     return messages.map((message) => {
-        const plain = message.toObject();
+        const plain = message.toObject({ flattenMaps: true });
+        if (plain.type === 'deleted') {
+            return {
+                _id: plain._id,
+                type: 'deleted',
+                sender: plain.sender,
+                createdAt: plain.createdAt,
+                deleted: true,
+                deletedByAdmin: plain.deletedByAdmin,
+            };
+        }
+        plain.reactions = serializeReactions(plain.reactions, userId);
         if (plain.type === 'task') plain.addedByMe = ownedTags.has(plain.task.shareTag);
         if (plain.type === 'schedule') plain.addedByMe = addedTokens.has(`message:${plain._id}`);
         return plain;
@@ -414,12 +452,18 @@ export const removeMember = async (req, res) => {
 
 // GET /:groupId/messages          -> most recent messages, oldest first
 // GET /:groupId/messages?after=id -> only messages newer than `id` (used for polling)
+// Add &since=<ISO time> (the previous response's serverTime) to also get `changes`: reactions
+// and deletes on messages up to `after`, which the polling client already has.
 export const getMessages = async (req, res) => {
     try {
         const group = await loadGroupForMember(req, res);
         if (!group) return;
 
         const { after } = req.query;
+        // Taken before the queries, so a write that commits during them is seen by the next poll.
+        const serverTime = new Date();
+        const since = new Date(req.query.since);
+        const wantsChanges = isId(after) && !Number.isNaN(since.getTime());
         let messages;
         if (after && mongoose.Types.ObjectId.isValid(after)) {
             messages = await groupMessageModel.find({ group: group._id, _id: { $gt: after } })
@@ -454,7 +498,24 @@ export const getMessages = async (req, res) => {
             }
         }
 
-        res.json({ success: true, messages: await serializeMessages(messages, req.userId), readNotifications });
+        const body = {
+            success: true,
+            messages: await serializeMessages(messages, req.userId),
+            readNotifications,
+            serverTime: serverTime.toISOString(),
+        };
+        if (wantsChanges) {
+            const changed = await groupMessageModel.find({
+                group: group._id,
+                _id: { $lte: after },
+                updatedAt: { $gte: new Date(since.getTime() - CHANGES_OVERLAP_MS) },
+            })
+                .sort({ updatedAt: -1 })
+                .limit(MAX_CHANGES)
+                .select('type reactions deletedByAdmin');
+            body.changes = changed.map((message) => serializeChange(message, req.userId));
+        }
+        res.json(body);
     } catch (error) {
         console.error('Get messages error:', error);
         res.status(500).json({ success: false, message: 'Could not load messages.' });
@@ -552,5 +613,87 @@ export const sendMessage = async (req, res) => {
     } catch (error) {
         console.error('Send message error:', error);
         res.status(500).json({ success: false, message: 'Could not send message.' });
+    }
+};
+
+// PUT /:groupId/messages/:messageId/reactions  body: { emoji, on }
+// Sets whether the caller has this reaction. Not a toggle, so a retried request can't undo itself.
+export const setReaction = async (req, res) => {
+    try {
+        const group = await loadGroupForMember(req, res);
+        if (!group) return;
+        if (!hit(`reaction:${req.userId}`, REACTION_RATE).ok) {
+            return res.status(429).json({ success: false, message: 'Slow down a little.' });
+        }
+
+        const { messageId } = req.params;
+        const { emoji, on } = req.body;
+        if (!isId(messageId)) return res.status(404).json({ success: false, message: 'Message not found' });
+        if (!isSingleEmoji(emoji) || typeof on !== 'boolean') {
+            return res.status(400).json({ success: false, message: 'Pick a single emoji.' });
+        }
+
+        const target = { _id: messageId, group: group._id, deletedAt: null };
+        if (!(await groupMessageModel.exists(target))) {
+            return res.status(404).json({ success: false, message: 'Message not found' });
+        }
+
+        const path = `reactions.${emoji}`;
+        if (on) {
+            // A new kind of emoji only goes in while the message has room for it.
+            const added = await groupMessageModel.updateOne(
+                {
+                    ...target,
+                    $or: [
+                        { [path]: { $exists: true } },
+                        { $expr: { $lt: [{ $size: { $objectToArray: '$reactions' } }, MAX_REACTION_KINDS] } },
+                    ],
+                },
+                { $addToSet: { [path]: req.userId } }
+            );
+            if (!added.matchedCount) {
+                return res.status(400).json({ success: false, message: `A message can have up to ${MAX_REACTION_KINDS} different reactions.` });
+            }
+        } else {
+            await groupMessageModel.updateOne(target, { $pull: { [path]: req.userId } });
+            await groupMessageModel.updateOne({ ...target, [path]: { $size: 0 } }, { $unset: { [path]: '' } });
+        }
+
+        const message = await groupMessageModel.findById(messageId).select('reactions');
+        res.json({ success: true, reactions: serializeReactions(message.toObject({ flattenMaps: true }).reactions, req.userId) });
+    } catch (error) {
+        serverError(res, 'setReaction error', error);
+    }
+};
+
+// DELETE /:groupId/messages/:messageId  The sender, or a group admin. Leaves a tombstone.
+export const deleteMessage = async (req, res) => {
+    try {
+        const group = await loadGroupForMember(req, res);
+        if (!group) return;
+
+        const { messageId } = req.params;
+        const message = isId(messageId) ? await groupMessageModel.findOne({ _id: messageId, group: group._id }) : null;
+        if (!message) return res.status(404).json({ success: false, message: 'Message not found' });
+
+        const isSender = sameId(message.sender, req.userId);
+        if (!isSender && !isAdmin(group, req.userId)) {
+            return res.status(403).json({ success: false, message: 'You can only delete your own messages.' });
+        }
+
+        let tombstone = message;
+        if (!message.deletedAt) {
+            tombstone = await groupMessageModel.findOneAndUpdate(
+                { _id: message._id, deletedAt: null },
+                {
+                    $set: { type: 'deleted', text: '', reactions: {}, deletedAt: new Date(), deletedByAdmin: !isSender },
+                    $unset: { task: '', schedule: '' },
+                },
+                { returnDocument: 'after' }
+            ) || await groupMessageModel.findById(message._id); // deleted a moment ago by someone else
+        }
+        res.json({ success: true, message: (await serializeMessages([tombstone], req.userId))[0] });
+    } catch (error) {
+        serverError(res, 'deleteMessage error', error);
     }
 };
