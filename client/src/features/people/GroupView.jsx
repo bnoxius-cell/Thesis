@@ -11,7 +11,7 @@ import useGroupChat from "./useGroupChat";
 import "./people-group.css";
 
 // A long group name would wrap the placeholder and grow the box.
-const shortName = (name) => (name.length > 24 ? `${name.slice(0, 23)}…` : name);
+const shortName = (name) => (name.length > 16 ? `${name.slice(0, 15)}…` : name);
 
 // One open group: its head, then the chat or the Upcoming tab. The chat keeps polling behind
 // Upcoming, so coming back to Chat finds it up to date. Mount it with the group id as its `key`.
