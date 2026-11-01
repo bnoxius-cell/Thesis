@@ -37,7 +37,7 @@ const notificationSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    // In-app route to open when the notification is clicked, e.g. /groups?g=<id>
+    // In-app route to open when the notification is clicked, e.g. /people/groups/<id>
     link: {
         type: String,
         default: ''
