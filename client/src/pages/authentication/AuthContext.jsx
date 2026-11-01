@@ -117,9 +117,8 @@ export const AppContextProvider = (props) => {
     }
   };
 
-  // Logout. `silent` skips the toast, for dropping an unverified session behind the scenes.
-  // (Header passes the click event as the argument; it has no `silent`, so that still toasts.)
-  const logout = async ({ silent = false } = {}) => {
+  // Logout. Landing on the sign-in page is the confirmation, so there is no success toast.
+  const logout = async () => {
     try {
       // Needs the session cookie, so it has to happen before the logout request.
       await detachPush(backendUrl);
@@ -127,7 +126,6 @@ export const AppContextProvider = (props) => {
       if (data.success) {
         setIsLoggedin(false);
         setUserData(null);
-        if (!silent) toast.success("Logged out successfully");
       } else {
         toast.error(data.message);
       }
