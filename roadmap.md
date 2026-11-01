@@ -8,15 +8,15 @@ Plans: `.claude/docs/revamp/15-parity-first-plan.md` (parity, account and trust,
 Status: planned. Plan: `.claude/docs/revamp/18-free-file-storage-plan.md` (Revision 2 block at the top; replaces the FS0 spec in plan 16). Decision: stay on Render free + Cloudflare R2 free, no paying, no Hetzner for now (Hetzner VPS in Singapore is the upgrade path if Render's limits bite). Uploads go through our server; downloads use 60 s presigned R2 links; every R2 call is reserved against caps in Mongo. Letters stay as they are so references like "needs E" still work.
 Owner steps (no Claude usage):
 - [x] Cloudflare account with R2 added (free tier, no charge unless over limits)
-- [ ] Private R2 bucket `stresscare-files` (public access off; Claude can do it in Chrome)
+- [x] Private R2 bucket `stresscare-files` (created 2026-11-01, Standard, public access disabled)
 - [ ] R2 API token: Object Read and Write, that one bucket only; second read-only Account Analytics token for the reconciliation job; expiry 2027-06-30; $1 budget alert; 2FA (click path in plan 18 section 5)
 - [ ] Set the R2 env vars, `FILES_ENABLED`, caps and `FILES_RESUME_KEY` on production Render srv-dbeai2jrjlhs73f25dqg (never the owner's Gmail-account service)
 - [ ] Suspend `stresscare-api-staging` and stop pinging it (production pinged 24/7 uses 744 of the 750 free instance hours; past 750 Render suspends everything)
 - [ ] Answer plan 18 questions O1 to O11 (defaults apply until answered), and check the Render Billing page weekly
 Build order (efficiency order agreed 2026-11-01; one builder at a time, `/clear` after each batch, builders run only build and `npm test`):
 - [ ] Figma frames for the first storage surface (default: files per subject, TW-8b; chat attachments CH4 later): upload and attach, file row and card, "uploads paused" state, owner usage page; phone and desktop, light only; owner approves before any UI builder
-- [ ] BW1 `fix/api-bandwidth` (builder-sonnet medium): small unread-count endpoint, gzip, slower chat polling, group lists every 60 s (do first; can run beside the Figma work)
-- [ ] FS0a content checks (builder-sonnet high), FS0b config, kill switch, signing (builder-sonnet high), FS0c call counter and cleanup (builder-opus high), FS0d upload and download helpers plus usage page (builder-sonnet high), FS0e Cloudflare reconciliation job (builder-opus medium); all on `feature/file-store-foundation` after tag `pre-chat-files`
+- [x] BW1 `fix/api-bandwidth`: tester passed, merged into `main` and pushed 2026-11-01 (not released to `production` yet; tag `pre-chat-files` is on that merge)
+- [ ] FS0 on `feature/file-store-foundation` (tag `pre-chat-files` done). Done and tester-passed: FS0a 7deeba8 (+fixes 03e84f7), FS0b c370aea, FS0c 7acf4ab. FS0d f23d372 built (tester was still running at close: re-run the tester on f23d372 before FS0e). Next: FS0e Cloudflare reconciliation job (builder-opus medium), needs the Cloudflare analytics token design from plan 18 section 3.14. Final-review notes: guard test would not catch a bulk delete via another verb; HTML named .txt accepted (safe as attachment); docx with embedded OLE not scanned; `removeRow` logs object key (not a link)
 - [ ] Storage UI from the approved frames (builder-sonnet), tester at 375 and 1280
 - [ ] One code-reviewer and security-review pass on the whole branch, then merge and release
 - [ ] Then CH4 chat uploads, TW-9 source picker

@@ -5,7 +5,8 @@ Main session only: read this first after a `/clear` (state), then `roadmap.md` (
 Last updated: 2026-11-01. Open work: see `roadmap.md`.
 
 ## Branches and releases
-- `main` = bb80e13 (Pe2). Backup tags: `pre-site-v3` (1ad2c0d, the old pages; restore a file with `git checkout 1ad2c0d -- <path>`), `pre-parity`. `production` = bb80e13.
+- `feature/file-store-foundation` (storage FS0a to FS0d, 830 server tests, NOT merged, nothing in it is live; files stay off until R2 env vars are set): see roadmap E. `fix/api-bandwidth` (BW1) is merged into `main` and pushed; `main` = merge 2f0d59e. `production` is still bb80e13 (release BW1 only after a tester pass on the live path).
+- Old note: `main` was bb80e13 (Pe2). Backup tags: `pre-site-v3` (1ad2c0d, the old pages; restore a file with `git checkout 1ad2c0d -- <path>`), `pre-parity`. `production` = bb80e13.
 - `fix/tasks-empty-main` (off `main`, not merged): 26c5063 Tasks view fills the page when nothing is due this week (`TasksView.jsx`, `tasks-view.css`), 1287134 removed the logout success toast (owner: toasts feel AI-made). Build-checked only.
 - `feature/people-friends` (Pe3: 4a4fab5 Friends, 3f7819e Student profile): built, 557 server tests and client build pass, not browser-tested, not merged. Its handout copy was the fuller one and is folded in here.
 - Live site: `main` no longer deploys. Vercel project `stresscare` (prj_1IziDjCwE1rDiKqA5PbtCsHPXIRz, team slug art-8707) and Render `stresscare-api` (second account, srv-dbeai2jrjlhs73f25dqg) both deploy the `production` branch. Release = `git branch -f production main && git push origin production`. The owner added both as allow rules in `.claude/settings.json` (untracked, never commit it); the auto-mode classifier may still block the push as a production deploy, then tell the owner. Promote only after a tester pass.
