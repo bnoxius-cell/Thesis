@@ -11,7 +11,8 @@ import useGroupChat from "./useGroupChat";
 
 // One open group: its head, then the chat or the Upcoming tab. The chat keeps polling behind
 // Upcoming, so coming back to Chat finds it up to date. Mount it with the group id as its `key`.
-export default function GroupView({ group, tab }) {
+// `desktop` picks the wide layout (the name is an h2 under the page's h1) or the phone screen.
+export default function GroupView({ group, tab, desktop }) {
   const { userData } = useAuth();
   const { markGroupRead } = useUnread();
   const me = useMemo(
@@ -20,11 +21,11 @@ export default function GroupView({ group, tab }) {
   );
   const chat = useGroupChat(group._id, { me, onRead: markGroupRead });
 
-  if (chat.status === "gone") return <GroupNotFound />;
+  if (chat.status === "gone") return <GroupNotFound asPage={!desktop} />;
 
   return (
     <section className="people-group" aria-label={group.name}>
-      <GroupHeader group={group} tab={tab} />
+      <GroupHeader group={group} tab={tab} desktop={desktop} />
       <div
         className="people-group__panel"
         role="tabpanel"
@@ -38,7 +39,11 @@ export default function GroupView({ group, tab }) {
         ) : (
           <>
             <MessageList items={chat.items} myId={userData?._id} status={chat.status} error={chat.error} onRetry={chat.retry} />
-            <Composer placeholder={`Message ${group.name}`} onSend={chat.send} />
+            <Composer
+              label={`Message ${group.name}`}
+              placeholder={desktop ? `Message ${group.name}` : "Message"}
+              onSend={chat.send}
+            />
           </>
         )}
       </div>

@@ -1,5 +1,7 @@
-/* People > Groups (Figma 64:2 desktop). The list is a 320px card beside the open group's card, both
-   filling the height left under the tabs. The chat itself is in chat/chat.css. */
+/* People > Groups (Figma 64:2 desktop, 67:818 and 67:939 phone). On a wide screen (1024px up) the
+   list is a 320px card beside the open group's card, both filling the height left under the tabs.
+   Below that the list is a screen of its own, and an open group is another (.people-chatscreen),
+   with the phone rules next to the desktop ones. The chat itself is in chat/chat.css. */
 @layer pages {
   .people-body {
     display: flex;
@@ -9,11 +11,23 @@
   .people-tabs {
     align-self: flex-start;
   }
+  @media (max-width: 1023px) {
+    .people-tabs {
+      align-self: stretch;
+    }
+  }
+  /* Tablets keep the phone list, but a comfortable width rather than edge to edge. */
+  @media (min-width: 721px) and (max-width: 1023px) {
+    .people-body {
+      max-width: 640px;
+    }
+  }
 
   /* ---- The two panes ---- */
   .people-panes {
     display: grid;
     grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     gap: var(--space-5);
     /* The page header, tabs and gaps above, and the page's bottom padding below. */
     height: max(480px, calc(100dvh - 192px));
@@ -200,6 +214,49 @@
     color: var(--text-secondary);
   }
 
+  /* Phone list (67:818): the search box stands alone above one card, rows split by hairlines. */
+  @media (max-width: 1023px) {
+    .people-list {
+      gap: var(--space-4);
+      padding: 0;
+      overflow: visible;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+    }
+    .people-search {
+      height: 44px;
+      border-color: var(--border-input);
+      background: var(--surface);
+      font-size: var(--text-md);
+      line-height: 24px;
+    }
+    .people-search:focus {
+      border-color: var(--accent);
+    }
+    .people-rows {
+      gap: 0;
+      padding: var(--space-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      background: var(--surface);
+    }
+    .people-rows > li + li {
+      border-top: 1px solid var(--border);
+    }
+    .people-row {
+      min-height: 72px;
+      padding: var(--space-3) var(--space-2);
+      border-radius: var(--radius-md);
+    }
+    .people-row__avatar {
+      --people-avatar: 48px;
+    }
+    .people-list__none {
+      padding-inline: var(--space-1);
+    }
+  }
+
   /* ---- The open group ---- */
   .people-group {
     display: flex;
@@ -253,5 +310,57 @@
   .people-head__tabs {
     flex: none;
     margin-left: auto;
+  }
+
+  /* Phone chat screen (67:939): the whole height, the head is a top bar (back, icon, name) with the
+     tabs on a row of their own, and the composer sits above the home bar. */
+  .people-chatscreen {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    background: var(--bg-app);
+  }
+  .people-chatscreen > .ui-empty {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .people-chatscreen__loading {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: calc(var(--space-4) + env(safe-area-inset-top)) var(--space-4);
+  }
+  .people-chatscreen__skeleton {
+    border-radius: var(--radius-lg);
+  }
+  @media (max-width: 1023px) {
+    .people-chatscreen > .people-group {
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+    }
+    .people-head {
+      flex-wrap: wrap;
+      padding: calc(var(--space-4) + env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right))
+        var(--space-3) max(var(--space-4), env(safe-area-inset-left));
+      border-bottom: 0;
+    }
+    .people-head__avatar {
+      --people-avatar: 40px;
+      --people-avatar-font: var(--text-sm);
+    }
+    .people-head__id {
+      flex: 1 1 0;
+    }
+    .people-head__name {
+      font-size: var(--text-sm);
+      line-height: 20px;
+    }
+    .people-head__tabs {
+      order: 3;
+      flex: 1 1 100%;
+      margin-left: 0;
+    }
   }
 }

@@ -5,7 +5,7 @@ const MAX_LENGTH = 1000; // what the server accepts
 
 // The message box and send button. Enter sends, Shift+Enter starts a new line, and the box grows
 // with the text. The text clears at once; if the send fails it goes back into the box.
-export default function Composer({ placeholder, onSend }) {
+export default function Composer({ label, placeholder, onSend }) {
   const [draft, setDraft] = useState("");
   const box = useRef(null);
 
@@ -45,7 +45,7 @@ export default function Composer({ placeholder, onSend }) {
         maxLength={MAX_LENGTH}
         value={draft}
         placeholder={placeholder}
-        aria-label={placeholder}
+        aria-label={label}
         enterKeyHint="send"
         onChange={(event) => setDraft(event.target.value)}
         onKeyDown={onKeyDown}

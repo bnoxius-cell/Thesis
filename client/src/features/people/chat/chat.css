@@ -109,6 +109,15 @@
     background: transparent;
     color: var(--text-muted);
   }
+  @media (max-width: 1023px) {
+    .people-messages {
+      padding: var(--space-1) max(var(--space-4), env(safe-area-inset-right)) var(--space-4)
+        max(var(--space-4), env(safe-area-inset-left));
+    }
+    .people-run__col {
+      max-width: 78%;
+    }
+  }
 
   /* ---- Composer ---- */
   .people-composer {
@@ -179,6 +188,13 @@
   @media (hover: hover) and (pointer: fine) {
     .people-composer__send:hover:not(:disabled) {
       background: var(--accent-hover);
+    }
+  }
+  /* Phone (67:939): a hairline above, the foot of the screen clear of the home bar. */
+  @media (max-width: 1023px) {
+    .people-composer {
+      padding: var(--space-3) max(var(--space-4), env(safe-area-inset-right))
+        max(var(--space-4), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
     }
   }
 }
