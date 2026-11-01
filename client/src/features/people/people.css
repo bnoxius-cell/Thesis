@@ -1,0 +1,257 @@
+/* People > Groups (Figma 64:2 desktop). The list is a 320px card beside the open group's card, both
+   filling the height left under the tabs. The chat itself is in chat/chat.css. */
+@layer pages {
+  .people-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+  .people-tabs {
+    align-self: flex-start;
+  }
+
+  /* ---- The two panes ---- */
+  .people-panes {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: var(--space-5);
+    /* The page header, tabs and gaps above, and the page's bottom padding below. */
+    height: max(480px, calc(100dvh - 192px));
+  }
+  .people-panes__main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+  .people-panes__skeleton {
+    flex: 1 1 auto;
+    border-radius: var(--radius-xl);
+  }
+  /* "Pick a group" and "Group not found" sit in a card of their own, like the open group. */
+  .people-panes__main > .ui-empty {
+    flex: 1 1 auto;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+
+  /* ---- Avatar (a group icon, or a person) ---- */
+  .people-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    box-sizing: border-box;
+    width: var(--people-avatar, 44px);
+    height: var(--people-avatar, 44px);
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font: 600 var(--people-avatar-font, var(--text-lg)) / 1 var(--font-ui);
+    object-fit: cover;
+    user-select: none;
+  }
+
+  /* ---- Group list ---- */
+  .people-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    min-height: 0;
+    padding: var(--space-4) var(--space-3);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+  .people-list__loading {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .people-list__skeleton {
+    border-radius: var(--radius-lg);
+  }
+  .people-list__failed,
+  .people-messages__failed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-2);
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .people-list__failed p,
+  .people-messages__failed p {
+    margin: 0;
+  }
+  .people-list__none {
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+
+  .people-list__search {
+    position: relative;
+    flex: none;
+  }
+  .people-list__icon {
+    position: absolute;
+    top: 50%;
+    left: var(--space-4);
+    translate: 0 -50%;
+    color: var(--text-secondary);
+    pointer-events: none;
+  }
+  .people-search {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: 40px;
+    margin: 0;
+    padding: 0 var(--space-4) 0 44px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    background: var(--surface-2);
+    box-shadow: none;
+    color: var(--text-primary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    appearance: none;
+    transition: border-color var(--dur-2) var(--ease-out);
+  }
+  .people-search::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+  .people-search:focus {
+    border-color: var(--accent);
+    box-shadow: none;
+    outline: none;
+  }
+
+  .people-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .people-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    min-height: 68px;
+    padding: var(--space-3);
+    border-radius: var(--radius-lg);
+    color: inherit;
+    text-decoration: none;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  .people-row:active {
+    transform: scale(0.98);
+  }
+  .people-row[aria-current="page"] {
+    background: var(--accent-soft);
+  }
+  .people-row[aria-current="page"] .people-avatar {
+    background: var(--surface);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .people-row:not([aria-current]):hover {
+      background: var(--surface-2);
+    }
+  }
+  .people-row__text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .people-row__name,
+  .people-row__meta {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .people-row__name {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .people-row__line {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .people-row__meta {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--text-secondary);
+  }
+
+  /* ---- The open group ---- */
+  .people-group {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    box-sizing: border-box;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+  .people-group__panel {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .people-group__panel > .ui-empty {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .people-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex: none;
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--border);
+  }
+  .people-head__id {
+    display: flex;
+    flex: 0 1 auto;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .people-head__name {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-primary);
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+  }
+  .people-head__meta {
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .people-head__tabs {
+    flex: none;
+    margin-left: auto;
+  }
+}
