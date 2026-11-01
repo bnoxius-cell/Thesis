@@ -8,11 +8,12 @@ const POLL_MS = 20000;
 // that have one tells how many chats have news.
 const GROUP_TYPES = ["group_message", "group_task", "group_schedule"];
 
-const NONE = { total: 0, friendRequests: 0, groupIds: [] };
+const NONE = { total: 0, friendRequests: 0, groupEntries: [] };
 
 // Polls the inbox for the whole signed-in area and shares the numbers the badges need:
 //   total          unread notifications (the bell)
 //   groupsUnread   groups with something new (People > Groups)
+//   groupUnread    { [groupId]: unread messages } for the badge on each group row
 //   friendRequests incoming friend requests still waiting (People > Friends)
 //   markGroupRead  clears one group's count at once, once its chat has been opened (the server
 //                  has already marked them read; this only saves waiting for the next poll)
@@ -27,9 +28,9 @@ export default function UnreadProvider({ children }) {
     setCounts({
       total: data.unreadCount ?? 0,
       friendRequests: data.pendingFriendRequests ?? 0,
-      groupIds: (data.notifications ?? [])
+      groupEntries: (data.notifications ?? [])
         .filter((n) => !n.isRead && n.group && GROUP_TYPES.includes(n.type))
-        .map((n) => String(n.group)),
+        .map((n) => ({ id: String(n.group), count: n.count ?? 1 })),
     });
   }, []);
 
@@ -38,25 +39,29 @@ export default function UnreadProvider({ children }) {
   const markGroupRead = useCallback((groupId) => {
     setCounts((prev) => {
       const id = String(groupId);
-      const cleared = prev.groupIds.filter((g) => g === id).length;
+      const cleared = prev.groupEntries.filter((e) => e.id === id).length;
       if (!cleared) return prev;
       return {
         ...prev,
         total: Math.max(0, prev.total - cleared),
-        groupIds: prev.groupIds.filter((g) => g !== id),
+        groupEntries: prev.groupEntries.filter((e) => e.id !== id),
       };
     });
   }, []);
 
-  const value = useMemo(
-    () => ({
+  const value = useMemo(() => {
+    const groupUnread = {};
+    counts.groupEntries.forEach(({ id, count }) => {
+      groupUnread[id] = (groupUnread[id] ?? 0) + count;
+    });
+    return {
       total: counts.total,
-      groupsUnread: new Set(counts.groupIds).size,
+      groupsUnread: Object.keys(groupUnread).length,
+      groupUnread,
       friendRequests: counts.friendRequests,
       markGroupRead,
-    }),
-    [counts, markGroupRead],
-  );
+    };
+  }, [counts, markGroupRead]);
 
   return <UnreadContext.Provider value={value}>{children}</UnreadContext.Provider>;
 }

@@ -1,0 +1,70 @@
+/* People > Groups (Figma 64:2 desktop, 67:818 and 67:939 phone). On a wide screen (1024px up) the
+   list is a 320px card beside the open group's card, both filling the height left under the tabs.
+   Below that the list is a screen of its own, and an open group is another (.people-chatscreen),
+   with the phone rules next to the desktop ones. The chat itself is in chat/chat.css. */
+@layer pages {
+  .people-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+  .people-tabs {
+    align-self: flex-start;
+  }
+  @media (max-width: 1023px) {
+    .people-tabs {
+      align-self: stretch;
+    }
+  }
+  /* Tablets keep the phone list, but a comfortable width rather than edge to edge. */
+  @media (min-width: 721px) and (max-width: 1023px) {
+    .people-body {
+      max-width: 640px;
+    }
+  }
+
+  /* ---- The two panes ---- */
+  .people-panes {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: var(--space-5);
+    /* The page header, tabs and gaps above, and the page's bottom padding below. */
+    height: max(480px, calc(100dvh - 192px));
+  }
+  .people-panes__main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+  .people-panes__skeleton {
+    flex: 1 1 auto;
+    border-radius: var(--radius-xl);
+  }
+  /* "Pick a group" and "Group not found" sit in a card of their own, like the open group. */
+  .people-panes__main > .ui-empty {
+    flex: 1 1 auto;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+
+  /* ---- Avatar (a group icon, or a person) ---- */
+  .people-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    box-sizing: border-box;
+    width: var(--people-avatar, 44px);
+    height: var(--people-avatar, 44px);
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font: 600 var(--people-avatar-font, var(--text-lg)) / 1 var(--font-ui);
+    object-fit: cover;
+    user-select: none;
+  }
+}
