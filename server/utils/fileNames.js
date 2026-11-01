@@ -19,7 +19,7 @@ export const extensionOf = (name) => /\.([A-Za-z0-9]+)$/.exec(asText(name))?.[1]
 // Keeps the student's base name and forces the detected type's extension on, so "notes.pdf.exe" can't exist.
 export const cleanFileName = (name, ext) => {
     const lastSegment = asText(name).split(/[\\/]/).pop();
-    let base = stripUnsafe(lastSegment).trim().replace(TRAILING_EXTENSION, '');
+    let base = stripUnsafe(lastSegment).trim().replace(/[\s.]+$/, '').replace(TRAILING_EXTENSION, '');
     if (base.toLowerCase().endsWith(`.${ext}`)) base = base.slice(0, -(ext.length + 1));
     base = Array.from(base.replace(EDGE_DOTS_AND_SPACES, '')).slice(0, MAX_BASE_LENGTH).join('');
     return `${base.replace(EDGE_DOTS_AND_SPACES, '') || FALLBACK_BASE}.${ext}`;
