@@ -2,7 +2,7 @@ import express from 'express';
 import userAuth from '../middleware/userAuth.js';
 import {
     createGroup, getGroups, joinGroup, leaveGroup, deleteGroup, getMessages, sendMessage,
-    updateGroup, addAdmin, removeAdmin, removeMember, getUpcoming,
+    updateGroup, addAdmin, removeAdmin, removeMember, getUpcoming, setReaction, deleteMessage,
 } from '../controllers/groupController.js';
 
 const groupRouter = express.Router();
@@ -13,6 +13,8 @@ groupRouter.post('/join', userAuth, joinGroup);
 groupRouter.post('/leave', userAuth, leaveGroup);
 groupRouter.get('/:groupId/messages', userAuth, getMessages);
 groupRouter.post('/:groupId/messages', userAuth, sendMessage);
+groupRouter.put('/:groupId/messages/:messageId/reactions', userAuth, setReaction);
+groupRouter.delete('/:groupId/messages/:messageId', userAuth, deleteMessage);
 groupRouter.get('/:groupId/upcoming', userAuth, getUpcoming);
 groupRouter.post('/:groupId/admins', userAuth, addAdmin);
 groupRouter.delete('/:groupId/admins/:userId', userAuth, removeAdmin);

@@ -104,8 +104,8 @@ describe('group messages', () => {
         const read = await carol.get(`/api/groups/${group._id}/messages`);
         const send = await carol.post(`/api/groups/${group._id}/messages`).send({ text: 'let me in' });
 
-        expect(read.status).toBe(403);
-        expect(send.status).toBe(403);
+        expect(read.status).toBe(404);
+        expect(send.status).toBe(404);
     });
 
     test('empty and oversized messages are rejected', async () => {

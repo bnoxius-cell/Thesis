@@ -37,6 +37,7 @@ export const USER_DATA = [
     { model: friendModel, field: 'friend', how: 'pending' },
     { model: taskShareModel, field: 'createdBy', how: 'pending' },
     { model: groupMessageModel, field: 'sender', how: 'pending' },
+    { model: groupMessageModel, field: 'reactions.$*', how: 'pending' },
     { model: groupModel, field: 'admin', how: 'pending' },
     { model: groupModel, field: 'admins', how: 'pending' },
     { model: groupModel, field: 'members', how: 'pending' },
