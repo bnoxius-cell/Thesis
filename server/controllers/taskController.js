@@ -2,7 +2,6 @@ import taskModel from '../models/taskModel.js';
 import taskShareModel from '../models/taskShareModel.js';
 import mongoose from 'mongoose';
 import { isId, serverError } from '../utils/httpErrors.js';
-import { resolveItemSubject, applyItemSubject } from '../utils/subjectMatch.js';
 
 const generateShareTag = () => String(Math.floor(100000 + Math.random() * 900000));
 
@@ -175,10 +174,6 @@ export const createTask = async (req, res) => {
             return res.status(400).json({ success: false, message: error });
         }
 
-        const link = await resolveItemSubject(req.userId, { subject: req.body.subject, course: payload.course });
-        if (link.error) return res.status(400).json({ success: false, message: link.error });
-        applyItemSubject(payload, link.subject);
-
         let shareTag = null;
 
         if (req.body.shareTag) {
@@ -273,10 +268,6 @@ export const updateTask = async (req, res) => {
         const task = await taskModel.findOne({ _id: req.params.taskId, owner: req.userId });
         if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
-        const link = await resolveItemSubject(req.userId, { subject: req.body.subject, course: updateFields.course });
-        if (link.error) return res.status(400).json({ success: false, message: link.error });
-        applyItemSubject(updateFields, link.subject);
-
         const wasCompleted = task.isCompleted;
         Object.assign(task, updateFields);
         if (updateFields.isCompleted !== undefined && updateFields.isCompleted !== wasCompleted) {
@@ -323,11 +314,8 @@ export const importTaskByTag = async (req, res) => {
             return res.status(409).json({ success: false, message: 'You already have this task.' });
         }
 
-        const payload = getSharePayloadFromTask(template);
-        const link = await resolveItemSubject(req.userId, { course: payload.course });
         const importedTask = new taskModel({
-            ...payload,
-            subject: link.subject?._id ?? null,
+            ...getSharePayloadFromTask(template),
             owner: req.userId,
             shareTag: template.shareTag,
         });

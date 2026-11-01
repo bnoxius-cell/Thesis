@@ -12,7 +12,6 @@ import {
     QUESTION_COUNTS, DEFAULT_QUESTION_COUNT, MIN_QUESTIONS,
     TARGETED_COUNTS, DEFAULT_TARGETED_COUNT, MAX_TARGET_TOPICS, MAX_REVIEWER_QUESTIONS,
 } from '../utils/reviewerContent.js';
-import { resolveItemSubject, applyItemSubject, subjectLabel } from '../utils/subjectMatch.js';
 import { computeProgress, summarizeAttempt, topicStatsFor, scorePercent } from '../utils/reviewerProgress.js';
 
 // Everyone shares one Gemini key, so each student gets a few generations a day.
@@ -55,7 +54,6 @@ const listItem = (r) => ({
     _id: r._id,
     title: r.title,
     course: r.course,
-    subject: r.subject ?? null,
     status: r.status,
     error: r.error,
     source: r.source,
@@ -270,10 +268,6 @@ export const createReviewer = async (req, res) => {
             return res.status(400).json({ success: false, message: `Pick ${QUESTION_COUNTS.join(', ')} questions.` });
         }
 
-        const course = cleanLine(req.body.course, COURSE_MAX);
-        const link = await resolveItemSubject(req.userId, { subject: req.body.subject, course });
-        if (link.error) return res.status(400).json({ success: false, message: link.error });
-
         if (await requestsToday(req.userId) >= DAILY_GENERATION_LIMIT) {
             return res.status(429).json({ success: false, message: limitMessage() });
         }
@@ -313,8 +307,7 @@ export const createReviewer = async (req, res) => {
             owner: req.userId,
             title: typedTitle || titleFromFileName(fileName),
             autoTitle: !typedTitle,
-            course: link.subject ? subjectLabel(link.subject) : course,
-            subject: link.subject?._id ?? null,
+            course: cleanLine(req.body.course, COURSE_MAX),
             source: { fileName, pages: extracted.pages, chars: extracted.chars, truncated: extracted.truncated },
             sourceText: extracted.text,
             questionTarget,
@@ -413,11 +406,7 @@ export const updateReviewer = async (req, res) => {
             reviewer.title = title;
             reviewer.autoTitle = false;
         }
-        const course = req.body.course === undefined ? undefined : cleanLine(req.body.course, COURSE_MAX);
-        const link = await resolveItemSubject(req.userId, { subject: req.body.subject, course });
-        if (link.error) return res.status(400).json({ success: false, message: link.error });
-        if (course !== undefined) reviewer.course = course;
-        applyItemSubject(reviewer, link.subject);
+        if (req.body.course !== undefined) reviewer.course = cleanLine(req.body.course, COURSE_MAX);
         await reviewer.save();
         res.json({ success: true, reviewer: listItem(reviewer) });
     } catch (error) {
