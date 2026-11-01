@@ -8,6 +8,7 @@ import notificationModel from '../models/notificationModel.js';
 import { fetchPublicHolidays } from '../utils/holidays.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
+import { timetableLink } from '../utils/appLinks.js';
 
 vi.mock('../utils/emailService.js', () => ({
     sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
@@ -223,7 +224,7 @@ describe('sharing a schedule with a friend', () => {
 
         const note = await notificationModel.findOne({ type: 'schedule_share' });
         // Like a view-only Google Doc, the link opens the schedule itself.
-        expect(note.link).toBe(`/schedule?s=${shared._id}`);
+        expect(note.link).toBe(timetableLink(shared._id));
         expect(String(note.sender)).toBe(aliceId);
 
         const bobList = await bob.get('/api/schedules');

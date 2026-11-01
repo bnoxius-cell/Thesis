@@ -10,6 +10,7 @@ import { fetchPublicHolidays } from '../utils/holidays.js';
 import { buildWeekOverview, addDaysIso, findUpcomingExams } from '../utils/weekOverview.js';
 import groupModel from '../models/groupMode.js';
 import groupMessageModel from '../models/groupMessageModel.js';
+import { timetableLink } from '../utils/appLinks.js';
 
 // How far ahead the dashboard looks for exams to plan study time around.
 const EXAM_LOOKAHEAD_DAYS = 30;
@@ -85,7 +86,7 @@ const recordChange = async (schedule, actorId, summary) => {
             type: 'schedule_change',
             title: `"${schedule.title}" was changed`,
             message: `${name} ${summary}`,
-            link: `/schedule?s=${schedule._id}`,
+            link: timetableLink(schedule._id),
             collapseLink: true,
         });
     };
@@ -826,7 +827,7 @@ export const shareWithFriend = async (req, res) => {
 
         const sender = await userModel.findById(req.userId).select('name');
         const senderName = sender?.name || 'A friend';
-        const link = `/schedule?s=${schedule._id}`;
+        const link = timetableLink(schedule._id);
         let announcement = null;
         if (!existing) {
             schedule.collaborators.push({ user: userId, role });
@@ -887,7 +888,7 @@ export const removeCollaborator = async (req, res) => {
             await notify({
                 recipients: [schedule.owner], sender: userId, type: 'schedule_change',
                 title: `"${schedule.title}" was changed`, message: `${person?.name || 'Someone'} left the schedule.`,
-                link: `/schedule?s=${schedule._id}`,
+                link: timetableLink(schedule._id),
             });
         }
         res.json({
@@ -1007,7 +1008,7 @@ export const joinByCode = async (req, res) => {
                 recipients: [schedule.owner], sender: req.userId, type: 'schedule_change',
                 title: `"${schedule.title}" was changed`,
                 message: `${person?.name || 'Someone'} joined with the share code${role === 'editor' ? ' and can edit it' : ''}.`,
-                link: `/schedule?s=${schedule._id}`, collapseLink: true,
+                link: timetableLink(schedule._id), collapseLink: true,
             });
         }
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });

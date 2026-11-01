@@ -9,6 +9,7 @@ import { runTaskReminders } from '../utils/reminders.js';
 import { sendPushToUser } from '../utils/push.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
+import { friendsLink, groupLink } from '../utils/appLinks.js';
 
 vi.mock('../utils/emailService.js', () => ({
     sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
@@ -107,7 +108,7 @@ describe('friends', () => {
         const bobInbox = await inbox(bob);
         expect(bobInbox.notifications[0].type).toBe('friend_request');
         expect(bobInbox.notifications[0].message).toContain('Alice');
-        expect(sendPushToUser).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ url: '/friends' }));
+        expect(sendPushToUser).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ url: friendsLink() }));
 
         const pending = (await bob.agent.get('/api/friends/pending')).body.requests;
         await bob.agent.put(`/api/friends/accept/${pending[0]._id}`);
@@ -161,7 +162,7 @@ describe('group notifications', () => {
             type: 'group_message',
             title: 'Study Squad',
             message: 'Bob: Anyone free tonight?',
-            link: `/groups?g=${group._id}`,
+            link: groupLink(group._id),
         });
         expect((await inbox(bob)).notifications).toHaveLength(0);
         expect(sendPushToUser).toHaveBeenCalledTimes(1);

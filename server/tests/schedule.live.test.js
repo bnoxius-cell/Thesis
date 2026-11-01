@@ -7,6 +7,7 @@ import notificationModel from '../models/notificationModel.js';
 import { fetchPublicHolidays } from '../utils/holidays.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
+import { timetableLink } from '../utils/appLinks.js';
 
 vi.mock('../utils/emailService.js', () => ({
     sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
@@ -124,7 +125,7 @@ describe('telling people what changed', () => {
         const forBob = await notificationModel.find({ recipient: bobId, type: 'schedule_change' });
         expect(forAlice).toHaveLength(1);
         expect(forAlice[0].message).toBe('Bob added "Physics Lab"');
-        expect(forAlice[0].link).toBe(`/schedule?s=${schedule._id}`);
+        expect(forAlice[0].link).toBe(timetableLink(schedule._id));
         expect(forDan).toHaveLength(1);
         expect(forBob).toHaveLength(0);
         await dan.get('/api/notifications'); // inbox still loads with the new type

@@ -8,6 +8,7 @@ import notificationModel from '../models/notificationModel.js';
 import { fetchPublicHolidays } from '../utils/holidays.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
+import { timetableLink } from '../utils/appLinks.js';
 
 vi.mock('../utils/emailService.js', () => ({
     sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
@@ -173,7 +174,7 @@ describe('who can share', () => {
 
         const note = await notificationModel.findOne({ recipient: danId, type: 'schedule_share' });
         expect(note.message).toContain('Bob shared the schedule "BSCS 2A"');
-        expect(note.link).toBe(`/schedule?s=${shared.body.schedule._id}`);
+        expect(note.link).toBe(timetableLink(shared.body.schedule._id));
     });
 
     test('an editor who can share manages roles, the code and removals, but not the owner settings', async () => {

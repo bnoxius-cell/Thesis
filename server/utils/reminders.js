@@ -1,6 +1,7 @@
 import taskModel from '../models/taskModel.js';
 import userModel from '../models/userModel.js';
 import { notify } from './notify.js';
+import { homeLink } from './appLinks.js';
 
 const HOUR = 60 * 60 * 1000;
 const MAX_LEAD_HOURS = 48;
@@ -45,7 +46,7 @@ export const runTaskReminders = async (now = new Date()) => {
             type: 'task_reminder',
             title: 'Task due soon',
             message: `"${task.title}"${task.course ? ` (${task.course})` : ''} is due in less than ${leadLabel(lead)}.`,
-            link: '/dashboard',
+            link: homeLink(),
             dedupeKey: `task:${task._id}:${task.dueDate.getTime()}`,
         });
         sent += created.length;

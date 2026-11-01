@@ -13,6 +13,7 @@ import { isId, serverError } from '../utils/httpErrors.js';
 import { isValidPicture } from '../utils/images.js';
 import { isSingleEmoji } from '../utils/emoji.js';
 import { hit } from '../utils/rateLimit.js';
+import { groupLink, peopleLink } from '../utils/appLinks.js';
 
 const MAX_MESSAGE_LENGTH = 1000;
 const INITIAL_MESSAGE_LIMIT = 50;
@@ -210,7 +211,7 @@ export const joinGroup = async (req, res) => {
             type: 'group_member',
             title: group.name,
             message: `${joiner?.name || 'Someone'} joined the group.`,
-            link: `/groups?g=${group._id}`,
+            link: groupLink(group._id),
             group: group._id,
         });
         res.json({ success: true, message: 'Joined group successfully', group });
@@ -239,7 +240,7 @@ export const leaveGroup = async (req, res) => {
             type: 'group_member',
             title: group.name,
             message: `${leaver?.name || 'Someone'} left the group.`,
-            link: `/groups?g=${group._id}`,
+            link: groupLink(group._id),
             group: group._id,
         });
         res.json({ success: true, message: 'Left group successfully' });
@@ -261,7 +262,7 @@ export const deleteGroup = async (req, res) => {
             type: 'group_member',
             title: group.name,
             message: 'The group was deleted by its admin.',
-            link: '/groups',
+            link: peopleLink(),
             group: group._id,
         });
         res.json({ success: true, message: 'Group deleted successfully' });
@@ -382,7 +383,7 @@ export const addAdmin = async (req, res) => {
                 type: 'group_member',
                 title: group.name,
                 message: `${owner?.name || 'The owner'} made you an admin.`,
-                link: `/groups?g=${group._id}`,
+                link: groupLink(group._id),
                 group: group._id,
             });
         }
@@ -440,7 +441,7 @@ export const removeMember = async (req, res) => {
             type: 'group_member',
             title: group.name,
             message: 'You were removed from the group.',
-            link: '/groups',
+            link: peopleLink(),
             group: group._id,
         });
         res.json({ success: true, group: await populateGroup(groupModel.findById(group._id)) });
@@ -603,7 +604,7 @@ export const sendMessage = async (req, res) => {
                 : isTask
                     ? `${senderName} shared a task: ${message.task.title}`
                     : `${senderName}: ${preview}`,
-            link: `/groups?g=${group._id}`,
+            link: groupLink(group._id),
             group: group._id,
             // Chat folds into one unread entry per group. A shared task always stands alone.
             collapse: !isTask && !isSchedule,
