@@ -50,6 +50,7 @@ describe('cleanFileName', () => {
         expect(cleanFileName('...', 'pdf')).toBe('file.pdf');
         expect(cleanFileName('/\\:*', 'pdf')).toBe('file.pdf');
         expect(cleanFileName('.pdf', 'pdf')).toBe('file.pdf');
+        expect(cleanFileName('report.pdf.', 'pdf')).toBe('report.pdf');
         expect(cleanFileName(null, 'pdf')).toBe('file.pdf');
         expect(cleanFileName(42, 'pdf')).toBe('file.pdf');
     });
