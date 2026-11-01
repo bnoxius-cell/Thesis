@@ -1,4 +1,5 @@
 import { Card, Chip } from "@/shared/ui";
+import TaskCheck from "@/features/tasks/TaskCheck";
 import { lower } from "@/features/plan/entryTime";
 import { dueWords } from "@/shared/lib/dueChip";
 import { shortDate } from "@/shared/lib/dates";
@@ -22,10 +23,19 @@ function rowFor({ kind, iso, task, entry }, now) {
   return { title: entry.title, meta, chip: { tone: "neutral", label: "Class" } };
 }
 
+// The first MAX_ROWS items, except that the nearest exam is always kept: it takes the last row when
+// it would fall past the cap. `items` is already sorted by date.
+function capRows(items) {
+  const rows = items.slice(0, MAX_ROWS);
+  const exam = items.find((item) => item.kind === "exam");
+  return exam && !rows.includes(exam) ? [...items.slice(0, MAX_ROWS - 1), exam] : rows;
+}
+
 // "Next up" (Figma 76:1062): the subject's open tasks and the classes and exams still to come this
-// week in one list, soonest first, five rows at most. A row has no icon or tick (the frame has none);
-// tasks are ticked off in Plan and on Home.
-export default function NextUpList({ tasks, upcoming, now }) {
+// week in one list, soonest first, five rows at most (the nearest exam always shows). Task rows lead
+// with the done box, which the frame does not draw (owner decision, 2026-11-01); onToggle is
+// useTaskDone's setDone.
+export default function NextUpList({ tasks, upcoming, now, onToggle }) {
   const items = [
     ...tasks.map((task) => ({ kind: "task", key: task._id, iso: taskDueIso(task.dueDate), task })),
     ...upcoming.map(({ iso, entry }) => ({
@@ -34,21 +44,21 @@ export default function NextUpList({ tasks, upcoming, now }) {
       iso,
       entry,
     })),
-  ]
-    .sort((a, b) => a.iso.localeCompare(b.iso))
-    .slice(0, MAX_ROWS);
+  ].sort((a, b) => a.iso.localeCompare(b.iso));
+  const rows = capRows(items);
 
   return (
     <Card as="section" className="subject-card" aria-labelledby="subject-next-title">
       <h2 id="subject-next-title" className="subject-card__title">Next up</h2>
-      {items.length === 0 ? (
+      {rows.length === 0 ? (
         <p className="subject-card__quiet">Nothing coming up. Enjoy the breathing room.</p>
       ) : (
         <ul className="subject-rows stagger">
-          {items.map((item) => {
+          {rows.map((item) => {
             const row = rowFor(item, now);
             return (
-              <li key={item.key} className="subject-row">
+              <li key={item.key} className={`subject-row${item.kind === "task" ? " subject-row--task" : ""}`}>
+                {item.kind === "task" && <TaskCheck task={item.task} onChange={onToggle} />}
                 <span className="subject-row__text">
                   <strong className="subject-row__title">{row.title}</strong>
                   <span className="subject-row__meta">{row.meta}</span>

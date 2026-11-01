@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { FileQuestion } from "lucide-react";
 import { Button, Chip, EmptyState, Skeleton, Tabs } from "@/shared/ui";
 import Page from "@/app/shell/Page";
+import useTaskDone from "@/features/tasks/useTaskDone";
 import useNow from "@/shared/hooks/useNow";
 import { subjectMeta } from "@/utils/subjectColors";
 import ClassSchedule from "./ClassSchedule";
@@ -38,6 +39,7 @@ export default function SubjectPage() {
   const now = useNow();
   const data = useSubject(subjectId);
   const { subject, status } = data;
+  const setDone = useTaskDone(data.setTasks);
 
   if (status !== "ready") {
     return (
@@ -81,6 +83,7 @@ export default function SubjectPage() {
               tasks={data.tasks}
               upcoming={upcomingEntries(data.entries, subject, now)}
               now={now}
+              onToggle={setDone}
             />
             <PickUpCard reviewers={data.reviewers} now={now} />
           </div>
