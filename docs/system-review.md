@@ -155,7 +155,7 @@ The dashboard "Next exam" pill wraps into narrow columns at 375px (`.today-exam-
 # Work list for Sonnet
 
 ## Rules for every task
-1. At the start of a session, read `CLAUDE.md` and `handout.md`. Before any UI change, read `mobile-rules.md`: every UI change is also done for phones in the same change (320, 375, 768, 1280px, light and dark).
+1. At the start of a session, read `CLAUDE.md` and `handout.md`. Before any UI change, read `docs/mobile-rules.md`: every UI change is also done for phones in the same change (320, 375, 768, 1280px, light and dark).
 2. One branch per batch below, using the branch name given. Follow the git rules in the global CLAUDE.md (no `Co-Authored-By` or `Claude-Session` lines; when moving to the next batch, commit, push and merge the finished one into `main`; never delete branches).
 3. Server changes: add or update tests in `server/tests/`, and `npm test` in `server/` must pass. Client changes: `npx vite build` in `client/` must pass and lint must not get worse.
 4. Never start test servers on port 5000 (the owner's real dev server). Use an in-memory MongoDB on another port, like 5070 (see `handout.md`, Gotchas).
