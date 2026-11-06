@@ -28,6 +28,7 @@ Last updated: 2026-11-06. Open work: see `roadmap.md`.
 - Owner decisions on record: AI-use notice stays in Terms and Privacy only (no strip in the reviewer UI; LEGAL bump comes with A1b); Subject page has a task tick box (ST1); files go on Cloudflare R2, free only (caps and per-student limits now live in plan 18, which replaces the old 100 MB / 10 MB numbers; see Storage below); chat reactions are native emoji; delete = sender or admin; no GIFs. Pe3 accepted differences are in roadmap J.
 
 ## Storage (2026-11-01, top priority)
+- 2026-11-06: FS1 to FS3 merged into `main` (872 server tests). Files stay off until `FILES_ENABLED=true` plus R2 vars and `CF_ANALYTICS_TOKEN` are on production Render. Not yet run against real Cloudflare: do one live check at first switch-on. Under 5 users, no paid tier. Next: owner steps (bucket, tokens, env), TW-8b.
 - Plan: `.claude/docs/revamp/18-free-file-storage-plan.md`. Render free + R2 free, $0 hard rule, our own server enforces the caps (Cloudflare has no spend cap, its alerts only email).
 - Render workspace (second account) checked 2026-11-01: Hobby plan, no card, $0 invoices. Limits: 5 GB outbound, 750 instance hours, shared by `stresscare-api` and `stresscare-api-staging`. Over either one means suspension, not a bill. Usage on Nov 1 was 7 MB and 12.9 h.
 - Owner added R2 to the Cloudflare account. Bucket, tokens and env vars are not done yet.

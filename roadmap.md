@@ -5,7 +5,7 @@ This file is the only place for open work. Tick items here and do not copy them 
 Plans: `.claude/docs/revamp/15-parity-first-plan.md` (parity, account and trust, new features), `16-chat-attachments-reactions-plan.md` (chat extras), `17-navigation-and-feedback-plan.md` (navigation and feedback), `.claude/docs/priority-2-redesign-backlog.md` (older leftovers). Team feedback list: `docs/KNOWN_ISSUES.md` (shared, tick boxes there as fixes merge).
 
 ## E. Storage (TOP PRIORITY, owner 2026-11-01: ship storage asap, free only)
-Status: planned. Plan: `.claude/docs/revamp/18-free-file-storage-plan.md` (Revision 2 block at the top; replaces the FS0 spec in plan 16). Decision: stay on Render free + Cloudflare R2 free, no paying, no Hetzner for now (Hetzner VPS in Singapore is the upgrade path if Render's limits bite). Uploads go through our server; downloads use 60 s presigned R2 links; every R2 call is reserved against caps in Mongo. Letters stay as they are so references like "needs E" still work.
+Status: planned, plan finalized 2026-11-06 (Revision 3, O1 to O11 answered, under 5 users, no paid tier before the thesis). Plan: `.claude/docs/plans/18-free-file-storage-plan.md` (Revision 3 block at the top; replaces the FS0 spec in plan 16). FS1 to FS3 are merged to `main` (off until configured; env flag `FILES_DEV_MEMORY=true` for local dev only). Next: owner steps, then TW-8b. See `next-prompt.md`. Decision: stay on Render free + Cloudflare R2 free, no paying, no Hetzner for now (Hetzner VPS in Singapore is the upgrade path if Render's limits bite). Uploads go through our server; downloads use 60 s presigned R2 links; every R2 call is reserved against caps in Mongo. Letters stay as they are so references like "needs E" still work.
 Owner steps (no Claude usage):
 - [x] Cloudflare account with R2 added (free tier, no charge unless over limits)
 - [ ] Private R2 bucket `stresscare-files` (public access off; Claude can do it in Chrome)
@@ -16,9 +16,9 @@ Owner steps (no Claude usage):
 Build order (efficiency order agreed 2026-11-01; one builder at a time, `/clear` after each batch, builders run only build and `npm test`):
 - [ ] Figma frames for the first storage surface (default: files per subject, TW-8b; chat attachments CH4 later): upload and attach, file row and card, "uploads paused" state, owner usage page; phone and desktop, light only; owner approves before any UI builder
 - [x] BW1 `fix/api-bandwidth` (merged to main, live) (builder-sonnet medium): small unread-count endpoint, gzip, slower chat polling, group lists every 60 s (do first; can run beside the Figma work)
-- [ ] FS0a content checks (builder-sonnet high), FS0b config, kill switch, signing (builder-sonnet high), FS0c call counter and cleanup (builder-opus high), FS0d upload and download helpers plus usage page (builder-sonnet high), FS0e Cloudflare reconciliation job (builder-opus medium); all on `feature/file-store-foundation` after tag `pre-chat-files`
+- [x] (done 2026-11-06, merged to main, tester + code-reviewer passed, 872 tests; files stay off until the owner steps) FS0a content checks (builder-sonnet high), FS0b config, kill switch, signing (builder-sonnet high), FS0c call counter and cleanup (builder-opus high), FS0d upload and download helpers plus usage page (builder-sonnet high), FS0e Cloudflare reconciliation job (builder-opus medium); all on `feature/file-store-foundation` after tag `pre-chat-files`
 - [ ] Storage UI from the approved frames (builder-sonnet), tester at 375 and 1280
-- [ ] One code-reviewer and security-review pass on the whole branch, then merge and release
+- [x] One code-reviewer and security-review pass on the whole branch, then merge (merged; release to production not done, harmless while files are off)
 - [ ] Then CH4 chat uploads, TW-9 source picker
 Right after the storage items:
 - [ ] Site footer: one item (owner to say what goes in it; default Terms, Privacy, About and Help links; draw in Figma first, phone and desktop, light only)
