@@ -1,6 +1,7 @@
 // A stored file's life (plan 18, 3.5): reserve the budget, write the ledger row, put the objects,
 // mark it ready; hand out short-lived links; and remove it again, giving storage back only after
 // the objects are really gone. The ledger row exists before any object, so nothing is orphaned.
+// Also the reconciliation that checks our counters against Cloudflare's own numbers (3.14).
 import { createHash, randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import fileModel from '../models/fileModel.js';
@@ -8,14 +9,18 @@ import { filesAvailability, getFileLimits } from './fileLimits.js';
 import { getFileStore } from './fileStore.js';
 import { StoreError } from './fileStores/storeError.js';
 import { contentDisposition } from './fileNames.js';
+import { R2UsageError, fetchR2Usage } from './r2Usage.js';
 import {
-    fileError, logFileUsage, raiseGlobalStorage, raiseUserStorage, releaseStorage, reserveLinks, reserveUpload,
+    applyResume, fileError, logFileUsage, monthStart, raiseGlobalStorage, raiseUserStorage, recordRealUsage,
+    recordUsageFailure, releaseStorage, reserveLinks, reserveUpload, sendFileAlert, setTrip,
 } from './fileBudget.js';
 
+const MIB = 1024 * 1024;
 const HOUR_MS = 60 * 60 * 1000;
 const STALE_UPLOAD_MS = HOUR_MS; // a put times out after 15 s, so an hour-old upload is dead
 const SWEEP_INTERVAL_MS = HOUR_MS;
 const FIRST_SWEEP_MS = 60 * 1000;
+const FIRST_RECONCILE_MS = 90 * 1000;
 const SWEEP_BATCH = 200;
 const REMOVE_FILTER_KEYS = new Set(['_id', 'owner', 'group', 'message', 'subject']);
 
@@ -214,9 +219,105 @@ export const sweepFiles = async (now = new Date()) => {
     return { removed, failed: rows.length - removed };
 };
 
-// Runs once a minute after boot and then hourly. unref() so it never keeps a process alive.
+// The reasons a run of the reconciliation trips each direction, or '' for none (plan 18, 3.14).
+// Counted includes the gap an owner resume already accepted (baseline).
+const tripsFor = (month, storageBytes) => {
+    const limits = getFileLimits();
+    const real = month.real;
+    const countedA = month.classA + (month.baseline?.classA ?? 0);
+    const countedB = month.classB + (month.baseline?.classB ?? 0);
+    const readMargin = Math.max(limits.readGapFloor, limits.readGapRatio * countedB);
+
+    let reads = '';
+    if (real.classB > countedB + readMargin) reads = 'uncounted_reads';
+    else if (real.classB >= limits.tripRealClassB) reads = 'read_line';
+
+    let writes = '';
+    if (real.classA > countedA + limits.writeGapMargin || real.classA >= limits.tripRealClassA) writes = 'uncounted_writes';
+    else if (real.storageBytes > storageBytes + limits.storageGapBytes) writes = 'storage_gap';
+    return { reads, writes };
+};
+
+// The owner email for a trip or a resume: the reason plus counted and real numbers. Never a URL,
+// a key or a token.
+const usageText = (month, storageBytes, lines) => [
+    ...lines,
+    `Month: ${month._id.slice(6)} (UTC)`,
+    `Class B: counted ${month.classB} (plus ${month.baseline?.classB ?? 0} accepted), real ${month.real.classB}`,
+    `Class A: counted ${month.classA} (plus ${month.baseline?.classA ?? 0} accepted), real ${month.real.classA}`,
+    `Storage: counted ${Math.round(storageBytes / MIB)} MB, real ${Math.round(month.real.storageBytes / MIB)} MB`,
+].join('\n');
+
+const TRIP_NOTES = {
+    uncounted_reads: 'Cloudflare counts more reads than links we handed out. Links are paused until the month ends.',
+    read_line: 'Real reads reached the monthly line. Links are paused until the month ends.',
+    uncounted_writes: 'Cloudflare counts writes we never made: a leaked key or a bug. Uploads are paused. Consider the emergency stop (plan 18, 5.7) now.',
+    storage_gap: 'Cloudflare holds much more data than we count. Uploads are paused until the month ends.',
+};
+
+// Applies a new FILES_RESUME_KEY once (never when it's empty). Returns the resumed month or null.
+const resumeIfAsked = async (now, real, storageBytes) => {
+    const key = process.env.FILES_RESUME_KEY?.trim();
+    if (!key) return null;
+    const month = await applyResume(now, key, real);
+    if (month) {
+        console.warn(`[files] owner resume applied for ${month._id}`);
+        sendFileAlert('owner resume applied', usageText(month, storageBytes, ['Both trips are cleared and the current gap is accepted.']));
+    }
+    return month;
+};
+
+// Every 10 minutes while R2 is on: compares our counters with Cloudflare's for this UTC month and
+// pauses links or uploads when reality runs ahead (plan 18, 3.14). An hour without numbers
+// pauses links too, and the next good run lifts that. Returns what it did, for the tests.
+export const reconcileUsage = async (now = new Date(), { fetchImpl } = {}) => {
+    const availability = filesAvailability();
+    if (!availability.on || availability.store !== 'r2') return null;
+
+    let real;
+    try {
+        real = await fetchR2Usage({
+            accountId: process.env.R2_ACCOUNT_ID,
+            token: process.env.CF_ANALYTICS_TOKEN,
+            bucket: process.env.R2_BUCKET,
+            from: monthStart(now),
+            to: now,
+            fetchImpl,
+        });
+    } catch (error) {
+        // Only the short code: the request carries the token.
+        const code = error instanceof R2UsageError ? error.code : 'unexpected';
+        const failures = await recordUsageFailure(now);
+        console.warn(`[files] usage check failed (${failures} in a row): ${code}`);
+        if (failures >= getFileLimits().analyticsFailureLimit && await setTrip(now, 'reads', 'analytics_down')) {
+            sendFileAlert(
+                'links paused, the usage check is down',
+                `The usage check couldn't reach Cloudflare ${failures} times in a row (about an hour). Links are paused until it works again; it clears itself.`,
+            );
+        }
+        return { ok: false, code };
+    }
+
+    const { month: checked, storageBytes } = await recordRealUsage(now, real);
+    const month = (await resumeIfAsked(now, real, storageBytes)) ?? checked;
+    const trips = tripsFor(month, storageBytes);
+    for (const direction of ['reads', 'writes']) {
+        const reason = trips[direction];
+        if (reason && await setTrip(now, direction, reason)) {
+            sendFileAlert(`${direction === 'reads' ? 'links' : 'uploads'} paused: ${reason}`, usageText(month, storageBytes, [TRIP_NOTES[reason]]));
+        }
+    }
+    await logFileUsage(now);
+    return { ok: true, real, trips };
+};
+
+// Sweeps a minute after boot and then hourly; reconciles 90 s after boot and then every 10
+// minutes. unref() so neither keeps a process alive.
 export const startFileJob = () => {
-    const run = () => sweepFiles().catch((error) => console.error('[files] sweep failed:', error.message));
-    setTimeout(run, FIRST_SWEEP_MS).unref();
-    return setInterval(run, SWEEP_INTERVAL_MS).unref();
+    const sweep = () => sweepFiles().catch((error) => console.error('[files] sweep failed:', error.message));
+    const reconcile = () => reconcileUsage().catch((error) => console.error('[files] usage check failed:', error.message));
+    setTimeout(sweep, FIRST_SWEEP_MS).unref();
+    setTimeout(reconcile, FIRST_RECONCILE_MS).unref();
+    setInterval(reconcile, getFileLimits().reconcileIntervalMs).unref();
+    return setInterval(sweep, SWEEP_INTERVAL_MS).unref();
 };

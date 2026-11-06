@@ -15,7 +15,8 @@ const ALERT_THRESHOLDS = [50, 80, 100];
 // Month and day keys are UTC, from an injected `now` so tests can cross a boundary.
 export const monthId = (now) => `month:${now.toISOString().slice(0, 7)}`;
 const dayKey = (now) => now.toISOString().slice(0, 10);
-export const nextMonthStart = (now) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+export const monthStart = (now) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+export const nextMonthStart =(now) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
 
 // "December 1", in Philippine time, for the student-facing pause messages.
 const monthDay = (date) => new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', timeZone: 'Asia/Manila' }).format(date);
@@ -281,6 +282,63 @@ export const reserveLinks = async (userId, count, now = new Date()) => {
 export const releaseStorage = async (userId, bytes) => {
     await releaseUserStorage(userId, bytes);
     await releaseGlobalStorage(bytes);
+};
+
+// --- Reconciliation with Cloudflare's numbers (plan 18, 3.14) ---
+// These only set and clear trips and store what Cloudflare saw. The reservations above read the
+// trips inside their own filters, so a trip set here blocks the next reservation at once.
+
+// Trips one direction (`reads` or `writes`) only if it isn't tripped already, so two runs can't
+// both set it or both email. True for the caller that set it.
+export const setTrip = async (now, direction, reason) => {
+    const id = monthId(now);
+    await ensureUsageDoc(id);
+    const path = `tripped.${direction}`;
+    const { modifiedCount } = await fileUsageModel.updateOne({ _id: id, [path]: '' }, { $set: { [path]: reason } });
+    return modifiedCount === 1;
+};
+
+// A run that couldn't reach Cloudflare. Returns how many have failed in a row this month.
+export const recordUsageFailure = async (now) => {
+    const id = monthId(now);
+    await ensureUsageDoc(id);
+    const doc = await fileUsageModel.findOneAndUpdate({ _id: id }, { $inc: { analyticsFailures: 1 } }, { returnDocument: 'after' });
+    return doc.analyticsFailures;
+};
+
+// A run that reached Cloudflare: stores what it saw, resets the failure count and lifts
+// `analytics_down`, the only reason that clears itself (any other reason stays). Returns this
+// month's document and the stored bytes we count, for the trip checks.
+export const recordRealUsage = async (now, real) => {
+    const id = monthId(now);
+    await ensureUsageDoc(id);
+    await fileUsageModel.updateOne({ _id: id, 'tripped.reads': 'analytics_down' }, { $set: { 'tripped.reads': '' } });
+    const [month, storage] = await Promise.all([
+        fileUsageModel.findOneAndUpdate(
+            { _id: id },
+            { $set: { real: { ...real, checkedAt: now }, analyticsFailures: 0 } },
+            { returnDocument: 'after', lean: true },
+        ),
+        fileUsageModel.findById(STORAGE_ID).lean(),
+    ]);
+    return { month, storageBytes: storage?.bytes ?? 0 };
+};
+
+// Owner resume (O10): a FILES_RESUME_KEY this month hasn't seen clears both trips and accepts the
+// gap Cloudflare shows right now as the baseline, so it doesn't trip again at once. Applies once
+// per key (the key is in the filter). Returns the updated month, or null when nothing changed.
+export const applyResume = async (now, key, real) => {
+    const id = monthId(now);
+    const month = await fileUsageModel.findById(id).lean();
+    const baseline = {
+        classA: Math.max(0, real.classA - (month?.classA ?? 0)),
+        classB: Math.max(0, real.classB - (month?.classB ?? 0)),
+    };
+    return fileUsageModel.findOneAndUpdate(
+        { _id: id, resumeKey: { $ne: key } },
+        { $set: { resumeKey: key, baseline, 'tripped.reads': '', 'tripped.writes': '' } },
+        { returnDocument: 'after', lean: true },
+    );
 };
 
 // One line for the Render log at each sweep (3.11). Counts only: never a URL, key or signature.

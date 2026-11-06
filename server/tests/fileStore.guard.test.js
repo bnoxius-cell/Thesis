@@ -10,7 +10,10 @@ const sourceFiles = readdirSync(serverRoot, { recursive: true })
     .filter((entry) => entry.endsWith('.js') && !/(^|\/)(node_modules|tests)\//.test(entry))
     .map((entry) => ({ entry, text: readFileSync(path.join(serverRoot, entry), 'utf8') }));
 
-const filesContaining = (needle) => sourceFiles
+// r2Usage.js names R2 action types to classify Cloudflare's usage numbers; it makes no R2 call.
+const ANALYTICS_NAMES = { HeadObject: ['utils/r2Usage.js'] };
+
+const filesContaining =(needle) => sourceFiles
     .filter(({ text }) => (needle instanceof RegExp ? needle.test(text) : text.includes(needle)))
     .map(({ entry }) => entry);
 
@@ -36,7 +39,13 @@ describe('the R2 store is the only door', () => {
         '@aws-sdk',
         'response-content',
     ])('no server file uses %s', (needle) => {
-        expect(filesContaining(needle)).toEqual([]);
+        expect(filesContaining(needle).filter((entry) => !ANALYTICS_NAMES[needle]?.includes(entry))).toEqual([]);
+    });
+
+    test('r2Usage.js only reads Cloudflare analytics, never R2 itself', () => {
+        const { text } = sourceFiles.find(({ entry }) => entry === 'utils/r2Usage.js');
+        expect(text).not.toContain('cloudflarestorage');
+        expect(text.match(/https:\/\/[^\s'`"]+/g)).toEqual(['https://api.cloudflare.com/client/v4/graphql']);
     });
 
     test("signQuery appears once, next to method: 'GET' inside presignGet", () => {
