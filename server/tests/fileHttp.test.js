@@ -71,6 +71,17 @@ testRouter.post('/:groupId/upload', ...fileUpload({ loadParent: loadGroup }), as
         sendFileError(res, error, 'Test upload failed');
     }
 });
+// Subject files: a photo's preview is optional. The group stands in for the subject's owner check.
+testRouter.post('/:groupId/subject-upload', ...fileUpload({ loadParent: loadGroup, requireThumb: false }), async (req, res) => {
+    try {
+        const row = await storeFile({
+            ownerId: req.userId, scope: 'subject', refs: { subject: req.params.groupId }, file: req.upload.file, thumb: req.upload.thumb,
+        });
+        res.json({ success: true, file: { id: row._id, thumbSize: row.thumbSize } });
+    } catch (error) {
+        sendFileError(res, error, 'Test upload failed');
+    }
+});
 testRouter.post('/:groupId/links', userAuth, loadGroup, async (req, res) => {
     const rows = await loadRows(req.body.ids, { group: req.params.groupId });
     if (!rows) return notFound(res);
@@ -247,20 +258,20 @@ describe('uploading', () => {
         expect(await month()).toEqual({});
     });
 
-    test('the 5th upload at once gets "busy", and every slot comes back', async () => {
+    test('the 3rd upload at once gets "busy", and every slot comes back', async () => {
         let release;
         gate = new Promise((resolve) => { release = resolve; });
-        const held = [1, 2, 3, 4].map(() => upload(member, [['file', pdfBytes(), 'notes.pdf']]).then((res) => res));
-        await until(() => uploadSlotsInUse() === 4);
+        const held = [1, 2].map(() => upload(member, [['file', pdfBytes(), 'notes.pdf']]).then((res) => res));
+        await until(() => uploadSlotsInUse() === 2);
 
-        const fifth = await upload(member, [['file', pdfBytes(), 'notes.pdf']]);
-        expect(fifth.status).toBe(503);
-        expect(fifth.body).toMatchObject({ code: 'busy', message: 'Busy, try again in a moment.' });
-        expect(uploadSlotsInUse()).toBe(4);
+        const third = await upload(member, [['file', pdfBytes(), 'notes.pdf']]);
+        expect(third.status).toBe(503);
+        expect(third.body).toMatchObject({ code: 'busy', message: 'Busy, try again in a moment.' });
+        expect(uploadSlotsInUse()).toBe(2);
 
         release();
         const results = await Promise.all(held);
-        expect(results.map((res) => res.status)).toEqual([200, 200, 200, 200]);
+        expect(results.map((res) => res.status)).toEqual([200, 200]);
         await until(() => uploadSlotsInUse() === 0);
     });
 
@@ -334,6 +345,25 @@ describe('uploading', () => {
             await refused([['file', makePng(), 'photo.png'], ['thumb', Buffer.concat([makeJpeg(), Buffer.alloc(101 * 1024)]), 't.jpg']], 'bad_upload');
             const ok = await upload(member, [['file', makePng(), 'photo.png'], ['thumb', makeWebp(), 't.webp']]);
             expect(ok.status).toBe(200);
+        });
+
+        test('a subject photo may skip its preview, but a preview that is sent must be real', async () => {
+            const path = `/test-files/${group._id}/subject-upload`;
+            const bare = await post(member, path).attach('file', makePng(), 'photo.png');
+            expect(bare.status).toBe(200);
+            expect(bare.body.file.thumbSize).toBe(0);
+            expect(store.size()).toBe(1);
+
+            const withThumb = await post(member, path).attach('file', makePng(), 'photo.png').attach('thumb', makeJpeg(), 't.jpg');
+            expect(withThumb.body.file.thumbSize).toBeGreaterThan(0);
+            expect(store.size()).toBe(3);
+
+            const badThumb = await post(member, path).attach('file', makePng(), 'photo.png').attach('thumb', makePng(), 't.png');
+            expect(badThumb.body).toMatchObject({ success: false, code: 'bad_upload' });
+            const badImage = await post(member, path).attach('file', Buffer.concat([makePng().subarray(0, 8), Buffer.from('<html>')]), 'photo.png');
+            expect(badImage.body).toMatchObject({ success: false, code: 'bad_type' });
+            expect(store.size()).toBe(3);
+            await until(() => uploadSlotsInUse() === 0);
         });
 
         test('a macro-enabled Office file is refused, a plain one is kept', async () => {

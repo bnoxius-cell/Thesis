@@ -104,11 +104,25 @@ describe('availability', () => {
         expect(filesAvailability().on).toBe(false);
     });
 
-    test('outside production the memory store is used, even with every var set', () => {
+    test('tests use the memory store, even with every var set', () => {
         withEnv({ ...productionEnv(), NODE_ENV: 'test' });
         expect(filesAvailability()).toEqual({ on: true, store: 'memory', reason: '' });
-        withEnv({ ...productionEnv(), NODE_ENV: 'development' });
-        expect(filesAvailability().store).toBe('memory');
+    });
+
+    test.each(['development', 'staging', '', 'Production'])('NODE_ENV=%j has files off unless FILES_DEV_MEMORY is exactly "true"', (nodeEnv) => {
+        withEnv({ ...productionEnv(), NODE_ENV: nodeEnv });
+        expect(filesAvailability()).toEqual({ on: false, store: null, reason: 'disabled' });
+        withEnv({ FILES_DEV_MEMORY: 'TRUE' });
+        expect(filesAvailability().on).toBe(false);
+        withEnv({ FILES_DEV_MEMORY: 'true' });
+        expect(filesAvailability()).toEqual({ on: true, store: 'memory', reason: '' });
+    });
+
+    test('FILES_DEV_MEMORY never gives the memory store in production', () => {
+        withEnv(productionEnv({ FILES_DEV_MEMORY: 'true' }));
+        expect(filesAvailability().store).toBe('r2');
+        withEnv(productionEnv({ FILES_DEV_MEMORY: 'true', FILES_ENABLED: '' }));
+        expect(filesAvailability()).toEqual({ on: false, store: null, reason: 'disabled' });
     });
 
     test('the limits object never holds a credential', () => {

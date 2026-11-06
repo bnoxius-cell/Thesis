@@ -3,6 +3,7 @@ import request from 'supertest';
 import app from '../app.js';
 import groupModel from '../models/groupMode.js';
 import scheduleModel from '../models/scheduleModel.js';
+import userModel from '../models/userModel.js';
 import { fetchPublicHolidays, resetHolidayCache } from '../utils/holidays.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
@@ -179,6 +180,14 @@ describe('S7: profile limits', () => {
             const res = await alice.put('/api/user/profile').send(body);
             expect(res.body.success, JSON.stringify(body)).toBe(false);
         }
+    });
+
+    test('file storage used can not be set from the profile', async () => {
+        const { alice } = await pair();
+        await userModel.updateOne({ _id: alice.id }, { $set: { storageUsedBytes: 5000 } });
+        const res = await alice.put('/api/user/profile').send({ bio: 'hi', storageUsedBytes: 0 });
+        expect(res.body.success).toBe(true);
+        expect((await userModel.findById(alice.id).lean()).storageUsedBytes).toBe(5000);
     });
 
     test('saves good values, trimmed', async () => {

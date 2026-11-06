@@ -27,7 +27,7 @@ const FIXED_LIMITS = {
     linkBurst: { limit: 120, windowMs: TEN_MINUTES_MS },
     linksPerDay: 400,
     maxLinksPerRequest: 24,
-    maxConcurrentUploads: 4,
+    maxConcurrentUploads: 2,
     reconcileIntervalMs: TEN_MINUTES_MS,
     tripRealClassB: 2_500_000,
     tripRealClassA: 250_000,
@@ -50,10 +50,14 @@ const readNumber = (env, { env: name, fallback, min = 1, max }) => {
     return clamped;
 };
 
-// Real R2 only in production, with the switch exactly "true" and every key present. Anywhere else
-// (tests, the UI harness, local dev, staging) files use the in-memory store.
+// Real R2 only in production, with the switch exactly "true" and every key present. The in-memory
+// store only in tests or with FILES_DEV_MEMORY exactly "true" (the UI harness, local dev), never
+// in production. Anything else (a missing or mistyped NODE_ENV, staging) has files off.
 const readAvailability = (env) => {
-    if (env.NODE_ENV !== 'production') return { on: true, store: 'memory', reason: '' };
+    if (env.NODE_ENV !== 'production') {
+        const memory = env.NODE_ENV === 'test' || env.FILES_DEV_MEMORY === 'true';
+        return memory ? { on: true, store: 'memory', reason: '' } : { on: false, store: null, reason: 'disabled' };
+    }
     if (env.FILES_ENABLED !== 'true') return { on: false, store: null, reason: 'disabled' };
     if (R2_VARS.some((name) => !env[name]?.trim())) return { on: false, store: null, reason: 'not_configured' };
     return { on: true, store: 'r2', reason: '' };
