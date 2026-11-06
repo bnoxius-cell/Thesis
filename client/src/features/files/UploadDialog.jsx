@@ -27,6 +27,7 @@ export default function UploadDialog({ files, left = 0, place, locations, onConf
 
   return (
     <Modal
+      sheet
       className="files-dialog"
       title="Upload files"
       subtitle={`${count} ${count === 1 ? "file" : "files"} ready. Pick where ${count === 1 ? "it" : "they"} should go.${leftOut}`}

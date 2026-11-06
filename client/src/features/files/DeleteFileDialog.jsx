@@ -19,6 +19,7 @@ export default function DeleteFileDialog({ file, onClose, onDeleted }) {
   return (
     <ConfirmDialog
       open
+      sheet
       tone="danger"
       title={`Delete ${file.name}?`}
       confirmLabel="Delete file"

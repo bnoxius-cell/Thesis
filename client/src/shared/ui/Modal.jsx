@@ -13,6 +13,7 @@ import IconButton from "./IconButton";
 // way of closing), `className`, `as="form"` to make the card a form (pass onSubmit), and
 // `confirmClose`: a function that returns true when closing should first ask "Leave?" (wording
 // through `leavePrompt`). Without a `title`, pass `labelledBy` for the id of your own heading.
+// `sheet` makes it a bottom sheet on phones (see ModalShell).
 export default function Modal({
   title,
   subtitle,

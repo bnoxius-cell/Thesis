@@ -86,10 +86,10 @@ describe('create', () => {
             expect(res.status).toBe(400);
             expect(res.body.message).toBe('Give the folder a name.');
         }
-        const long = await post(owner, { name: 'x'.repeat(61) });
+        const long = await post(owner, { name: 'x'.repeat(41) });
         expect(long.status).toBe(400);
-        expect(long.body.message).toBe('The name can be up to 60 characters.');
-        expect((await post(owner, { name: 'x'.repeat(60) })).status).toBe(201);
+        expect(long.body.message).toBe('The name can be up to 40 characters.');
+        expect((await post(owner, { name: 'x'.repeat(40) })).status).toBe(201);
     });
 
     test('the 21st folder is refused', async () => {
@@ -150,7 +150,7 @@ describe('rename', () => {
         await makeFolder(owner, 'Other');
         await subjectModel.create({ owner: owner._id, name: 'Math' });
         expect((await rename(owner, folder._id, { name: '' })).status).toBe(400);
-        expect((await rename(owner, folder._id, { name: 'x'.repeat(61) })).status).toBe(400);
+        expect((await rename(owner, folder._id, { name: 'x'.repeat(41) })).status).toBe(400);
         expect((await rename(owner, folder._id, { name: 'general' })).status).toBe(409);
         expect((await rename(owner, folder._id, { name: 'math' })).status).toBe(409);
         expect((await rename(owner, folder._id, { name: 'OTHER' })).status).toBe(409);

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button, Field, Modal } from "@/shared/ui";
 import { createFolder, renameFolder } from "@/shared/api/files";
 
-const NAME_MAX = 60; // the server's limit, which it checks again
+const NAME_MAX = 40; // the server's limit, which it checks again
 
 const clean = (value) => value.replace(/\s+/g, " ").trim();
 

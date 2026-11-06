@@ -25,7 +25,7 @@ export default function StudyEmpty({ onAddSubject, onUpload }) {
         </>
       }
     >
-      Subjects keep your classes, tasks, notes and reviewers in one place. It takes a minute.
+      Subjects keep your classes, tasks, files and reviewers in one place. It takes a minute.
     </EmptyState>
   );
 }

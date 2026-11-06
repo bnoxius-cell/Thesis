@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-export const FOLDER_LIMITS = { name: 60, maxPerStudent: 20 };
+export const FOLDER_LIMITS = { name: 40, maxPerStudent: 20 };
 
 // "Thesis", "Scholarships": a place a student keeps library files in, besides General and their
 // subjects. `nameKey` makes names unique per student whatever the case or spacing; it is always

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchFiles } from "@/shared/api/files";
+import { placeOf } from "./places";
 
 const INITIAL = { status: "loading", error: "", files: [], locations: null, usage: null, uploads: null, freshIds: [], leavingIds: [] };
 
@@ -14,7 +15,8 @@ const INITIAL = { status: "loading", error: "", files: [], locations: null, usag
 //   freshIds  files added in this visit; their rows ease in
 //   leavingIds files being deleted; their rows collapse, then `remove` takes them out
 //   add       puts a file that has just been uploaded first
-//   retire    starts a file's exit (the server has already deleted it)
+//   retire    starts a file's exit (the server has already deleted or moved it)
+//   relocate  puts a moved file in its new place
 //   remove    takes a file out of the list
 //   refresh   fetches again in place; a failed fetch keeps what is on screen
 //   reload    fetches again behind the loading state (Try again)
@@ -63,6 +65,22 @@ export default function useLibrary(where) {
     setState((prev) => ({ ...prev, leavingIds: [...prev.leavingIds, id] }));
   }, []);
 
+  // A file the server has moved: it takes its new place, or leaves a list kept for one place it is no
+  // longer in. Its space is still used, so the usage stays.
+  const relocate = useCallback(
+    (file) => {
+      setState((prev) => {
+        const stays = !where || placeOf(file.location) === where;
+        return {
+          ...prev,
+          files: stays ? prev.files.map((f) => (f.id === file.id ? file : f)) : prev.files.filter((f) => f.id !== file.id),
+          leavingIds: prev.leavingIds.filter((leaving) => leaving !== file.id),
+        };
+      });
+    },
+    [where],
+  );
+
   const remove = useCallback((id) => {
     setState((prev) => {
       const gone = prev.files.find((f) => f.id === id);
@@ -75,5 +93,5 @@ export default function useLibrary(where) {
     });
   }, []);
 
-  return { ...state, add, retire, remove, refresh: load, reload };
+  return { ...state, add, retire, relocate, remove, refresh: load, reload };
 }
