@@ -37,7 +37,7 @@ export default function DeleteSubjectDialog({ subject, onClose, onDeleted }) {
     >
       {fileCount > 0 ? (
         <FilesChoice
-          intro={`This subject has ${filesText(fileCount)}. What should happen to them?`}
+          intro={`This subject has ${filesText(fileCount)}. What should happen to the files?`}
           value={choice}
           onChange={setChoice}
         />

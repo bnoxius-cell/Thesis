@@ -39,7 +39,7 @@ export default function DeleteFolderDialog({ folder, files, onClose, onDeleted }
     >
       {asks ? (
         <FilesChoice
-          intro={`This folder has ${filesText(files.length)} (${formatSize(total)}). What should happen to them?`}
+          intro={`This folder has ${filesText(files.length)} (${formatSize(total)}). What should happen to the files?`}
           value={choice}
           onChange={setChoice}
         />
