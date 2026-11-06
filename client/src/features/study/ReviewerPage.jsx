@@ -12,7 +12,7 @@ import { reviewerSourceLine } from "./reviewerStatus";
 import useReviewer from "./useReviewer";
 import "./reviewer.css";
 
-const BACK = { to: "/study?tab=reviewers", label: "Back to reviewers" };
+const BACK = { to: "/study/practice", label: "Back to reviewers" };
 
 // One reviewer (Figma 76:1110): where it came from and its status, then the notes. While it is
 // still being made, or if that failed, a short message takes the place of the notes. An unknown or
@@ -35,7 +35,7 @@ export default function ReviewerPage() {
           <EmptyState
             icon={FileQuestion}
             title="Reviewer not found"
-            actions={<Button to="/study?tab=reviewers">Back to reviewers</Button>}
+            actions={<Button to="/study/practice">Back to reviewers</Button>}
           >
             It may have been deleted, or it isn't in your account.
           </EmptyState>

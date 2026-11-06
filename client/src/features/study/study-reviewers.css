@@ -1,5 +1,7 @@
-/* Reviewers tab (Figma 73:130) and the New reviewer dialog's drop zone (78:1410). Phone has no
-   frame: the row wraps its chips under the title, with 44px targets and no sideways scroll. */
+/* Practice tab (Figma 144:654, phone 146:844), the reviewer rows (73:130) and the New reviewer
+   dialog's drop zone (78:1410). On a phone the Segment takes its own full-width row under the tabs
+   and New reviewer is the dashed card under the list; the rows wrap their chips under the title,
+   with 44px targets and no sideways scroll. */
 @layer pages {
   .study-tabsrow {
     display: flex;
@@ -10,11 +12,17 @@
   .study-tabsrow .study-tabs {
     flex: 1 1 auto;
   }
+  .study-tabsrow .study-segment {
+    flex: 1 1 100%;
+  }
   @media (min-width: 721px) {
     .study-tabsrow .study-tabs {
       flex: none;
     }
-    .study-tabsrow__link {
+    /* The Segment and the link sit together at the right of the row. */
+    .study-tabsrow .study-segment {
+      flex: none;
+      width: 224px;
       margin-left: auto;
     }
     /* The hub frame (72:3) has a 100px spacer in this row; the Reviewers frame (73:130) has none. */
@@ -23,7 +31,7 @@
     }
   }
   .study-tabsrow__link {
-    display: inline-flex;
+    display: none;
     align-items: center;
     min-height: 44px;
     padding: 0 var(--space-2);
@@ -32,6 +40,11 @@
     color: var(--accent);
     font: 600 var(--text-sm) / 20px var(--font-ui);
     cursor: pointer;
+  }
+  @media (min-width: 721px) {
+    .study-tabsrow__link {
+      display: inline-flex;
+    }
   }
   .study-tabsrow__link:focus-visible {
     outline: 2px solid var(--accent);
@@ -42,6 +55,24 @@
     .study-tabsrow__link:hover {
       text-decoration: underline;
     }
+  }
+
+  /* The dashed New reviewer card under the list: phone only, where the link is hidden. */
+  .study-new--phone-only {
+    width: 100%;
+    margin-top: var(--space-3);
+  }
+  @media (min-width: 721px) {
+    .study-new.study-new--phone-only {
+      display: none;
+    }
+  }
+
+  /* Flashcards placeholder (Figma 144:826): one quiet card in place of the list. */
+  .study-soon {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
   }
 
   /* ---- Reviewer rows ---- */
