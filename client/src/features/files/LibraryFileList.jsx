@@ -26,8 +26,10 @@ export default function LibraryFileList({ library, files, placeName }) {
   const [moving, setMoving] = useState(null); // { file, anchor }: the picker is open
   const [folderFor, setFolderFor] = useState(null); // the file to move into a folder being made
   const [movedId, setMovedId] = useState(null);
+  const [movingIds, setMovingIds] = useState([]); // moves the server hasn't answered yet
   const [said, setSaid] = useState("");
   const movedOut = useRef(new Map()); // id -> the moved file, while its row collapses
+  const listRef = useRef(null);
 
   useEffect(() => {
     if (!movedId) return undefined;
@@ -40,8 +42,12 @@ export default function LibraryFileList({ library, files, placeName }) {
     setMoving(null);
   };
 
+  // One move per file at a time, so answers can't come back out of order and show the wrong place.
   const move = async (file, place, name) => {
+    if (movingIds.includes(file.id)) return;
+    setMovingIds((ids) => [...ids, file.id]);
     const { data, error } = await moveFile(file.id, place);
+    setMovingIds((ids) => ids.filter((id) => id !== file.id));
     if (error) {
       toast.error(error);
       return;
@@ -56,6 +62,19 @@ export default function LibraryFileList({ library, files, placeName }) {
     }
   };
 
+  // A row that moved out is about to go. If focus is on it (its More button, where the picker left
+  // it), it goes to the More button of the next row still here, else the one before, else the page.
+  const handOnFocus = (id) => {
+    const row = listRef.current?.querySelector(`[data-file-id="${CSS.escape(id)}"]`);
+    const focused = document.activeElement;
+    if (focused && focused !== document.body && !row?.contains(focused)) return;
+    const at = files.findIndex((file) => file.id === id);
+    const nearest = [...files.slice(at + 1), ...files.slice(0, Math.max(at, 0)).reverse()];
+    const next = nearest.find((file) => !library.leavingIds.includes(file.id));
+    const more = next && listRef.current?.querySelector(`[data-file-id="${CSS.escape(next.id)}"] .ui-menu-anchor button`);
+    (more ?? document.getElementById("main"))?.focus({ preventScroll: true });
+  };
+
   return (
     <>
       <FileList
@@ -63,8 +82,10 @@ export default function LibraryFileList({ library, files, placeName }) {
         freshIds={library.freshIds}
         leavingIds={library.leavingIds}
         movedId={movedId}
+        movingIds={movingIds}
         now={now}
         placeName={placeName}
+        listRef={listRef}
         onOpen={open}
         onMove={(file, anchor) => setMoving({ file, anchor })}
         onDelete={setDeleting}
@@ -72,6 +93,7 @@ export default function LibraryFileList({ library, files, placeName }) {
           const moved = movedOut.current.get(id);
           if (moved) {
             movedOut.current.delete(id);
+            handOnFocus(id);
             library.relocate(moved);
           } else {
             library.remove(id);

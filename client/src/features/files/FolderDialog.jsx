@@ -6,7 +6,7 @@ const NAME_MAX = 40; // the server's limit, which it checks again
 
 const clean = (value) => value.replace(/\s+/g, " ").trim();
 
-// New folder, or Rename folder when `folder` is given (Figma 162:2669, 162:2926). The server checks
+// New folder, or Rename folder when `folder` is given (Figma 162:2669, phone sheet 162:2926). The server checks
 // the name, so a taken name or "General" comes back as its own plain sentence under the field and the
 // dialog stays open. `onSaved` gets the folder as the server stored it.
 export default function FolderDialog({ folder, onClose, onSaved }) {
@@ -30,6 +30,7 @@ export default function FolderDialog({ folder, onClose, onSaved }) {
 
   return (
     <Modal
+      sheet
       as="form"
       onSubmit={submit}
       noValidate

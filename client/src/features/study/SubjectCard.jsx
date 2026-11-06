@@ -3,6 +3,7 @@ import { Clock } from "lucide-react";
 import { Card, Chip } from "@/shared/ui";
 import { subjectTone } from "@/shared/lib/subjectTone";
 import { subjectMeta } from "@/utils/subjectColors";
+import { filesText } from "@/features/files/fileKinds";
 import { examChipText, nextClassText } from "./subjectClasses";
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -30,7 +31,7 @@ export default function SubjectCard({ subject, entries, now }) {
       <span className="study-subject__foot">
         <span className="study-subject__counts">
           {plural(subject.counts.openTasks, "task")} · {plural(subject.counts.reviewers, "reviewer")}
-          {subject.counts.files > 0 && ` · ${plural(subject.counts.files, "file")}`}
+          {subject.counts.files > 0 && ` · ${filesText(subject.counts.files)}`}
         </span>
         {exam && <Chip tone="watch">{exam}</Chip>}
       </span>

@@ -196,6 +196,8 @@ export const renameFolder = async (req, res) => {
     try {
         const folder = await findFolder(req);
         if (!folder) return notFound(res);
+        // Keeping the name is always fine, even one saved before the limit came down to 40.
+        if (cleanName(req.body) === folder.name) return res.json({ success: true, folder: publicFolder(folder) });
         const { name, message, status } = await checkFolderName(req.userId, req.body);
         if (message) return problem(res, message, status);
         folder.name = name;

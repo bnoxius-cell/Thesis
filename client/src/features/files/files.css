@@ -485,11 +485,14 @@
     margin: 0;
     font: 400 var(--text-sm) / 20px var(--font-ui);
   }
+  /* F11 phone (162:3972): the bar starts 48px down (44 of it the status bar, so a notch inset only
+     adds to it), Close sits 4px from the edge and 8px before the name, the photo hangs 98px under the
+     bar (343 x 300 at 375), and the buttons end 60px above the bottom, or more over a home bar. */
   @media (max-width: 720px) {
     .files-preview-overlay {
       padding:
-        max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
-        max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+        max(48px, calc(env(safe-area-inset-top, 0px) + var(--space-1))) max(16px, env(safe-area-inset-right))
+        max(60px, calc(env(safe-area-inset-bottom, 0px) + var(--space-4))) max(16px, env(safe-area-inset-left));
     }
     .ui-modal.files-preview {
       grid-template-columns: auto minmax(0, 1fr);
@@ -499,15 +502,20 @@
         "stage stage"
         "actions actions";
       align-items: start;
-      gap: var(--space-3);
+      gap: var(--space-3) var(--space-2);
+    }
+    .files-preview__title {
+      align-self: center;
     }
     .files-preview__close {
-      margin-left: calc(-1 * var(--space-2));
+      margin-left: -12px; /* its 44px box starts 4px from the screen edge */
     }
-    /* F11 phone: the photo hangs under the title, not in the middle of the sheet. */
     .files-preview__stage {
       place-items: start center;
-      padding-top: var(--space-6);
+      padding-top: 86px; /* with the 12px row gap, 98px under the bar */
+    }
+    .files-preview__placeholder {
+      aspect-ratio: 343 / 300;
     }
     .files-preview__added {
       display: none;

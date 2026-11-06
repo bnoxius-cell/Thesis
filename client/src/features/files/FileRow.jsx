@@ -39,14 +39,16 @@ function useLeave(id, leaving, onGone) {
 // added 2 days ago"; and a More menu (Open, Move to..., Delete). The name area opens the file. `place`
 // is an optional chip with the name of the place it lives in; `moved` flashes it after a move.
 // `entering` eases a row in after an upload; `leaving` collapses it after a delete or a move out of
-// the list and calls `onGone` once when it has gone. `onMove` gets the file and the More button.
-export default function FileRow({ file, now, place, moved, entering, leaving, onOpen, onMove, onDelete, onGone }) {
+// the list and calls `onGone` once when it has gone. `onMove` gets the file and the More button;
+// `moving` (a move on its way to the server) turns Move to... off until it answers.
+export default function FileRow({ file, now, place, moved, moving, entering, leaving, onOpen, onMove, onDelete, onGone }) {
   const { Icon, label } = fileKind(file.ext);
   const gone = useLeave(file.id, leaving, onGone);
   const moreRef = useRef(null);
 
   return (
     <li
+      data-file-id={file.id}
       className={`files-item${entering ? " is-entering" : ""}${leaving ? " is-leaving" : ""}`}
       onTransitionEnd={(event) => {
         if (leaving && event.target === event.currentTarget && event.propertyName === "opacity") gone();
@@ -87,7 +89,11 @@ export default function FileRow({ file, now, place, moved, entering, leaving, on
             )}
           >
             <MenuItem icon={ExternalLink} onSelect={() => onOpen(file)}>Open</MenuItem>
-            {onMove && <MenuItem icon={FolderInput} onSelect={() => onMove(file, moreRef.current)}>Move to...</MenuItem>}
+            {onMove && (
+              <MenuItem icon={FolderInput} disabled={moving} onSelect={() => onMove(file, moreRef.current)}>
+                Move to...
+              </MenuItem>
+            )}
             <MenuItem icon={Trash2} tone="danger" onSelect={() => onDelete(file)}>Delete</MenuItem>
           </Menu>
         </div>

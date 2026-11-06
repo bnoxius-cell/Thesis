@@ -157,6 +157,21 @@ describe('rename', () => {
         expect((await fileFolderModel.findById(folder._id).lean()).name).toBe('Thesis');
     });
 
+    test('a name saved before the 40-character limit still lists, keeps, and renames', async () => {
+        const long = 'A folder named before the limit came down to forty';
+        const { insertedId } = await fileFolderModel.collection.insertOne({ owner: owner._id, name: long, nameKey: long.toLowerCase() });
+        const listed = await get(owner, '/api/files');
+        expect(listed.status).toBe(200);
+        expect(listed.body.locations.folders).toEqual([{ id: String(insertedId), name: long }]);
+
+        const kept = await rename(owner, insertedId, { name: long });
+        expect(kept.body).toEqual({ success: true, folder: { id: String(insertedId), name: long } });
+
+        const renamed = await rename(owner, insertedId, { name: 'Short name' });
+        expect(renamed.body).toEqual({ success: true, folder: { id: String(insertedId), name: 'Short name' } });
+        expect(await fileFolderModel.findById(insertedId).lean()).toMatchObject({ name: 'Short name', nameKey: 'short name' });
+    });
+
     test("another student's folder, an unknown id and a bad id are all 404", async () => {
         const mine = await makeFolder(owner);
         const theirs = await makeFolder(other, 'Theirs');

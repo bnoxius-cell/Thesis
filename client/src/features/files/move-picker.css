@@ -46,8 +46,12 @@
     background: var(--surface);
     color: var(--text-muted);
   }
+  /* One ring, on the field's box: the bare input's own focus border, shadow and outline (App.css,
+     base.css) are turned off below. */
   .files-move__search:focus-within {
     border-color: var(--accent);
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 0;
   }
   .files-move__search svg {
     flex: none;
@@ -63,7 +67,11 @@
     background: transparent;
     color: var(--text-primary);
     font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .files-move__search input:focus,
+  .files-move__search input:focus-visible {
     outline: none;
+    box-shadow: none;
   }
   .files-move__search input::placeholder {
     color: var(--text-muted);

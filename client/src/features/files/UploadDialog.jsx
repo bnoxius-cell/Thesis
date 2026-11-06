@@ -34,7 +34,7 @@ export default function UploadDialog({ files, left = 0, place, locations, onConf
       onClose={onClose}
       actions={
         <>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button onClick={() => onConfirm(picked, to)}>{`Upload ${count} ${count === 1 ? "file" : "files"}`}</Button>
         </>
       }

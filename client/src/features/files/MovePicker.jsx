@@ -43,7 +43,12 @@ function PlaceList({ file, locations, onPick, onNewFolder, onClose }) {
   const current = placeOf(file.location);
   const options = useMemo(() => buildOptions(locations, query), [locations, query]);
   const choices = options.filter((option) => option.value !== current);
-  const active = choices.find((option) => option.value === activeValue) ?? choices[0];
+  // Until the student arrows somewhere, the first real place is highlighted, so Enter moves the file;
+  // New folder only when nothing else is left or it was picked with the arrows.
+  const active =
+    choices.find((option) => option.value === activeValue) ??
+    choices.find((option) => option.value !== NEW_FOLDER) ??
+    choices[0];
   const optionId = (option) => `${id}-${option.value}`;
   const activeId = active ? optionId(active) : undefined;
 
@@ -172,9 +177,23 @@ function Popover({ anchor, label, onClose, children }) {
 
   useEffect(() => {
     const close = () => latestClose.current(false);
+    // A press on the More button that opened it closes it and stops that click, so its menu doesn't
+    // open as well. The click comes right after the press is released, so the stop is cleared then.
+    const swallowClick = (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+    };
     const onPointerDown = (event) => {
-      if (ref.current.contains(event.target) || anchor.contains(event.target)) return;
+      if (ref.current.contains(event.target)) return;
       event.stopPropagation(); // a dialog overlay under it doesn't also close
+      if (anchor.contains(event.target)) {
+        anchor.addEventListener("click", swallowClick, true);
+        window.addEventListener(
+          "pointerup",
+          () => setTimeout(() => anchor.removeEventListener("click", swallowClick, true)),
+          { once: true },
+        );
+      }
       close();
     };
     const onScroll = (event) => {
