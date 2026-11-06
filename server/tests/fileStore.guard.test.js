@@ -13,7 +13,7 @@ const sourceFiles = readdirSync(serverRoot, { recursive: true })
 // r2Usage.js names R2 action types to classify Cloudflare's usage numbers; it makes no R2 call.
 const ANALYTICS_NAMES = { HeadObject: ['utils/r2Usage.js'] };
 
-const filesContaining =(needle) => sourceFiles
+const filesContaining = (needle) => sourceFiles
     .filter(({ text }) => (needle instanceof RegExp ? needle.test(text) : text.includes(needle)))
     .map(({ entry }) => entry);
 
