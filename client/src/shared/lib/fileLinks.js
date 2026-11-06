@@ -110,7 +110,7 @@ function flush() {
     const jobs = batch.slice(start, start + BATCH_SIZE);
     fetchBatch(jobs.map(([id]) => id), "thumb").then(() => {
       jobs.forEach(([id, job]) => {
-        waiting.delete(id);
+        if (waiting.get(id) === job) waiting.delete(id);
         job.settle(usable(id, "thumb"));
       });
     });

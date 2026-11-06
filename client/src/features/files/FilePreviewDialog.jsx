@@ -11,17 +11,21 @@ import useFileImage from "./useFileImage";
 // there and the photo is saved from that tab. The dialog may have been open longer than its link
 // lives, so the link is fetched again on the click. The tab is opened before that wait, while the
 // click still counts, or a popup blocker would stop it.
+// With no tab (a blocked popup) the student is asked to allow it: sending the app itself to the photo
+// would end any upload still running and leave the signed link in the address bar.
 async function download(file) {
   const tab = window.open("", "_blank");
-  if (tab) tab.opener = null;
+  if (!tab) {
+    toast.error("Your browser blocked the new tab. Allow pop-ups for StressCare, then try again.");
+    return;
+  }
+  tab.opener = null;
   const { url, error } = await ensureLink(file.id, "file");
   if (error) {
-    tab?.close();
+    tab.close();
     toast.error(error);
-  } else if (tab) {
-    tab.location.replace(url);
   } else {
-    window.location.assign(url);
+    tab.location.replace(url);
   }
 }
 
@@ -31,6 +35,7 @@ async function download(file) {
 export default function FilePreviewDialog({ file, now, onClose, onDelete }) {
   const titleId = useId();
   const [loaded, setLoaded] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const { src, status, message, onError, retry } = useFileImage(file.id, "file");
 
   return (
@@ -42,7 +47,15 @@ export default function FilePreviewDialog({ file, now, onClose, onDelete }) {
         </p>
       </div>
       <div className="files-preview__actions">
-        <Button variant="secondary" onClick={() => download(file)}>
+        <Button
+          variant="secondary"
+          disabled={downloading}
+          onClick={async () => {
+            setDownloading(true);
+            await download(file);
+            setDownloading(false);
+          }}
+        >
           Download
         </Button>
         <Button variant="danger" onClick={() => onDelete(file)}>Delete</Button>

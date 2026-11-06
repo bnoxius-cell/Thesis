@@ -41,11 +41,18 @@ function useSelectedTabInView(tab, ready) {
     const selected = ready && document.getElementById(`subject-tab-${tab}`);
     if (!selected) return;
     const track = selected.parentElement;
-    const trackBox = track.getBoundingClientRect();
-    const tabBox = selected.getBoundingClientRect();
-    const shift = tabBox.left < trackBox.left ? tabBox.left - trackBox.left : Math.max(0, tabBox.right - trackBox.right);
-    if (shift) track.scrollBy({ left: shift, behavior: opened.current && !prefersLessMotion() ? "smooth" : "auto" });
+    const reveal = (behavior) => {
+      const trackBox = track.getBoundingClientRect();
+      const tabBox = selected.getBoundingClientRect();
+      const shift = tabBox.left < trackBox.left ? tabBox.left - trackBox.left : Math.max(0, tabBox.right - trackBox.right);
+      if (shift) track.scrollBy({ left: shift, behavior });
+    };
+    reveal(opened.current && !prefersLessMotion() ? "smooth" : "auto");
     opened.current = true;
+    // A count arriving later (Reviewers 1) widens a tab and can push the selected one out of view.
+    const watcher = new ResizeObserver(() => reveal("auto"));
+    Array.from(track.children).forEach((child) => watcher.observe(child));
+    return () => watcher.disconnect();
   }, [tab, ready]);
 }
 
