@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { ExternalLink, MoreHorizontal, Trash2 } from "lucide-react";
+import { ExternalLink, FolderInput, MoreHorizontal, Trash2 } from "lucide-react";
 import { Chip, IconButton, Menu, MenuItem } from "@/shared/ui";
 import FileThumb from "./FileThumb";
 import { formatSize } from "@/shared/lib/formatSize";
@@ -36,14 +36,19 @@ function useLeave(id, leaving, onGone) {
 }
 
 // One file (Figma 151:2210, 157:1747): its icon or, for a photo, a small preview; name; "PDF · 2.1 MB ·
-// added 2 days ago"; and a More menu. The name area opens the file. `place` is an optional chip with
-// the name of the place it lives in. `entering` eases a row in after an upload; `leaving` collapses it after a delete and calls `onGone` once when it has gone.
-export default function FileRow({ file, now, place, entering, leaving, onOpen, onDelete, onGone }) {
+// added 2 days ago"; and a More menu (Open, Move to..., Delete). The name area opens the file. `place`
+// is an optional chip with the name of the place it lives in; `moved` flashes it after a move.
+// `entering` eases a row in after an upload; `leaving` collapses it after a delete or a move out of
+// the list and calls `onGone` once when it has gone. `onMove` gets the file and the More button;
+// `moving` (a move on its way to the server) turns Move to... off until it answers.
+export default function FileRow({ file, now, place, moved, moving, entering, leaving, onOpen, onMove, onDelete, onGone }) {
   const { Icon, label } = fileKind(file.ext);
   const gone = useLeave(file.id, leaving, onGone);
+  const moreRef = useRef(null);
 
   return (
     <li
+      data-file-id={file.id}
       className={`files-item${entering ? " is-entering" : ""}${leaving ? " is-leaving" : ""}`}
       onTransitionEnd={(event) => {
         if (leaving && event.target === event.currentTarget && event.propertyName === "opacity") gone();
@@ -60,14 +65,35 @@ export default function FileRow({ file, now, place, entering, leaving, onOpen, o
                 {addedText(file.createdAt, now)}
               </span>
             </span>
-            {place && <Chip className="files-row__place">{place}</Chip>}
+            {/* Keyed by the place, so a move remounts the chip and its flash plays. */}
+            {place && (
+              <Chip key={place} className={`files-row__place${moved ? " is-moved" : ""}`}>
+                {place}
+              </Chip>
+            )}
           </button>
           <Menu
             align="end"
             label={`Actions for ${file.name}`}
-            trigger={(props) => <IconButton plain icon={MoreHorizontal} label={`More for ${file.name}`} {...props} />}
+            trigger={({ ref, ...props }) => (
+              <IconButton
+                plain
+                icon={MoreHorizontal}
+                label={`More for ${file.name}`}
+                ref={(element) => {
+                  ref.current = element;
+                  moreRef.current = element;
+                }}
+                {...props}
+              />
+            )}
           >
             <MenuItem icon={ExternalLink} onSelect={() => onOpen(file)}>Open</MenuItem>
+            {onMove && (
+              <MenuItem icon={FolderInput} disabled={moving} onSelect={() => onMove(file, moreRef.current)}>
+                Move to...
+              </MenuItem>
+            )}
             <MenuItem icon={Trash2} tone="danger" onSelect={() => onDelete(file)}>Delete</MenuItem>
           </Menu>
         </div>

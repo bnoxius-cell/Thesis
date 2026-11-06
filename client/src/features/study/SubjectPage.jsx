@@ -107,6 +107,13 @@ function SubjectView({ subjectId }) {
   }));
 
   const changed = () => (dialog.type === "delete" ? navigate("/study") : data.refresh());
+  // The subject's count of files is from when the page loaded; once its files are here they are the
+  // truth (uploads, moves and deletes in this visit included), so the delete dialog asks the right way.
+  const { library } = files;
+  const fileCount =
+    library.status === "ready"
+      ? library.files.filter((file) => file.location.id === subjectId && !library.leavingIds.includes(file.id)).length
+      : subject.counts.files;
   const taskAdded = (task) => {
     data.setTasks((list) => [...list, task]);
     toast.success("Task added.");
@@ -127,7 +134,7 @@ function SubjectView({ subjectId }) {
           subject={subject}
           className="subject-more"
           onEdit={(s) => setDialog({ type: "edit", subject: s })}
-          onDelete={(s) => setDialog({ type: "delete", subject: s })}
+          onDelete={(s) => setDialog({ type: "delete", subject: { ...s, counts: { ...s.counts, files: fileCount } } })}
         />
       }
     >

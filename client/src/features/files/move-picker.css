@@ -1,0 +1,178 @@
+/* Move to... (Figma 158:1610 popover, 158:1738 phone sheet). The popover is 260px wide with 40px
+   rows; the sheet (ModalShell's phone sheet) has 56px rows. Both: a place's icon or colour dot, its
+   name, and "Current" with a check on the place the file is in now. */
+@layer pages {
+  .files-move--popover {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1100; /* with the menus, above the page and the bottom bar */
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    box-sizing: border-box;
+    width: 260px;
+    max-width: calc(100vw - 16px);
+    padding: var(--space-3) var(--space-2) var(--space-2);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 16px; /* the frame's corner, between --radius-lg and --radius-xl */
+    background: var(--surface);
+    box-shadow: var(--shadow-popover);
+    animation: ui-menu-in 140ms var(--ease-out);
+  }
+  .files-move__eyebrow {
+    margin: 0;
+    padding: 0 var(--space-3) 6px;
+    color: var(--text-muted);
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .files-move__search {
+    display: flex;
+    flex: none;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    width: auto;
+    min-height: 40px;
+    margin: 0 0 var(--space-1);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    color: var(--text-muted);
+  }
+  /* One ring, on the field's box: the bare input's own focus border, shadow and outline (App.css,
+     base.css) are turned off below. */
+  .files-move__search:focus-within {
+    border-color: var(--accent);
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 0;
+  }
+  .files-move__search svg {
+    flex: none;
+  }
+  .files-move__search input {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 38px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .files-move__search input:focus,
+  .files-move__search input:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+  .files-move__search input::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+
+  .files-move__list {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .files-move__list [role="group"] {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .files-move__option {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    min-height: 40px;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: background-color var(--dur-1) var(--ease-out);
+  }
+  .files-move__option svg {
+    flex: none;
+  }
+  .files-move__option.is-active {
+    background: var(--accent-soft);
+  }
+  .files-move__option.is-current {
+    color: var(--text-muted);
+    cursor: default;
+  }
+  .files-move__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .files-move__current {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-3);
+    font-weight: 400;
+  }
+  .files-move__current svg {
+    color: var(--accent);
+  }
+  .files-move__none {
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+
+  /* Phone sheet: the title and the file's name, the search, then 56px rows. The close button is
+     there for keyboards and screen readers but only shows when it has focus, as the frame has none. */
+  .files-move-sheet .ui-modal__titles {
+    gap: var(--space-2);
+  }
+  .files-move-sheet .ui-modal__subtitle {
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .files-move-sheet .ui-modal__head .ui-icon-btn:not(:focus-visible) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+  .ui-modal.files-move-sheet .ui-modal__body {
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-2) var(--space-5);
+  }
+  .files-move-sheet .files-move__search {
+    min-height: 48px;
+    margin: 0 var(--space-3);
+  }
+  .files-move-sheet .files-move__search input {
+    font-size: 16px; /* no zoom on focus in iOS Safari */
+  }
+  .files-move-sheet .files-move__list {
+    gap: 0;
+  }
+  .files-move-sheet .files-move__option {
+    min-height: 56px;
+    border-radius: var(--radius-lg);
+  }
+}

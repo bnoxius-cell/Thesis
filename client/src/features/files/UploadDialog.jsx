@@ -27,13 +27,14 @@ export default function UploadDialog({ files, left = 0, place, locations, onConf
 
   return (
     <Modal
+      sheet
       className="files-dialog"
       title="Upload files"
       subtitle={`${count} ${count === 1 ? "file" : "files"} ready. Pick where ${count === 1 ? "it" : "they"} should go.${leftOut}`}
       onClose={onClose}
       actions={
         <>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button onClick={() => onConfirm(picked, to)}>{`Upload ${count} ${count === 1 ? "file" : "files"}`}</Button>
         </>
       }

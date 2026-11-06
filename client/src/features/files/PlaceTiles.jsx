@@ -2,8 +2,7 @@ import { Link } from "react-router-dom";
 import { Folder, Layers } from "lucide-react";
 import { Card } from "@/shared/ui";
 import { subjectTone } from "@/shared/lib/subjectTone";
-
-const filesText = (n) => `${n} ${n === 1 ? "file" : "files"}`;
+import { filesText } from "./fileKinds";
 
 function Tile({ to, name, count, leading }) {
   return (

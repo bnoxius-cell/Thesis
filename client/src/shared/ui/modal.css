@@ -106,6 +106,11 @@
     padding: 0 var(--space-6) var(--space-6);
   }
 
+  /* The grab handle only shows on a phone sheet (below). */
+  .ui-modal__handle {
+    display: none;
+  }
+
   /* Phones: less padding, and the actions stack full width with the main one first. */
   @media (max-width: 480px) {
     .ui-modal__head {
@@ -121,6 +126,59 @@
       flex-direction: column-reverse;
       align-items: stretch;
       padding: 0 var(--space-5) var(--space-5);
+    }
+  }
+
+  /* Bottom sheet on phones (Figma 158:1863, 162:3752): full width from the bottom edge, 24px top
+     corners, a grab handle, Title type, the actions stacked full width with the main one first, and
+     room for the home indicator. It sits above the bottom bar (the overlay is over everything). With
+     a Cancel in the actions the sheet needs no close button, as the frames draw it. */
+  @media (max-width: 719.98px) {
+    .ui-modal-overlay--sheet {
+      align-items: flex-end;
+      padding: max(16px, env(safe-area-inset-top)) 0 0;
+    }
+    .ui-modal--sheet {
+      max-width: none;
+      max-height: 100%;
+      padding: var(--space-2) 0 env(safe-area-inset-bottom, 0px);
+      border-radius: 24px 24px 0 0; /* the frames' sheet corner, a step above --radius-xl */
+      box-shadow: var(--shadow-sheet);
+      animation: ui-sheet-in 220ms var(--ease-out);
+    }
+    .ui-modal--sheet > .ui-modal__handle {
+      display: flex;
+      flex: none;
+      justify-content: center;
+      height: 20px;
+    }
+    .ui-modal--sheet > .ui-modal__handle::before {
+      content: "";
+      width: 36px;
+      height: 4px;
+      margin-top: 6px;
+      border-radius: 2px;
+      background: var(--border-input);
+    }
+    .ui-modal--sheet .ui-modal__head {
+      padding: 0 20px;
+    }
+    .ui-modal--sheet .ui-modal__title {
+      font: 600 var(--text-lg) / 26px var(--font-ui);
+    }
+    .ui-modal--sheet:has(> .ui-modal__actions) .ui-modal__head .ui-icon-btn {
+      display: none;
+    }
+    .ui-modal--sheet .ui-modal__body {
+      padding: var(--space-1) 20px var(--space-2);
+    }
+    .ui-modal--sheet .ui-modal__body:last-child {
+      padding-bottom: var(--space-5);
+    }
+    .ui-modal--sheet .ui-modal__actions {
+      flex-direction: column-reverse;
+      align-items: stretch;
+      padding: var(--space-2) 20px var(--space-5);
     }
   }
 }

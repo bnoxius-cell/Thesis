@@ -3,12 +3,13 @@ import { Clock } from "lucide-react";
 import { Card, Chip } from "@/shared/ui";
 import { subjectTone } from "@/shared/lib/subjectTone";
 import { subjectMeta } from "@/utils/subjectColors";
+import { filesText } from "@/features/files/fileKinds";
 import { examChipText, nextClassText } from "./subjectClasses";
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 // One subject (Figma 72:3, 75:799): colour dot, name, code and term, the next class, how many open
-// tasks and reviewers it holds, and an exam chip when an exam is close. The whole card opens it.
+// tasks and reviewers it holds (and files, when it has any), and an exam chip when an exam is close. The whole card opens it.
 export default function SubjectCard({ subject, entries, now }) {
   const meta = subjectMeta(subject);
   const next = nextClassText(entries, subject, now);
@@ -30,6 +31,7 @@ export default function SubjectCard({ subject, entries, now }) {
       <span className="study-subject__foot">
         <span className="study-subject__counts">
           {plural(subject.counts.openTasks, "task")} · {plural(subject.counts.reviewers, "reviewer")}
+          {subject.counts.files > 0 && ` · ${filesText(subject.counts.files)}`}
         </span>
         {exam && <Chip tone="watch">{exam}</Chip>}
       </span>

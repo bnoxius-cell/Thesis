@@ -5,7 +5,7 @@ import Button from "./Button";
 // In-app replacement for window.confirm. `tone="danger"` is for destructive actions (delete,
 // leave) and uses the danger Button; everything else uses the primary one. The confirm button
 // gets focus on open and Escape cancels. `cancelLabel={null}` drops the cancel button, for a
-// notice with a single "Done".
+// notice with a single "Done". `sheet` makes it a bottom sheet on phones (see ModalShell).
 export default function ConfirmDialog({
   open,
   title,
@@ -16,6 +16,7 @@ export default function ConfirmDialog({
   busy = false,
   onConfirm,
   onCancel,
+  sheet = false,
 }) {
   const confirmRef = useRef(null);
   const titleId = useId();
@@ -29,6 +30,7 @@ export default function ConfirmDialog({
       labelledBy={titleId}
       className="ui-modal--confirm"
       initialFocusRef={confirmRef}
+      sheet={sheet}
     >
       <div className="ui-modal__head">
         <h2 id={titleId} className="ui-modal__title">

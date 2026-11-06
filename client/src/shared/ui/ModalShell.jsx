@@ -12,6 +12,8 @@ import "./modal.css";
 // `as="form"` makes the content element a <form> (pass onSubmit through as usual).
 // `busy` blocks every way of closing. `confirmClose` is a function that returns true when
 // closing should ask first; Modal.jsx adds that question.
+// `sheet` makes it a bottom sheet on phones (under 720px, with a grab handle, above the home
+// indicator); wider screens keep the centred card.
 
 const stack = [];
 let lockCount = 0;
@@ -32,6 +34,8 @@ function unlockScroll() {
   if (lockCount === 0) document.body.style.overflow = savedOverflow;
 }
 
+const classes = (...names) => names.filter(Boolean).join(" ");
+
 function visibleFocusables(root) {
   return [...root.querySelectorAll(FOCUSABLE)].filter(
     (el) => !el.disabled && el.getAttribute("aria-hidden") !== "true" && el.getClientRects().length > 0,
@@ -48,6 +52,7 @@ export default function ModalShell({
   as: Tag = "div",
   role = "dialog",
   initialFocusRef,
+  sheet = false,
   children,
   ...rest
 }) {
@@ -137,7 +142,7 @@ export default function ModalShell({
   // trap the overlay under the phone bottom bar or turn it into a box inside the header.
   return createPortal(
     <div
-      className={`ui-modal-overlay ${overlayClassName}`.trim()}
+      className={classes("ui-modal-overlay", sheet && "ui-modal-overlay--sheet", overlayClassName)}
       onPointerDown={(e) => {
         pressedOverlay.current = e.target === e.currentTarget;
       }}
@@ -149,7 +154,7 @@ export default function ModalShell({
     >
       <Tag
         ref={contentRef}
-        className={`ui-modal ${className}`.trim()}
+        className={classes("ui-modal", sheet && "ui-modal--sheet", className)}
         role={role}
         aria-modal="true"
         aria-labelledby={labelledBy}
@@ -157,6 +162,7 @@ export default function ModalShell({
         onKeyDown={onContentKeyDown}
         {...rest}
       >
+        {sheet && <span className="ui-modal__handle" aria-hidden="true" />}
         {children}
       </Tag>
     </div>,

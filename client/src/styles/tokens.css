@@ -56,6 +56,7 @@
     --on-danger: #ffffff;
     --focus-ring: #3f5ba9;
     --overlay: rgba(15, 19, 25, 0.45);
+    --overlay-media: rgba(15, 20, 41, 0.97); /* Figma F11 photo preview scrim */
 
     /* Charts */
     --chart-busy: #b8c1ce;
@@ -111,6 +112,8 @@
     --shadow-1: 0 1px 3px rgba(26, 38, 64, 0.06);
     --shadow-2: 0 4px 16px rgba(16, 24, 40, 0.08), 0 1px 3px rgba(16, 24, 40, 0.06);
     --shadow-3: 0 12px 32px rgba(26, 38, 64, 0.12); /* Figma Shadow/3 */
+    --shadow-popover: 0 8px 24px rgba(26, 38, 64, 0.14); /* Figma Move to popover (158:1699) */
+    --shadow-sheet: 0 -4px 24px rgba(26, 38, 64, 0.18); /* Figma bottom sheets (158:1863) */
 
     /* Motion */
     --dur-1: 120ms;

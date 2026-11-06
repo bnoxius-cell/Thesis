@@ -20,9 +20,12 @@ export function uploadFile(file, { to, thumb, onProgress, signal }) {
   });
 }
 
+// Puts a file in another place ("general", "subject:<id>" or "folder:<id>"). Answers { file }.
+export const moveFile = (id, to) => patch(`/api/files/${encodeURIComponent(id)}`, { to });
+
 export const deleteFile = (id) => del(`/api/files/${encodeURIComponent(id)}`);
 
-// Folders. The server checks the name (1 to 60 characters, not General, not a subject's name, not
+// Folders. The server checks the name (1 to 40 characters, not General, not a subject's name, not
 // one of the student's folders) and answers a plain message, with status 409 for a name taken.
 // Answers { folder: { id, name } }.
 export const createFolder = (name) => post("/api/files/folders", { name });

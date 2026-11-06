@@ -10,6 +10,9 @@ export function fileKind(ext) {
   return { Icon: ICONS[label] ?? FileText, label };
 }
 
+// "1 file", "3 files".
+export const filesText = (n) => `${n} ${n === 1 ? "file" : "files"}`;
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 

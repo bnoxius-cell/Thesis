@@ -41,6 +41,19 @@
       transform: translateY(8px) scale(0.98);
     }
   }
+  /* A phone bottom sheet rises from the bottom edge by its own height. */
+  @keyframes ui-sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  /* A highlight that shows at once and fades away (a moved file's place chip). The element rests at
+     opacity 0. */
+  @keyframes ui-flash-out {
+    from {
+      opacity: 1;
+    }
+  }
   /* Shell badges (sidebar rows, the bell) pop in when a count first appears. */
   @keyframes shell-badge-in {
     from {

@@ -86,10 +86,10 @@ describe('create', () => {
             expect(res.status).toBe(400);
             expect(res.body.message).toBe('Give the folder a name.');
         }
-        const long = await post(owner, { name: 'x'.repeat(61) });
+        const long = await post(owner, { name: 'x'.repeat(41) });
         expect(long.status).toBe(400);
-        expect(long.body.message).toBe('The name can be up to 60 characters.');
-        expect((await post(owner, { name: 'x'.repeat(60) })).status).toBe(201);
+        expect(long.body.message).toBe('The name can be up to 40 characters.');
+        expect((await post(owner, { name: 'x'.repeat(40) })).status).toBe(201);
     });
 
     test('the 21st folder is refused', async () => {
@@ -150,11 +150,26 @@ describe('rename', () => {
         await makeFolder(owner, 'Other');
         await subjectModel.create({ owner: owner._id, name: 'Math' });
         expect((await rename(owner, folder._id, { name: '' })).status).toBe(400);
-        expect((await rename(owner, folder._id, { name: 'x'.repeat(61) })).status).toBe(400);
+        expect((await rename(owner, folder._id, { name: 'x'.repeat(41) })).status).toBe(400);
         expect((await rename(owner, folder._id, { name: 'general' })).status).toBe(409);
         expect((await rename(owner, folder._id, { name: 'math' })).status).toBe(409);
         expect((await rename(owner, folder._id, { name: 'OTHER' })).status).toBe(409);
         expect((await fileFolderModel.findById(folder._id).lean()).name).toBe('Thesis');
+    });
+
+    test('a name saved before the 40-character limit still lists, keeps, and renames', async () => {
+        const long = 'A folder named before the limit came down to forty';
+        const { insertedId } = await fileFolderModel.collection.insertOne({ owner: owner._id, name: long, nameKey: long.toLowerCase() });
+        const listed = await get(owner, '/api/files');
+        expect(listed.status).toBe(200);
+        expect(listed.body.locations.folders).toEqual([{ id: String(insertedId), name: long }]);
+
+        const kept = await rename(owner, insertedId, { name: long });
+        expect(kept.body).toEqual({ success: true, folder: { id: String(insertedId), name: long } });
+
+        const renamed = await rename(owner, insertedId, { name: 'Short name' });
+        expect(renamed.body).toEqual({ success: true, folder: { id: String(insertedId), name: 'Short name' } });
+        expect(await fileFolderModel.findById(insertedId).lean()).toMatchObject({ name: 'Short name', nameKey: 'short name' });
     });
 
     test("another student's folder, an unknown id and a bad id are all 404", async () => {
