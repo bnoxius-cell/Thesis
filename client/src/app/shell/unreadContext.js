@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 
-const empty = { total: 0, groupsUnread: 0, groupUnread: {}, friendRequests: 0, markGroupRead: () => {} };
+const empty = { total: 0, groupsUnread: 0, groupUnread: {}, friendRequests: 0, markGroupRead: () => {}, refresh: () => {} };
 
 // The counts behind the shell's badges. Outside the provider everything reads as zero.
 export const UnreadContext = createContext(empty);

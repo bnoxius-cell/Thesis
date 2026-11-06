@@ -1,0 +1,135 @@
+/* Student profile (Figma 66:759, desktop only). The card is 736px beside a 360px "Groups you share"
+   card; under 1024px they stack, and under 560px the picture shrinks and the actions take a row of
+   their own. */
+@layer pages {
+  .people-profile {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: var(--space-5);
+    align-items: start;
+  }
+  .people-profile__skeleton {
+    border-radius: var(--radius-xl);
+  }
+  .people-profile__card,
+  .people-profile__groups {
+    box-sizing: border-box;
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+  .people-profile__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding: var(--space-6);
+  }
+
+  .people-profile__top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-5);
+  }
+  .people-profile__avatar {
+    --people-avatar: 96px;
+    --people-avatar-font: var(--text-2xl);
+  }
+  .people-profile__who {
+    display: flex;
+    flex: 1 1 200px;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+  .people-profile__name {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-2xl) / var(--text-2xl-lh) var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .people-profile__program {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .people-profile__actions {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .people-profile__rule {
+    width: 100%;
+    height: 1px;
+    margin: 0;
+    border: 0;
+    background: var(--border);
+  }
+  .people-profile__about {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .people-profile__bio {
+    margin: 0;
+    color: var(--text-primary);
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+  }
+  .people-profile__bio.is-empty {
+    color: var(--text-muted);
+  }
+  .people-profile__note {
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+
+  .people-profile__groups {
+    padding: var(--space-5) var(--space-5) var(--space-3);
+  }
+  .people-profile__groups-title {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    margin: 0 0 var(--space-2);
+    color: var(--text-primary);
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+  }
+  .people-profile__groups-count {
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+
+  @media (max-width: 1023px) {
+    .people-profile {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-4);
+    }
+  }
+  @media (max-width: 559px) {
+    .people-profile__card {
+      gap: var(--space-4);
+      padding: var(--space-5) var(--space-4);
+    }
+    .people-profile__top {
+      gap: var(--space-4);
+    }
+    .people-profile__avatar {
+      --people-avatar: 72px;
+      --people-avatar-font: var(--text-xl);
+    }
+    .people-profile__actions {
+      flex: 1 1 100%;
+    }
+    .people-profile__actions .ui-btn {
+      flex: 1 1 auto;
+    }
+  }
+}
