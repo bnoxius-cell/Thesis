@@ -15,7 +15,7 @@ Owner steps (no Claude usage):
 - [x] `stresscare-api-staging` suspended 2026-11-06 (Render shows Suspended 1). Still the owner's: pause the staging monitor in UptimeRobot (not signed in on Claude's Chrome); production pinged 24/7 uses 744 of the 750 free instance hours
 - [ ] Answer plan 18 questions O1 to O11 (defaults apply until answered), and check the Render Billing page weekly
 Build order (efficiency order agreed 2026-11-01; one builder at a time, `/clear` after each batch, builders run only build and `npm test`):
-- [ ] REPLACED 2026-11-06 by plan 19 (`.claude/docs/plans/19-study-subject-files-plan.md`, O1 to O10 accepted): Study hub, Subject tabs (Overview, Tasks, Reviewers, Files), general Files page with folders, Practice page (Reviewers | Flashcards). Order: SF0 tag and branch, SF1 then SF2 (server, no frames needed), SF3 (Subject tabs, code only), draw Figma F1 to F12 (owner approves), then SP1, SF4, SF5, SF6. Don't release to production before SF4. Replaces plan 18's TW-8b batch.
+- [ ] REPLACED 2026-11-06 by plan 19 (`.claude/docs/plans/19-study-subject-files-plan.md`, O1 to O10 accepted): Study hub, Subject tabs (Overview, Tasks, Reviewers, Files), general Files page with folders, Practice page (Reviewers | Flashcards). SF0, SF1, SF2 DONE and merged to main 5eb48de (2026-11-06, not released). Order: SF0 tag and branch, SF1 then SF2 (server, no frames needed), SF3 (Subject tabs, code only), draw Figma F1 to F12 (owner approves), then SP1, SF4, SF5, SF6. Don't release to production before SF4. Replaces plan 18's TW-8b batch.
 - [ ] Figma frames F1 to F12 (plan 19): Files page, subject Files tab, move picker, upload with progress and Cancel, paused state, empty states, Practice page; phone and desktop, light only; owner approves before SP1, SF4, SF5, SF6
 - [x] BW1 `fix/api-bandwidth` (merged to main, live) (builder-sonnet medium): small unread-count endpoint, gzip, slower chat polling, group lists every 60 s (do first; can run beside the Figma work)
 - [x] (done 2026-11-06, merged to main, tester + code-reviewer passed, 872 tests; files stay off until the owner steps) FS0a content checks (builder-sonnet high), FS0b config, kill switch, signing (builder-sonnet high), FS0c call counter and cleanup (builder-opus high), FS0d upload and download helpers plus usage page (builder-sonnet high), FS0e Cloudflare reconciliation job (builder-opus medium); all on `feature/file-store-foundation` after tag `pre-chat-files`
@@ -38,13 +38,13 @@ Status: Pe3 to Pe5 are merged and live. Production is efffd91 (Pe5, plus the ban
 ## B. Navigation and feedback (plan 17)
 Status: planned, nothing built. One builder at a time, tester after each, then release.
 Owner decisions to confirm (defaults in brackets; the plan uses them until answered):
-- [ ] O1 Draw the detail and feedback dialogs in Figma first? [No, build from primitives in the style of 53:909 and 78:1272, list for a later compare]
-- [ ] O2 Build NV4, edit and delete a task from the dialog? [Yes, right after NV3]
-- [ ] O3 Feedback email address [owner gives one; set `FEEDBACK_EMAIL` on production Render srv-dbeai2jrjlhs73f25dqg; until then feedback is only stored]
-- [ ] O4 Keep feedback after account deletion? [Delete it with the account]
-- [ ] O5 Legal bump timing [bump now in FB2; if A1b is ready the same week, bump once for both]
-- [ ] O6 Rating question in feedback? [No for now]
-- [ ] O7 Widen the exam-to-subject title match? [Later; exam dialog shows "See it in Plan" until then]
+- [x] O1 (owner 2026-11-06: "maybe yes") Draw the detail and feedback dialogs in Figma first: lean yes, draw them with the F-frames; ask again if it blocks NV1
+- [x] O2 (default) Build NV4 right after NV3: yes
+- [x] O3 Feedback email: idevadrian@gmail.com. Owner step: set `FEEDBACK_EMAIL` on production Render srv-dbeai2jrjlhs73f25dqg when FB1 ships (Claude may not paste env values into Render)
+- [x] O4 (owner: "yes") Keep feedback after account deletion. FB1 must then store it without a link to the account (drop the user id on deletion) and the Privacy text must say so; confirm with the owner when FB1 is briefed
+- [x] O5 (owner: "now") Bump the legal version in FB2
+- [x] O6 (owner: "no") No rating question
+- [x] O7 (owner: "now") Widen the exam-to-subject title match now (add it to NV3, planner to say how loose)
 Batches:
 - [ ] NV0 server notes and links: `notes` in the week overview, `taskLink()` for reminders (builder-haiku)
 - [ ] NV1 shared `ItemDetailDialog` in `features/details/` plus Home rows (builder-sonnet high)
