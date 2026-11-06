@@ -36,9 +36,17 @@
     }
   }
   .shell-main.shell-main--app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
     max-width: none;
     margin: 0;
     padding: 0;
+  }
+  /* The page takes the height, so a short page still ends in the footer at the bottom. */
+  .shell-main--app > .shell-page {
+    flex: 1 0 auto;
   }
   /* Under 1024px the bottom bar (65px: 8 + 56 + 1 border, plus its bottom padding) covers the foot of
      the page, so main leaves that much room. No bar (focus view) means no extra room. */
