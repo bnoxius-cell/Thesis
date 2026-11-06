@@ -50,7 +50,12 @@ function useSelectedTabInView(tab, ready) {
     reveal(opened.current && !prefersLessMotion() ? "smooth" : "auto");
     opened.current = true;
     // A count arriving later (Reviewers 1) widens a tab and can push the selected one out of view.
-    const watcher = new ResizeObserver(() => reveal("auto"));
+    // An observer reports once as soon as it starts; that call would cancel the smooth scroll above.
+    let started = false;
+    const watcher = new ResizeObserver(() => {
+      if (started) reveal("auto");
+      started = true;
+    });
     Array.from(track.children).forEach((child) => watcher.observe(child));
     return () => watcher.disconnect();
   }, [tab, ready]);
