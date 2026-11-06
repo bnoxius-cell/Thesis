@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMatch, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FileText } from "lucide-react";
-import { AddButton, Button, EmptyState, Skeleton, Tabs } from "@/shared/ui";
+import { AddButton, Button, EmptyState, Skeleton } from "@/shared/ui";
 import Page from "@/app/shell/Page";
 import RedirectTo from "@/app/RedirectTo";
 import useNow from "@/shared/hooks/useNow";
@@ -11,6 +11,7 @@ import PickUpHero from "./PickUpHero";
 import PracticePanel from "./PracticePanel";
 import PracticeSwitch from "./PracticeSwitch";
 import StudyEmpty from "./StudyEmpty";
+import StudyTabs from "./StudyTabs";
 import SubjectDialogs from "./SubjectDialogs";
 import SubjectGrid from "./SubjectGrid";
 import useReviewers from "./useReviewers";
@@ -29,10 +30,10 @@ function StudySkeleton() {
   );
 }
 
-// Study (Figma 72:3, 75:799, 78:1526, 144:654): Pick up where you left off, then Subjects | Practice as
-// a path-driven tab pair (/study and /study/practice). On Subjects, the "+", the dashed New subject
-// card, a card's More menu and the empty page's button open the New subject, Edit and Delete dialogs
-// (not drawn in Figma). On Practice, a Reviewers | Flashcards Segment (?show=) sits in the tab row;
+// Study (Figma 72:3, 75:799, 78:1526, 144:654): Pick up where you left off, then the Subjects | Practice |
+// Files track (Files is its own page, features/files/FilesPage; Subjects and Practice are path-driven:
+// /study and /study/practice). On Subjects, the "+", the dashed New subject card, a card's More menu
+// and the empty page's button open the New subject, Edit and Delete dialogs (not drawn in Figma). On Practice, a Reviewers | Flashcards Segment (?show=) sits in the tab row;
 // the "+", the "New reviewer" link and the empty states' Upload button open the New reviewer dialog
 // (78:1272), and a new reviewer shows as a processing row and turns ready by itself.
 // The Subjects tab row is 100px tall on desktop (the frame's spacer, built literally, owner choice).
@@ -59,10 +60,6 @@ function Study() {
   const { reviewers, settled, limits, refresh: refreshReviewers } = useReviewers({ poll: practiceTab });
 
   const isNewAccount = data.status === "ready" && settled && data.subjects.length === 0 && !reviewers?.length;
-  const tabs = [
-    { value: "subjects", label: "Subjects", count: data.subjects.length, to: "/study", id: "study-tab-subjects", panelId: "study-panel" },
-    { value: "practice", label: "Practice", to: "/study/practice", id: "study-tab-practice", panelId: "study-panel" },
-  ];
 
   const openNew = () => setDialog({ type: "new" });
   const open = (type) => (subject) => setDialog({ type, subject });
@@ -105,7 +102,7 @@ function Study() {
         <div className="study-body">
           {!practiceTab && <PickUpHero reviewers={reviewers} />}
           <div className={`study-tabsrow${practiceTab ? "" : " study-tabsrow--subjects"}`}>
-            <Tabs items={tabs} value={tab} label="Study sections" className="study-tabs" />
+            <StudyTabs value={tab} subjectsCount={data.subjects.length} />
             {practiceTab && <PracticeSwitch show={show} onShow={changeShow} onNew={openUpload} />}
           </div>
           <div role="tabpanel" id="study-panel" aria-labelledby={`study-tab-${tab}`}>

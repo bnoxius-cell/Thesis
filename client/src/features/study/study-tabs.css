@@ -1,0 +1,31 @@
+/* The Study tab track on a phone: the three tabs share it (Figma 154:1415) and keep their label's
+   width at least, so at 320px with a count on Subjects the track scrolls inside itself, never the
+   page (useSelectedTabInView keeps the chosen tab in view). */
+@layer pages {
+  .study-tabs {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .study-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .study-tabs .ui-tab {
+    flex: none;
+  }
+  @media (max-width: 720px) {
+    .study-tabs {
+      display: flex;
+      width: 100%;
+    }
+    .study-tabs .ui-tab {
+      flex: 1 0 auto;
+    }
+  }
+  @media (max-width: 480px) {
+    .study-tabs .ui-tab {
+      padding-inline: var(--space-3);
+    }
+  }
+}

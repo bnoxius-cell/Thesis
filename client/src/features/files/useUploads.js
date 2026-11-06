@@ -10,17 +10,19 @@ const STOPS = new Set(["files_off", "files_paused", "storage_full", "quota_full"
 let nextKey = 0;
 
 // The uploads of one place, sent one after another (the server has two upload slots for everyone).
-//   to          the place the files go: "general", "subject:<id>" or "folder:<id>"
+//   to          the place the files go when `add` isn't told one: "general", "subject:<id>" or "folder:<id>"
 //   onUploaded  gets each stored file (the list puts it first)
 //   onSettled   runs once the queue is empty, to fetch the list again with the true usage
 // `items` are the rows of the upload tray: { key, name, status, progress, error, retryable } with
 // status "queued" | "uploading" | "done" | "failed". Cancelling a running upload aborts its request
 // and takes its row away. Leaving the page cancels what is running and what is queued. The files themselves
-// stay in a ref, not in state.
+// and their places stay in refs, not in state. `add(files, place)` sends that batch to `place`, so a
+// batch keeps its place when the student moves to another folder view before it is sent.
 export default function useUploads({ to, onUploaded, onSettled }) {
   const [items, setItems] = useState([]);
   const itemsRef = useRef(items);
   const files = useRef(new Map()); // key -> File
+  const places = useRef(new Map()); // key -> the place it goes to
   const abort = useRef(new Map()); // key -> AbortController of the running upload
   const running = useRef(false);
   const mounted = useRef(true); // false once the page has gone: nothing new is sent after that
@@ -40,6 +42,7 @@ export default function useUploads({ to, onUploaded, onSettled }) {
   );
   const drop = useCallback((key) => {
     files.current.delete(key);
+    places.current.delete(key);
     update((list) => list.filter((item) => item.key !== key));
   }, [update]);
 
@@ -53,7 +56,7 @@ export default function useUploads({ to, onUploaded, onSettled }) {
     const result = controller.signal.aborted || !mounted.current
       ? { cancelled: true }
       : await uploadFile(file, {
-          to: latest.current.to,
+          to: places.current.get(item.key),
           thumb,
           signal: controller.signal,
           onProgress: (progress) => patch(item.key, { progress }),
@@ -66,6 +69,7 @@ export default function useUploads({ to, onUploaded, onSettled }) {
       return result;
     }
     files.current.delete(item.key);
+    places.current.delete(item.key);
     patch(item.key, { status: "done", progress: 1 });
     latest.current.onUploaded?.(result.data.file);
     return null;
@@ -88,12 +92,15 @@ export default function useUploads({ to, onUploaded, onSettled }) {
     if (mounted.current) latest.current.onSettled?.();
   }, [send, update]);
 
-  const add = useCallback((picked) => {
+  const add = useCallback((picked, place) => {
     if (picked.length > MAX_PICK) toast.error(`You can add up to ${MAX_PICK} files at a time.`);
     const added = picked.slice(0, MAX_PICK).map((file) => {
       const key = `upload-${nextKey++}`;
       const problem = fileProblem(file);
-      if (!problem) files.current.set(key, file);
+      if (!problem) {
+        files.current.set(key, file);
+        places.current.set(key, place ?? latest.current.to);
+      }
       return { key, name: file.name, ext: extensionOf(file.name), status: problem ? "failed" : "queued", progress: 0, error: problem, retryable: false };
     });
     update((list) => [...list, ...added]);

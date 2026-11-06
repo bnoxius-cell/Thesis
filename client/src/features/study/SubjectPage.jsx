@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FileQuestion } from "lucide-react";
@@ -8,7 +8,7 @@ import UploadTray from "@/features/files/UploadTray";
 import NewTaskDialog from "@/features/tasks/NewTaskDialog";
 import useTaskDone from "@/features/tasks/useTaskDone";
 import useNow from "@/shared/hooks/useNow";
-import { prefersLessMotion } from "@/utils/motion";
+import useSelectedTabInView from "@/shared/hooks/useSelectedTabInView";
 import { subjectMeta } from "@/utils/subjectColors";
 import ClassSchedule from "./ClassSchedule";
 import NewReviewerDialog from "./NewReviewerDialog";
@@ -32,34 +32,6 @@ const TAB_VALUES = ["overview", "tasks", "reviewers", "files"];
 // Overview is the bare path; the others add ?tab=. Each tab is a history step, so Back returns to
 // the tab the student was on.
 const tabPath = (id, tab) => `/study/subjects/${id}${tab === "overview" ? "" : `?tab=${tab}`}`;
-
-// On a narrow phone the tab track scrolls, so the selected tab is brought into view: at once when
-// the page opens on it, with a short scroll when the student picks another one.
-function useSelectedTabInView(tab, ready) {
-  const opened = useRef(false);
-  useEffect(() => {
-    const selected = ready && document.getElementById(`subject-tab-${tab}`);
-    if (!selected) return;
-    const track = selected.parentElement;
-    const reveal = (behavior) => {
-      const trackBox = track.getBoundingClientRect();
-      const tabBox = selected.getBoundingClientRect();
-      const shift = tabBox.left < trackBox.left ? tabBox.left - trackBox.left : Math.max(0, tabBox.right - trackBox.right);
-      if (shift) track.scrollBy({ left: shift, behavior });
-    };
-    reveal(opened.current && !prefersLessMotion() ? "smooth" : "auto");
-    opened.current = true;
-    // A count arriving later (Reviewers 1) widens a tab and can push the selected one out of view.
-    // An observer reports once as soon as it starts; that call would cancel the smooth scroll above.
-    let started = false;
-    const watcher = new ResizeObserver(() => {
-      if (started) reveal("auto");
-      started = true;
-    });
-    Array.from(track.children).forEach((child) => watcher.observe(child));
-    return () => watcher.disconnect();
-  }, [tab, ready]);
-}
 
 function SubjectSkeleton() {
   return (
@@ -95,7 +67,7 @@ function SubjectView({ subjectId }) {
   const setDone = useTaskDone(data.setTasks);
   const tab = TAB_VALUES.includes(params.get("tab")) ? params.get("tab") : "overview";
   const reviewers = allReviewers && allReviewers.filter((r) => r.subject === subjectId);
-  useSelectedTabInView(tab, status === "ready");
+  useSelectedTabInView(`subject-tab-${tab}`, status === "ready");
 
   if (status !== "ready") {
     return (

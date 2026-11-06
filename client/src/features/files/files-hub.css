@@ -1,0 +1,325 @@
+/* The Files tab and its folder views (Figma 150:924 desktop, 154:1404 phone, 151:2210 and 155:1672
+   folder, 160:2867 empty). Rows, the notice, the tray and the preview are in files.css. Desktop here
+   means 1024px and up (where the sidebar is and Upload sits in the page, not above the bottom bar).
+   Motion uses the shared keyframes in motion.css; reduced motion and Animations Off are handled
+   once in base.css. */
+@layer pages {
+  .files-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+  @media (min-width: 721px) {
+    .files-page {
+      gap: var(--space-6);
+    }
+  }
+  .files-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+
+  /* ---- Tab row: the Study track, and Upload at the right on a desktop ---- */
+  .files-tabsrow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .files-tabsrow .study-tabs {
+    flex: 1 1 auto;
+  }
+  @media (min-width: 721px) {
+    .files-tabsrow .study-tabs {
+      flex: none;
+    }
+    .files-tabsrow > .ui-btn {
+      margin-left: auto;
+    }
+  }
+  /* In a folder the desktop frame (151:2210) puts the folder header where the track is. */
+  @media (min-width: 1024px) {
+    .files-tabsrow--folder {
+      display: none;
+    }
+  }
+
+  /* ---- Section headings ("PLACES", "RECENT", "3 RESULTS"): the Eyebrow style ---- */
+  .files-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  @media (min-width: 721px) {
+    .files-section {
+      gap: var(--space-5);
+    }
+  }
+  .files-eyebrow {
+    margin: 0;
+    color: var(--text-muted);
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Switching between browsing and search results cross-fades the two. */
+  .files-fade {
+    animation: ui-fade-in 120ms var(--ease-out) backwards;
+  }
+
+  /* ---- Storage meter on this page: text left and a 360px bar right on a desktop, stacked on a phone ---- */
+  .files-meter--page .files-meter__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .files-meter--page .files-meter__text span {
+    color: var(--text-secondary);
+  }
+  @media (min-width: 721px) {
+    .files-meter--page {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      min-height: 76px;
+    }
+    .files-meter--page .ui-progress {
+      flex: none;
+      width: 360px;
+      max-width: 50%;
+    }
+  }
+
+  /* ---- Search ---- */
+  .files-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-sizing: border-box;
+    min-height: 50px;
+    padding: 0 var(--space-2) 0 14px;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    transition: border-color var(--dur-2) var(--ease-out);
+  }
+  .files-search:focus-within {
+    border-color: var(--accent);
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 0;
+  }
+  .files-search__icon {
+    flex: none;
+    color: var(--text-muted);
+  }
+  .files-search__input {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 48px;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: none;
+    color: var(--text-primary);
+    font: 400 16px / 24px var(--font-ui); /* 16px keeps iOS from zooming the page on focus */
+  }
+  .files-search__input::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+  .files-search__input::-webkit-search-cancel-button {
+    display: none;
+  }
+  .files-search:not(:has(.ui-icon-btn)) {
+    padding-right: 14px;
+  }
+
+  /* ---- Place tiles: 2 across on a phone (1 where two don't fit 150px), 3, then 4 on a wide desktop ---- */
+  .files-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .files-tiles > li {
+    display: flex;
+    min-width: 0;
+  }
+  @media (min-width: 721px) {
+    .files-tiles {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-4);
+    }
+  }
+  @media (min-width: 1200px) {
+    .files-tiles {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  .files-tile {
+    flex: 1;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 64px;
+    padding: 0 var(--space-4);
+    color: inherit;
+    text-decoration: none;
+    box-shadow: none;
+  }
+  @media (min-width: 721px) {
+    .files-tile {
+      min-height: 80px;
+      padding: 0 20px;
+    }
+  }
+  .files-tile__icon {
+    flex: none;
+    color: var(--text-primary);
+  }
+  .files-tile__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .files-tile__text strong {
+    color: var(--text-primary);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .files-tile__text span {
+    color: var(--text-secondary);
+  }
+  .files-dot {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-pill);
+  }
+  .files-dot--accent { background: var(--accent); }
+  .files-dot--good { background: var(--good); }
+  .files-dot--watch { background: var(--watch); }
+  .files-dot--neutral { background: var(--text-muted); }
+
+  /* The dashed "+ New folder": a full row on a phone, a tile on a desktop. */
+  .files-tiles__new {
+    grid-column: 1 / -1;
+  }
+  @media (min-width: 721px) {
+    .files-tiles__new {
+      grid-column: auto;
+    }
+  }
+  .files-newtile {
+    flex: 1;
+    box-sizing: border-box;
+    min-height: 58px;
+    padding: 0 20px;
+    border: 1px dashed var(--border-input);
+    border-radius: var(--radius-xl);
+    background: transparent;
+    color: var(--accent);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    cursor: pointer;
+    transition: background-color var(--dur-2) var(--ease-out);
+  }
+  @media (min-width: 721px) {
+    .files-newtile {
+      min-height: 80px;
+    }
+  }
+  .files-newtile:active {
+    transform: scale(0.98);
+  }
+  .files-newtile:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .files-newtile:hover {
+      background: var(--accent-soft);
+    }
+  }
+
+  /* ---- Folder header: back, name, More, Upload. On a phone the name has its own row under the back
+     link, and the count line closes it. On a desktop the count line isn't drawn (151:2210). ---- */
+  .files-folder-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "back back"
+      "title more"
+      "meta meta";
+    align-items: center;
+    column-gap: var(--space-2);
+    row-gap: var(--space-1);
+  }
+  .files-folder-head__back {
+    grid-area: back;
+    display: inline-flex;
+    align-items: center;
+    justify-self: start;
+    gap: var(--space-1);
+    min-height: 44px;
+    color: var(--accent);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    text-decoration: none;
+  }
+  .files-folder-head__back:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .files-folder-head__back:hover {
+      text-decoration: underline;
+    }
+  }
+  .files-folder-head__title {
+    grid-area: title;
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-2xl) / 32px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .files-folder-head__more {
+    grid-area: more;
+  }
+  .files-folder-head__meta {
+    grid-area: meta;
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  @media (min-width: 1024px) {
+    .files-folder-head {
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
+      grid-template-areas: "back title more upload";
+      column-gap: var(--space-4);
+    }
+    .files-folder-head__meta {
+      display: none;
+    }
+    .files-folder-head > .ui-btn {
+      grid-area: upload;
+    }
+    .files-folder-head__back {
+      min-height: 44px;
+    }
+  }
+
+  /* On a phone the floating Upload leaves room to scroll past it, wherever the list is. */
+  @media (max-width: 1023px) {
+    .files-page .files-drop {
+      margin-bottom: calc(44px + var(--space-4));
+    }
+  }
+}

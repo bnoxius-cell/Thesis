@@ -173,6 +173,11 @@
     gap: 2px;
     min-width: 0;
   }
+  /* Where the file lives, when the list mixes places (Recent, search). Right-aligned beside More. */
+  .files-row__place {
+    flex: none;
+    margin-left: auto;
+  }
   .files-row__name {
     color: var(--text-primary);
     font: 600 var(--text-sm) / 20px var(--font-ui);
@@ -193,6 +198,18 @@
     }
     .files-row__added {
       display: none;
+    }
+    /* A row with a chip is taller (Figma 154:1532) and lets the chip drop to its own line if the
+       name and details leave it no room. */
+    .files-row--placed {
+      min-height: 84px;
+    }
+    .files-row--placed .files-row__open {
+      flex-wrap: wrap;
+      row-gap: var(--space-1);
+    }
+    .files-row__place {
+      align-self: flex-end;
     }
   }
 

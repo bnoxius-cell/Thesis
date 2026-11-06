@@ -3,6 +3,7 @@ import {
   CalendarDays,
   ClipboardCheck,
   FileText,
+  FolderOpen,
   HeartPulse,
   House,
   ListChecks,
@@ -21,8 +22,9 @@ const under = (pathname, base) => pathname === base || pathname.startsWith(`${ba
 const param = ({ search }, key) => new URLSearchParams(search).get(key);
 
 const onPlan = (loc) => under(loc.pathname, "/plan");
-// Practice covers the reviewer pages too: a reviewer belongs to it.
+// Practice covers the reviewer pages too: a reviewer belongs to it. Files covers its folder pages.
 const onStudyPractice = (loc) => under(loc.pathname, "/study/practice") || under(loc.pathname, "/study/reviewers");
+const onStudyFiles = (loc) => under(loc.pathname, "/study/files");
 const onWellbeing = (loc) => under(loc.pathname, "/wellbeing");
 
 export const NAV_GROUPS = [
@@ -43,9 +45,11 @@ export const NAV_GROUPS = [
         label: "Subjects",
         to: "/study",
         icon: BookOpen,
-        isActive: (loc) => under(loc.pathname, "/study") && !onStudyPractice(loc),
+        isActive: (loc) => under(loc.pathname, "/study") && !onStudyPractice(loc) && !onStudyFiles(loc),
       },
       { key: "practice", label: "Practice", to: "/study/practice", icon: FileText, isActive: onStudyPractice },
+      // The Files tab and its folder pages.
+      { key: "files", label: "Files", to: "/study/files", icon: FolderOpen, isActive: onStudyFiles },
     ],
   },
   {

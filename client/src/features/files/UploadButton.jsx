@@ -1,16 +1,20 @@
 import { useRef } from "react";
 import { createPortal } from "react-dom";
-import { Button } from "@/shared/ui";
+import { AddButton, Button } from "@/shared/ui";
 import { FILE_ACCEPT } from "./fileRules";
 
 // The Upload button: a real file input kept out of sight, opened by the button. `onFiles` gets the
 // picked files as an array (the same hand-off a drop makes). The label can change for a second
 // button on the same page ("Upload a file"). `floating` is the phone's pill above the bottom bar
 // (Figma 157:1789); it is moved into the page body, so the tab's entrance animation can't carry it.
-export default function UploadButton({ onFiles, disabled = false, floating = false, children = "Upload" }) {
+// `round` is the page header's "+", named by the label.
+export default function UploadButton({ onFiles, disabled = false, floating = false, round = false, children = "Upload" }) {
   const inputRef = useRef(null);
-  const button = (
-    <Button className={floating ? "files-upload--floating" : undefined} disabled={disabled} onClick={() => inputRef.current.click()}>
+  const open = () => inputRef.current.click();
+  const button = round ? (
+    <AddButton label={children} disabled={disabled} onClick={open} />
+  ) : (
+    <Button className={floating ? "files-upload--floating" : undefined} disabled={disabled} onClick={open}>
       {children}
     </Button>
   );
