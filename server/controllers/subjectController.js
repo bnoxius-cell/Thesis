@@ -231,7 +231,8 @@ export const deleteSubject = async (req, res) => {
         if (choice === 'delete') await removePlaceFiles('subject', subject._id, req.userId);
         await unlinkItems(subject);
         await subject.deleteOne();
-        if (choice === 'keep') await releasePlaceFiles('subject', subject._id, req.userId);
+        // After a delete too: a file that landed while the removal ran goes to General, not nowhere.
+        await releasePlaceFiles('subject', subject._id, req.userId);
         res.json({ success: true });
     } catch (error) {
         serverError(res, 'deleteSubject error', error);

@@ -32,10 +32,17 @@ const placeExists = (row) => {
     return true;
 };
 
+// The file is already stored and counted by now, so a failure here must not turn into a 500 that
+// invites a duplicate upload: answer with the row as it was saved.
 const settledInPlace = async (row) => {
-    if (await placeExists(row)) return row;
-    const general = await fileModel.findOneAndUpdate({ _id: row._id }, { $set: { subject: null, folder: null } }, { returnDocument: 'after' });
-    return general ?? row;
+    try {
+        if (await placeExists(row)) return row;
+        const general = await fileModel.findOneAndUpdate({ _id: row._id }, { $set: { subject: null, folder: null } }, { returnDocument: 'after' });
+        return general ?? row;
+    } catch (error) {
+        console.error('settledInPlace error:', error.message);
+        return row;
+    }
 };
 
 export const listFiles = async (req, res) => {
@@ -152,7 +159,7 @@ const DUPLICATE_KEY = 11000;
 
 // A clean folder name, or the message to answer with. The name can't be General (that is the place
 // without a folder) or an active subject's name, so the three kinds of place stay distinguishable.
-const cleanName = (body) => (typeof body?.name === 'string' ? body.name.replace(/\s+/g, ' ').trim() : '');
+const cleanName = (body) => (typeof body?.name === 'string' ? body.name.replace(/\p{Cf}/gu, '').replace(/\s+/g, ' ').trim() : '');
 
 const checkFolderName = async (owner, body) => {
     const name = cleanName(body);
@@ -209,7 +216,7 @@ export const deleteFolder = async (req, res) => {
 
         if (choice === 'delete') await removePlaceFiles('folder', folder._id, req.userId);
         await folder.deleteOne();
-        if (choice === 'keep') await releasePlaceFiles('folder', folder._id, req.userId);
+        await releasePlaceFiles('folder', folder._id, req.userId);
         res.json({ success: true });
     } catch (error) {
         serverError(res, 'deleteFolder error', error);

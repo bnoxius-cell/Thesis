@@ -407,6 +407,21 @@ describe('subject files', () => {
         expect(await used(alice.id)).toBe(kept.bytes);
     });
 
+    test('a file that lands while files=delete runs ends up in General, not pointing at the deleted subject', async () => {
+        const { alice } = await twoStudents();
+        const id = (await addSubject(alice.agent, { name: 'Math' })).body.subject._id;
+        await addFile(alice.id, { subject: id });
+        const remove = store.remove.bind(store);
+        let late;
+        vi.spyOn(store, 'remove').mockImplementationOnce(async (...args) => {
+            late = await addFile(alice.id, { subject: id });
+            return remove(...args);
+        });
+
+        expect((await alice.agent.delete(`/api/subjects/${id}?files=delete`)).status).toBe(200);
+        expect(await fileModel.findById(late._id).lean()).toMatchObject({ subject: null, folder: null, state: 'ready' });
+    });
+
     test('an unknown or repeated files value is a 400 and nothing is deleted', async () => {
         const { alice } = await twoStudents();
         const id = (await addSubject(alice.agent, { name: 'Math' })).body.subject._id;
