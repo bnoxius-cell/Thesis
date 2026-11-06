@@ -199,17 +199,37 @@
     .files-row__added {
       display: none;
     }
-    /* A row with a chip is taller (Figma 154:1532) and lets the chip drop to its own line if the
-       name and details leave it no room. */
+    /* A row with a chip is taller (Figma 154:1532, 155:1394): the name takes the first line, and the
+       chip sits at the right end of the details line; More stays level with the name. */
     .files-row--placed {
+      align-items: flex-start;
       min-height: 84px;
     }
     .files-row--placed .files-row__open {
-      flex-wrap: wrap;
-      row-gap: var(--space-1);
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        "icon name name"
+        "icon meta place";
+      align-content: center;
+      align-items: start;
+      row-gap: 6px;
+    }
+    .files-row--placed .files-row__open > :first-child {
+      grid-area: icon;
+    }
+    .files-row--placed .files-row__text {
+      display: contents;
+    }
+    .files-row--placed .files-row__name {
+      grid-area: name;
+    }
+    .files-row--placed .files-row__meta {
+      grid-area: meta;
+      align-self: center;
     }
     .files-row__place {
-      align-self: flex-end;
+      grid-area: place;
     }
   }
 

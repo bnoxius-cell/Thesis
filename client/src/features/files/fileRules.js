@@ -5,6 +5,7 @@ import { formatSize } from "../../shared/lib/formatSize.js";
 
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 export const MAX_PICK = 10; // files added in one go
+export const MAX_LIBRARY_FILES = 300; // files one student can keep (server: fileLimits.js maxLibraryFiles)
 
 // Every kind of file that can be sent, by extension, with the word a row shows for it.
 const TYPES = {

@@ -3,19 +3,21 @@ import { X } from "lucide-react";
 import { Button, Field, IconButton, Modal, SelectButton } from "@/shared/ui";
 import { formatSize } from "@/shared/lib/formatSize";
 import { fileKind } from "./fileKinds";
-import { extensionOf } from "./fileRules";
+import { MAX_PICK, extensionOf } from "./fileRules";
 import { placeOptions } from "./places";
 import "./files-dialogs.css";
 
 // The Upload files dialog (Figma 158:1906, 158:2079): the files picked or dropped, each with a way
 // to take it out, and where to save them. `place` is where the student is (General on the hub, the
-// open folder on its page). Nothing is sent until the button; `onConfirm` gets the files left and
-// the chosen place. Taking out the last file closes it.
-export default function UploadDialog({ files, place, locations, onConfirm, onClose }) {
+// open folder on its page). `left` is how many picked files were over the MAX_PICK limit and aren't
+// in `files`; the subtitle says so. Nothing is sent until the button; `onConfirm` gets the files
+// still listed and the chosen place. Taking out the last file closes it.
+export default function UploadDialog({ files, left = 0, place, locations, onConfirm, onClose }) {
   const [picked, setPicked] = useState(files);
   const [to, setTo] = useState(place);
   const options = placeOptions(locations);
   const count = picked.length;
+  const leftOut = left > 0 ? ` Only the first ${MAX_PICK} were added: you can upload ${MAX_PICK} at a time.` : "";
 
   const remove = (file) => {
     const rest = picked.filter((item) => item !== file);
@@ -27,7 +29,7 @@ export default function UploadDialog({ files, place, locations, onConfirm, onClo
     <Modal
       className="files-dialog"
       title="Upload files"
-      subtitle={`${count} ${count === 1 ? "file" : "files"} ready. Pick where ${count === 1 ? "it" : "they"} should go.`}
+      subtitle={`${count} ${count === 1 ? "file" : "files"} ready. Pick where ${count === 1 ? "it" : "they"} should go.${leftOut}`}
       onClose={onClose}
       actions={
         <>

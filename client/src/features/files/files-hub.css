@@ -213,8 +213,13 @@
   .files-tiles__new {
     grid-column: 1 / -1;
   }
+  /* General with nothing beside it (only New folder follows) takes the full row too (160:3115). */
+  .files-tiles > li:first-child:nth-last-child(2) {
+    grid-column: 1 / -1;
+  }
   @media (min-width: 721px) {
-    .files-tiles__new {
+    .files-tiles__new,
+    .files-tiles > li:first-child:nth-last-child(2) {
       grid-column: auto;
     }
   }
@@ -313,6 +318,69 @@
     }
     .files-folder-head__back {
       min-height: 44px;
+    }
+  }
+
+  /* ---- Empty states on a phone (160:3115, 160:3474): a card with a bare 28px icon, no soft circle ---- */
+  @media (max-width: 720px) {
+    .files-page .files-empty .ui-empty {
+      padding: 40px var(--space-5);
+    }
+    .files-page .files-empty .ui-empty__icon,
+    .files-noresult .ui-empty__icon {
+      width: auto;
+      height: auto;
+      background: none;
+      color: var(--text-secondary);
+    }
+    .files-page .files-empty .ui-empty__icon > svg,
+    .files-noresult .ui-empty__icon > svg {
+      opacity: 1;
+    }
+    .files-page .files-empty .ui-empty__title {
+      font: 600 var(--text-lg) / 26px var(--font-ui);
+    }
+  }
+
+  /* ---- No search results: bare centred text on a desktop (151:1998), a card with a 20px layers
+     icon and no query in the title on a phone (155:1549) ---- */
+  .files-noresult {
+    gap: var(--space-2);
+    padding: 64px 0 0;
+  }
+  .files-noresult .ui-empty__icon {
+    display: none;
+  }
+  .files-noresult .ui-empty__text {
+    max-width: none;
+    font: 400 var(--text-md) / 24px var(--font-ui);
+  }
+  .files-noresult .ui-empty__actions {
+    margin-top: 0;
+  }
+  @media (max-width: 720px) {
+    .files-noresult {
+      gap: var(--space-3);
+      padding: 40px var(--space-5);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      background: var(--surface);
+    }
+    .files-noresult .ui-empty__icon {
+      display: inline-flex;
+    }
+    .files-noresult .ui-empty__icon > svg {
+      width: 20px;
+      height: 20px;
+    }
+    .files-noresult .ui-empty__title {
+      font: 600 var(--text-lg) / 26px var(--font-ui);
+    }
+    .files-noresult__query {
+      display: none;
+    }
+    .files-noresult .ui-empty__text {
+      font: 400 var(--text-sm) / 20px var(--font-ui);
     }
   }
 

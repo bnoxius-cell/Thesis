@@ -10,6 +10,7 @@ import UploadButton from "./UploadButton";
 import UploadDialog from "./UploadDialog";
 import UploadTray from "./UploadTray";
 import { uploadBlock } from "./fileNotice";
+import { MAX_PICK } from "./fileRules";
 import { GENERAL, filesIn, placeOptions } from "./places";
 import useLibrary from "./useLibrary";
 import useUploads from "./useUploads";
@@ -28,19 +29,20 @@ export default function FilesPage() {
   const uploads = useUploads({ onUploaded: library.add, onSettled: library.refresh });
   const phone = useMediaQuery("(max-width: 1023px)"); // where the bottom bar is and Upload floats above it
   const openFolder = useMatch("/study/files/folders/:folderId")?.params.folderId;
-  const [picked, setPicked] = useState(null); // { files, place }: waiting in the Upload dialog
+  const [picked, setPicked] = useState(null); // { files, left, place }: waiting in the Upload dialog
   const [folderDialog, setFolderDialog] = useState(null); // { type: "new" | "rename" | "delete", folder? }
 
   const ready = library.status === "ready";
-  const block = ready ? uploadBlock(library) : null;
+  const block = ready ? uploadBlock(library, library.files.length) : null;
   const canUpload = ready && !block;
 
-  // The dialog starts on where the student is, if that is a place a file can go.
+  // The dialog starts on where the student is, if that is a place a file can go. It takes the first
+  // MAX_PICK files and says how many were left out.
   const pickFiles = (files) => {
     if (files.length === 0) return;
     const here = openFolder ? `folder:${openFolder}` : GENERAL;
     const known = placeOptions(library.locations).some(({ value }) => value === here);
-    setPicked({ files, place: known ? here : GENERAL });
+    setPicked({ files: files.slice(0, MAX_PICK), left: Math.max(0, files.length - MAX_PICK), place: known ? here : GENERAL });
   };
   const openFolderDialog = (type, folder) => setFolderDialog({ type, folder });
   const closeFolderDialog = () => setFolderDialog(null);
@@ -61,6 +63,7 @@ export default function FilesPage() {
       {picked && (
         <UploadDialog
           files={picked.files}
+          left={picked.left}
           place={picked.place}
           locations={library.locations}
           onClose={() => setPicked(null)}
@@ -86,6 +89,7 @@ export default function FilesPage() {
           files={filesIn(library.files, `folder:${folderDialog.folder.id}`)}
           onClose={closeFolderDialog}
           onDeleted={() => {
+            uploads.rehome(`folder:${folderDialog.folder.id}`);
             closeFolderDialog();
             navigate("/study/files", { replace: true });
             library.refresh();

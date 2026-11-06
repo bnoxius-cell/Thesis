@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FileText, Search } from "lucide-react";
+import { File, Layers } from "lucide-react";
 import { Button, EmptyState } from "@/shared/ui";
 import FileSearch from "./FileSearch";
 import FilesDrop from "./FilesDrop";
@@ -27,26 +27,29 @@ function HubBody({ library, block, canUpload, phone, pickFiles, openFolderDialog
   return (
     <>
       {block && <FilesNotice icon={block.icon}>{block.message}</FilesNotice>}
-      <StorageMeter usage={usage} fileCount={files.length} />
+      {!(phone && searching) && <StorageMeter usage={usage} fileCount={files.length} />}
       {files.length > 0 && <FileSearch value={query} onChange={setQuery} />}
       <div key={searching ? "results" : "browse"} className="files-content files-fade">
         {searching ? (
-          <section className="files-section">
-            <h2 className="files-eyebrow">{resultsText(results.length)}</h2>
-            {results.length > 0 ? (
+          results.length > 0 ? (
+            <section className="files-section">
+              <h2 className="files-eyebrow">{resultsText(results.length)}</h2>
               <LibraryFileList library={library} files={results} placeName={where} />
-            ) : (
-              <div className="files-empty">
-                <EmptyState
-                  icon={Search}
-                  title={`No files match "${query.trim()}"`}
-                  actions={<Button variant="secondary" onClick={() => setQuery("")}>Clear search</Button>}
-                >
-                  Try another word from the file's name.
-                </EmptyState>
-              </div>
-            )}
-          </section>
+            </section>
+          ) : (
+            <EmptyState
+              className="files-noresult"
+              icon={Layers}
+              title={
+                <>
+                  No files match<span className="files-noresult__query">{` "${query.trim()}"`}</span>
+                </>
+              }
+              actions={<Button variant="secondary" onClick={() => setQuery("")}>Clear search</Button>}
+            >
+              Check the spelling, or try part of the file name.
+            </EmptyState>
+          )
         ) : (
           <>
             <section className="files-section">
@@ -61,7 +64,7 @@ function HubBody({ library, block, canUpload, phone, pickFiles, openFolderDialog
                 ) : (
                   <div className="files-empty">
                     <EmptyState
-                      icon={FileText}
+                      icon={File}
                       title="No files yet"
                       actions={<UploadButton disabled={!canUpload} onFiles={pickFiles}>Upload a file</UploadButton>}
                     >
@@ -80,10 +83,11 @@ function HubBody({ library, block, canUpload, phone, pickFiles, openFolderDialog
   );
 }
 
-// The Files tab (Figma 150:924, phone 154:1404, search 151:1757, empty 160:2867): the storage meter,
-// a search over every file, PLACES (General, subjects, folders, New folder) and the newest uploads.
-// Searching swaps the places and recent files for the matches, each with the place it is in. The
-// search runs in the browser over the loaded list. `library`, `block`, `canUpload`, `phone`,
+// The Files tab (Figma 150:924, phone 154:1404, search 151:1757 / 155:1394, no results 151:1998 /
+// 155:1549, empty 160:2867 / 160:3115): the storage meter, a search over every file, PLACES (General,
+// subjects, folders, New folder) and the newest uploads. Searching swaps the places and recent files
+// for the matches, each with the place it is in; on a phone the meter steps aside too. The search
+// runs in the browser over the loaded list. `library`, `block`, `canUpload`, `phone`,
 // `pickFiles` and `openFolderDialog` come from FilesPage.
 export default function FilesHub(props) {
   const { library, canUpload, phone, pickFiles } = props;

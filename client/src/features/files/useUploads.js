@@ -3,14 +3,19 @@ import { toast } from "react-toastify";
 import { uploadFile } from "@/shared/api/files";
 import { MAX_PICK, extensionOf, fileProblem, isPhoto } from "./fileRules";
 import makeThumb from "./makeThumb";
+import { GENERAL } from "./places";
 
 // An answer that means every other file in the queue would fail the same way, so they aren't sent.
-const STOPS = new Set(["files_off", "files_paused", "storage_full", "quota_full", "daily_limit"]);
+const STOPS = new Set(["files_off", "files_paused", "storage_full", "quota_full", "daily_limit", "too_many_files"]);
+
+// A 404 on an upload means its subject or folder is gone (deleted, or archived, maybe in another tab).
+const PLACE_GONE = "The place this file was going to is gone. Retry saves it to General.";
 
 let nextKey = 0;
 
 // The uploads of one place, sent one after another (the server has two upload slots for everyone).
-//   to          the place the files go when `add` isn't told one: "general", "subject:<id>" or "folder:<id>"
+//   to          the place the files go when `add` isn't told one: "general" (the default), "subject:<id>"
+//               or "folder:<id>"
 //   onUploaded  gets each stored file (the list puts it first)
 //   onSettled   runs once the queue is empty, to fetch the list again with the true usage
 // `items` are the rows of the upload tray: { key, name, status, progress, error, retryable } with
@@ -18,6 +23,8 @@ let nextKey = 0;
 // and takes its row away. Leaving the page cancels what is running and what is queued. The files themselves
 // and their places stay in refs, not in state. `add(files, place)` sends that batch to `place`, so a
 // batch keeps its place when the student moves to another folder view before it is sent.
+// `rehome(place)` sends every file still waiting for `place` (queued, running or failed) to General
+// instead: the page calls it when it deletes that folder, and a 404 does the same.
 export default function useUploads({ to, onUploaded, onSettled }) {
   const [items, setItems] = useState([]);
   const itemsRef = useRef(items);
@@ -46,6 +53,12 @@ export default function useUploads({ to, onUploaded, onSettled }) {
     update((list) => list.filter((item) => item.key !== key));
   }, [update]);
 
+  const rehome = useCallback((place) => {
+    places.current.forEach((to, key) => {
+      if (to === place) places.current.set(key, GENERAL);
+    });
+  }, []);
+
   const send = useCallback(async (item) => {
     const file = files.current.get(item.key);
     const controller = new AbortController();
@@ -65,7 +78,10 @@ export default function useUploads({ to, onUploaded, onSettled }) {
 
     if (result.cancelled) return null;
     if (result.error) {
-      patch(item.key, { status: "failed", error: result.error, retryable: true });
+      const place = places.current.get(item.key);
+      const placeGone = result.status === 404 && place !== GENERAL;
+      if (placeGone) rehome(place);
+      patch(item.key, { status: "failed", error: placeGone ? PLACE_GONE : result.error, retryable: true });
       return result;
     }
     files.current.delete(item.key);
@@ -73,7 +89,7 @@ export default function useUploads({ to, onUploaded, onSettled }) {
     patch(item.key, { status: "done", progress: 1 });
     latest.current.onUploaded?.(result.data.file);
     return null;
-  }, [patch]);
+  }, [patch, rehome]);
 
   const pump = useCallback(async () => {
     if (running.current) return;
@@ -99,7 +115,7 @@ export default function useUploads({ to, onUploaded, onSettled }) {
       const problem = fileProblem(file);
       if (!problem) {
         files.current.set(key, file);
-        places.current.set(key, place ?? latest.current.to);
+        places.current.set(key, place ?? latest.current.to ?? GENERAL);
       }
       return { key, name: file.name, ext: extensionOf(file.name), status: problem ? "failed" : "queued", progress: 0, error: problem, retryable: false };
     });
@@ -135,5 +151,5 @@ export default function useUploads({ to, onUploaded, onSettled }) {
     };
   }, []);
 
-  return { items, add, retry, dismiss };
+  return { items, add, retry, dismiss, rehome };
 }

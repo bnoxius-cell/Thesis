@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { ChevronLeft, FileQuestion, Folder, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ChevronLeft, File, FileQuestion, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button, EmptyState, IconButton, Menu, MenuItem } from "@/shared/ui";
 import { formatSize } from "@/shared/lib/formatSize";
 import FilesDrop from "./FilesDrop";
@@ -56,11 +56,11 @@ function FolderBody({ library, block, canUpload, phone, pickFiles, openFolderDia
         ) : (
           <div className="files-empty">
             <EmptyState
-              icon={Folder}
+              icon={File}
               title={folderId ? "This folder is empty" : "General is empty"}
               actions={<UploadButton disabled={!canUpload} onFiles={pickFiles}>{`Upload to ${folder.name}`}</UploadButton>}
             >
-              Files you upload here stay in {folder.name}.
+              {folderId ? "Upload here, or use Move to... on a file in another place." : `Files you upload here stay in ${folder.name}.`}
             </EmptyState>
           </div>
         )}

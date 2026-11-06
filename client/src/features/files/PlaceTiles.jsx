@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Folder } from "lucide-react";
+import { Folder, Layers } from "lucide-react";
 import { Card } from "@/shared/ui";
 import { subjectTone } from "@/shared/lib/subjectTone";
 
@@ -19,14 +19,19 @@ function Tile({ to, name, count, leading }) {
   );
 }
 
-// PLACES (Figma 150:924, 154:1404): General, then each subject with its colour dot, then the custom
-// folders, then a dashed "New folder". A subject opens its own Files tab (one home for a subject's
+// PLACES (Figma 150:924, 154:1404, 160:3115): General (a layers stack), then each subject with its
+// colour dot, then the custom folders, then a dashed "New folder". A subject opens its own Files tab (one home for a subject's
 // files); General and a folder open their page. `counts` is files per place (see places.js).
 export default function PlaceTiles({ locations, counts, onNewFolder }) {
   const folderIcon = <Folder size={20} aria-hidden="true" className="files-tile__icon" />;
   return (
     <ul className="files-tiles stagger">
-      <Tile to="/study/files/general" name="General" count={counts.general ?? 0} leading={folderIcon} />
+      <Tile
+        to="/study/files/general"
+        name="General"
+        count={counts.general ?? 0}
+        leading={<Layers size={20} aria-hidden="true" className="files-tile__icon" />}
+      />
       {locations.subjects.map(({ id, name, color }) => (
         <Tile
           key={id}
