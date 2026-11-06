@@ -30,7 +30,9 @@ export const resolveLocation = async (userId, value) => {
     const location = parseLocation(value);
     if (!location) throw new LocationError(400, 'Pick where to put it.');
     if (location.type === 'general') return { subject: null, folder: null };
-    if (!await PLACE_MODELS[location.type].exists({ _id: location.id, owner: userId })) throw new LocationError(404, 'Not found.');
+    // An archived subject isn't listed as a place, so it can't be a target either.
+    const owned = location.type === 'subject' ? { archivedAt: null } : {};
+    if (!await PLACE_MODELS[location.type].exists({ _id: location.id, owner: userId, ...owned })) throw new LocationError(404, 'Not found.');
     return { subject: null, folder: null, [location.type]: location.id };
 };
 

@@ -390,6 +390,15 @@ describe('PATCH /api/files/:fileId', () => {
         expect(stored.folder).toBeNull();
     });
 
+    test('an archived subject is not a place to upload to, move to or list', async () => {
+        const row = await addFile(owner);
+        await subjectModel.updateOne({ _id: subject._id }, { $set: { archivedAt: new Date() } });
+        expect((await patch(owner, `/api/files/${row._id}`, { to: `subject:${subject._id}` })).status).toBe(404);
+        expect((await upload(owner, `subject:${subject._id}`)).status).toBe(404);
+        expect((await get(owner, `/api/files?in=subject:${subject._id}`)).status).toBe(404);
+        expect((await fileModel.findById(row._id).lean()).subject).toBeNull();
+    });
+
     test('a bad place is a 400', async () => {
         const row = await addFile(owner);
         expect((await patch(owner, `/api/files/${row._id}`, {})).status).toBe(400);
