@@ -9,7 +9,7 @@ import GroupView from "./GroupView";
 // right; on a phone (67:818) it is the list alone, and a group opens as its own screen (PhoneChat).
 // A student with no groups at all gets the empty page (66:963).
 export default function GroupsPane({ data, groupId, tab, desktop }) {
-  const { groups, status, error, reload } = data;
+  const { groups, status, error, reload, refresh } = data;
   const group = groups?.find((g) => g._id === groupId);
 
   if (status === "ready" && groups.length === 0) {
@@ -29,7 +29,7 @@ export default function GroupsPane({ data, groupId, tab, desktop }) {
   } else if (status === "loading") {
     main = <Skeleton height="100%" className="people-panes__skeleton" />;
   } else if (group) {
-    main = <GroupView key={group._id} group={group} tab={tab} desktop />;
+    main = <GroupView key={group._id} group={group} tab={tab} desktop onChanged={refresh} />;
   } else if (status === "ready") {
     main = <GroupNotFound />;
   }
