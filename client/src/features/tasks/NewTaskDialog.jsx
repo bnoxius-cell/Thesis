@@ -7,9 +7,9 @@ import "./task-dialog.css";
 
 // New task. Not drawn in Figma: built from the shared primitives in the style of the rhythm dialog.
 // `subjects` is the list the page already loaded. Nothing is saved until the button; closing with a
-// title typed asks first. A failed save keeps the dialog open with the message.
-export default function NewTaskDialog({ subjects, onClose, onSaved }) {
-  const [form, setForm] = useState(() => emptyTaskForm());
+// title typed asks first. `defaultSubject` is a subject id to start on (the Subject page). A failed save keeps the dialog open with the message.
+export default function NewTaskDialog({ subjects, defaultSubject = NO_SUBJECT, onClose, onSaved }) {
+  const [form, setForm] = useState(() => ({ ...emptyTaskForm(), subject: defaultSubject }));
   const [errors, setErrors] = useState({});
   const { save, saving, error } = useSaveTask();
   const phone = useMediaQuery("(max-width: 480px)");
