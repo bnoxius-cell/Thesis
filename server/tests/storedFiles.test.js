@@ -378,18 +378,18 @@ describe('sweeper', () => {
         expect(await used(user)).toBe(100);
     });
 
-    test('raises counters that are below the ledger and never lowers one', async () => {
+    test('leaves the storage counters as they are, so it can never race a release', async () => {
         const [low, high] = await Promise.all([makeUser(), makeUser()]);
-        const lowRow = await store1(low);
-        const highRow = await store1(high);
+        await store1(low);
+        await store1(high);
         await userModel.updateOne({ _id: low._id }, { $set: { storageUsedBytes: 0 } });
         await userModel.updateOne({ _id: high._id }, { $set: { storageUsedBytes: 5000 } });
-        await fileUsageModel.updateOne({ _id: 'storage' }, { $set: { bytes: 0 } });
+        await fileUsageModel.updateOne({ _id: 'storage' }, { $set: { bytes: 7 } });
 
         await sweepFiles(NOW);
-        expect(await used(low)).toBe(lowRow.bytes);
+        expect(await used(low)).toBe(0);
         expect(await used(high)).toBe(5000);
-        expect(await serverBytes()).toBe(lowRow.bytes + highRow.bytes);
+        expect(await serverBytes()).toBe(7);
     });
 
     test('logs one usage line with counts and no link or key', async () => {

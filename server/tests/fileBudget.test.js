@@ -122,6 +122,23 @@ describe('month', () => {
         expect(await month()).toMatchObject({ classA: 2, classB: 1 });
     });
 
+    test('each reservation checks only its own caps', async () => {
+        await reserveMonth({ classA: 5, uploadBytes: 50 }, NOW);
+        await reserveMonth({ classB: 5 }, NOW);
+
+        setFileLimitsForTests({ classAMonthlyCap: 4 });
+        await expect(reserveMonth({ classA: 1, uploadBytes: 1 }, NOW)).rejects.toMatchObject({ code: 'files_paused' });
+        await reserveLinks(user._id, 1, NOW);
+
+        setFileLimitsForTests({ uploadMonthlyBytes: 10 });
+        await reserveLinks(user._id, 1, NOW);
+
+        setFileLimitsForTests({ classBMonthlyCap: 4 });
+        await expect(reserveLinks(user._id, 1, NOW)).rejects.toMatchObject({ code: 'files_paused' });
+        await reserveMonth({ classA: 1, uploadBytes: 1 }, NOW);
+        expect(await month()).toMatchObject({ classA: 6, classB: 7, uploadBytes: 51 });
+    });
+
     test('analytics down pauses links without a date', async () => {
         await reserveMonth({ classA: 1 }, NOW);
         await fileUsageModel.updateOne({ _id: monthId(NOW) }, { $set: { 'tripped.reads': 'analytics_down' } });

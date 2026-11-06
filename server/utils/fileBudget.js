@@ -180,24 +180,6 @@ export const releaseGlobalStorage = async (bytes) => {
     );
 };
 
-// Raise-only: the sweeper lifts a counter to what the ledger holds, never lowers it.
-export const raiseUserStorage = async (userId, bytes) => {
-    await userModel.updateOne(
-        { _id: userId },
-        [{ $set: { storageUsedBytes: { $max: [{ $ifNull: ['$storageUsedBytes', 0] }, bytes] } } }],
-        { updatePipeline: true },
-    );
-};
-
-export const raiseGlobalStorage = async (bytes) => {
-    await ensureUsageDoc(STORAGE_ID);
-    await fileUsageModel.updateOne(
-        { _id: STORAGE_ID },
-        [{ $set: { bytes: { $max: [{ $ifNull: ['$bytes', 0] }, bytes] } } }],
-        { updatePipeline: true },
-    );
-};
-
 // Monthly R2 operations and upload traffic. The caps and the trips are in the same filter, so a
 // trip blocks at once and nothing is taken when the reservation doesn't fit.
 export const reserveMonth = async ({ classA = 0, classB = 0, uploadBytes = 0 }, now = new Date()) => {
@@ -208,14 +190,12 @@ export const reserveMonth = async ({ classA = 0, classB = 0, uploadBytes = 0 }, 
     const id = monthId(now);
     await ensureUsageDoc(id);
 
-    const filter = {
-        _id: id,
-        classA: { $lte: classAMonthlyCap - classA },
-        classB: { $lte: classBMonthlyCap - classB },
-        uploadBytes: { $lte: uploadMonthlyBytes - uploadBytes },
-    };
-    if (classA > 0) filter['tripped.writes'] = '';
-    if (classB > 0) filter['tripped.reads'] = '';
+    // Only the counters this reservation takes, so a full upload budget never blocks links and the
+    // other way round.
+    const filter = { _id: id };
+    if (classA > 0) Object.assign(filter, { classA: { $lte: classAMonthlyCap - classA }, 'tripped.writes': '' });
+    if (classB > 0) Object.assign(filter, { classB: { $lte: classBMonthlyCap - classB }, 'tripped.reads': '' });
+    if (uploadBytes > 0) filter.uploadBytes = { $lte: uploadMonthlyBytes - uploadBytes };
     const doc = await fileUsageModel.findOneAndUpdate(filter, { $inc: { classA, classB, uploadBytes } }, { returnDocument: 'after' });
 
     if (!doc) {

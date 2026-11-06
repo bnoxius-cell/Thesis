@@ -34,7 +34,10 @@ export const allowBurst = (res, key, rule) => {
 export const sendFileLinks = async (req, res, rows, { variant }) => {
     res.set('Cache-Control', 'no-store');
     try {
-        if (!allowBurst(res, `links:${req.userId}`, getFileLimits().linkBurst)) return;
+        const { linkBurst, maxLinksPerRequest } = getFileLimits();
+        if (!allowBurst(res, `links:${req.userId}`, linkBurst)) return;
+        // Before canRead, so a long id list can't make a query per row.
+        if (rows.length > maxLinksPerRequest) throw fileError('too_many');
         const allowed = await Promise.all(rows.map((row) => canRead(req.userId, row)));
         if (!allowed.every(Boolean)) throw fileError('not_found');
         const links = await issueFileLinks(rows, { variant, userId: req.userId });

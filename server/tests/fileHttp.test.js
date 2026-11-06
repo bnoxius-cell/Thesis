@@ -458,6 +458,16 @@ describe('links', () => {
         expect((await month()).classB).toBe(0);
     });
 
+    test('a huge id list is refused before any per-row access check', async () => {
+        const doc = await storeFor();
+        const messageLookups = vi.spyOn(groupMessageModel, 'exists');
+        const res = await askLinks(member, Array(2000).fill(doc._id));
+        expect(res.status).toBe(400);
+        expect(res.body.code).toBe('too_many');
+        expect(messageLookups).not.toHaveBeenCalled();
+        expect((await month()).classB).toBe(0);
+    });
+
     test('the 121st link request in 10 minutes is told to slow down', async () => {
         const doc = await storeFor();
         for (let i = 0; i < 120; i += 1) expect((await askLinks(member, [doc._id])).status).toBe(200);

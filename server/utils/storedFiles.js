@@ -11,8 +11,8 @@ import { StoreError } from './fileStores/storeError.js';
 import { contentDisposition } from './fileNames.js';
 import { R2UsageError, fetchR2Usage } from './r2Usage.js';
 import {
-    applyResume, fileError, logFileUsage, monthStart, raiseGlobalStorage, raiseUserStorage, recordRealUsage,
-    recordUsageFailure, releaseStorage, reserveLinks, reserveUpload, sendFileAlert, setTrip,
+    applyResume, fileError, logFileUsage, monthStart, recordRealUsage, recordUsageFailure, releaseStorage,
+    reserveLinks, reserveUpload, sendFileAlert, setTrip,
 } from './fileBudget.js';
 
 const MIB = 1024 * 1024;
@@ -190,15 +190,8 @@ export const removeFiles = async (filter) => {
     return { removed };
 };
 
-// Lifts the storage counters to at least what the ledger holds. Raise only: a counter that is
-// too high is safe and stays (the usage page shows the drift).
-const raiseCountersToLedger = async () => {
-    const perOwner = await fileModel.aggregate([{ $group: { _id: '$owner', bytes: { $sum: '$bytes' } } }]);
-    for (const { _id, bytes } of perOwner) await raiseUserStorage(_id, bytes);
-    await raiseGlobalStorage(perOwner.reduce((sum, { bytes }) => sum + bytes, 0));
-};
-
-// Hourly: gives up on dead uploads, retries deletes, raises drifted counters, logs usage.
+// Hourly: gives up on dead uploads, retries deletes, logs usage. It never touches the storage
+// counters: they can only drift high by design, and the storage_gap trip catches a large gap.
 // Only touches rows made by the current store, so a dev server on a shared database can't
 // mark production rows.
 export const sweepFiles = async (now = new Date()) => {
@@ -215,7 +208,6 @@ export const sweepFiles = async (now = new Date()) => {
     for (const row of rows) {
         if (await removeRow(store, row)) removed += 1;
     }
-    await raiseCountersToLedger();
     await logFileUsage(now);
     return { removed, failed: rows.length - removed };
 };
