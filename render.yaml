@@ -42,3 +42,33 @@ services:
         sync: false
       - key: SMTP_PASSWORD
         sync: false
+      # File storage (Cloudflare R2). Files stay off unless FILES_ENABLED is exactly "true".
+      # The FILE_* caps can only lower the built-in limits. Values are set in the Render dashboard only.
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: CF_ANALYTICS_TOKEN
+        sync: false
+      - key: FILES_ENABLED
+        sync: false
+      - key: FILES_RESUME_KEY
+        sync: false
+      - key: FILE_STORAGE_CAP_MB
+        sync: false
+      - key: FILE_CLASS_A_MONTHLY_CAP
+        sync: false
+      - key: FILE_CLASS_B_MONTHLY_CAP
+        sync: false
+      - key: FILE_UPLOAD_MONTHLY_MB
+        sync: false
+      - key: FILE_LINK_TTL_SECONDS
+        sync: false
+      - key: FILES_ALERT_EMAIL
+        sync: false
+      - key: FILES_ADMIN_EMAILS
+        sync: false

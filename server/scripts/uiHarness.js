@@ -14,6 +14,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 process.env.JWT_SECRET = 'ui-harness-secret';
 process.env.CLIENT_URL = 'http://localhost:5174';
 process.env.NODE_ENV = 'development';
+process.env.FILES_DEV_MEMORY = 'true'; // files on, in memory, with the dev link route
 delete process.env.GEMINI_API_KEY;
 
 const PORT = 5070;

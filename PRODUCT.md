@@ -45,4 +45,4 @@ The workload score is computed from the student's own timetable (class hours, Ph
 5. No pressure mechanics: no streaks, points or guilt.
 
 ## Accessibility & Inclusion
-Text contrast 4.5:1 or better in light and dark mode, tap targets of 44px or more, nothing under 13px, `prefers-reduced-motion` respected, works from 320px wide (see `mobile-rules.md`).
+Text contrast 4.5:1 or better in light and dark mode, tap targets of 44px or more, nothing under 13px, `prefers-reduced-motion` respected, works from 320px wide (see `docs/mobile-rules.md`).
