@@ -19,13 +19,16 @@ export const classify = (actionType) => {
     return CLASS_B.has(actionType) ? 'B' : 'A';
 };
 
-// Every status counts: Cloudflare already leaves failed-auth requests out of its numbers, and
-// counting the rest only makes us stricter. Storage is the newest day's peak.
+// Failed-auth requests (401, 403: an expired or forged link) aren't billed (plan 18, P13), so they
+// are left out; otherwise anyone holding an old link could replay it and trip reads for everyone.
+// Every other status counts, which only makes us stricter. Storage is the newest day's peak.
+const UNBILLED_STATUSES = new Set([401, 403]);
+
 const QUERY = `query R2Usage($accountTag: string!, $bucket: string!, $from: Time!, $to: Time!) {
   viewer {
     accounts(filter: { accountTag: $accountTag }) {
       operations: r2OperationsAdaptiveGroups(limit: 10000, filter: { datetime_geq: $from, datetime_leq: $to, bucketName: $bucket }) {
-        dimensions { actionType }
+        dimensions { actionType responseStatusCode }
         sum { requests }
       }
       storage: r2StorageAdaptiveGroups(limit: 1, orderBy: [datetime_DESC], filter: { datetime_geq: $from, datetime_leq: $to, bucketName: $bucket }) {
@@ -50,6 +53,7 @@ const count = (value) => (Number.isFinite(value) && value > 0 ? value : 0);
 const totals = ({ operations, storage }) => {
     const result = { classA: 0, classB: 0, storageBytes: count(storage?.[0]?.max?.payloadSize) };
     for (const group of operations) {
+        if (UNBILLED_STATUSES.has(Number(group?.dimensions?.responseStatusCode))) continue;
         const billed = classify(group?.dimensions?.actionType);
         if (billed === 'A') result.classA += count(group?.sum?.requests);
         if (billed === 'B') result.classB += count(group?.sum?.requests);

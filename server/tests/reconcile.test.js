@@ -35,14 +35,16 @@ afterAll(async () => {
     await closeTestDB();
 });
 
-// Cloudflare answering with these totals for the month so far.
-const cloudflare = ({ classA = 0, classB = 0, storageBytes = 0 } = {}) => vi.fn(async () => new Response(JSON.stringify({
+// Cloudflare answering with these totals for the month so far. `refusedReads` are GETs that failed
+// authentication (expired or forged links), which Cloudflare doesn't bill.
+const cloudflare = ({ classA = 0, classB = 0, storageBytes = 0, refusedReads = 0 } = {}) => vi.fn(async () => new Response(JSON.stringify({
     data: {
         viewer: {
             accounts: [{
                 operations: [
-                    { dimensions: { actionType: 'GetObject' }, sum: { requests: classB } },
-                    { dimensions: { actionType: 'PutObject' }, sum: { requests: classA } },
+                    { dimensions: { actionType: 'GetObject', responseStatusCode: 200 }, sum: { requests: classB } },
+                    { dimensions: { actionType: 'GetObject', responseStatusCode: 403 }, sum: { requests: refusedReads } },
+                    { dimensions: { actionType: 'PutObject', responseStatusCode: 200 }, sum: { requests: classA } },
                 ],
                 storage: [{ dimensions: { datetime: '2026-11-15T00:00:00Z' }, max: { payloadSize: storageBytes } }],
             }],
@@ -59,6 +61,7 @@ const counted = ({ classA = 0, classB = 0, storageBytes = 0 } = {}) => Promise.a
 
 const month = () => fileUsageModel.findById(monthId(NOW)).lean();
 const tripped = async () => (await month()).tripped;
+const resumeKey = async () => (await fileUsageModel.findById('resume').lean())?.resumeKey ?? '';
 const emails = () => vi.mocked(sendOwnerAlertEmail).mock.calls;
 const allLogs = () => logs.flatMap((spy) => spy.mock.calls.flat()).map(String).join('\n');
 const reconcile = (fetchImpl, now = NOW) => reconcileUsage(now, { fetchImpl });
@@ -116,6 +119,13 @@ describe('counted vs real reads', () => {
         const user = await userModel.create({ name: 'Ana', email: 'ana@student.fatima.edu.ph' });
         await expect(reserveLinks(user._id, 1, NOW)).rejects.toMatchObject({ status: 503, code: 'files_paused' });
         await expect(reserveMonth({ classA: 1, uploadBytes: 10 }, NOW)).resolves.toBeTruthy();
+    });
+
+    test('a flood of expired-link replays (403) trips nothing', async () => {
+        await counted({ classB: 100 });
+        await reconcile(cloudflare({ classB: 100, refusedReads: 3_000_000 }));
+        expect(await tripped()).toEqual({ reads: '', writes: '' });
+        expect((await month()).real.classB).toBe(100);
     });
 
     test('a small month uses the 25,000 floor', async () => {
@@ -185,6 +195,28 @@ describe('when Cloudflare cannot be reached', () => {
         expect(await month()).toMatchObject({ analyticsFailures: 0, tripped: { reads: '', writes: '' } });
     });
 
+    test('one failure pauses links when the last good check is over an hour old, and a success lifts it', async () => {
+        const later = (minutes) => new Date(NOW.getTime() + minutes * 60 * 1000);
+        await reconcile(cloudflare());
+        await reconcile(down(), later(59));
+        expect((await tripped()).reads).toBe('');
+
+        await reconcile(down(), later(61));
+        expect(await month()).toMatchObject({ analyticsFailures: 2, tripped: { reads: 'analytics_down' } });
+        expect(emails()).toHaveLength(1);
+
+        await reconcile(cloudflare(), later(70));
+        expect((await tripped()).reads).toBe('');
+    });
+
+    test('a new month does not start the hour over', async () => {
+        await reconcile(cloudflare(), new Date('2026-11-30T23:30:00Z'));
+        const december = new Date('2026-12-01T00:40:00Z');
+        await reconcile(down(), december);
+        expect(await fileUsageModel.findById(monthId(december)).lean())
+            .toMatchObject({ analyticsFailures: 1, tripped: { reads: 'analytics_down' } });
+    });
+
     test('a success keeps any other reason', async () => {
         await counted({ classB: 100_000 });
         await reconcile(cloudflare({ classB: 200_000, storageBytes: 600 * MIB }));
@@ -220,11 +252,12 @@ describe('owner resume (FILES_RESUME_KEY)', () => {
 
         process.env.FILES_RESUME_KEY = 'a';
         await reconcile(cloudflare({ classB: 130_001 }));
-        expect(await month()).toMatchObject({ resumeKey: 'a', baseline: { classB: 30_001 }, tripped: { reads: '', writes: '' } });
+        expect(await month()).toMatchObject({ baseline: { classB: 30_001 }, tripped: { reads: '', writes: '' } });
+        expect(await resumeKey()).toBe('a');
         expect(emails()).toHaveLength(2);
 
         await reconcile(cloudflare({ classB: 130_001 }));
-        expect(await month()).toMatchObject({ resumeKey: 'a', baseline: { classB: 30_001 }, tripped: { reads: '' } });
+        expect(await month()).toMatchObject({ baseline: { classB: 30_001 }, tripped: { reads: '' } });
         expect(emails()).toHaveLength(2);
 
         // Counted is now 130,001 with the baseline, so the margin is 32,500.25.
@@ -235,7 +268,26 @@ describe('owner resume (FILES_RESUME_KEY)', () => {
 
         process.env.FILES_RESUME_KEY = 'b';
         await reconcile(cloudflare({ classB: 162_502 }));
-        expect(await month()).toMatchObject({ resumeKey: 'b', baseline: { classB: 62_502 }, tripped: { reads: '' } });
+        expect(await month()).toMatchObject({ baseline: { classB: 62_502 }, tripped: { reads: '' } });
+        expect(await resumeKey()).toBe('b');
+    });
+
+    test('a key left in env carries into the next month and does not apply again', async () => {
+        await counted({ classB: 100_000 });
+        await reconcile(cloudflare({ classB: 130_001 }));
+        process.env.FILES_RESUME_KEY = 'a';
+        await reconcile(cloudflare({ classB: 130_001 }));
+        expect((await tripped()).reads).toBe('');
+        expect(emails()).toHaveLength(2);
+
+        const december = new Date('2026-12-02T10:00:00Z');
+        await fileUsageModel.create({ _id: monthId(december), classB: 10 });
+        await reconcile(cloudflare({ classB: 40_000 }), december);
+        await reconcile(cloudflare({ classB: 40_000 }), new Date('2026-12-02T10:10:00Z'));
+        const dec = await fileUsageModel.findById(monthId(december)).lean();
+        expect(dec).toMatchObject({ tripped: { reads: 'uncounted_reads' }, baseline: { classB: 0 } });
+        expect(emails().map(([, subject]) => subject).filter((subject) => subject.includes('resume'))).toHaveLength(1);
+        expect(await resumeKey()).toBe('a');
     });
 
     test('an empty key never resumes', async () => {
@@ -243,6 +295,7 @@ describe('owner resume (FILES_RESUME_KEY)', () => {
         await reconcile(cloudflare({ classB: 130_001 }));
         process.env.FILES_RESUME_KEY = '  ';
         await reconcile(cloudflare({ classB: 130_001 }));
-        expect(await month()).toMatchObject({ resumeKey: '', tripped: { reads: 'uncounted_reads' } });
+        expect((await tripped()).reads).toBe('uncounted_reads');
+        expect(await resumeKey()).toBe('');
     });
 });

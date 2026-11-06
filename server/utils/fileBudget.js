@@ -10,6 +10,7 @@ import { sendOwnerAlertEmail } from './emailService.js';
 
 const MIB = 1024 * 1024;
 export const STORAGE_ID = 'storage';
+const RESUME_ID = 'resume';
 const ALERT_THRESHOLDS = [50, 80, 100];
 
 // Month and day keys are UTC, from an injected `now` so tests can cross a boundary.
@@ -298,12 +299,19 @@ export const setTrip = async (now, direction, reason) => {
     return modifiedCount === 1;
 };
 
-// A run that couldn't reach Cloudflare. Returns how many have failed in a row this month.
+// A run that couldn't reach Cloudflare. Returns how many have failed in a row this month, and when
+// a run last got numbers: this month's check, or last month's while this month has none yet, so a
+// new month doesn't start the hour over. null when there never was one.
 export const recordUsageFailure = async (now) => {
     const id = monthId(now);
     await ensureUsageDoc(id);
-    const doc = await fileUsageModel.findOneAndUpdate({ _id: id }, { $inc: { analyticsFailures: 1 } }, { returnDocument: 'after' });
-    return doc.analyticsFailures;
+    const doc = await fileUsageModel.findOneAndUpdate({ _id: id }, { $inc: { analyticsFailures: 1 } }, { returnDocument: 'after', lean: true });
+    let lastCheckedAt = doc.real?.checkedAt ?? null;
+    if (!lastCheckedAt) {
+        const previous = await fileUsageModel.findById(monthId(new Date(monthStart(now).getTime() - 1))).lean();
+        lastCheckedAt = previous?.real?.checkedAt ?? null;
+    }
+    return { failures: doc.analyticsFailures, lastCheckedAt };
 };
 
 // A run that reached Cloudflare: stores what it saw, resets the failure count and lifts
@@ -324,19 +332,26 @@ export const recordRealUsage = async (now, real) => {
     return { month, storageBytes: storage?.bytes ?? 0 };
 };
 
-// Owner resume (O10): a FILES_RESUME_KEY this month hasn't seen clears both trips and accepts the
-// gap Cloudflare shows right now as the baseline, so it doesn't trip again at once. Applies once
-// per key (the key is in the filter). Returns the updated month, or null when nothing changed.
+// Owner resume (O10): a FILES_RESUME_KEY that was never applied clears both trips and accepts the
+// gap Cloudflare shows right now as the baseline, so it doesn't trip again at once. The last key
+// applied lives on its own document, not the month's, so a key left in env applies once ever and
+// not again each new month. Claiming the key first (it's in the filter) means two runs can't both
+// apply it. Returns the updated month, or null when nothing changed.
 export const applyResume = async (now, key, real) => {
+    await ensureDoc(fileUsageModel, { _id: RESUME_ID }, { resumeKey: '' });
+    const claimed = await fileUsageModel.updateOne({ _id: RESUME_ID, resumeKey: { $ne: key } }, { $set: { resumeKey: key } });
+    if (!claimed.modifiedCount) return null;
+
     const id = monthId(now);
+    await ensureUsageDoc(id);
     const month = await fileUsageModel.findById(id).lean();
     const baseline = {
-        classA: Math.max(0, real.classA - (month?.classA ?? 0)),
-        classB: Math.max(0, real.classB - (month?.classB ?? 0)),
+        classA: Math.max(0, real.classA - month.classA),
+        classB: Math.max(0, real.classB - month.classB),
     };
     return fileUsageModel.findOneAndUpdate(
-        { _id: id, resumeKey: { $ne: key } },
-        { $set: { resumeKey: key, baseline, 'tripped.reads': '', 'tripped.writes': '' } },
+        { _id: id },
+        { $set: { baseline, 'tripped.reads': '', 'tripped.writes': '' } },
         { returnDocument: 'after', lean: true },
     );
 };

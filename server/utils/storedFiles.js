@@ -18,6 +18,7 @@ import {
 const MIB = 1024 * 1024;
 const HOUR_MS = 60 * 60 * 1000;
 const STALE_UPLOAD_MS = HOUR_MS; // a put times out after 15 s, so an hour-old upload is dead
+const STALE_USAGE_MS = HOUR_MS; // links fail closed once Cloudflare's numbers are this old
 const SWEEP_INTERVAL_MS = HOUR_MS;
 const FIRST_SWEEP_MS = 60 * 1000;
 const FIRST_RECONCILE_MS = 90 * 1000;
@@ -287,12 +288,15 @@ export const reconcileUsage = async (now = new Date(), { fetchImpl } = {}) => {
     } catch (error) {
         // Only the short code: the request carries the token.
         const code = error instanceof R2UsageError ? error.code : 'unexpected';
-        const failures = await recordUsageFailure(now);
+        const { failures, lastCheckedAt } = await recordUsageFailure(now);
         console.warn(`[files] usage check failed (${failures} in a row): ${code}`);
-        if (failures >= getFileLimits().analyticsFailureLimit && await setTrip(now, 'reads', 'analytics_down')) {
+        // Six failures in a row is an hour of this process trying; a last good check over an hour
+        // old covers what the count can't see (restarts, a new month starting the count over).
+        const stale = lastCheckedAt && now.getTime() - lastCheckedAt.getTime() > STALE_USAGE_MS;
+        if ((failures >= getFileLimits().analyticsFailureLimit || stale) && await setTrip(now, 'reads', 'analytics_down')) {
             sendFileAlert(
                 'links paused, the usage check is down',
-                `The usage check couldn't reach Cloudflare ${failures} times in a row (about an hour). Links are paused until it works again; it clears itself.`,
+                `The usage check couldn't get numbers from Cloudflare for about an hour (${failures} failures in a row this month). Links are paused until it works again; it clears itself.`,
             );
         }
         return { ok: false, code };

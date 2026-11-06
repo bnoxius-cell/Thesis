@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 
 // Server-wide file counters (plan 18, 3.3). `_id: 'storage'` holds the stored bytes; one
 // `month:YYYY-MM` (UTC) document per month holds the R2 operations and upload traffic we reserved,
-// plus what the reconciliation saw on Cloudflare. No user ids here.
+// plus what the reconciliation saw on Cloudflare. `_id: 'resume'` holds only `resumeKey`, the last
+// FILES_RESUME_KEY applied (any month). No user ids here.
 const fileUsageSchema = new mongoose.Schema({
     _id: { type: String },
     bytes: { type: Number, default: 0 },
@@ -23,7 +24,7 @@ const fileUsageSchema = new mongoose.Schema({
         reads: { type: String, default: '' },
         writes: { type: String, default: '' },
     },
-    resumeKey: { type: String, default: '' },
+    resumeKey: { type: String },
     baseline: {
         classA: { type: Number, default: 0 },
         classB: { type: Number, default: 0 },

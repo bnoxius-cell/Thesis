@@ -10,7 +10,7 @@ const usageBody = (operations, payloadSize = 0) => ({
     data: { viewer: { accounts: [{ operations, storage: [{ dimensions: { datetime: '2026-11-15T00:00:00Z' }, max: { payloadSize } }] }] } },
     errors: null,
 });
-const op = (actionType, requests) => ({ dimensions: { actionType }, sum: { requests } });
+const op = (actionType, requests, responseStatusCode) => ({ dimensions: { actionType, responseStatusCode }, sum: { requests } });
 
 const run = (fetchImpl) => fetchR2Usage({ accountId: 'acc', token: TOKEN, bucket: 'stresscare-files', from: FROM, to: TO, fetchImpl });
 
@@ -39,6 +39,7 @@ describe('fetchR2Usage', () => {
         expect(variables).toEqual({ accountTag: 'acc', bucket: 'stresscare-files', from: '2026-11-01T00:00:00.000Z', to: TO.toISOString() });
         expect(query).toContain('r2OperationsAdaptiveGroups(limit: 10000');
         expect(query).toContain('datetime_geq: $from, datetime_leq: $to, bucketName: $bucket');
+        expect(query).toContain('dimensions { actionType responseStatusCode }');
         expect(query).toContain('r2StorageAdaptiveGroups');
         expect(query).not.toContain('objectName');
     });
@@ -48,6 +49,14 @@ describe('fetchR2Usage', () => {
             op('GetObject', 900), op('HeadObject', 100), op('PutObject', 40), op('SomethingNew', 2), op('DeleteObject', 500),
         ], 123_456));
         expect(await run(fetchImpl)).toEqual({ classA: 42, classB: 1000, storageBytes: 123_456 });
+    });
+
+    test('failed-auth groups (401, 403) are not billed and left out; every other status counts', async () => {
+        const fetchImpl = reply(usageBody([
+            op('GetObject', 25_000, 403), op('GetObject', 900, 401), op('PutObject', 7, 403),
+            op('GetObject', 10, 200), op('GetObject', 3, 404), op('GetObject', 2), op('PutObject', 4, 500),
+        ]));
+        expect(await run(fetchImpl)).toEqual({ classA: 4, classB: 15, storageBytes: 0 });
     });
 
     test('a bucket with no data yet reads as zero', async () => {
