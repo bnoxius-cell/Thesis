@@ -1,4 +1,4 @@
-import { del, get, post } from "./http";
+import { del, get, patch, post } from "./http";
 
 // The student's own files (plan 19). Every call answers { data } or { error } (see http.js); a failed
 // answer carries the API's `code` ("files_paused", "quota_full", "bad_type"...) next to its message.
@@ -21,6 +21,15 @@ export function uploadFile(file, { to, thumb, onProgress, signal }) {
 }
 
 export const deleteFile = (id) => del(`/api/files/${encodeURIComponent(id)}`);
+
+// Folders. The server checks the name (1 to 60 characters, not General, not a subject's name, not
+// one of the student's folders) and answers a plain message, with status 409 for a name taken.
+// Answers { folder: { id, name } }.
+export const createFolder = (name) => post("/api/files/folders", { name });
+export const renameFolder = (id, name) => patch(`/api/files/folders/${encodeURIComponent(id)}`, { name });
+
+// `files` says what happens to the folder's files: "keep" moves them to General, "delete" removes them.
+export const deleteFolder = (id, files) => del(`/api/files/folders/${encodeURIComponent(id)}?files=${files}`);
 
 // Short-lived download links for up to 24 of the student's files. `variant` is "thumb" (the small
 // preview of a photo) or "file". Answers { links: [{ id, url, expiresAt }] }. Only shared/lib/fileLinks.js

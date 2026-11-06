@@ -173,6 +173,11 @@
     gap: 2px;
     min-width: 0;
   }
+  /* Where the file lives, when the list mixes places (Recent, search). Right-aligned beside More. */
+  .files-row__place {
+    flex: none;
+    margin-left: auto;
+  }
   .files-row__name {
     color: var(--text-primary);
     font: 600 var(--text-sm) / 20px var(--font-ui);
@@ -193,6 +198,51 @@
     }
     .files-row__added {
       display: none;
+    }
+    /* A row with a chip is taller (Figma 154:1532, 155:1394): the name takes the first line, More
+       stays level with it, and the chip ends the details line under More. The open area runs the
+       full row under More so the chip can reach there; the name stops short of More. */
+    .files-row--placed {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 44px;
+      gap: 0;
+      min-height: 84px;
+    }
+    .files-row--placed .files-row__open {
+      grid-column: 1 / -1;
+      grid-row: 1;
+      padding-right: var(--space-1);
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        "icon name name"
+        "icon meta place";
+      align-content: center;
+      align-items: start;
+      row-gap: 6px;
+    }
+    .files-row--placed .files-row__open > :first-child {
+      grid-area: icon;
+    }
+    .files-row--placed .files-row__text {
+      display: contents;
+    }
+    .files-row--placed .files-row__name {
+      grid-area: name;
+      margin-right: calc(44px - var(--space-1));
+    }
+    .files-row--placed > .ui-menu-anchor {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: start;
+      z-index: 1;
+    }
+    .files-row--placed .files-row__meta {
+      grid-area: meta;
+      align-self: center;
+    }
+    .files-row__place {
+      grid-area: place;
     }
   }
 

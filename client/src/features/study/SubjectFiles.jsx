@@ -1,18 +1,14 @@
-import { useState } from "react";
 import { FileText, Info } from "lucide-react";
-import { Button, EmptyState, Skeleton } from "@/shared/ui";
-import DeleteFileDialog from "@/features/files/DeleteFileDialog";
-import FileList from "@/features/files/FileList";
-import FilePreviewDialog from "@/features/files/FilePreviewDialog";
+import { EmptyState } from "@/shared/ui";
+import FilesDrop from "@/features/files/FilesDrop";
 import FilesNotice from "@/features/files/FilesNotice";
+import LibraryFileList from "@/features/files/LibraryFileList";
+import LibraryStatus from "@/features/files/LibraryStatus";
 import StorageMeter from "@/features/files/StorageMeter";
 import UploadButton from "@/features/files/UploadButton";
 import { formatSize } from "@/shared/lib/formatSize";
 import { NEAR_FULL, uploadBlock } from "@/features/files/fileNotice";
-import useOpenFile from "@/features/files/useOpenFile";
-import useFileDrop from "@/shared/hooks/useFileDrop";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
-import useNow from "@/shared/hooks/useNow";
 import "@/features/files/files.css";
 
 const ARCHIVED = { icon: Info, message: "This subject is archived. You can open its files but not add new ones." };
@@ -23,36 +19,13 @@ const ARCHIVED = { icon: Info, message: "This subject is archived. You can open 
 // are paused or the student's space is full. The storage meter appears only once space runs low.
 // `library` and `uploads` come from useSubjectFiles; the page shows the upload tray.
 export default function SubjectFiles({ subject, library, uploads }) {
-  const now = useNow();
   const archived = Boolean(subject.archivedAt);
   const phone = useMediaQuery("(max-width: 1023px)"); // where the bottom bar is and Upload floats above it
-  const { previewing, open, closePreview } = useOpenFile();
-  const [deleting, setDeleting] = useState(null);
 
-  const ready = library.status === "ready";
-  const block = archived ? ARCHIVED : ready && uploadBlock(library);
-  const canUpload = ready && !block;
-  const { over, dropProps } = useFileDrop({ onFiles: uploads.add, disabled: !canUpload });
+  if (library.status !== "ready") return <LibraryStatus library={library} />;
 
-  if (library.status === "loading") {
-    return (
-      <div className="files-tab" role="status" aria-label="Loading your files">
-        <Skeleton className="files-skeleton" height="72px" />
-        <Skeleton className="files-skeleton" height="72px" />
-      </div>
-    );
-  }
-  if (library.status === "failed") {
-    return (
-      <EmptyState
-        icon={FileText}
-        title="Couldn't load your files"
-        actions={<Button variant="secondary" onClick={library.reload}>Try again</Button>}
-      >
-        {library.error}
-      </EmptyState>
-    );
-  }
+  const block = archived ? ARCHIVED : uploadBlock(library);
+  const canUpload = !block;
 
   const files = archived ? library.files.filter((file) => file.location.id === subject._id) : library.files;
   const total = files.reduce((sum, file) => sum + file.size, 0);
@@ -70,20 +43,9 @@ export default function SubjectFiles({ subject, library, uploads }) {
           {!archived && <UploadButton floating={phone} disabled={!canUpload} onFiles={uploads.add} />}
         </div>
       )}
-      <div {...dropProps} className={`files-drop${over ? " is-over" : ""}`}>
+      <FilesDrop onFiles={uploads.add} disabled={!canUpload}>
         {files.length > 0 ? (
-          <FileList
-            files={files}
-            freshIds={library.freshIds}
-            leavingIds={library.leavingIds}
-            now={now}
-            onOpen={open}
-            onDelete={setDeleting}
-            onGone={(id) => {
-              library.remove(id);
-              library.refresh();
-            }}
-          />
+          <LibraryFileList library={library} files={files} />
         ) : (
           <div className="files-empty">
             <EmptyState
@@ -101,28 +63,7 @@ export default function SubjectFiles({ subject, library, uploads }) {
             </EmptyState>
           </div>
         )}
-      </div>
-      {previewing && (
-        <FilePreviewDialog
-          file={previewing}
-          now={now}
-          onClose={closePreview}
-          onDelete={(file) => {
-            closePreview();
-            setDeleting(file);
-          }}
-        />
-      )}
-      {deleting && (
-        <DeleteFileDialog
-          file={deleting}
-          onClose={() => setDeleting(null)}
-          onDeleted={(file) => {
-            setDeleting(null);
-            library.retire(file.id);
-          }}
-        />
-      )}
+      </FilesDrop>
     </div>
   );
 }

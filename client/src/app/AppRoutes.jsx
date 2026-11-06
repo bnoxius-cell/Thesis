@@ -15,6 +15,7 @@ const LegalPage = lazy(() => import("@/features/legal/LegalPage"));
 const HomePage = lazy(() => import("@/features/home/HomePage"));
 const PlanPage = lazy(() => import("@/features/plan/PlanPage"));
 const StudyPage = lazy(() => import("@/features/study/StudyPage"));
+const FilesPage = lazy(() => import("@/features/files/FilesPage"));
 const SubjectPage = lazy(() => import("@/features/study/SubjectPage"));
 const ReviewerPage = lazy(() => import("@/features/study/ReviewerPage"));
 const PracticePage = lazy(() => import("@/features/practice/PracticePage"));
@@ -61,6 +62,7 @@ export default function AppRoutes() {
           <Route path="/study" element={<StudyPage />} />
           <Route path="/study/subjects/:subjectId" element={<SubjectPage />} />
           <Route path="/study/practice" element={<StudyPage />} />
+          <Route path="/study/files/*" element={<FilesPage />} />
           <Route path="/study/reviewers" element={<RedirectTo to="/study/practice" />} />
           <Route path="/study/flashcards" element={<RedirectTo to="/study/practice" set={{ show: "flashcards" }} />} />
           <Route path="/study/reviewers/:reviewerId" element={<ReviewerPage />} />

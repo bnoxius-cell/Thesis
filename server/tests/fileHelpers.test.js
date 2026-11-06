@@ -1,12 +1,14 @@
 import { describe, test, expect } from 'vitest';
 import { formatSize } from '../../client/src/shared/lib/formatSize.js';
-import { FILE_ACCEPT, MAX_FILE_BYTES, extensionOf, fileLabel, fileProblem, isPhoto } from '../../client/src/features/files/fileRules.js';
+import { FILE_ACCEPT, MAX_FILE_BYTES, MAX_LIBRARY_FILES, extensionOf, fileLabel, fileProblem, isPhoto } from '../../client/src/features/files/fileRules.js';
+import { getFileLimits } from '../utils/fileLimits.js';
 
 const MB = 1024 * 1024;
 
 describe('formatSize', () => {
-    test('small files read in KB, never 0 KB', () => {
-        expect(formatSize(0)).toBe('1 KB');
+    test('nothing reads 0 MB; small files read in KB, never 0 KB', () => {
+        expect(formatSize(0)).toBe('0 MB');
+        expect(formatSize(1)).toBe('1 KB');
         expect(formatSize(300)).toBe('1 KB');
         expect(formatSize(890 * 1024)).toBe('890 KB');
     });
@@ -30,6 +32,11 @@ describe('file rules', () => {
         expect(fileLabel('exe')).toBe('File');
         expect(fileLabel('constructor')).toBe('File');
         expect(FILE_ACCEPT).toContain('.markdown');
+    });
+
+    test('the limits the page shows match the server', () => {
+        expect(MAX_LIBRARY_FILES).toBe(getFileLimits().maxLibraryFiles);
+        expect(MAX_FILE_BYTES).toBe(getFileLimits().maxFileBytes);
     });
 
     test('photos are the image types only', () => {

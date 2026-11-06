@@ -1,0 +1,107 @@
+/* Upload files, New and Rename folder, Delete folder (Figma 158:1906, 162:2669, 162:3111). The shell,
+   fields and buttons come from Modal, Field, ConfirmDialog and Button. */
+@layer pages {
+  /* The files picked, as quiet rows with a 44px remove button. */
+  .files-dialog__files {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .files-dialog__file {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 52px;
+    padding: var(--space-1) var(--space-1) var(--space-1) 14px;
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+    color: var(--text-primary);
+  }
+  .files-dialog__file > svg {
+    flex: none;
+  }
+  .files-dialog__text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .files-dialog__text strong {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .files-dialog__text span {
+    color: var(--text-secondary);
+  }
+
+  /* Delete folder: two radio cards. The chosen one is accent-soft with a 2px accent border. */
+  .files-choices {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .files-choices p {
+    margin: 0;
+  }
+  .files-choices__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .files-choice {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 14px var(--space-4);
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    cursor: pointer;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out);
+  }
+  .files-choice:has(input:checked) {
+    padding: 13px 15px;
+    border: 2px solid var(--accent);
+    background: var(--accent-soft);
+  }
+  .files-choice:has(input:focus-visible) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .files-choice input {
+    flex: none;
+    appearance: none;
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    border: 2px solid var(--border-input);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    transition: border-color var(--dur-2) var(--ease-out);
+  }
+  .files-choice input:checked {
+    border: 6px solid var(--accent);
+  }
+  .files-choice__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .files-choice__text strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .files-choice__text span {
+    color: var(--text-secondary);
+  }
+}

@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchFiles } from "@/shared/api/files";
 
-const INITIAL = { status: "loading", error: "", files: [], usage: null, uploads: null, freshIds: [], leavingIds: [] };
+const INITIAL = { status: "loading", error: "", files: [], locations: null, usage: null, uploads: null, freshIds: [], leavingIds: [] };
 
 // The student's library files in one place, newest first.
 //   where     "general", "subject:<id>" or "folder:<id>"; without it, every file
 //   status    "loading" | "ready" | "failed"
 //   error     a plain message for the failed state
 //   files     the files ({ id, name, ext, size, hasThumb, createdAt, location, ... })
+//   locations { subjects: [{ id, name, color }], folders: [{ id, name }] }: the places a file can be in
 //   usage     { usedBytes, limitBytes }: everything the student has stored, not only these files
 //   uploads   { on, code?, message?, resumesAt? }: whether uploading is open right now
 //   freshIds  files added in this visit; their rows ease in
@@ -33,7 +34,7 @@ export default function useLibrary(where) {
     if (request !== latest.current) return; // a newer fetch is on its way, or the page is gone
     setState((prev) => {
       if (error) return prev.status === "ready" ? prev : { ...prev, status: "failed", error };
-      return { ...prev, status: "ready", error: "", files: data.files, usage: data.usage, uploads: data.uploads };
+      return { ...prev, status: "ready", error: "", files: data.files, locations: data.locations, usage: data.usage, uploads: data.uploads };
     });
   }, [where]);
 

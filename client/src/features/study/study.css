@@ -131,17 +131,6 @@
     }
   }
 
-  /* ---- Tabs: a full-width track on phones ---- */
-  @media (max-width: 720px) {
-    .study-tabs {
-      display: flex;
-      width: 100%;
-    }
-    .study-tabs .ui-tab {
-      flex: 1;
-    }
-  }
-
   /* ---- Subject cards ---- */
   .study-grid {
     display: grid;
