@@ -65,8 +65,12 @@
       flex: 1 1 0;
     }
     .people-head__tabs {
+      order: 3;
       flex-basis: 100%;
       margin-left: 0;
+    }
+    .people-head__info {
+      margin-left: auto;
     }
   }
 

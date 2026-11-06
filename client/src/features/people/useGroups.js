@@ -8,7 +8,8 @@ const POLL_MS = 60000;
 // removed from or added to shows up without a reload.
 //   groups  null until the first answer
 //   status  "loading" | "ready" | "failed" (failed only when nothing has loaded yet)
-//   reload  tries again after a failure
+//   reload  tries again after a failure (shows the skeleton)
+//   refresh asks again quietly, after a change, so the open group never flashes
 // A failed refresh keeps the groups already on screen.
 export default function useGroups() {
   const [state, setState] = useState({ groups: null, status: "loading", error: "" });
@@ -28,5 +29,5 @@ export default function useGroups() {
     load();
   }, [load]);
 
-  return { ...state, reload };
+  return { ...state, reload, refresh: load };
 }

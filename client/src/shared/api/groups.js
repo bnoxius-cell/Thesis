@@ -1,4 +1,4 @@
-import { get, post } from "./http";
+import { del, get, patch, post } from "./http";
 
 // Every call answers { data } or { error } (see http.js).
 
@@ -22,3 +22,21 @@ export const sendMessage = (groupId, text) => post(`/api/groups/${groupId}/messa
 // course, dueDate, shareTag...), addedByMe, sharedBy ({ _id, name } or null) and sharedAt. It lists
 // shared tasks only: classes and exams are not part of it.
 export const fetchUpcoming = (groupId) => get(`/api/groups/${groupId}/upcoming`);
+
+// Changes a group. Owner and admins only. `fields` is any of { name, pinned } (a pinned note of ""
+// clears it); the answer is the whole updated group: { group }. The server trims both, refuses an
+// empty name, a name over 60 characters and a note over 280, and runs the family filter on the note.
+export const updateGroup = (groupId, fields) => patch(`/api/groups/${groupId}`, fields);
+
+// The student leaves a group (the owner can't: they delete it instead).
+export const leaveGroup = (groupId) => post("/api/groups/leave", { groupId });
+
+// Owner only: ends the group for everyone.
+export const deleteGroup = (groupId) => del(`/api/groups/${groupId}`);
+
+// Owner only: promote a member to admin, or take it back.
+export const addAdmin = (groupId, userId) => post(`/api/groups/${groupId}/admins`, { userId });
+export const removeAdmin = (groupId, userId) => del(`/api/groups/${groupId}/admins/${userId}`);
+
+// Owner and admins: removes a regular member (an admin can't remove another admin).
+export const removeMember = (groupId, userId) => del(`/api/groups/${groupId}/members/${userId}`);

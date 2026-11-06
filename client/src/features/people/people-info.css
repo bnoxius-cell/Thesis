@@ -1,0 +1,131 @@
+/* The group's Info dialog (Figma 64:910) and the small name / note dialogs over it. */
+@layer pages {
+  .people-info__members {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .people-info__member {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 48px;
+  }
+  .people-info__avatar {
+    --people-avatar: 32px;
+    --people-avatar-font: var(--text-sm);
+  }
+  .people-info__name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+  .people-info__role {
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .people-info__member .ui-icon-btn {
+    margin-right: -4px;
+  }
+  .people-info__more,
+  .people-info__row {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    border: 0;
+    background: none;
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .people-info__more {
+    gap: var(--space-1);
+    color: var(--accent);
+  }
+  .people-info__more svg {
+    transition: transform var(--dur-2) var(--ease-out);
+  }
+  .people-info__more svg[data-open] {
+    transform: rotate(180deg);
+  }
+  .people-info__code {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-4) var(--space-4) 20px;
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+  }
+  .people-info__code-value {
+    margin: 2px 0 0;
+    color: var(--text-primary);
+    font: 600 var(--text-lg) / 28px var(--font-ui);
+    letter-spacing: 0.04em;
+    overflow-wrap: anywhere;
+  }
+  .people-info__notify {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  .people-info__notify .ui-segment {
+    max-width: 100%;
+  }
+  .people-info__hint {
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .people-info__rows {
+    margin: calc(var(--space-2) * -1) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .people-info__row {
+    width: 100%;
+    gap: var(--space-3);
+    min-height: 48px;
+    color: var(--text-primary);
+    text-align: left;
+    border-radius: var(--radius-md);
+  }
+  .people-info__row span {
+    flex: 1 1 auto;
+  }
+  .people-info__row svg {
+    flex: none;
+  }
+  .people-info__row > svg:last-child {
+    color: var(--text-muted);
+  }
+  @media (hover: hover) {
+    .people-info__row:hover {
+      background: var(--surface-2);
+    }
+  }
+  /* Leave group at the start, Done at the end (on a phone they stack, Done first). */
+  .people-info .ui-modal__actions {
+    justify-content: space-between;
+  }
+  @media (max-width: 480px) {
+    .people-info .ui-segment__option {
+      padding-inline: var(--space-2);
+    }
+    .people-info .ui-modal__actions {
+      justify-content: flex-start;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .people-info__more svg {
+      transition: none;
+    }
+  }
+}
