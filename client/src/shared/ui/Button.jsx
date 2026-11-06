@@ -12,6 +12,9 @@ export default function Button({
   busy = false,
   to,
   href,
+  target,
+  rel,
+  download,
   type = "button",
   disabled = false,
   className = "",
@@ -35,7 +38,7 @@ export default function Button({
   }
   if (href && !disabled) {
     return (
-      <a href={href} className={classes} {...rest}>
+      <a href={href} target={target} rel={rel} download={download} className={classes} {...rest}>
         {content}
       </a>
     );

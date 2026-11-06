@@ -14,18 +14,20 @@ function title(items) {
 
 function UploadRow({ item, onRetry, onDismiss }) {
   const { status } = item;
+  // Every byte has been sent and the server is storing the file: it will land, so it can't be cancelled.
+  const saving = status === "uploading" && item.progress >= 1;
   return (
     <li className="files-up">
       <div className="files-up__line">
         <span className="files-up__name">{item.name}</span>
-        {status === "uploading" && <span className="files-up__state">{Math.round(item.progress * 100)}%</span>}
+        {status === "uploading" && <span className="files-up__state">{saving ? "Saving" : `${Math.round(item.progress * 100)}%`}</span>}
         {status === "queued" && <span className="files-up__state">Waiting</span>}
         {status === "done" && (
           <span className="files-up__state files-up__state--done">
             <Check size={16} aria-hidden="true" /> Uploaded
           </span>
         )}
-        {(status === "uploading" || status === "queued") && (
+        {((status === "uploading" && !saving) || status === "queued") && (
           <IconButton plain icon={X} label={`Cancel upload of ${item.name}`} onClick={() => onDismiss(item.key)} />
         )}
       </div>

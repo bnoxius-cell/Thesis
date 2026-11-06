@@ -7,7 +7,7 @@ import FilePreviewDialog from "@/features/files/FilePreviewDialog";
 import FilesNotice from "@/features/files/FilesNotice";
 import StorageMeter from "@/features/files/StorageMeter";
 import UploadButton from "@/features/files/UploadButton";
-import { formatSize } from "@/features/files/fileKinds";
+import { formatSize } from "@/shared/lib/formatSize";
 import { NEAR_FULL, uploadBlock } from "@/features/files/fileNotice";
 import useOpenFile from "@/features/files/useOpenFile";
 import useFileDrop from "@/shared/hooks/useFileDrop";

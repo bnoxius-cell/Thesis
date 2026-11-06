@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { toast } from "react-toastify";
 import { ensureLink } from "@/shared/lib/fileLinks";
-import { isPhoto } from "./fileKinds";
+import { isPhoto } from "./fileRules";
 
 // Opening a file. A photo opens in the preview dialog (`previewing` is that file); anything else
 // asks for a link and navigates to it, which downloads it (the storage sends documents as an

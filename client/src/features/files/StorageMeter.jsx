@@ -1,5 +1,5 @@
 import { ProgressBar } from "@/shared/ui";
-import { formatSize } from "./fileKinds";
+import { formatSize } from "@/shared/lib/formatSize";
 import { NEAR_FULL } from "./fileNotice";
 
 // "Your storage · 82 MB of 100 MB" with a bar. Accent until 80% and in the watch tone from there,

@@ -71,11 +71,15 @@ export function forgetLink(id, variant) {
   if (variant === "thumb") persistThumbs();
 }
 
+// Counts clearFileLinks calls, so links asked for before a sign-out aren't kept when they arrive after it.
+let generation = 0;
+
 // One request for up to 24 ids of one variant. Answers {} or { error, code }.
 async function fetchBatch(ids, variant) {
+  const askedIn = generation;
   const { data, error, code } = await fetchFileLinks(ids, variant);
   if (error) return { error, code };
-  remember(data.links, variant);
+  if (askedIn === generation) remember(data.links, variant);
   return {};
 }
 
@@ -125,4 +129,20 @@ export function loadThumb(id) {
     timer ??= setTimeout(flush, BATCH_WINDOW_MS);
   }
   return waiting.get(id).promise;
+}
+
+// On sign-out or a change of account: the links belong to the student who asked for them, so none
+// may stay for the next one, in memory or in sessionStorage. Previews still waiting resolve false.
+export function clearFileLinks() {
+  generation += 1;
+  cache.clear();
+  waiting.forEach((job) => job.settle(false));
+  waiting.clear();
+  clearTimeout(timer);
+  timer = null;
+  try {
+    sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Storage that can't be read was never written either.
+  }
 }

@@ -1,14 +1,33 @@
 import { useId, useState } from "react";
+import { toast } from "react-toastify";
 import { Image as ImageIcon, ImageOff, X } from "lucide-react";
 import { Button, IconButton, ModalShell } from "@/shared/ui";
-import { addedText, formatSize } from "./fileKinds";
+import { ensureLink } from "@/shared/lib/fileLinks";
+import { formatSize } from "@/shared/lib/formatSize";
+import { addedText } from "./fileKinds";
 import useFileImage from "./useFileImage";
+
+// Download opens the photo in a new tab: the storage serves a photo inline, so the browser shows it
+// there and the photo is saved from that tab. The dialog may have been open longer than its link
+// lives, so the link is fetched again on the click. The tab is opened before that wait, while the
+// click still counts, or a popup blocker would stop it.
+async function download(file) {
+  const tab = window.open("", "_blank");
+  if (tab) tab.opener = null;
+  const { url, error } = await ensureLink(file.id, "file");
+  if (error) {
+    tab?.close();
+    toast.error(error);
+  } else if (tab) {
+    tab.location.replace(url);
+  } else {
+    window.location.assign(url);
+  }
+}
 
 // A photo at full size (Figma 162:3776, 162:3972) on a dark scrim: name and size top left, Download,
 // Delete and Close top right. On a phone Close sits beside the name and the two buttons are a row at
-// the bottom. The picture comes from a fresh link and fades in. Download opens the same link in a
-// new tab: the storage serves a photo inline, so the browser shows it there and the photo is saved
-// from that tab.
+// the bottom. The picture comes from a fresh link and fades in.
 export default function FilePreviewDialog({ file, now, onClose, onDelete }) {
   const titleId = useId();
   const [loaded, setLoaded] = useState(false);
@@ -23,7 +42,7 @@ export default function FilePreviewDialog({ file, now, onClose, onDelete }) {
         </p>
       </div>
       <div className="files-preview__actions">
-        <Button variant="secondary" href={src ?? undefined} disabled={!src} target="_blank" rel="noopener noreferrer" download={file.name}>
+        <Button variant="secondary" onClick={() => download(file)}>
           Download
         </Button>
         <Button variant="danger" onClick={() => onDelete(file)}>Delete</Button>

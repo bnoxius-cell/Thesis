@@ -196,8 +196,8 @@
     }
   }
 
-  /* A photo's 40px box. It is centred on the same line as a document's 20px icon and takes the same
-     width, so names line up across a mixed list. The preview fades in over the icon. */
+  /* A photo's 40px box. It starts where a document's icon starts and keeps the same gap to the name.
+     The preview fades in over the icon. */
   .files-thumb {
     position: relative;
     display: inline-flex;
@@ -206,7 +206,6 @@
     justify-content: center;
     width: 40px;
     height: 40px;
-    margin-inline: -10px;
     overflow: hidden;
     border-radius: var(--radius-md);
     background: var(--accent-soft);
@@ -373,10 +372,13 @@
       background: color-mix(in srgb, var(--on-accent) 16%, transparent);
     }
   }
+  /* The stage fills its row (the dialog aligns its other items to the top), so the photo sits in the
+     middle of the space between the header and, on a phone, the buttons. */
   .files-preview__stage {
     display: grid;
     grid-area: stage;
     place-items: center;
+    align-self: stretch;
     min-height: 0;
   }
   .files-preview__stage > * {

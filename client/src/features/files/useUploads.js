@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { uploadFile } from "@/shared/api/files";
-import { isPhoto } from "./fileKinds";
-import { MAX_PICK, extensionOf, fileProblem } from "./fileRules";
+import { MAX_PICK, extensionOf, fileProblem, isPhoto } from "./fileRules";
 import makeThumb from "./makeThumb";
 
 // An answer that means every other file in the queue would fail the same way, so they aren't sent.
@@ -16,7 +15,7 @@ let nextKey = 0;
 //   onSettled   runs once the queue is empty, to fetch the list again with the true usage
 // `items` are the rows of the upload tray: { key, name, status, progress, error, retryable } with
 // status "queued" | "uploading" | "done" | "failed". Cancelling a running upload aborts its request
-// and takes its row away. Leaving the page cancels what is still running. The files themselves
+// and takes its row away. Leaving the page cancels what is running and what is queued. The files themselves
 // stay in a ref, not in state.
 export default function useUploads({ to, onUploaded, onSettled }) {
   const [items, setItems] = useState([]);
@@ -24,6 +23,7 @@ export default function useUploads({ to, onUploaded, onSettled }) {
   const files = useRef(new Map()); // key -> File
   const abort = useRef(new Map()); // key -> AbortController of the running upload
   const running = useRef(false);
+  const mounted = useRef(true); // false once the page has gone: nothing new is sent after that
   const latest = useRef({});
   useEffect(() => {
     latest.current = { to, onUploaded, onSettled };
@@ -50,7 +50,7 @@ export default function useUploads({ to, onUploaded, onSettled }) {
     patch(item.key, { status: "uploading", progress: 0, error: "" });
 
     const thumb = isPhoto(item.ext) ? await makeThumb(file) : null;
-    const result = controller.signal.aborted
+    const result = controller.signal.aborted || !mounted.current
       ? { cancelled: true }
       : await uploadFile(file, {
           to: latest.current.to,
@@ -74,7 +74,7 @@ export default function useUploads({ to, onUploaded, onSettled }) {
   const pump = useCallback(async () => {
     if (running.current) return;
     running.current = true;
-    const nextQueued = () => itemsRef.current.find((item) => item.status === "queued");
+    const nextQueued = () => mounted.current && itemsRef.current.find((item) => item.status === "queued");
     try {
       for (let next = nextQueued(); next; next = nextQueued()) {
         const failed = await send(next);
@@ -85,7 +85,7 @@ export default function useUploads({ to, onUploaded, onSettled }) {
     } finally {
       running.current = false;
     }
-    latest.current.onSettled?.();
+    if (mounted.current) latest.current.onSettled?.();
   }, [send, update]);
 
   const add = useCallback((picked) => {
@@ -118,9 +118,14 @@ export default function useUploads({ to, onUploaded, onSettled }) {
     return () => clearTimeout(timer);
   }, [settled, update]);
 
+  // Leaving the page (or this subject) stops the running upload and sends nothing still queued.
   useEffect(() => {
+    mounted.current = true; // again after a development-mode remount
     const controllers = abort.current;
-    return () => controllers.forEach((controller) => controller.abort());
+    return () => {
+      mounted.current = false;
+      controllers.forEach((controller) => controller.abort());
+    };
   }, []);
 
   return { items, add, retry, dismiss };
