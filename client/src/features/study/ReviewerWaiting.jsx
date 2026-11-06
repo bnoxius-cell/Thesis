@@ -10,7 +10,7 @@ export default function ReviewerWaiting({ reviewer }) {
         <EmptyState
           icon={Info}
           title="We couldn't make this reviewer"
-          actions={<Button variant="secondary" to="/study?tab=reviewers">Back to reviewers</Button>}
+          actions={<Button variant="secondary" to="/study/practice">Back to reviewers</Button>}
         >
           {reviewer.error || "Something went wrong on our side."}
         </EmptyState>

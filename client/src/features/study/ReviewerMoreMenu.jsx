@@ -5,7 +5,7 @@ import { MoreHorizontal, Trash2 } from "lucide-react";
 import { IconButton, Menu, MenuItem } from "@/shared/ui";
 import DeleteReviewerDialog from "./DeleteReviewerDialog";
 
-// The More menu in the page header: Delete, then back to the Reviewers tab. Rename, New questions
+// The More menu in the page header: Delete, then back to Practice. Rename, New questions
 // and Targeted review have no drawn dialogs yet, so they aren't here.
 export default function ReviewerMoreMenu({ reviewer }) {
   const [deleting, setDeleting] = useState(false);
@@ -13,7 +13,7 @@ export default function ReviewerMoreMenu({ reviewer }) {
 
   const deleted = () => {
     toast.success("Reviewer deleted.");
-    navigate("/study?tab=reviewers", { replace: true });
+    navigate("/study/practice", { replace: true });
   };
 
   return (

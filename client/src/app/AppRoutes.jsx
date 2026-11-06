@@ -8,6 +8,7 @@ import PublicLayout from "./PublicLayout";
 import RequireAuth from "./RequireAuth";
 import NotFound from "./NotFound";
 import PlaceholderPage from "./PlaceholderPage";
+import RedirectTo from "./RedirectTo";
 import usePageTitle from "./usePageTitle";
 
 const LegalPage = lazy(() => import("@/features/legal/LegalPage"));
@@ -59,8 +60,10 @@ export default function AppRoutes() {
           <Route path="/plan" element={<PlanPage />} />
           <Route path="/study" element={<StudyPage />} />
           <Route path="/study/subjects/:subjectId" element={<SubjectPage />} />
+          <Route path="/study/practice" element={<StudyPage />} />
+          <Route path="/study/reviewers" element={<RedirectTo to="/study/practice" />} />
+          <Route path="/study/flashcards" element={<RedirectTo to="/study/practice" set={{ show: "flashcards" }} />} />
           <Route path="/study/reviewers/:reviewerId" element={<ReviewerPage />} />
-          <Route path="/study/flashcards" element={placeholder("Flashcards")} />
           <Route path="/wellbeing" element={<WellbeingPage />} />
           <Route path="/people" element={<PeoplePage />} />
           <Route path="/people/groups/:groupId" element={<PeoplePage />} />

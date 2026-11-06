@@ -12,8 +12,9 @@ const POLL_MS = 4000;
 //   refresh    fetches again in place (after a create or delete); rows keep their keys
 // While any reviewer is still "processing", each such row's /status is checked every 4 seconds
 // (paused while the tab is hidden). When one has finished, the list is fetched once more. With
-// nothing processing there is no timer at all.
-export default function useReviewers() {
+// nothing processing there is no timer at all, and `poll: false` turns the timer off for a page
+// that only reads the list.
+export default function useReviewers({ poll = true } = {}) {
   const [state, setState] = useState({ reviewers: null, limits: null, settled: false });
   const live = useRef(true);
 
@@ -46,7 +47,7 @@ export default function useReviewers() {
       if (answers.some((a) => a.data && a.data.status !== "processing")) await load();
     },
     POLL_MS,
-    { enabled: idsKey !== "" },
+    { enabled: poll && idsKey !== "" },
   );
 
   return { ...state, refresh: load };
