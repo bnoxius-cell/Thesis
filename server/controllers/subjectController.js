@@ -3,7 +3,9 @@ import subjectModel, { SUBJECT_COLORS, SUBJECT_LIMITS } from '../models/subjectM
 import taskModel from '../models/taskModel.js';
 import reviewerModel from '../models/reviewerModel.js';
 import scheduleModel from '../models/scheduleModel.js';
+import fileModel from '../models/fileModel.js';
 import { isId, serverError } from '../utils/httpErrors.js';
+import { filesChoice, releasePlaceFiles, removePlaceFiles } from '../utils/placeFiles.js';
 import { courseKey, activeSubjects } from '../utils/subjectMatch.js';
 import { linkMatchingItems, relabelLinkedItems, unlinkItems } from '../utils/subjectCascade.js';
 
@@ -15,17 +17,22 @@ const bad = (res, message, status = 400) => res.status(status).json({ success: f
 const text = (value) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '');
 const asObjectId = (id) => new mongoose.Types.ObjectId(String(id));
 
-// Open tasks and reviewers per subject: one aggregate for each, not one query per subject.
+// Open tasks, reviewers and ready library files per subject: one aggregate for each, not one query per subject.
 const countsFor = async (owner, subjectIds) => {
     if (!subjectIds.length) return new Map();
     const countBy = (model, extra = {}) => model.aggregate([
         { $match: { owner: asObjectId(owner), subject: { $in: subjectIds }, ...extra } },
         { $group: { _id: '$subject', n: { $sum: 1 } } },
     ]);
-    const [tasks, reviewers] = await Promise.all([countBy(taskModel, { isCompleted: false }), countBy(reviewerModel)]);
-    const counts = new Map(subjectIds.map((id) => [String(id), { openTasks: 0, reviewers: 0 }]));
+    const [tasks, reviewers, files] = await Promise.all([
+        countBy(taskModel, { isCompleted: false }),
+        countBy(reviewerModel),
+        countBy(fileModel, { scope: 'library', state: 'ready' }),
+    ]);
+    const counts = new Map(subjectIds.map((id) => [String(id), { openTasks: 0, reviewers: 0, files: 0 }]));
     tasks.forEach((row) => { counts.get(String(row._id)).openTasks = row.n; });
     reviewers.forEach((row) => { counts.get(String(row._id)).reviewers = row.n; });
+    files.forEach((row) => { counts.get(String(row._id)).files = row.n; });
     return counts;
 };
 
@@ -37,7 +44,7 @@ const publicSubject = (subject, counts) => ({
     color: subject.color,
     order: subject.order,
     archivedAt: subject.archivedAt,
-    counts: counts || { openTasks: 0, reviewers: 0 },
+    counts: counts || { openTasks: 0, reviewers: 0, files: 0 },
 });
 
 const sameNameTaken = async (owner, name, exceptId = null) => {
@@ -111,7 +118,7 @@ export const createSubject = async (req, res) => {
         const linked = await linkMatchingItems(subject);
         res.status(201).json({
             success: true,
-            subject: publicSubject(subject, { openTasks: linked.tasks, reviewers: linked.reviewers }),
+            subject: publicSubject(subject, { openTasks: linked.tasks, reviewers: linked.reviewers, files: 0 }),
             linked,
         });
     } catch (error) {
@@ -218,8 +225,13 @@ export const deleteSubject = async (req, res) => {
     try {
         const subject = await findOwned(req);
         if (!subject) return notFound(res);
+        const choice = filesChoice(req.query.files);
+        if (!choice) return bad(res, 'files must be keep or delete.');
+
+        if (choice === 'delete') await removePlaceFiles('subject', subject._id, req.userId);
         await unlinkItems(subject);
         await subject.deleteOne();
+        if (choice === 'keep') await releasePlaceFiles('subject', subject._id, req.userId);
         res.json({ success: true });
     } catch (error) {
         serverError(res, 'deleteSubject error', error);

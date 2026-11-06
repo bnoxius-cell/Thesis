@@ -8,6 +8,11 @@ import reviewerModel from '../models/reviewerModel.js';
 import scheduleModel from '../models/scheduleModel.js';
 import { courseKey } from '../utils/subjectMatch.js';
 import { courseKey as clientCourseKey, subjectForLabel } from '../../client/src/utils/subjectColors.js';
+import fileModel from '../models/fileModel.js';
+import { setFileLimitsForTests, reloadFileLimits } from '../utils/fileLimits.js';
+import { setFileStoreForTests } from '../utils/fileStore.js';
+import { createMemoryStore } from '../utils/fileStores/memoryStore.js';
+import { storeFile } from '../utils/storedFiles.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
 
@@ -20,7 +25,10 @@ vi.mock('../utils/emailService.js', () => ({
 
 beforeAll(connectTestDB);
 beforeEach(clearTestDB);
-afterAll(closeTestDB);
+afterAll(async () => {
+    reloadFileLimits();
+    await closeTestDB();
+});
 
 const signUp = async (email) => {
     const agent = request.agent(app);
@@ -77,7 +85,7 @@ describe('subject CRUD', () => {
 
         const list = await alice.agent.get('/api/subjects');
         expect(list.body.subjects).toHaveLength(1);
-        expect(list.body.subjects[0].counts).toEqual({ openTasks: 1, reviewers: 1 });
+        expect(list.body.subjects[0].counts).toEqual({ openTasks: 1, reviewers: 1, files: 0 });
 
         const one = await alice.agent.get(`/api/subjects/${id}`);
         expect(one.body.subject.name).toBe('Data Structures');
@@ -339,5 +347,84 @@ describe('suggestions', () => {
         const { alice } = await twoStudents();
         for (let i = 0; i < 17; i += 1) await taskModel.create({ title: 't', owner: alice.id, dueDate: new Date(), course: `Course ${i}` });
         expect((await alice.agent.get('/api/subjects/suggestions')).body.suggestions).toHaveLength(15);
+    });
+});
+
+describe('subject files', () => {
+    let store;
+    beforeEach(() => {
+        setFileLimitsForTests({});
+        store = createMemoryStore();
+        setFileStoreForTests(store);
+    });
+
+    const pdf = Buffer.concat([Buffer.from('%PDF-1.4\n'),Buffer.alloc(64, 0x20)]);
+    const addFile = (owner, refs, scope = 'library') => storeFile({
+        ownerId: owner,
+        scope,
+        refs,
+        file: { buffer: pdf, name: 'notes.pdf', ext: 'pdf', mimeType: 'application/pdf' },
+        thumb: null,
+    });
+    const used = async (id) => (await userModel.findById(id).lean()).storageUsedBytes ?? 0;
+
+    test('counts show ready library files only', async () => {
+        const { alice } = await twoStudents();
+        const id = (await addSubject(alice.agent, { name: 'Math' })).body.subject._id;
+        await addFile(alice.id, { subject: id });
+        await addFile(alice.id, { subject: id });
+        const removing = await addFile(alice.id, { subject: id });
+        await fileModel.updateOne({ _id: removing._id }, { $set: { state: 'removing' } });
+        await fileModel.collection.insertOne({ ...(await fileModel.findOne({ state: 'ready' }).lean()), _id: new mongoose.Types.ObjectId(), scope: 'chat' });
+
+        const list = await alice.agent.get('/api/subjects');
+        expect(list.body.subjects[0].counts.files).toBe(2);
+        expect((await alice.agent.get(`/api/subjects/${id}`)).body.subject.counts.files).toBe(2);
+    });
+
+    test('deleting with no choice keeps the files in General', async () => {
+        const { alice } = await twoStudents();
+        const id = (await addSubject(alice.agent, { name: 'Math' })).body.subject._id;
+        const row = await addFile(alice.id, { subject: id });
+        const before = await used(alice.id);
+
+        expect((await alice.agent.delete(`/api/subjects/${id}`)).status).toBe(200);
+        const after = await fileModel.findById(row._id).lean();
+        expect(after).toMatchObject({ subject: null, folder: null, state: 'ready' });
+        expect(await used(alice.id)).toBe(before);
+    });
+
+    test('files=delete removes the objects and gives the quota back', async () => {
+        const { alice } = await twoStudents();
+        const id = (await addSubject(alice.agent, { name: 'Math' })).body.subject._id;
+        const kept = await addFile(alice.id, {});
+        await addFile(alice.id, { subject: id });
+        expect(await used(alice.id)).toBeGreaterThan(0);
+
+        expect((await alice.agent.delete(`/api/subjects/${id}?files=delete`)).status).toBe(200);
+        expect(await fileModel.countDocuments({ owner: alice.id })).toBe(1);
+        expect(await fileModel.exists({ _id: kept._id })).toBeTruthy();
+        expect(await used(alice.id)).toBe(kept.bytes);
+    });
+
+    test('an unknown or repeated files value is a 400 and nothing is deleted', async () => {
+        const { alice } = await twoStudents();
+        const id = (await addSubject(alice.agent, { name: 'Math' })).body.subject._id;
+        const row = await addFile(alice.id, { subject: id });
+        for (const query of ['files=maybe', 'files=keep&files=delete', 'files=']) {
+            expect((await alice.agent.delete(`/api/subjects/${id}?${query}`)).status).toBe(400);
+        }
+        expect((await alice.agent.get(`/api/subjects/${id}`)).status).toBe(200);
+        expect(await fileModel.findById(row._id).lean()).toMatchObject({ state: 'ready' });
+    });
+
+    test("another student's subject is a 404 and their files are untouched", async () => {
+        const { alice, bob } = await twoStudents();
+        const id = (await addSubject(alice.agent, { name: 'Math' })).body.subject._id;
+        const row = await addFile(alice.id, { subject: id });
+        for (const query of ['', '?files=delete']) {
+            expect((await bob.agent.delete(`/api/subjects/${id}${query}`)).status).toBe(404);
+        }
+        expect(await fileModel.findById(row._id).lean()).toMatchObject({ subject: expect.anything(), state: 'ready' });
     });
 });

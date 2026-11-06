@@ -2,15 +2,16 @@
 // carries the owner, and every place goes through resolveLocation, so another student's file,
 // subject or folder is a 404 and never reaches a link, a move or a delete.
 import fileModel from '../models/fileModel.js';
-import fileFolderModel from '../models/fileFolderModel.js';
+import fileFolderModel, { FOLDER_LIMITS, folderNameKey } from '../models/fileFolderModel.js';
 import subjectModel from '../models/subjectModel.js';
 import userModel from '../models/userModel.js';
 import { fileError, uploadState } from '../utils/fileBudget.js';
 import { LocationError, publicFile, resolveLocation } from '../utils/fileLocations.js';
 import { getFileLimits } from '../utils/fileLimits.js';
 import { sendFileError, sendFileLinks } from '../utils/fileResponse.js';
-import { isId } from '../utils/httpErrors.js';
-import { activeSubjects } from '../utils/subjectMatch.js';
+import { isId, serverError } from '../utils/httpErrors.js';
+import { filesChoice, releasePlaceFiles, removePlaceFiles } from '../utils/placeFiles.js';
+import { activeSubjects, courseKey } from '../utils/subjectMatch.js';
 import { removeFiles, storeFile } from '../utils/storedFiles.js';
 
 const notFound = (res) => res.status(404).json({ success: false, message: 'Not found.' });
@@ -142,5 +143,75 @@ export const deleteFile = async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         sendError(res, error, 'Deleting a library file failed');
+    }
+};
+
+const problem = (res, message, status = 400) => res.status(status).json({ success: false, message });
+const publicFolder = (folder) => ({ id: String(folder._id), name: folder.name });
+const DUPLICATE_KEY = 11000;
+
+// A clean folder name, or the message to answer with. The name can't be General (that is the place
+// without a folder) or an active subject's name, so the three kinds of place stay distinguishable.
+const cleanName = (body) => (typeof body?.name === 'string' ? body.name.replace(/\s+/g, ' ').trim() : '');
+
+const checkFolderName = async (owner, body) => {
+    const name = cleanName(body);
+    if (!name) return { message: 'Give the folder a name.' };
+    if (name.length > FOLDER_LIMITS.name) return { message: `The name can be up to ${FOLDER_LIMITS.name} characters.` };
+    if (folderNameKey(name) === 'general') return { message: 'That name is already used for General.', status: 409 };
+    const key = courseKey(name);
+    if (key && (await activeSubjects(owner).select('name').lean()).some((subject) => courseKey(subject.name) === key)) {
+        return { message: `You already have a subject called ${name}.`, status: 409 };
+    }
+    return { name };
+};
+
+const findFolder = (req) => (
+    isId(req.params.folderId) ? fileFolderModel.findOne({ _id: req.params.folderId, owner: req.userId }) : null
+);
+
+export const createFolder = async (req, res) => {
+    try {
+        const { name, message, status } = await checkFolderName(req.userId, req.body);
+        if (message) return problem(res, message, status);
+        if (await fileFolderModel.countDocuments({ owner: req.userId }) >= FOLDER_LIMITS.maxPerStudent) {
+            return problem(res, `You can have up to ${FOLDER_LIMITS.maxPerStudent} folders. Delete one you no longer need first.`);
+        }
+        const folder = await fileFolderModel.create({ owner: req.userId, name });
+        res.status(201).json({ success: true, folder: publicFolder(folder) });
+    } catch (error) {
+        if (error.code === DUPLICATE_KEY) return problem(res, `You already have a folder called ${cleanName(req.body)}.`, 409);
+        serverError(res, 'createFolder error', error);
+    }
+};
+
+export const renameFolder = async (req, res) => {
+    try {
+        const folder = await findFolder(req);
+        if (!folder) return notFound(res);
+        const { name, message, status } = await checkFolderName(req.userId, req.body);
+        if (message) return problem(res, message, status);
+        folder.name = name;
+        await folder.save();
+        res.json({ success: true, folder: publicFolder(folder) });
+    } catch (error) {
+        if (error.code === DUPLICATE_KEY) return problem(res, `You already have a folder called ${cleanName(req.body)}.`, 409);
+        serverError(res, 'renameFolder error', error);
+    }
+};
+
+export const deleteFolder = async (req, res) => {
+    try {
+        const folder = await findFolder(req);
+        if (!folder) return notFound(res);
+        const choice = filesChoice(req.query.files);
+        if (!choice) return problem(res, 'files must be keep or delete.');
+
+        if (choice === 'delete') await removePlaceFiles('folder', folder._id, req.userId);
+        await folder.deleteOne();
+        if (choice === 'keep') await releasePlaceFiles('folder', folder._id, req.userId);
+        res.json({ success: true });
+    } catch (error) {
+        serverError(res, 'deleteFolder error', error);
     }
 };
