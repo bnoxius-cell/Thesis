@@ -5,10 +5,13 @@ import mongoose from 'mongoose';
 // against the student's and the server's storage counters until its objects are deleted.
 const fileSchema = new mongoose.Schema({
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true },
-    scope: { type: String, enum: ['chat', 'subject'], required: true },
+    // chat: a group's message. library: the student's own files (General, a subject or a folder), owner only.
+    scope: { type: String, enum: ['chat', 'library'], required: true },
     group: { type: mongoose.Schema.Types.ObjectId, ref: 'group', default: null },
     message: { type: mongoose.Schema.Types.ObjectId, ref: 'groupMessage', default: null },
+    // A library file lives in one place: a subject, a folder, or neither (General).
     subject: { type: mongoose.Schema.Types.ObjectId, ref: 'subject', default: null },
+    folder: { type: mongoose.Schema.Types.ObjectId, ref: 'fileFolder', default: null },
     name: { type: String, required: true, maxlength: 140 },
     ext: { type: String, required: true },
     mimeType: { type: String, required: true },
@@ -26,9 +29,16 @@ const fileSchema = new mongoose.Schema({
     removeAttempts: { type: Number, default: 0 },
 }, { timestamps: true });
 
+fileSchema.path('folder').validate(
+    function inOnePlace(folder) { return !(folder && this.subject); },
+    'A file is in a subject or in a folder, not both.',
+);
+
 fileSchema.index({ owner: 1 });
 fileSchema.index({ group: 1 });
 fileSchema.index({ subject: 1 });
+fileSchema.index({ folder: 1 });
+fileSchema.index({ owner: 1, scope: 1, state: 1, createdAt: -1 });
 fileSchema.index({ message: 1 });
 fileSchema.index({ state: 1, updatedAt: 1 });
 fileSchema.index({ storageId: 1 });

@@ -155,7 +155,7 @@ export const PRIVACY = {
           "Your schedules: classes and activities with times, places, online class links and notes, any pictures you attach, days you mark off, who you share each one with, and a short log of recent changes on shared schedules.",
           "The subjects you add (name, code, term and colour) and which of your tasks and reviewers belong to them.",
           "Social features: friend connections, groups you belong to, group messages, reactions and tasks shared in groups.",
-          "Files and pictures you upload to a chat or a subject, kept until you or the group delete them.",
+          "Files and pictures you upload to a chat or to your Study files, kept until you or the group delete them.",
           "Reviewers: the text taken from PDFs you upload (we don't keep the PDF file itself), the reviewer and questions made from it, and your Learning Mode answers and scores.",
           "Notifications: your inbox and your notification preferences. If you turn on phone or computer alerts, we keep the address your browser gives us for sending them.",
           "Technical basics: a login cookie, plus a few settings saved in your browser (see Cookies and storage).",

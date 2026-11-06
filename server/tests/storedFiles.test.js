@@ -50,7 +50,7 @@ const photo = () => ({ buffer: makePng(4, 3), name: 'photo.png', ext: 'png', mim
 const thumb = () => ({ buffer: Buffer.alloc(50, 2), mimeType: 'image/jpeg' });
 
 const store1 = (owner, { file = pdf(), withThumb = false, now = NOW, refs = {} } = {}) => storeFile({
-    ownerId: owner._id, scope: 'subject', refs, file, thumb: withThumb ? thumb() : null, now,
+    ownerId: owner._id, scope: 'library', refs, file, thumb: withThumb ? thumb() : null, now,
 });
 
 const settle = (promises) => Promise.allSettled(promises).then((results) => ({
@@ -353,7 +353,7 @@ describe('removing files', () => {
     test('a row made by another store is left for that store', async () => {
         const user = await makeUser();
         const row = await fileModel.create({
-            owner: user._id, scope: 'subject', name: 'a.pdf', ext: 'pdf', mimeType: 'application/pdf',
+            owner: user._id, scope: 'library', name: 'a.pdf', ext: 'pdf', mimeType: 'application/pdf',
             size: 5, bytes: 5, storageId: 'r2:f/00000000-0000-4000-8000-000000000000', state: 'ready',
         });
         await removeFiles({ _id: row._id });
@@ -365,7 +365,7 @@ describe('sweeper', () => {
     test('gives up on an upload older than an hour and leaves a fresh one', async () => {
         const user = await makeUser();
         const fields = {
-            owner: user._id, scope: 'subject', name: 'a.pdf', ext: 'pdf', mimeType: 'application/pdf', size: 100, bytes: 100,
+            owner: user._id, scope: 'library', name: 'a.pdf', ext: 'pdf', mimeType: 'application/pdf', size: 100, bytes: 100,
         };
         const stale = await fileModel.create({ ...fields, storageId: 'memory:f/00000000-0000-4000-8000-000000000001' });
         const fresh = await fileModel.create({ ...fields, storageId: 'memory:f/00000000-0000-4000-8000-000000000002' });

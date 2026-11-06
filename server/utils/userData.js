@@ -12,6 +12,7 @@ import pushSubscriptionModel from '../models/pushSubscriptionModel.js';
 import friendModel from '../models/Friend.js';
 import userModel from '../models/userModel.js';
 import fileModel from '../models/fileModel.js';
+import fileFolderModel from '../models/fileFolderModel.js';
 import fileUserDayModel from '../models/fileUserDayModel.js';
 import { PSSResponse, WHOResponse } from '../models/Survey.js';
 import { removeFiles } from './storedFiles.js';
@@ -38,6 +39,7 @@ export const USER_DATA = [
     { model: notificationModel, field: 'recipient', how: 'delete' },
     { model: friendModel, field: 'user', how: 'delete' },
     { model: fileModel, field: 'owner', how: 'delete', cleanup: (filter) => removeFiles(filter) },
+    { model: fileFolderModel, field: 'owner', how: 'delete' },
     { model: fileUserDayModel, field: 'user', how: 'delete' },
 
     { model: notificationModel, field: 'sender', how: 'pending' },
