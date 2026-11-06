@@ -8,12 +8,12 @@ import GroupView from "./GroupView";
 // The Groups tab. On a wide screen (Figma 64:2) the list is on the left and the open group on the
 // right; on a phone (67:818) it is the list alone, and a group opens as its own screen (PhoneChat).
 // A student with no groups at all gets the empty page (66:963).
-export default function GroupsPane({ data, groupId, tab, desktop }) {
+export default function GroupsPane({ data, groupId, tab, desktop, onNewGroup, onJoinGroup }) {
   const { groups, status, error, reload, refresh } = data;
   const group = groups?.find((g) => g._id === groupId);
 
   if (status === "ready" && groups.length === 0) {
-    return <GroupsEmpty />;
+    return <GroupsEmpty onNewGroup={onNewGroup} onJoinGroup={onJoinGroup} />;
   }
 
   const list = <GroupList groups={groups} status={status} error={error} onRetry={reload} activeId={groupId} />;
