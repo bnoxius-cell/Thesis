@@ -60,7 +60,7 @@ function FolderBody({ library, block, canUpload, phone, pickFiles, openFolderDia
               title={folderId ? "This folder is empty" : "General is empty"}
               actions={<UploadButton disabled={!canUpload} onFiles={pickFiles}>{`Upload to ${folder.name}`}</UploadButton>}
             >
-              {folderId ? "Upload here, or use Move to... on a file in another place." : `Files you upload here stay in ${folder.name}.`}
+              {folderId ? "Upload here, or use Move\u00a0to... on a file in another place." : `Files you upload here stay in ${folder.name}.`}
             </EmptyState>
           </div>
         )}

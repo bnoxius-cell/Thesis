@@ -321,25 +321,27 @@
     }
   }
 
-  /* ---- Empty states on a phone (160:3115, 160:3474): a card with a bare 28px icon, no soft circle ---- */
-  @media (max-width: 720px) {
-    .files-page .files-empty .ui-empty {
-      padding: 40px var(--space-5);
-    }
-    .files-page .files-empty .ui-empty__icon,
-    .files-noresult .ui-empty__icon {
-      width: auto;
-      height: auto;
-      background: none;
-      color: var(--text-secondary);
-    }
-    .files-page .files-empty .ui-empty__icon > svg,
-    .files-noresult .ui-empty__icon > svg {
-      opacity: 1;
-    }
-    .files-page .files-empty .ui-empty__title {
-      font: 600 var(--text-lg) / 26px var(--font-ui);
-    }
+  /* ---- Empty states (160:2867, 160:3288, phone 160:3115, 160:3474): a card with a bare 28px icon,
+     no soft circle, and the line as wide as the card allows ---- */
+  .files-page .files-empty .ui-empty {
+    padding: 40px var(--space-5);
+  }
+  .files-page .files-empty .ui-empty__icon,
+  .files-noresult .ui-empty__icon {
+    width: auto;
+    height: auto;
+    background: none;
+    color: var(--text-secondary);
+  }
+  .files-page .files-empty .ui-empty__icon > svg,
+  .files-noresult .ui-empty__icon > svg {
+    opacity: 1;
+  }
+  .files-page .files-empty .ui-empty__title {
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+  }
+  .files-page .files-empty .ui-empty__text {
+    max-width: none;
   }
 
   /* ---- No search results: bare centred text on a desktop (151:1998), a card with a 20px layers
