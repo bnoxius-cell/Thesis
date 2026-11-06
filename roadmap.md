@@ -15,25 +15,30 @@ Owner steps (no Claude usage):
 - [x] `stresscare-api-staging` suspended 2026-11-06 (Render shows Suspended 1). Still the owner's: pause the staging monitor in UptimeRobot (not signed in on Claude's Chrome); production pinged 24/7 uses 744 of the 750 free instance hours
 - [ ] Answer plan 18 questions O1 to O11 (defaults apply until answered), and check the Render Billing page weekly
 Build order (efficiency order agreed 2026-11-01; one builder at a time, `/clear` after each batch, builders run only build and `npm test`):
-- [ ] REPLACED 2026-11-06 by plan 19 (`.claude/docs/plans/19-study-subject-files-plan.md`, O1 to O10 accepted): Study hub, Subject tabs (Overview, Tasks, Reviewers, Files), general Files page with folders, Practice page (Reviewers | Flashcards). SF0, SF1, SF2 DONE and merged to main 5eb48de (2026-11-06, not released). Order: SF0 tag and branch, SF1 then SF2 (server, no frames needed), SF3 (Subject tabs, code only), draw Figma F1 to F12 (owner approves), then SP1, SF4, SF5, SF6. Don't release to production before SF4. Replaces plan 18's TW-8b batch.
-- [ ] Figma frames F1 to F12 (plan 19): Files page, subject Files tab, move picker, upload with progress and Cancel, paused state, empty states, Practice page; phone and desktop, light only; owner approves before SP1, SF4, SF5, SF6
+- [ ] REPLACED 2026-11-06 by plan 19 (`.claude/docs/plans/19-study-subject-files-plan.md`, O1 to O10 accepted): Study hub, Subject tabs (Overview, Tasks, Reviewers, Files), general Files page with folders, Practice page (Reviewers | Flashcards). SF0, SF1, SF2 DONE and merged to main 5eb48de; SF3 DONE and merged to main 89834ed (tester-passed 2026-11-06, not released). Order: SF0 tag and branch, SF1 then SF2 (server, no frames needed), SF3 (Subject tabs, code only), draw Figma F1 to F12 (owner approves), then SP1, SF4, SF5, SF6. Don't release to production before SF4. Replaces plan 18's TW-8b batch.
+- [~] Figma frames F1 to F12 (plan 19; 2026-11-06: owner APPROVED F12 and F1 to F3 desktop; F1 to F3 phone, F4 to F11 desktop+phone, footer and flashcards study screens all DRAWN, OWNER APPROVED ALL 2026-11-06, build now (SP1, SF4 to SF6, footer), node ids in design.md "Storage / Files"): Files page, subject Files tab, move picker, upload with progress and Cancel, paused state, empty states, Practice page; phone and desktop, light only; owner approves before SP1, SF4, SF5, SF6
 - [x] BW1 `fix/api-bandwidth` (merged to main, live) (builder-sonnet medium): small unread-count endpoint, gzip, slower chat polling, group lists every 60 s (do first; can run beside the Figma work)
 - [x] (done 2026-11-06, merged to main, tester + code-reviewer passed, 872 tests; files stay off until the owner steps) FS0a content checks (builder-sonnet high), FS0b config, kill switch, signing (builder-sonnet high), FS0c call counter and cleanup (builder-opus high), FS0d upload and download helpers plus usage page (builder-sonnet high), FS0e Cloudflare reconciliation job (builder-opus medium); all on `feature/file-store-foundation` after tag `pre-chat-files`
 - [ ] Storage UI from the approved frames (builder-sonnet), tester at 375 and 1280
 - [x] One code-reviewer and security-review pass on the whole branch, then merge (merged; release to production not done, harmless while files are off)
 - [ ] Then CH4 chat uploads, TW-9 source picker
 Right after the storage items:
-- [ ] Site footer: one item (owner to say what goes in it; default Terms, Privacy, About and Help links; draw in Figma first, phone and desktop, light only)
+- [~] Site footer: drawn and APPROVED 2026-11-06 (Terms, Privacy, About, Help; desktop 164:3243, phone 164:3376), ready to build
 
 ## A. Wrap up what is built
 Status: Pe3 to Pe5 are merged and live. Production is efffd91 (Pe5, plus the bandwidth fix). `fix/tasks-empty-main` is still unmerged.
-- [ ] Browser check `fix/tasks-empty-main` at 375 and 1280 (empty Tasks view, no logout toast), then merge it into `main`
-- [ ] Tag `pre-nav-feedback` on `main` after that merge (plan 17, B0)
+- [x] Browser check `fix/tasks-empty-main` at 375 and 1280 (empty Tasks view, no logout toast): tester passed 3 of 3 on main fb22f97, 2026-11-06. Its two commits (26c5063, 1287134) were already in `main`
+- [~] Tag `pre-nav-feedback` (plan 17, B0): the tag already exists but sits at 010a540 (the roadmap docs commit), not the current tip. Move it to `main` only if the owner wants
 - [x] Spawn the tester on Pe3 (`feature/people-friends`): two accounts, accept, decline, cancel and remove, badges clear in the sidebar, People tab and bottom bar, `?add=1` focus, 375 and 1280, profile states
 - [x] Fix what the tester finds, merge `feature/people-friends` into `main`
 - [x] Release: `git branch -f production main && git push origin production` (tester pass first; never merge `staging`)
 - [ ] Reconcile the two handout copies (done by the roadmap commit: handout.md is now the slim state file)
 - [ ] Delete `next-prompt.md` once the owner confirms (its task is covered by sections A, C and D)
+
+## L. Animation pass (owner notes 2026-11-06)
+Status: not started. Owner: the sidebar's animation is good now, keep that level everywhere. Use the animate skill and `.claude/docs/motion.md`; subtle, behind `prefers-reduced-motion`.
+- [ ] Study page: switching Subjects and Reviewers tabs makes the body jump, because the Subjects tab has the "pick up where you left off" card. Animate it so the change is smooth (no layout jump)
+- [ ] Add more animation across the whole system, matching the sidebar's level (planner or `find-animation-opportunities` first to pick the places)
 
 ## B. Navigation and feedback (plan 17)
 Status: planned, nothing built. One builder at a time, tester after each, then release.
