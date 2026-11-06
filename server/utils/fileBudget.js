@@ -5,7 +5,7 @@
 import fileUsageModel from '../models/fileUsageModel.js';
 import fileUserDayModel from '../models/fileUserDayModel.js';
 import userModel from '../models/userModel.js';
-import { getFileLimits } from './fileLimits.js';
+import { filesAvailability, getFileLimits } from './fileLimits.js';
 import { sendOwnerAlertEmail } from './emailService.js';
 
 const MIB = 1024 * 1024;
@@ -58,6 +58,11 @@ const ERRORS = {
     store_failed: { status: 502, code: 'store_failed', message: () => "Couldn't save the file. Try again." },
     too_many: { status: 400, code: 'too_many', message: () => `Ask for ${getFileLimits().maxLinksPerRequest} files or fewer at a time.` },
     not_found: { status: 404, code: 'not_found', message: () => 'File not found.' },
+    too_many_files: {
+        status: 409,
+        code: 'too_many_files',
+        message: () => `You have ${getFileLimits().maxLibraryFiles} files. Delete some to add more.`,
+    },
 };
 
 export class FileLimitError extends Error {
@@ -263,6 +268,29 @@ export const reserveLinks = async (userId, count, now = new Date()) => {
 export const releaseStorage = async (userId, bytes) => {
     await releaseUserStorage(userId, bytes);
     await releaseGlobalStorage(bytes);
+};
+
+// --- What the Upload button shows ---
+
+const unavailable = (kind, options) => {
+    const { code, message, resumesAt } = fileError(kind, options);
+    return { on: false, code, message, ...(resumesAt && { resumesAt }) };
+};
+
+// Read-only and approximate: nothing is reserved, and the real check is the reservation inside
+// storeFile. Leaves two Class A operations of room (a photo and its preview), so the button
+// goes quiet before an upload would be refused for the month.
+export const uploadState = async (now = new Date()) => {
+    if (!filesAvailability().on) return unavailable('files_off');
+    const { classAMonthlyCap, uploadMonthlyBytes, storageCapBytes } = getFileLimits();
+    const [storage, month] = await Promise.all([
+        fileUsageModel.findById(STORAGE_ID).lean(),
+        fileUsageModel.findById(monthId(now)).lean(),
+    ]);
+    const monthFull = month && (month.tripped?.writes || month.classA > classAMonthlyCap - 2 || month.uploadBytes >= uploadMonthlyBytes);
+    if (monthFull) return unavailable('uploads_paused', { resumesAt: nextMonthStart(now) });
+    if ((storage?.bytes ?? 0) >= storageCapBytes) return unavailable('storage_full');
+    return { on: true };
 };
 
 // --- Reconciliation with Cloudflare's numbers (plan 18, 3.14) ---

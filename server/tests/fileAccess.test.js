@@ -45,8 +45,8 @@ describe('canRead', () => {
         expect(await canRead(member._id, chatFile({ message: new mongoose.Types.ObjectId() }))).toBe(false);
     });
 
-    test('subject: only the owner', async () => {
-        const file = { scope: 'subject', owner: owner._id, subject: new mongoose.Types.ObjectId() };
+    test('library: only the owner', async () => {
+        const file = { scope: 'library', owner: owner._id, subject: new mongoose.Types.ObjectId() };
         expect(await canRead(owner._id, file)).toBe(true);
         expect(await canRead(member._id, file)).toBe(false);
     });

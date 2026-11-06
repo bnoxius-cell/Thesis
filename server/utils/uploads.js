@@ -93,7 +93,7 @@ const checkedThumb = (part) => {
 // What the file really is comes from its bytes, never from the name or type the browser sent. Every
 // image also has its header size read (imageInfo), which refuses a PNG signature in front of other
 // bytes and absurd dimensions. A preview sent with a non-image is ignored. A photo's preview is
-// required unless the route says it's optional (plan 18, 3.3: subjects can show a type icon); a
+// required unless the route says it's optional (plan 18, 3.3: library files can show a type icon); a
 // preview that is sent must still pass its checks.
 const checkContent = (requireThumb) => (req, res, next) => {
     const part = req.files?.file?.[0];
@@ -128,7 +128,7 @@ const checkContent = (requireThumb) => (req, res, next) => {
 
 // Middleware for an upload route. `loadParent` finds the group or subject, answers 404 unless the
 // student may upload to it, and runs before any limit is spent or body read. `requireThumb: false`
-// only for subject files; chat photos always need a preview. Mount it as
+// only for library files (the student's own); chat photos always need a preview. Mount it as
 // `router.post('/', ...fileUpload({ loadParent }), handler)`.
 export const fileUpload = ({ loadParent, requireThumb = true }) => [
     userAuth, loadParent, requireFilesOn, limitBurst, requireLength, checkRoom, takeSlot, parseMultipart, checkContent(requireThumb),

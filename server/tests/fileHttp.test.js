@@ -75,7 +75,7 @@ testRouter.post('/:groupId/upload', ...fileUpload({ loadParent: loadGroup }), as
 testRouter.post('/:groupId/subject-upload', ...fileUpload({ loadParent: loadGroup, requireThumb: false }), async (req, res) => {
     try {
         const row = await storeFile({
-            ownerId: req.userId, scope: 'subject', refs: { subject: req.params.groupId }, file: req.upload.file, thumb: req.upload.thumb,
+            ownerId: req.userId, scope: 'library', refs: { subject: req.params.groupId }, file: req.upload.file, thumb: req.upload.thumb,
         });
         res.json({ success: true, file: { id: row._id, thumbSize: row.thumbSize } });
     } catch (error) {

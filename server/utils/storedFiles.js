@@ -23,7 +23,7 @@ const SWEEP_INTERVAL_MS = HOUR_MS;
 const FIRST_SWEEP_MS = 60 * 1000;
 const FIRST_RECONCILE_MS = 90 * 1000;
 const SWEEP_BATCH = 200;
-const REMOVE_FILTER_KEYS = new Set(['_id', 'owner', 'group', 'message', 'subject']);
+const REMOVE_FILTER_KEYS = new Set(['_id', 'owner', 'group', 'message', 'subject', 'folder']);
 
 // Only these are shown in the browser; everything else downloads. An explicit list, not
 // "image/*", so a type like SVG could never be served inline even if it got past the checks.
@@ -92,7 +92,7 @@ export const discard = async (row) => {
 };
 
 // file: { buffer, name, ext, mimeType, width, height }, already checked by the upload helper.
-// thumb: { buffer, mimeType } or null. refs: { group, message } for chat, { subject } for subjects.
+// thumb: { buffer, mimeType } or null. refs: { group, message } for chat, { subject } or { folder } for the library.
 export const storeFile = async ({ ownerId, scope, refs = {}, file, thumb = null, now = new Date() }) => {
     const store = activeStore();
     const bytes = file.buffer.length + (thumb?.buffer.length ?? 0);
@@ -106,6 +106,7 @@ export const storeFile = async ({ ownerId, scope, refs = {}, file, thumb = null,
             group: refs.group ?? null,
             message: refs.message ?? null,
             subject: refs.subject ?? null,
+            folder: refs.folder ?? null,
             name: file.name,
             ext: file.ext,
             mimeType: file.mimeType,
@@ -170,14 +171,14 @@ export const issueFileLinks = async (rows, { variant = 'file', userId, now = new
     })));
 };
 
-// Removes every file matching `filter` (by owner, group, message, subject or _id). Rows are marked
+// Removes every file matching `filter` (by owner, group, message, subject, folder or _id). Rows are marked
 // removing first, so they stop handing out links at once even when the objects can't be deleted
 // yet (files off, or the store failing); the sweeper finishes those later.
 export const removeFiles = async (filter) => {
     // Plain ids only, so a value from a request (say { $ne: null }) can never widen the match.
     const entries = Object.entries(filter);
     if (!entries.length || entries.some(([key, value]) => !REMOVE_FILTER_KEYS.has(key) || !mongoose.isObjectIdOrHexString(value))) {
-        throw new TypeError('removeFiles needs an id filter on owner, group, message, subject or _id');
+        throw new TypeError('removeFiles needs an id filter on owner, group, message, subject, folder or _id');
     }
     await fileModel.updateMany({ ...filter, state: { $ne: 'removing' } }, { $set: { state: 'removing' } });
     const store = currentStore();

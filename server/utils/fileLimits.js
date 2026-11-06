@@ -28,6 +28,7 @@ const FIXED_LIMITS = {
     linksPerDay: 400,
     maxLinksPerRequest: 24,
     maxConcurrentUploads: 2,
+    maxLibraryFiles: 300,
     reconcileIntervalMs: TEN_MINUTES_MS,
     tripRealClassB: 2_500_000,
     tripRealClassA: 250_000,

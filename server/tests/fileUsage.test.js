@@ -44,7 +44,7 @@ const getUsage = (user) => {
 };
 const addFile = (owner, bytes = 1000) => storeFile({
     ownerId: owner._id,
-    scope: 'subject',
+    scope: 'library',
     refs: { subject: owner._id },
     file: { buffer: Buffer.alloc(bytes, 1), name: 'notes.pdf', ext: 'pdf', mimeType: 'application/pdf' },
 });
