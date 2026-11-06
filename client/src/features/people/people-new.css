@@ -66,7 +66,7 @@
   }
 
   /* Codes read as codes: letters spaced out. */
-  .people-code .ui-field__control {
+  .people-join-code .ui-field__control {
     font-weight: 500;
     letter-spacing: 0.12em;
   }

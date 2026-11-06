@@ -58,8 +58,8 @@ export default function JoinGroupDialog({ onClose, onDone }) {
           setError("");
         }}
         error={error}
-        maxLength={CODE_LENGTH}
-        className="people-code"
+        maxLength={CODE_LENGTH * 2}
+        className="people-join-code"
         placeholder="ABC123"
         autoFocus
         autoComplete="off"

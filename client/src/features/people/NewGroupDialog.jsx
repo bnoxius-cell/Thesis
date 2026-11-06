@@ -79,7 +79,7 @@ export default function NewGroupDialog({ onClose, onDone }) {
       <label className="people-switch">
         <span className="people-switch__text">
           <span className="people-switch__title">Family-friendly chat</span>
-          <span className="people-switch__hint">Blocks messages with swearing or explicit words. Admins can change this later.</span>
+          <span className="people-switch__hint">Blocks messages with swearing or explicit words.</span>
         </span>
         <input
           type="checkbox"
