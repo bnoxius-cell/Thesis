@@ -10,6 +10,12 @@
       transform: translateY(6px);
     }
   }
+  @keyframes panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
   @keyframes stagger-in {
     from {
       opacity: 0;
@@ -99,6 +105,11 @@
     to {
       transform: translate(35%, -55%) rotate(8deg);
     }
+  }
+
+  /* A tab panel arrives with a short fade and 4px rise when its tab changes (key the panel on the tab). */
+  .tab-panel-in {
+    animation: panel-in 160ms var(--ease-out) backwards;
   }
 
   /* The first 6 children arrive one after another (item n waits (n-1) x --stagger); item 7 onward

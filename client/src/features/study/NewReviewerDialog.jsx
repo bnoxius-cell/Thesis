@@ -13,11 +13,11 @@ const COUNT_OPTIONS = QUESTION_COUNTS.map((n) => ({ value: n, label: String(n) }
 // aren't offered. The server reads the PDF and writes the reviewer in the background, so the
 // dialog closes as soon as the upload lands (onCreated) and the row shows up as processing.
 // `limits` is { dailyLimit, usedToday, enabled } from the list: at the limit, Create is off and
-// the dialog says why.
-export default function NewReviewerDialog({ subjects, limits, onClose, onCreated }) {
+// the dialog says why. `defaultSubject` is a subject id to start on (the Subject page).
+export default function NewReviewerDialog({ subjects, defaultSubject = "", limits, onClose, onCreated }) {
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState("");
-  const [subject, setSubject] = useState("");
+  const [subject, setSubject] = useState(defaultSubject);
   const [count, setCount] = useState(DEFAULT_QUESTION_COUNT);
   const [pickError, setPickError] = useState("");
   const { create, creating, error, clearError } = useCreateReviewer();
