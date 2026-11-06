@@ -148,8 +148,10 @@
     border-radius: var(--radius-xl);
     background: var(--surface);
   }
-  /* chat-cards.css gives .people-card a fixed 360px width; the friends list fills its column. */
+  /* chat-cards.css gives .people-card a fixed 360px width and align-items: flex-start; the friends
+     list fills its column and its rows span the card. */
   .people-friends__list .people-card--list {
+    align-items: stretch;
     width: 100%;
     max-width: none;
   }
