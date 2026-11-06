@@ -36,7 +36,7 @@
     font: 400 var(--text-sm) / 20px var(--font-ui);
     overflow-wrap: anywhere;
   }
-  /* Three tabs with counts are wider than a 320px phone: the track scrolls inside itself, never the page. */
+  /* Four tabs with counts can be wider than a 320px phone: the track scrolls inside itself, never the page. */
   .subject-tabs {
     max-width: 100%;
     overflow-x: auto;
@@ -49,9 +49,15 @@
   .subject-tabs .ui-tab {
     flex: none;
   }
+  /* On a phone the tabs share the track (Figma 157:1789) and keep their label's width at least. */
   @media (max-width: 480px) {
+    .subject-tabs {
+      display: flex;
+      width: 100%;
+    }
     .subject-tabs .ui-tab {
-      padding-inline: var(--space-3);
+      flex: 1 0 auto;
+      padding-inline: var(--space-2);
     }
   }
   /* The header More menu sits in the title row, not on a card's corner. */

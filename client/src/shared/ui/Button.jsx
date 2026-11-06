@@ -2,8 +2,8 @@ import { Link } from "react-router-dom";
 import BusySpinner from "./BusySpinner";
 import "./button.css";
 
-// The one button. `to` renders a router Link with the same look. `busy` shows the spinner and
-// disables it. `icon` is an optional leading lucide icon component.
+// The one button. `to` renders a router Link and `href` a plain link (for a file or another site),
+// both with the same look. `busy` shows the spinner and disables it. `icon` is an optional leading lucide icon component.
 // variant: primary | secondary | ghost | danger. size: md (44px) | sm (36px).
 export default function Button({
   variant = "primary",
@@ -11,6 +11,10 @@ export default function Button({
   icon: Icon,
   busy = false,
   to,
+  href,
+  target,
+  rel,
+  download,
   type = "button",
   disabled = false,
   className = "",
@@ -30,6 +34,13 @@ export default function Button({
       <Link to={to} className={classes} {...rest}>
         {content}
       </Link>
+    );
+  }
+  if (href && !disabled) {
+    return (
+      <a href={href} target={target} rel={rel} download={download} className={classes} {...rest}>
+        {content}
+      </a>
     );
   }
   return (

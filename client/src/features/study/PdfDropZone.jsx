@@ -1,7 +1,9 @@
-import { useId, useRef, useState } from "react";
+import { useId, useRef } from "react";
 import { FileText } from "lucide-react";
 import { Button } from "@/shared/ui";
-import { MAX_PDF_MB, formatBytes } from "./reviewerForm";
+import useFileDrop from "@/shared/hooks/useFileDrop";
+import { formatSize } from "@/shared/lib/formatSize";
+import { MAX_PDF_MB } from "./reviewerForm";
 
 // The Source field of New reviewer (Figma 78:1410, two lines of text, 95px tall): a dashed zone you drop a PDF on or click to
 // choose from. `onPick` gets the file; checking it is the form's job. The zone is a label around a
@@ -10,29 +12,14 @@ import { MAX_PDF_MB, formatBytes } from "./reviewerForm";
 export default function PdfDropZone({ file, onPick, disabled = false, describedBy }) {
   const inputId = useId();
   const inputRef = useRef(null);
-  const [over, setOver] = useState(false);
 
   const pick = (picked) => {
     if (picked && !disabled) onPick(picked);
   };
-  const leave = (event) => {
-    if (!event.currentTarget.contains(event.relatedTarget)) setOver(false);
-  };
+  const { over, dropProps } = useFileDrop({ onFiles: ([first]) => pick(first), disabled });
 
   return (
-    <div
-      className={`study-drop${over ? " is-over" : ""}${file ? " has-file" : ""}`}
-      onDragOver={(event) => {
-        event.preventDefault();
-        if (!disabled) setOver(true);
-      }}
-      onDragLeave={leave}
-      onDrop={(event) => {
-        event.preventDefault();
-        setOver(false);
-        pick(event.dataTransfer.files?.[0]);
-      }}
-    >
+    <div className={`study-drop${over ? " is-over" : ""}${file ? " has-file" : ""}`} {...dropProps}>
       <input
         ref={inputRef}
         id={inputId}
@@ -51,7 +38,7 @@ export default function PdfDropZone({ file, onPick, disabled = false, describedB
           <FileText size={20} aria-hidden="true" />
           <span className="study-drop__name">
             <strong>{file.name}</strong>
-            <small>{formatBytes(file.size)}</small>
+            <small>{formatSize(file.size)}</small>
           </span>
           <Button variant="secondary" size="sm" disabled={disabled} onClick={() => inputRef.current?.click()}>
             Change

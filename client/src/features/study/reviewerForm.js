@@ -1,3 +1,5 @@
+import { formatSize } from "@/shared/lib/formatSize";
+
 // The New reviewer form's numbers and checks. They match the server (utils/reviewerContent.js and
 // the upload route), which checks them again.
 
@@ -5,15 +7,12 @@ export const QUESTION_COUNTS = [10, 15, 20, 30];
 export const DEFAULT_QUESTION_COUNT = 15;
 export const MAX_PDF_MB = 10;
 
-export const formatBytes = (bytes) =>
-  bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(Math.ceil((bytes / (1024 * 1024)) * 10) / 10).toFixed(1)} MB`;
-
 // A plain message when the picked file can't be used, or "" when it can.
 export function pdfProblem(file) {
   const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
   if (!isPdf) return "That isn't a PDF. Pick a .pdf file.";
   if (file.size > MAX_PDF_MB * 1024 * 1024) {
-    return `That PDF is ${formatBytes(file.size)}. The limit is ${MAX_PDF_MB} MB.`;
+    return `That PDF is ${formatSize(file.size)}. The limit is ${MAX_PDF_MB} MB.`;
   }
   return "";
 }

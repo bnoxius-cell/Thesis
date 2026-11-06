@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { clearFileLinks } from "@/shared/lib/fileLinks";
 import { detachPush } from "../../utils/pushClient";
 
 export const AppContext = createContext();
@@ -14,12 +15,15 @@ export const AppContextProvider = (props) => {
   const [isLoggedin, setIsLoggedin] = useState(false);
   const [userData, setUserData] = useState(null); // null = not loaded
   const [loading, setLoading] = useState(true);
+  const signedInId = useRef(null); // whose file links this tab holds
 
   // Fetch user data
   const getUserData = async () => {
     try {
       const { data } = await axios.get(backendUrl + '/api/user/data');
       if (data.success) {
+        if (signedInId.current && signedInId.current !== data.userData._id) clearFileLinks();
+        signedInId.current = data.userData._id;
         setUserData(data.userData);
         return data.userData;
       } else {
@@ -47,6 +51,8 @@ export const AppContextProvider = (props) => {
           setIsLoggedin(false);
         }
       } else {
+        clearFileLinks(); // the session ended without a sign-out, maybe in another tab
+        signedInId.current = null;
         setIsLoggedin(false);
         setUserData(null);
       }
@@ -124,6 +130,8 @@ export const AppContextProvider = (props) => {
       await detachPush(backendUrl);
       const { data } = await axios.post(backendUrl + '/api/auth/logout');
       if (data.success) {
+        clearFileLinks();
+        signedInId.current = null;
         setIsLoggedin(false);
         setUserData(null);
       } else {
