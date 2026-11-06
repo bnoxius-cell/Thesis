@@ -54,7 +54,7 @@ export default function JoinGroupDialog({ onClose, onDone }) {
         label="Join code"
         value={code}
         onChange={(e) => {
-          setCode(e.target.value.replace(/\s/g, "").toUpperCase());
+          setCode(e.target.value.replace(/\s/g, "").toUpperCase().slice(0, CODE_LENGTH));
           setError("");
         }}
         error={error}
