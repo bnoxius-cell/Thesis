@@ -15,7 +15,7 @@ Owner steps (no Claude usage):
 - [ ] Answer plan 18 questions O1 to O11 (defaults apply until answered), and check the Render Billing page weekly
 Build order (efficiency order agreed 2026-11-01; one builder at a time, `/clear` after each batch, builders run only build and `npm test`):
 - [ ] Figma frames for the first storage surface (default: files per subject, TW-8b; chat attachments CH4 later): upload and attach, file row and card, "uploads paused" state, owner usage page; phone and desktop, light only; owner approves before any UI builder
-- [ ] BW1 `fix/api-bandwidth` (builder-sonnet medium): small unread-count endpoint, gzip, slower chat polling, group lists every 60 s (do first; can run beside the Figma work)
+- [x] BW1 `fix/api-bandwidth` (merged to main, live) (builder-sonnet medium): small unread-count endpoint, gzip, slower chat polling, group lists every 60 s (do first; can run beside the Figma work)
 - [ ] FS0a content checks (builder-sonnet high), FS0b config, kill switch, signing (builder-sonnet high), FS0c call counter and cleanup (builder-opus high), FS0d upload and download helpers plus usage page (builder-sonnet high), FS0e Cloudflare reconciliation job (builder-opus medium); all on `feature/file-store-foundation` after tag `pre-chat-files`
 - [ ] Storage UI from the approved frames (builder-sonnet), tester at 375 and 1280
 - [ ] One code-reviewer and security-review pass on the whole branch, then merge and release
@@ -24,12 +24,12 @@ Right after the storage items:
 - [ ] Site footer: one item (owner to say what goes in it; default Terms, Privacy, About and Help links; draw in Figma first, phone and desktop, light only)
 
 ## A. Wrap up what is built
-Status: the Tasks fix and Pe3 are built but not merged. Production is bb80e13 (Pe2).
+Status: Pe3 to Pe5 are merged and live. Production is efffd91 (Pe5, plus the bandwidth fix). `fix/tasks-empty-main` is still unmerged.
 - [ ] Browser check `fix/tasks-empty-main` at 375 and 1280 (empty Tasks view, no logout toast), then merge it into `main`
 - [ ] Tag `pre-nav-feedback` on `main` after that merge (plan 17, B0)
-- [ ] Spawn the tester on Pe3 (`feature/people-friends`): two accounts, accept, decline, cancel and remove, badges clear in the sidebar, People tab and bottom bar, `?add=1` focus, 375 and 1280, profile states
-- [ ] Fix what the tester finds, merge `feature/people-friends` into `main`
-- [ ] Release: `git branch -f production main && git push origin production` (tester pass first; never merge `staging`)
+- [x] Spawn the tester on Pe3 (`feature/people-friends`): two accounts, accept, decline, cancel and remove, badges clear in the sidebar, People tab and bottom bar, `?add=1` focus, 375 and 1280, profile states
+- [x] Fix what the tester finds, merge `feature/people-friends` into `main`
+- [x] Release: `git branch -f production main && git push origin production` (tester pass first; never merge `staging`)
 - [ ] Reconcile the two handout copies (done by the roadmap commit: handout.md is now the slim state file)
 - [ ] Delete `next-prompt.md` once the owner confirms (its task is covered by sections A, C and D)
 
@@ -55,9 +55,9 @@ Batches:
 - [ ] L1 to L4 later items listed in plan 17
 
 ## C. Finish People
-Status: Pe1 to Pe3 built (Pe3 untested, see A).
-- [ ] Pe4 Group Info dialog, Edit name, Pin a note (frame 64:910, builder-sonnet medium)
-- [ ] Pe5 New group and Join a group dialogs; wire `onNewGroup` and `onJoinGroup` into `PeopleAddMenu` and `GroupsEmpty`, remove the "hidden until Pe5" gap and the empty-Groups copy that points at missing buttons
+Status: Pe1 to Pe5 done, tested and live (2026-11-06).
+- [x] Pe4 Group Info dialog, Edit name, Pin a note (frame 64:910, builder-sonnet medium)
+- [x] Pe5 New group and Join a group dialogs; wire `onNewGroup` and `onJoinGroup` into `PeopleAddMenu` and `GroupsEmpty`, remove the "hidden until Pe5" gap and the empty-Groups copy that points at missing buttons
 
 ## D. Figma frames (FG1)
 Status: not drawn. Ask the owner quick-answer design questions first, record node ids and answers in `.claude/docs/design.md`, owner approves before anything is built. Use figma-use and figma-generate-design, light only, name frames `<Page> / <size> / light / <state>`, reuse the Components page.
@@ -117,7 +117,7 @@ Server and data
 - [ ] Confirm Render's Node is 20+ (pinned in `server/package.json`)
 People and groups
 - [ ] A left group stays in the list until refresh
-- [ ] Pe3 smells: `people-friends.css` is 312 lines, `.people-avatar` lives in `people.css`; accepted differences to revisit: row line is "Code XXXXXX", empty Friends keeps the Add a friend card, profile has no phone frame, sent-request profile has no Cancel
+- [ ] Pe3 to Pe5 smells: `people-friends.css` is 320 lines; Info dialog has no family-friendly control (server PATCH supports it); no group icon picker in New group; Info notification option is "Tasks only" not "Mentions only"; Segment stays disabled with no message if preferences fail; two quick Create calls in one tick can make two groups; also `people-friends.css` is 312 lines, `.people-avatar` lives in `people.css`; accepted differences to revisit: row line is "Code XXXXXX", empty Friends keeps the Add a friend card, profile has no phone frame, sent-request profile has no Cancel
 Shell and Home
 - [ ] Avatar menu: shadow Shadow/3 (0 12 32 .12), dividers inset 8px, icons 20px at x+16, item padding 8/10
 - [ ] Header title y30 on Study, Subject, Reviewer vs y26 on Home; desktop "+" y24, subtitle y62, cards from y106

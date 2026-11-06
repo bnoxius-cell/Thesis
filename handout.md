@@ -2,12 +2,14 @@
 
 Main session only: read this first after a `/clear` (state), then `roadmap.md` (what is next). Subagents skip both unless their brief says otherwise. Rules are in `CLAUDE.md`, feature notes in `.claude/docs/`.
 
-Last updated: 2026-11-01. Open work: see `roadmap.md`.
+Last updated: 2026-11-06. Open work: see `roadmap.md`.
+
+- **TOP PRIORITY reminder for the owner: the ITPM video recording** (set 2026-11-06). Say it first in the next session until they confirm it's done.
 
 ## Branches and releases
-- `main` = bb80e13 (Pe2). Backup tags: `pre-site-v3` (1ad2c0d, the old pages; restore a file with `git checkout 1ad2c0d -- <path>`), `pre-parity`. `production` = bb80e13.
+- `main` = efffd91 (Pe5). Backup tags: `pre-site-v3` (1ad2c0d, the old pages; restore a file with `git checkout 1ad2c0d -- <path>`), `pre-parity`. `production` = efffd91 (Pe3, Pe4, Pe5 and the API bandwidth fix live, all tester-passed 2026-11-06).
 - `fix/tasks-empty-main` (off `main`, not merged): 26c5063 Tasks view fills the page when nothing is due this week (`TasksView.jsx`, `tasks-view.css`), 1287134 removed the logout success toast (owner: toasts feel AI-made). Build-checked only.
-- `feature/people-friends` (Pe3: 4a4fab5 Friends, 3f7819e Student profile): built, 557 server tests and client build pass, not browser-tested, not merged. Its handout copy was the fuller one and is folded in here.
+- Pe3 (Friends, Student profile), Pe4 (Group Info, Edit name, Pin a note) and Pe5 (New group, Join a group) are merged and live; branches `feature/people-friends`, `feature/people-group-info`, `feature/people-new-join-group` stay. Next: roadmap sections D (Figma frames FG1), E (storage, R2 setup), then N1, M1 to M3, AB1.
 - Live site: `main` no longer deploys. Vercel project `stresscare` (prj_1IziDjCwE1rDiKqA5PbtCsHPXIRz, team slug art-8707) and Render `stresscare-api` (second account, srv-dbeai2jrjlhs73f25dqg) both deploy the `production` branch. Release = `git branch -f production main && git push origin production`. The owner added both as allow rules in `.claude/settings.json` (untracked, never commit it); the auto-mode classifier may still block the push as a production deploy, then tell the owner. Promote only after a tester pass.
 - `staging` holds the OLD production app (4cb8fe5, ebc1a28 code plus its own `client/vercel.json` `/api` rewrite) so the professor can compare. Old: https://stresscare-git-staging-art-8707.vercel.app (staging API, `stresscare_staging` DB, needs a test sign-up, 50s cold start). Never merge `staging` into `main` or `production`: an earlier merge carried the staging `/api` rewrite into `client/vercel.json` (fixed in 5bad3dd).
 - Domains: `stresscare.xyz` (apex; `www` 308-redirects) AND `stresscare-art-8707.vercel.app` must both keep working. Google OAuth lists xyz, www.xyz and the old origins. Server `CLIENT_URL` takes a comma-separated list (`server/app.js`) and is set on both Render services. Deployed client builds ignore `VITE_BACKEND_URL` and call their own `/api` (e8a962f) so cookies stay first-party on both addresses. Details in `.claude/docs/deployment.md`.
