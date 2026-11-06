@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { FileQuestion } from "lucide-react";
 import { Button, Chip, EmptyState, Skeleton, Tabs } from "@/shared/ui";
 import Page from "@/app/shell/Page";
+import UploadTray from "@/features/files/UploadTray";
 import NewTaskDialog from "@/features/tasks/NewTaskDialog";
 import useTaskDone from "@/features/tasks/useTaskDone";
 import useNow from "@/shared/hooks/useNow";
@@ -14,16 +15,18 @@ import NextUpList from "./NextUpList";
 import PickUpCard from "./PickUpCard";
 import SubjectCounts from "./SubjectCounts";
 import SubjectDialogs from "./SubjectDialogs";
+import SubjectFiles from "./SubjectFiles";
 import SubjectMenu from "./SubjectMenu";
 import SubjectReviewers from "./SubjectReviewers";
 import SubjectTasks from "./SubjectTasks";
 import { classesThisWeek, examChipText, upcomingEntries } from "./subjectClasses";
 import useReviewers from "./useReviewers";
 import useSubject from "./useSubject";
+import useSubjectFiles from "./useSubjectFiles";
 import "./subject.css";
 
 const BACK = { to: "/study", label: "Back to Study" };
-const TAB_VALUES = ["overview", "tasks", "reviewers"];
+const TAB_VALUES = ["overview", "tasks", "reviewers", "files"];
 
 // Overview is the bare path; the others add ?tab=. Each tab is a history step, so Back returns to
 // the tab the student was on.
@@ -43,14 +46,14 @@ function SubjectSkeleton() {
   );
 }
 
-// One subject (Figma 76:878): its code and term with an exam chip, then three tabs picked by
+// One subject (Figma 76:878): its code and term with an exam chip, then four tabs picked by
 // ?tab= (an unknown value shows Overview). Overview is the frame: Next up and Pick up on the left,
 // Class schedule and counts on the right (one column on phones). Tasks and Reviewers are built from
-// the shared pieces and aren't in the frame. Notes, Practice and Files aren't here. The header More
-// menu edits or deletes the subject (deleting returns to Study). An unknown or foreign id shows
-// "Subject not found".
-export default function SubjectPage() {
-  const { subjectId } = useParams();
+// the shared pieces and aren't in the frame; Files is Figma 157:1477. Notes and Practice aren't here.
+// The header More menu edits or deletes the subject (deleting returns to Study). An unknown or
+// foreign id shows "Subject not found". The files and uploads live here, not in the Files tab, so an
+// upload goes on while another tab is open.
+function SubjectView({ subjectId }) {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const now = useNow();
@@ -59,6 +62,7 @@ export default function SubjectPage() {
   const data = useSubject(subjectId);
   const { reviewers: allReviewers, limits, refresh: refreshReviewers } = useReviewers();
   const { subject, status } = data;
+  const files = useSubjectFiles(subjectId, Boolean(subject?.archivedAt));
   const setDone = useTaskDone(data.setTasks);
   const tab = TAB_VALUES.includes(params.get("tab")) ? params.get("tab") : "overview";
   const reviewers = allReviewers && allReviewers.filter((r) => r.subject === subjectId);
@@ -92,6 +96,7 @@ export default function SubjectPage() {
     { value: "overview", label: "Overview" },
     { value: "tasks", label: "Tasks", count: data.tasks.length },
     { value: "reviewers", label: "Reviewers", count: reviewers?.length },
+    { value: "files", label: "Files" },
   ].map((item) => ({
     ...item,
     to: tabPath(subjectId, item.value),
@@ -166,6 +171,7 @@ export default function SubjectPage() {
             />
           )}
           {tab === "reviewers" && <SubjectReviewers reviewers={reviewers} onNew={() => setAdding("reviewer")} />}
+          {tab === "files" && <SubjectFiles subject={subject} library={files.library} uploads={files.uploads} />}
         </div>
       </div>
       {adding === "task" && (
@@ -186,6 +192,14 @@ export default function SubjectPage() {
         />
       )}
       <SubjectDialogs dialog={dialog} onClose={() => setDialog(null)} onChanged={changed} />
+      <UploadTray items={files.uploads.items} onRetry={files.uploads.retry} onDismiss={files.uploads.dismiss} />
     </Page>
   );
+}
+
+// Keyed by the subject, so moving to another subject starts with clean state: its own tab data,
+// dialogs, and no upload queue left over from the last one.
+export default function SubjectPage() {
+  const { subjectId } = useParams();
+  return <SubjectView key={subjectId} subjectId={subjectId} />;
 }

@@ -23,4 +23,10 @@
   .ui-progress--good .ui-progress__fill {
     background: var(--good);
   }
+  .ui-progress--watch .ui-progress__fill {
+    background: var(--watch);
+  }
+  .ui-progress--steady .ui-progress__fill {
+    transition: transform var(--dur-2) linear;
+  }
 }

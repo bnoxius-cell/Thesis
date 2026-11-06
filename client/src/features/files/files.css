@@ -1,0 +1,439 @@
+/* Files: the list, a row (Figma 151:2210, 157:1747), the Subject Files tab (157:1477, 157:1789), the
+   notice and meter (160:2121), the upload tray (158:2242, 158:2396) and the photo preview (162:3776,
+   162:3972). Motion uses the shared keyframes in motion.css; reduced motion and Animations Off are
+   handled once in base.css. */
+@layer pages {
+  /* Above the phone bottom bar (about 80px, more with a home indicator), plus a gap. */
+  :root {
+    --files-above-bar: calc(var(--bottombar-h) + var(--space-4) + env(safe-area-inset-bottom, 0px) + var(--space-3));
+  }
+
+  .files-tab {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .files-skeleton {
+    border-radius: var(--radius-xl);
+  }
+
+  .files-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .files-head__count {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  /* On phones Upload is a pill floating above the bottom bar, so the list leaves room to scroll past it. */
+  .files-upload--floating {
+    position: fixed;
+    right: max(var(--space-4), env(safe-area-inset-right));
+    bottom: var(--files-above-bar);
+    z-index: 35;
+    box-shadow: var(--shadow-3);
+  }
+  @media (max-width: 1023px) {
+    .files-head ~ .files-drop {
+      margin-bottom: calc(44px + var(--space-4));
+    }
+  }
+
+  /* ---- Notice and meter ---- */
+  .files-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+    background: var(--watch-soft);
+    color: var(--text-primary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .files-notice svg {
+    flex: none;
+    margin-top: 1px;
+    color: var(--watch);
+  }
+  .files-notice span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .files-meter {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    padding: var(--space-4) 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+  .files-meter__text {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .files-meter__text strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  /* ---- The list. Dragging files over it raises its border to the accent and lifts it 2px. ---- */
+  .files-drop {
+    border-radius: var(--radius-xl);
+    outline: 2px solid transparent;
+    outline-offset: 6px;
+    transition:
+      outline-color var(--dur-2) var(--ease-out),
+      transform var(--dur-2) var(--ease-out);
+  }
+  .files-drop.is-over {
+    outline-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .files-list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* A deleted row fades while its height folds to nothing (the row's own bottom margin folds with it). */
+  .files-item {
+    display: grid;
+    grid-template-rows: 1fr;
+  }
+  .files-item.is-leaving {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-rows 200ms var(--ease-out),
+      opacity 200ms var(--ease-out);
+  }
+  .files-item__clip {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .files-item:last-child .files-row {
+    margin-bottom: 0;
+  }
+
+  .files-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    box-sizing: border-box;
+    min-height: 72px;
+    margin-bottom: var(--space-3);
+    padding: 0 var(--space-2) 0 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    transition: background-color var(--dur-2) var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .files-row:hover {
+      background: var(--surface-2);
+    }
+  }
+  .files-row__open {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    align-self: stretch;
+    gap: var(--space-3);
+    min-width: 0;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-lg);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .files-row__open:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -4px;
+  }
+  .files-row__icon {
+    flex: none;
+    color: var(--text-primary);
+  }
+  .files-row__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .files-row__name {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .files-row__meta {
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  @media (max-width: 720px) {
+    .files-row {
+      min-height: 76px;
+      padding-left: var(--space-4);
+    }
+    .files-row__text {
+      gap: 6px;
+    }
+    .files-row__added {
+      display: none;
+    }
+  }
+
+  /* A photo's 40px box. It is centred on the same line as a document's 20px icon and takes the same
+     width, so names line up across a mixed list. The preview fades in over the icon. */
+  .files-thumb {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-inline: -10px;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
+    color: var(--text-primary);
+  }
+  .files-thumb img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity var(--dur-2) var(--ease-out);
+  }
+  .files-thumb img.is-loaded {
+    opacity: 1;
+  }
+
+  .files-empty {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+  .files-dialog-error {
+    color: var(--danger);
+  }
+
+  /* ---- Upload tray ---- */
+  .files-tray {
+    position: fixed;
+    right: var(--space-5);
+    bottom: var(--space-5);
+    z-index: 40;
+    box-sizing: border-box;
+    width: 380px;
+    max-width: calc(100vw - 2 * var(--space-4));
+    max-height: 60dvh;
+    padding: var(--space-4);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    box-shadow: var(--shadow-3);
+    animation: ui-modal-in var(--dur-3) var(--ease-out);
+  }
+  @media (max-width: 1023px) {
+    .files-tray {
+      right: max(var(--space-4), env(safe-area-inset-right));
+      bottom: var(--files-above-bar);
+      left: max(var(--space-4), env(safe-area-inset-left));
+      width: auto;
+      max-width: none;
+    }
+  }
+  .files-tray__title {
+    margin: 0 0 var(--space-3);
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+  }
+  .files-tray__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .files-up {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .files-up__line {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .files-up__name {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--text-primary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .files-up__state {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    font-variant-numeric: tabular-nums;
+  }
+  .files-up__state--done {
+    color: var(--good);
+  }
+  .files-up__error {
+    margin: 0;
+    color: var(--danger);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .files-up__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  /* ---- Photo preview: a dark scrim with the photo on it and the controls around it. Desktop: name
+     left, Download, Delete and Close right. Phone: Close and name on top, the buttons in a row below. ---- */
+  .files-preview-overlay {
+    align-items: stretch;
+    background: color-mix(in srgb, var(--text-primary) 92%, transparent);
+  }
+  .ui-modal.files-preview {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "title actions close"
+      "stage stage stage";
+    align-items: start;
+    gap: var(--space-4);
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    overflow: visible;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--on-accent);
+    animation: ui-fade-in var(--dur-2) var(--ease-out);
+  }
+  .files-preview__title {
+    grid-area: title;
+    min-width: 0;
+  }
+  .files-preview__title h2 {
+    margin: 0;
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .files-preview__title p {
+    margin: 0;
+    color: color-mix(in srgb, var(--on-accent) 80%, transparent);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .files-preview__actions {
+    display: flex;
+    grid-area: actions;
+    gap: var(--space-3);
+  }
+  .files-preview__actions .ui-btn--secondary {
+    background: var(--surface);
+    color: var(--text-primary);
+  }
+  .files-preview__close {
+    grid-area: close;
+    color: var(--on-accent);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .files-preview__close:hover:not(:disabled) .ui-icon-btn__face {
+      background: color-mix(in srgb, var(--on-accent) 16%, transparent);
+    }
+  }
+  .files-preview__stage {
+    display: grid;
+    grid-area: stage;
+    place-items: center;
+    min-height: 0;
+  }
+  .files-preview__stage > * {
+    grid-area: 1 / 1;
+  }
+  .files-preview__stage img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: var(--radius-lg);
+    object-fit: contain;
+    opacity: 0;
+    transition: opacity var(--dur-2) var(--ease-out);
+  }
+  .files-preview__stage img.is-loaded {
+    opacity: 1;
+  }
+  .files-preview__placeholder {
+    display: grid;
+    place-items: center;
+    width: min(580px, 100%);
+    max-height: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius-lg);
+    background: var(--accent-soft);
+    color: var(--text-muted);
+  }
+  .files-preview__failed {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    max-width: 36ch;
+    text-align: center;
+  }
+  .files-preview__failed p {
+    margin: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  @media (max-width: 720px) {
+    .ui-modal.files-preview {
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        "close title"
+        "stage stage"
+        "actions actions";
+      gap: var(--space-3);
+    }
+    .files-preview__close {
+      margin-left: calc(-1 * var(--space-2));
+    }
+    .files-preview__added {
+      display: none;
+    }
+    .files-preview__actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+}

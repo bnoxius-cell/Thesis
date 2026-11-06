@@ -1,6 +1,7 @@
-import { useId, useRef, useState } from "react";
+import { useId, useRef } from "react";
 import { FileText } from "lucide-react";
 import { Button } from "@/shared/ui";
+import useFileDrop from "@/shared/hooks/useFileDrop";
 import { MAX_PDF_MB, formatBytes } from "./reviewerForm";
 
 // The Source field of New reviewer (Figma 78:1410, two lines of text, 95px tall): a dashed zone you drop a PDF on or click to
@@ -10,29 +11,14 @@ import { MAX_PDF_MB, formatBytes } from "./reviewerForm";
 export default function PdfDropZone({ file, onPick, disabled = false, describedBy }) {
   const inputId = useId();
   const inputRef = useRef(null);
-  const [over, setOver] = useState(false);
 
   const pick = (picked) => {
     if (picked && !disabled) onPick(picked);
   };
-  const leave = (event) => {
-    if (!event.currentTarget.contains(event.relatedTarget)) setOver(false);
-  };
+  const { over, dropProps } = useFileDrop({ onFiles: ([first]) => pick(first), disabled });
 
   return (
-    <div
-      className={`study-drop${over ? " is-over" : ""}${file ? " has-file" : ""}`}
-      onDragOver={(event) => {
-        event.preventDefault();
-        if (!disabled) setOver(true);
-      }}
-      onDragLeave={leave}
-      onDrop={(event) => {
-        event.preventDefault();
-        setOver(false);
-        pick(event.dataTransfer.files?.[0]);
-      }}
-    >
+    <div className={`study-drop${over ? " is-over" : ""}${file ? " has-file" : ""}`} {...dropProps}>
       <input
         ref={inputRef}
         id={inputId}
