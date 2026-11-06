@@ -6,6 +6,15 @@ import { del, get, patch, post } from "./http";
 // admin, admins and members (people as { _id, name, avatar }). There is no last-message preview.
 export const fetchGroups = () => get("/api/groups");
 
+// Starts a group; the student becomes its owner. `fields` is { name, description?, familyFriendly? }.
+// The answer is { group } (with _id and joinCode). The server trims the text, refuses an empty name,
+// and limits the name to 60 characters and the description to 140.
+export const createGroup = (fields) => post("/api/groups", fields);
+
+// Joins a group by its 6-character code (any case): { group }. A wrong code answers "Group not found",
+// a group the student is already in answers "Already a member of this group".
+export const joinGroup = (joinCode) => post("/api/groups/join", { joinCode });
+
 // A group's chat. With no cursor it answers the latest 50 messages. With `after` (the id of the
 // newest message already shown) and `since` (the `serverTime` of the previous answer) it answers
 // only newer messages plus `changes` for older ones. The answer always carries `serverTime` and
