@@ -32,6 +32,7 @@
     .people-friends {
       display: flex;
       flex-direction: column;
+      align-items: stretch;
       gap: var(--space-4);
     }
     .people-friends__side {
@@ -146,6 +147,11 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
     background: var(--surface);
+  }
+  /* chat-cards.css gives .people-card a fixed 360px width; the friends list fills its column. */
+  .people-friends__list .people-card--list {
+    width: 100%;
+    max-width: none;
   }
   .people-card--list {
     gap: var(--space-1);
