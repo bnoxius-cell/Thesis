@@ -62,7 +62,8 @@ const REFUSALS = {
     too_many_files: [400, () => `You can add up to ${MAX_SOURCES} files to one reviewer.`],
     bad_upload: [400, () => "The upload didn't go through. Try again."],
     no_length: [411, () => "The upload didn't go through. Try again."],
-    slow_upload: [408, () => 'The upload took too long. Try again with fewer or smaller files, or on a faster connection.'],
+    // Not 408: browsers resend a 408 on their own when the connection was reused.
+    slow_upload: [400, () => 'The upload took too long. Try again with fewer or smaller files, or on a faster connection.'],
     bad_type: [400, (name) => `${name} can't be made into a reviewer. Use PDF, Word or PowerPoint files, or photos (PNG, JPG or WebP).`],
     file_too_big: [413, (name) => (name
         ? `${name} is too big. Each file can be up to ${MAX_SOURCE_BYTES / MB} MB.`
@@ -84,7 +85,7 @@ const REFUSALS = {
     not_found: [404, () => 'File not found.'],
     stored_unreadable: [502, () => "We couldn't open that file right now. Try again."],
     busy: [503, () => 'Lots of reviewers are being made right now. Try again in a minute.'],
-    busy_you: [503, () => "You're already making a reviewer from files. Try again once it has finished reading them."],
+    busy_you: [409, () => "You're already making a reviewer. Try again once it has finished reading."],
 };
 
 // A request we turn down, with the status and message the student sees. `name` is a file name.
@@ -98,7 +99,7 @@ export class SourceError extends Error {
     }
 }
 
-export const sendSourceError = (res, error) => res.status(error.status).json({ success: false, message: error.message });
+export const sendSourceError = (res, error) => res.status(error.status).json({ success: false, code: error.code, message: error.message });
 
 // A file name that is safe to show in a message and keep on a reviewer: no control, invisible or
 // bidi characters, one line, not too long.

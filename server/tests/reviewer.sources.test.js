@@ -222,6 +222,8 @@ const openRaw = (user, headers, body = '') => {
 };
 
 const formField = (name, value) => `--x\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`;
+// The start of a form whose notes never finish arriving.
+const partialNotes = `${formField('title', 'Slow')}--x\r\nContent-Disposition: form-data; name="notes"\r\n\r\nThe start of`;
 const tick = (ms = 20) => new Promise((resolve) => { setTimeout(resolve, ms); });
 
 // --- Word and PowerPoint ---
@@ -353,14 +355,15 @@ describe('how much can be sent', () => {
         await slotsFree();
     });
 
-    test('a body that takes too long to arrive is 408, the connection closed and the slot given back', async () => {
+    test('a body that takes too long to arrive is 400 slow_upload, the connection closed and the slot given back', async () => {
         const { agent, user } = await signUp();
         const before = sourceSettings.bodyReadMs;
         sourceSettings.bodyReadMs = 200;
         try {
-            const raw = openRaw(user, { 'content-length': '5000' }, `${formField('title', 'Slow')}--x\r\nContent-Disposition: form-data; name="notes"\r\n\r\nThe start of`);
+            const raw = openRaw(user, { 'content-length': '5000' }, partialNotes);
             const answer = await raw.answered;
-            expect(answer.status).toBe(408);
+            expect(answer.status).toBe(400);
+            expect(answer.body.code).toBe('slow_upload');
             expect(answer.body.message).toBe('The upload took too long. Try again with fewer or smaller files, or on a faster connection.');
             expect(answer.headers.connection).toBe('close');
             await raw.serverClosed;
@@ -371,6 +374,42 @@ describe('how much can be sent', () => {
             sourceSettings.bodyReadMs = before;
         }
         expect((await send(agent, { files: [[docx(), 'a.docx']] })).status).toBe(201);
+    });
+
+    test('two uploads that run out of time use up the tries for the window', async () => {
+        useLimits({ reviewerBurst: { limit: 4, windowMs: 60_000 } });
+        const { agent, user } = await signUp();
+        const before = sourceSettings.bodyReadMs;
+        sourceSettings.bodyReadMs = 200;
+        try {
+            for (let i = 0; i < 2; i += 1) {
+                const raw = openRaw(user, { 'content-length': '5000' }, partialNotes);
+                expect((await raw.answered).body.code).toBe('slow_upload');
+                await raw.serverClosed;
+                raw.done();
+                await slotsFree();
+            }
+        } finally {
+            sourceSettings.bodyReadMs = before;
+        }
+        const refused = await send(agent, { files: [[docx(), 'a.docx']] });
+        expect(refused.status).toBe(429);
+        expect(refused.body.code).toBe('slow_down');
+        await noReviewerMade();
+    });
+
+    test('a body dropped half-way uses up half the window; a finished request only one try', async () => {
+        useLimits({ reviewerBurst: { limit: 4, windowMs: 60_000 } });
+        const { agent, user } = await signUp();
+        const raw = openRaw(user, { 'content-length': '5000' }, partialNotes);
+        await vi.waitFor(() => expect(sourceSlots.inUse()).toBe(1));
+        raw.req.destroy();
+        await raw.serverClosed;
+        raw.done();
+        await slotsFree();
+        expect((await send(agent, { files: [[docx(), 'a.docx']] })).status).toBe(201);
+        expect((await send(agent, { files: [[pptx(), 'b.pptx']] })).status).toBe(201);
+        expect((await send(agent, { files: [[pdf(), 'c.pdf']] })).status).toBe(429);
     });
 
     test('too many tries in a short time are refused before the body is read', async () => {
@@ -764,7 +803,10 @@ describe('files picked from My files', () => {
         const slow = await pick(agent, [row._id], { questionCount: '10' });
         expect(slow.status).toBe(429);
         expect(slow.body.code).toBe('slow_down');
+        expect(slow.headers['retry-after']).toBeDefined();
         expect(get).not.toHaveBeenCalled();
+        // Given back before the answer.
+        expect(await aiRequestModel.countDocuments()).toBe(1);
     });
 
     test('a store that fails to read is 502 with a plain message', async () => {
@@ -980,8 +1022,8 @@ describe('photos and scanned PDFs', () => {
         expect(sourceSlots.inUse()).toBe(1);
         // One student holds one slot, even with the other one free.
         const mine = await send(agent, { files: [[docx(), 'c.docx']] });
-        expect(mine.status).toBe(503);
-        expect(mine.body.message).toBe("You're already making a reviewer from files. Try again once it has finished reading them.");
+        expect(mine.status).toBe(409);
+        expect(mine.body.message).toBe("You're already making a reviewer. Try again once it has finished reading.");
         expect(sourceSlots.inUse()).toBe(1);
         expect((await send(second, { files: [[makePng(5), 'b.png']] })).status).toBe(201);
         expect(sourceSlots.inUse()).toBe(2);
@@ -1092,6 +1134,42 @@ describe('a double submit', () => {
         expect(second.body.reviewer._id).toBe(first.body.reviewer._id);
         await finish();
         expect(await reviewerModel.countDocuments()).toBe(1);
+    });
+
+    test('while the first one\'s photos are read, the same pick gets it back and anything else is 409 busy_you, never charged', async () => {
+        const { agent, user } = await signUp();
+        const photo = await libraryFile(user, makePng(), 'photo.png');
+        let finish;
+        const gate = new Promise((resolve) => { finish = resolve; });
+        generateJson.mockImplementation(async (request) => {
+            if (request.schema !== TRANSCRIBE_SCHEMA) return { data: aiOutput(), model: 'gemini-test' };
+            await gate;
+            return { data: { text: pageText(1) }, model: 'gemini-test' };
+        });
+        const pickPhoto = () => send(agent, { fields: { fileIds: String(photo._id) } });
+        const first = await pickPhoto();
+        expect(first.status).toBe(201);
+        expect(sourceSlots.inUse()).toBe(1);
+        const get = vi.spyOn(store, 'get');
+
+        const again = await pickPhoto();
+        expect(again.status).toBe(200);
+        expect(again.body.reviewer._id).toBe(first.body.reviewer._id);
+        const other = await send(agent, { fields: { notes: 'Osmosis moves water across a membrane. '.repeat(15) } });
+        expect(other.status).toBe(409);
+        expect(other.body).toMatchObject({ code: 'busy_you', message: "You're already making a reviewer. Try again once it has finished reading." });
+        // Too big to read without a slot: refused before the body.
+        const big = await rawPost(user, { 'content-length': String(2 * MIB) });
+        expect(big.status).toBe(409);
+        expect(big.body.code).toBe('busy_you');
+
+        expect(get).not.toHaveBeenCalled();
+        expect(await aiRequestModel.countDocuments()).toBe(1);
+        expect(await reviewerModel.countDocuments()).toBe(1);
+        expect(sourceSlots.inUse()).toBe(1);
+        finish();
+        await settleGenerationJobs();
+        await slotsFree();
     });
 
     test('the second request is answered without reading the files', async () => {
