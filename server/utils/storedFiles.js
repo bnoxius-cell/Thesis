@@ -8,6 +8,7 @@ import fileModel from '../models/fileModel.js';
 import { filesAvailability, getFileLimits } from './fileLimits.js';
 import { getFileStore } from './fileStore.js';
 import { StoreError } from './fileStores/storeError.js';
+import { canRead } from './fileAccess.js';
 import { contentDisposition } from './fileNames.js';
 import { R2UsageError, fetchR2Usage } from './r2Usage.js';
 import {
@@ -169,6 +170,47 @@ export const issueFileLinks = async (rows, { variant = 'file', userId, now = new
         url: await store.presignGet(keys[index], { expiresIn: linkTtlSeconds, now: now.getTime() }),
         expiresAt,
     })));
+};
+
+// One object, with its length and SHA-256 checked against the ledger. Anything wrong is store_failed.
+const readOne = async (store, key, row) => {
+    let buffer;
+    try {
+        buffer = await store.get(key, { maxBytes: row.size });
+    } catch (error) {
+        if (!(error instanceof StoreError)) throw error;
+        console.error(`[files] could not read file ${row._id}: ${error.message}`);
+        throw fileError('store_failed');
+    }
+    const shaMatches = !row.sha256 || createHash('sha256').update(buffer).digest('hex') === row.sha256;
+    if (buffer.length !== row.size || !shaMatches) {
+        console.error(`[files] file ${row._id} does not match its record`);
+        throw fileError('store_failed');
+    }
+    return buffer;
+};
+
+// Reads the bytes of rows the caller owns, for a feature that works on the file itself (a reviewer
+// made from Study files). Same rules as a download: canRead on every row, every row ready. The
+// whole batch is reserved as links before the first GET and never refunded, so a refusal on any
+// row costs nothing and a failed read still counts. Then one GET at a time, each checked against
+// the ledger row. Buffers come back in the rows' order.
+export const readStoredFiles = async (rows, { userId, now = new Date() }) => {
+    const store = activeStore();
+    const allowed = await Promise.all(rows.map((row) => canRead(userId, row)));
+    const keys = rows.map((row, index) => {
+        const key = allowed[index] && row.state === 'ready' ? keyIn(store, row.storageId) : null;
+        if (!key) throw fileError('not_found');
+        return key;
+    });
+    if (!keys.length) return [];
+
+    await reserveLinks(userId, keys.length, now);
+    const buffers = [];
+    for (const [index, row] of rows.entries()) {
+        buffers.push(await readOne(store, keys[index], row));
+    }
+    return buffers;
 };
 
 // Removes every file matching `filter` (by owner, group, message, subject, folder or _id). Rows are marked

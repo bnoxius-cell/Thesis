@@ -1,7 +1,7 @@
-// Stands in for R2 in tests, the UI harness and local dev. Same three operations as r2Store, and
+// Stands in for R2 in tests, the UI harness and local dev. Same four operations as r2Store, and
 // presignGet hands out an expiring HMAC token for the dev link route instead of a signed R2 URL.
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
-import { StoreError, assertAsciiHeaders, assertExpiresIn, assertStoreKey } from './storeError.js';
+import { StoreError, assertAsciiHeaders, assertExpiresIn, assertMaxBytes, assertStoreKey } from './storeError.js';
 
 export const DEV_LINK_PREFIX = '/api/files/dev/';
 
@@ -35,6 +35,17 @@ export const createMemoryStore = () => {
             assertStoreKey(key);
             failIfAsked('remove', key);
             objects.delete(key);
+        },
+
+        // A copy of the stored bytes, for the server's own read (the reviewer reads a student's file).
+        async get(key, { maxBytes }) {
+            assertStoreKey(key);
+            assertMaxBytes(maxBytes, key);
+            failIfAsked('get', key);
+            const object = objects.get(key);
+            if (!object) throw new StoreError('Missing', { key, status: 404 });
+            if (object.buffer.length > maxBytes) throw new StoreError('TooBig', { key });
+            return Buffer.from(object.buffer);
         },
 
         async presignGet(key, { expiresIn, now = Date.now() }) {

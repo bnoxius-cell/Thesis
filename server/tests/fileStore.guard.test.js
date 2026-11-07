@@ -56,4 +56,14 @@ describe('the R2 store is the only door', () => {
         expect(lines[0]).toContain("method: 'GET'");
         expect(text.indexOf('signQuery')).toBeGreaterThan(text.indexOf('async presignGet'));
     });
+
+    test("exactly one other method: 'GET', header-signed, inside get", () => {
+        const { text } = sourceFiles.find(({ entry }) => entry === 'utils/fileStores/r2Store.js');
+        const beforePresign = text.slice(0, text.indexOf('async presignGet'));
+        const lines = beforePresign.split('\n').filter((line) => line.includes("method: 'GET'"));
+        expect(lines).toHaveLength(1);
+        expect(lines[0]).not.toContain('signQuery');
+        expect(text.indexOf("method: 'GET'")).toBeGreaterThan(text.indexOf('async get('));
+        expect(text.indexOf("method: 'GET'")).toBeLessThan(text.indexOf('async presignGet'));
+    });
 });

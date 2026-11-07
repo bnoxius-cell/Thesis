@@ -25,6 +25,41 @@ const makeFakeFetch = (statusFor = (method) => (method === 'PUT' ? 200 : 204)) =
     return { fetchImpl, requests };
 };
 
+// A fake bucket: remembers what was PUT, serves it back on GET (404 when absent), and records requests.
+const makeBucketFetch = () => {
+    const objects = new Map();
+    const requests = [];
+    const fetchImpl = vi.fn(async (request) => {
+        requests.push({ method: request.method, url: request.url, headers: request.headers });
+        if (request.method === 'PUT') {
+            objects.set(request.url, Buffer.from(await request.arrayBuffer()));
+            return new Response(null, { status: 200 });
+        }
+        if (request.method === 'DELETE') {
+            objects.delete(request.url);
+            return new Response(null, { status: 204 });
+        }
+        const body = objects.get(request.url);
+        return body
+            ? new Response(body, { status: 200, headers: { 'content-length': String(body.length) } })
+            : new Response(null, { status: 404 });
+    });
+    return { fetchImpl, requests };
+};
+
+// A response body that only reads (pulls) when asked, so a test can see whether anything was read.
+const lazyStream = (chunks, stats) => {
+    let next = 0;
+    return new ReadableStream({
+        pull(controller) {
+            stats.pulls += 1;
+            if (next < chunks.length) controller.enqueue(chunks[next++]);
+            else controller.close();
+        },
+        cancel() { stats.cancelled = true; },
+    }, { highWaterMark: 0 });
+};
+
 const makeR2 = (fetchImpl) => createR2Store({
     accountId: 'acc',
     accessKeyId: 'fake-key-id',
@@ -35,8 +70,30 @@ const makeR2 = (fetchImpl) => createR2Store({
 
 describe.each([
     ['memory', () => createMemoryStore()],
-    ['r2', () => makeR2(makeFakeFetch().fetchImpl)],
+    ['r2', () => makeR2(makeBucketFetch().fetchImpl)],
 ])('%s store contract', (name, make) => {
+    test('get returns the put bytes, and a copy each time', async () => {
+        const store = make();
+        const key = newKey();
+        await store.put(key, bytes('hello'), HEADERS);
+        const first = await store.get(key, { maxBytes: 5 });
+        expect(first.toString()).toBe('hello');
+        first.fill(0);
+        expect((await store.get(key, { maxBytes: 100 })).toString()).toBe('hello');
+    });
+
+    test('get of an absent object is Missing, and an object over maxBytes is TooBig', async () => {
+        const store = make();
+        const key = newKey();
+        await expect(store.get(key, { maxBytes: 10 })).rejects.toMatchObject({ name: 'Missing', key, status: 404 });
+        await store.put(key, bytes('hello'), HEADERS);
+        await expect(store.get(key, { maxBytes: 4 })).rejects.toMatchObject({ name: 'TooBig', key });
+    });
+
+    test.each([-1, 1.5, '5', undefined, Infinity])('get with a limit of %j is refused', async (maxBytes) => {
+        await expect(make().get(newKey(), { maxBytes })).rejects.toMatchObject({ name: 'BadLimit' });
+    });
+
     test('put, presign, remove and a second remove all succeed', async () => {
         const store = make();
         const key = newKey();
@@ -56,6 +113,7 @@ describe.each([
         for (const key of ['f/../x', 'f/abc', `x/${randomUUID()}`, `f/${randomUUID()}?a=b`, undefined]) {
             await expect(store.put(key, bytes('x'), HEADERS)).rejects.toMatchObject({ name: 'BadKey' });
             await expect(store.remove(key)).rejects.toMatchObject({ name: 'BadKey' });
+            await expect(store.get(key, { maxBytes: 10 })).rejects.toMatchObject({ name: 'BadKey' });
             await expect(store.presignGet(key, { expiresIn: 60 })).rejects.toMatchObject({ name: 'BadKey' });
         }
     });
@@ -125,6 +183,12 @@ describe('memory store', () => {
         const token = (await store.presignGet(key, { expiresIn: 60 })).slice(DEV_LINK_PREFIX.length);
         for (let i = 0; i < 3; i += 1) expect(store.openDevLink(token).object).toBeDefined();
         expect(store.devReads(key)).toBe(3);
+    });
+
+    test('failNext fails exactly one get', async () => {
+        store.failNext('get');
+        await expect(store.get(key, { maxBytes: 10 })).rejects.toBeInstanceOf(StoreError);
+        expect((await store.get(key, { maxBytes: 10 })).toString()).toBe('hello');
     });
 
     test('failNext fails exactly one put or remove', async () => {
@@ -212,6 +276,90 @@ describe('r2 store requests', () => {
         const store = makeR2(fetchImpl);
         await expect(store.put('f/bad', bytes('x'), HEADERS)).rejects.toMatchObject({ name: 'BadKey' });
         await expect(store.put(newKey(), bytes('x'), { 'Content-Type': 'ภาพ' })).rejects.toMatchObject({ name: 'BadHeader' });
+        expect(fetchImpl).not.toHaveBeenCalled();
+    });
+});
+
+describe('r2 get', () => {
+    test('sends exactly one signed GET with the signature in a header, not in the URL', async () => {
+        const { fetchImpl, requests } = makeBucketFetch();
+        const store = makeR2(fetchImpl);
+        const key = newKey();
+        await store.put(key, bytes('hello'), HEADERS);
+        requests.length = 0;
+
+        expect((await store.get(key, { maxBytes: 5 })).toString()).toBe('hello');
+        expect(requests).toHaveLength(1);
+        const [request] = requests;
+        expect(request.method).toBe('GET');
+        expect(request.url).toBe(`https://acc.r2.cloudflarestorage.com/bucket/${key}`);
+        expect(request.headers.get('authorization')).toMatch(/^AWS4-HMAC-SHA256 /);
+        expect(request.url).not.toContain('X-Amz-Signature');
+    });
+
+    test('a 404 is Missing and any other status is GetFailed, with one request and no secrets', async () => {
+        const key = newKey();
+        const missing = makeFakeFetch(() => 404);
+        await expect(makeR2(missing.fetchImpl).get(key, { maxBytes: 5 })).rejects.toMatchObject({ name: 'Missing', status: 404, key });
+        expect(missing.requests).toHaveLength(1);
+
+        const broken = makeFakeFetch(() => 500);
+        const error = await makeR2(broken.fetchImpl).get(key, { maxBytes: 5 }).catch((caught) => caught);
+        expect(error).toBeInstanceOf(StoreError);
+        expect(error).toMatchObject({ name: 'GetFailed', status: 500, key });
+        expect(error.message).not.toMatch(/https?:|Signature|Credential|fake-/i);
+        expect(broken.requests).toHaveLength(1);
+    });
+
+    test('a Content-Length over the limit is TooBig and the body is never read', async () => {
+        const stats = { pulls: 0, cancelled: false };
+        const fetchImpl = vi.fn(async () => new Response(lazyStream([bytes('hello')], stats), {
+            status: 200,
+            headers: { 'content-length': '5' },
+        }));
+        await expect(makeR2(fetchImpl).get(newKey(), { maxBytes: 4 })).rejects.toMatchObject({ name: 'TooBig' });
+        expect(stats).toEqual({ pulls: 0, cancelled: true });
+    });
+
+    test('a body without a length that outgrows the limit is TooBig and the stream is cancelled', async () => {
+        const stats = { pulls: 0, cancelled: false };
+        const fetchImpl = vi.fn(async () => new Response(lazyStream([bytes('abc'), bytes('def'), bytes('ghi')], stats), { status: 200 }));
+        await expect(makeR2(fetchImpl).get(newKey(), { maxBytes: 4 })).rejects.toMatchObject({ name: 'TooBig' });
+        expect(stats).toEqual({ pulls: 2, cancelled: true });
+    });
+
+    test('a chunked body within the limit is joined in order', async () => {
+        const stats = { pulls: 0, cancelled: false };
+        const fetchImpl = vi.fn(async () => new Response(lazyStream([bytes('abc'), bytes('de')], stats), { status: 200 }));
+        expect((await makeR2(fetchImpl).get(newKey(), { maxBytes: 5 })).toString()).toBe('abcde');
+    });
+
+    test('an empty object is an empty buffer', async () => {
+        const fetchImpl = vi.fn(async () => new Response(null, { status: 200 }));
+        expect(await makeR2(fetchImpl).get(newKey(), { maxBytes: 5 })).toHaveLength(0);
+    });
+
+    test('a timeout while waiting or while reading the body is Timeout, other failures GetFailed', async () => {
+        const slow = vi.fn(async () => { throw new DOMException('timed out', 'TimeoutError'); });
+        await expect(makeR2(slow).get(newKey(), { maxBytes: 5 })).rejects.toMatchObject({ name: 'Timeout' });
+
+        const stalls = vi.fn(async () => new Response(new ReadableStream({
+            pull() { throw new DOMException('timed out', 'TimeoutError'); },
+        }, { highWaterMark: 0 }), { status: 200 }));
+        await expect(makeR2(stalls).get(newKey(), { maxBytes: 5 })).rejects.toMatchObject({ name: 'Timeout' });
+
+        const dropped = vi.fn(async () => { throw new TypeError('fetch failed: https://acc.r2.cloudflarestorage.com/?X-Amz-Signature=abc'); });
+        const error = await makeR2(dropped).get(newKey(), { maxBytes: 5 }).catch((caught) => caught);
+        expect(error).toMatchObject({ name: 'GetFailed', status: 0 });
+        expect(error.message).not.toContain('Signature');
+        expect(dropped).toHaveBeenCalledTimes(1);
+    });
+
+    test('a refused key or limit sends nothing', async () => {
+        const { fetchImpl } = makeBucketFetch();
+        const store = makeR2(fetchImpl);
+        await expect(store.get('f/bad', { maxBytes: 5 })).rejects.toMatchObject({ name: 'BadKey' });
+        await expect(store.get(newKey(), { maxBytes: -1 })).rejects.toMatchObject({ name: 'BadLimit' });
         expect(fetchImpl).not.toHaveBeenCalled();
     });
 });
