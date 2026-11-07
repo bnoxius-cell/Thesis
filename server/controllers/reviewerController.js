@@ -9,7 +9,7 @@ import { withRetries as retrying, friendlyError, describeError } from '../utils/
 import {
     REVIEWER_SCHEMA, REVIEWER_SYSTEM, TARGETED_SCHEMA, buildReviewerPrompt, buildTargetedPrompt, planParts,
     normalizeReviewer, normalizeTargeted, textForTopics,
-    QUESTION_COUNTS, DEFAULT_QUESTION_COUNT, MIN_QUESTIONS,
+    QUESTION_COUNTS, QUESTION_WEIGHTS, DEFAULT_QUESTION_COUNT, FIRST_ROUND_MAX, MIN_QUESTIONS, questionWeight,
     TARGETED_COUNTS, DEFAULT_TARGETED_COUNT, MAX_TARGET_TOPICS, MAX_REVIEWER_QUESTIONS,
 } from '../utils/reviewerContent.js';
 import { resolveItemSubject, applyItemSubject, subjectLabel } from '../utils/subjectMatch.js';
@@ -20,9 +20,11 @@ import { getFileLimits } from '../utils/fileLimits.js';
 import { extensionOf } from '../utils/fileNames.js';
 import { SourceError, combineSources, readSources, sendSourceError, tooLittleTextError } from '../utils/reviewerSource.js';
 import { checkSourceRequest, loadPickedFiles, notesSource, readSourceRequest } from '../utils/reviewerIntake.js';
+import { WAVES_STOP_AFTER_MS, writeMoreQuestions } from '../utils/reviewerMoreQuestions.js';
 import { PictureError, dropPictures, skippedNote, transcribeSources, unreadableError } from '../utils/reviewerPictures.js';
 
-// Everyone shares one Gemini key, so each student gets a few generations a day.
+// Everyone shares one Gemini key, so each student gets a few generations a day. A big set of
+// questions costs more of them (questionWeight in utils/reviewerContent.js).
 export const DAILY_GENERATION_LIMIT = 10;
 // Generation runs in the background after the upload answers. If the server restarts in the
 // middle, nothing would ever finish it, so a "processing" reviewer is failed once it has gone this long
@@ -45,6 +47,8 @@ const TOO_LONG = 'This took too long, so we stopped. Try again.';
 const NO_TARGETED = { status: 'none', topics: [], count: 0, added: 0, batch: '', jobId: '', requestedAt: null, error: '' };
 const NO_PROGRESS = { stage: '', done: 0, total: 0 };
 
+// [5, 10] reads "5 or 10", [10, 15, 20] reads "10, 15 or 20".
+const listOf = (numbers) => `${numbers.slice(0, -1).join(', ')} or ${numbers.at(-1)}`;
 const isId = (id) => mongoose.Types.ObjectId.isValid(id);
 const cleanLine = (value, max) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '');
 
@@ -179,7 +183,12 @@ const requestsToday = (userId) => aiRequestModel.countDocuments({
     at: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
 });
 
-const limitMessage = () => `You've made ${DAILY_GENERATION_LIMIT} reviewers in the last 24 hours. You can make more tomorrow.`;
+// Whether a request that costs `weight` no longer fits in today's limit.
+const overDailyLimit = async (userId, weight = 1) => await requestsToday(userId) + weight > DAILY_GENERATION_LIMIT;
+// One row per unit of weight, so the count of rows stays the count of requests used.
+const recordRequests = (userId, kind, weight = 1) => aiRequestModel.insertMany(Array.from({ length: weight }, () => ({ user: userId, kind })));
+
+const limitMessage = () => "You've reached today's limit for making reviewers. You can make more tomorrow.";
 const notConfigured = (res) => res.status(503).json({ success: false, message: "Reviewers aren't set up on this server yet." });
 
 // ---------------------------------------------------------------------------------------------
@@ -227,6 +236,29 @@ const readPictures = async (reviewer, jobId, { sources, release }) => {
     }
 };
 
+// The questions past the first round, from the material and the topics the first round found.
+// Progress counts questions made so far.
+const moreQuestions = async (reviewer, jobId, parts, content) => {
+    const target = reviewer.questionTarget;
+    const onProgress = (done) => reportProgress(reviewer._id, jobId, { stage: 'writing', done, total: target });
+    await onProgress(content.questions.length);
+    return writeMoreQuestions({
+        title: reviewer.title,
+        course: reviewer.course,
+        parts,
+        topics: content.topics.map((t) => t.name),
+        questions: content.questions,
+        target,
+        retry: withRetries,
+        deadline: reviewer.requestedAt.getTime() + WAVES_STOP_AFTER_MS,
+        onProgress,
+    });
+};
+
+const shortSetNote = (made, target) => (target > FIRST_ROUND_MAX && made < target
+    ? `We made ${made} of ${target} questions. There may not be enough material for more.`
+    : '');
+
 // Most PDFs are one request. A long one is split into parts that are sent at the same time and
 // merged. If any part still fails after its retries, the whole reviewer fails: a reviewer that
 // quietly skipped part of the material would be worse than a clear "try again". `pending` holds the
@@ -239,7 +271,9 @@ const generate = async (reviewerId, jobId, pending) => {
         const material = pending ? await readPictures(reviewer, jobId, pending) : { text: reviewer.sourceText, note: '' };
         if (!material) return;
         const parts = splitIntoParts(material.text);
-        const plan = planParts(parts.map((p) => p.length), reviewer.questionTarget);
+        // Up to 30 questions come with the content, one call per part. More are written after (below).
+        const firstRound = Math.min(reviewer.questionTarget, FIRST_ROUND_MAX);
+        const plan = planParts(parts.map((p) => p.length), firstRound);
 
         const settled = await Promise.allSettled(parts.map((text, i) => withRetries(async () => {
             const prompt = buildReviewerPrompt({ title: reviewer.title, course: reviewer.course, text, part: plan[i] });
@@ -253,9 +287,12 @@ const generate = async (reviewerId, jobId, pending) => {
 
         const answers = settled.map((r) => r.value);
         const { title, ...content } = normalizeReviewer(answers.map((a) => a.data), {
-            questionCount: reviewer.questionTarget,
+            questionCount: firstRound,
             shares: plan.map((p) => p.questions),
         });
+        if (reviewer.questionTarget > firstRound) {
+            content.questions.push(...await moreQuestions(reviewer, jobId, parts, content));
+        }
         const saved = await reviewerModel.updateOne(
             { _id: reviewerId, jobId, status: 'processing' },
             {
@@ -266,7 +303,7 @@ const generate = async (reviewerId, jobId, pending) => {
                     jobId: '',
                     generatedAt: new Date(),
                     aiModel: answers[0].model,
-                    note: material.note,
+                    note: [material.note, shortSetNote(content.questions.length, reviewer.questionTarget)].filter(Boolean).join(' '),
                     progress: NO_PROGRESS,
                     targeted: NO_TARGETED,
                 },
@@ -377,7 +414,7 @@ export const createReviewer = async (req, res) => {
         const body = req.body ?? {};
         const questionTarget = parseQuestionCount(body.questionCount);
         if (!questionTarget) {
-            return res.status(400).json({ success: false, message: `Pick ${QUESTION_COUNTS.join(', ')} questions.` });
+            return res.status(400).json({ success: false, message: `Pick ${listOf(QUESTION_COUNTS)} questions.` });
         }
 
         const course = cleanLine(body.course, COURSE_MAX);
@@ -386,7 +423,7 @@ export const createReviewer = async (req, res) => {
 
         const request = readSourceRequest(body, takeUploadedFiles(req));
 
-        if (await requestsToday(req.userId) >= DAILY_GENERATION_LIMIT) {
+        if (await overDailyLimit(req.userId, questionWeight(questionTarget))) {
             return res.status(429).json({ success: false, message: limitMessage() });
         }
 
@@ -420,7 +457,7 @@ export const createReviewer = async (req, res) => {
             requestedAt: new Date(),
             progress: pictures ? { stage: 'reading', done: 0, total: pictures } : NO_PROGRESS,
         });
-        await aiRequestModel.create({ user: req.userId, kind: 'reviewer' });
+        await recordRequests(req.userId, 'reviewer', questionWeight(questionTarget));
         // The job keeps the slot (and the picture bytes) after this request has answered.
         startGeneration(reviewer._id, jobId, pictures ? { sources, release: res.locals.keepSlot() } : null);
 
@@ -454,6 +491,7 @@ export const getReviewers = async (req, res) => {
         res.json({
             success: true,
             dailyLimit: DAILY_GENERATION_LIMIT,
+            weights: QUESTION_WEIGHTS,
             usedToday: await requestsToday(req.userId),
             enabled: isGeminiConfigured(),
             reviewers: reviewers.map((r) => {
@@ -545,16 +583,16 @@ export const regenerateReviewer = async (req, res) => {
         }
         const questionTarget = req.body.questionCount === undefined ? reviewer.questionTarget : parseQuestionCount(req.body.questionCount);
         if (!questionTarget) {
-            return res.status(400).json({ success: false, message: `Pick ${QUESTION_COUNTS.join(', ')} questions.` });
+            return res.status(400).json({ success: false, message: `Pick ${listOf(QUESTION_COUNTS)} questions.` });
         }
-        if (await requestsToday(req.userId) >= DAILY_GENERATION_LIMIT) {
+        if (await overDailyLimit(req.userId, questionWeight(questionTarget))) {
             return res.status(429).json({ success: false, message: limitMessage() });
         }
 
         const jobId = randomUUID();
         Object.assign(reviewer, { status: 'processing', error: '', jobId, requestedAt: new Date(), progressAt: null, note: '', questionTarget });
         await reviewer.save();
-        await aiRequestModel.create({ user: req.userId, kind: 'reviewer' });
+        await recordRequests(req.userId, 'reviewer', questionWeight(questionTarget));
         startGeneration(reviewer._id, jobId);
 
         res.json({ success: true, reviewer: listItem(reviewer) });
@@ -590,7 +628,7 @@ export const requestTargeted = async (req, res) => {
         }
         const count = req.body.questionCount === undefined ? DEFAULT_TARGETED_COUNT : Number(req.body.questionCount);
         if (!TARGETED_COUNTS.includes(count)) {
-            return res.status(400).json({ success: false, message: `Pick ${TARGETED_COUNTS.join(' or ')} questions.` });
+            return res.status(400).json({ success: false, message: `Pick ${listOf(TARGETED_COUNTS)} questions.` });
         }
         const room = MAX_REVIEWER_QUESTIONS - reviewer.questions.length;
         if (room < Math.min(...TARGETED_COUNTS)) {
@@ -599,14 +637,14 @@ export const requestTargeted = async (req, res) => {
                 message: `This reviewer already has ${reviewer.questions.length} questions, the most it can hold. Use New questions to start a fresh set.`,
             });
         }
-        if (await requestsToday(req.userId) >= DAILY_GENERATION_LIMIT) {
+        if (await overDailyLimit(req.userId)) {
             return res.status(429).json({ success: false, message: limitMessage() });
         }
 
         const jobId = randomUUID();
         reviewer.targeted = { ...NO_TARGETED, status: 'processing', topics, count: Math.min(count, room), jobId, requestedAt: new Date() };
         await reviewer.save();
-        await aiRequestModel.create({ user: req.userId, kind: 'targeted' });
+        await recordRequests(req.userId, 'targeted');
         startTargeted(reviewer._id, jobId);
 
         res.status(202).json({ success: true, targeted: publicTargeted(reviewer.targeted) });

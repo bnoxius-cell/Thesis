@@ -146,7 +146,7 @@ describe('uploading a PDF', () => {
         await aiRequestModel.insertMany(Array.from({ length: DAILY_GENERATION_LIMIT }, () => ({ user: user._id })));
         const res = await upload(alice);
         expect(res.status).toBe(429);
-        expect(res.body.message).toMatch(/last 24 hours/);
+        expect(res.body.message).toMatch(/today's limit/);
         // Yesterday's requests don't count.
         await aiRequestModel.updateMany({}, { at: new Date(Date.now() - 25 * 60 * 60 * 1000) });
         expect((await upload(alice)).status).toBe(201);
@@ -563,7 +563,7 @@ describe('targeted review', () => {
         const reviewer = await reviewerModel.findById(id);
         const filler = reviewer.questions[0].toObject();
         delete filler._id;
-        reviewer.questions.push(...Array.from({ length: 56 }, () => ({ ...filler })));
+        reviewer.questions.push(...Array.from({ length: 124 }, () => ({ ...filler })));
         await reviewer.save();
         const full = await alice.post(`/api/reviewers/${id}/targeted`).send({ topics: ['Respiration'] });
         expect(full.status).toBe(409);

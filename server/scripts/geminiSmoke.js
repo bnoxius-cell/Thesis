@@ -3,11 +3,11 @@
 // transcribed by Gemini first), asks Gemini for a reviewer (split into parts if it's long), then
 // asks for a few targeted questions on its first topic, and prints what came back. Uses
 // GEMINI_API_KEY (and GEMINI_MODEL if set) from server/.env. Nothing is saved. Makes 2 or more
-// requests: one per photo or scanned PDF, then 2 to 4.
+// requests: one per photo or scanned PDF, then 2 to 4 (a few more for 50 or 100 questions).
 //
-//   npm run smoke:gemini -- path/to/notes.pdf [more files...] [questionCount]
+//   npm run smoke:gemini -- [--count 100] path/to/notes.pdf [more files...]
 //
-// A last argument that is only digits is the question count (default 10).
+// --count is the number of questions: 10, 15, 20, 30, 50 or 100 (default 10).
 import 'dotenv/config';
 import { readFile } from 'fs/promises';
 import { basename } from 'path';
@@ -17,15 +17,17 @@ import { withRetries, friendlyError, describeError } from '../utils/aiErrors.js'
 import { combineSources, readSources, sourceTypeOf } from '../utils/reviewerSource.js';
 import { transcribeSources, unreadableError } from '../utils/reviewerPictures.js';
 import {
-    REVIEWER_SCHEMA, REVIEWER_SYSTEM, TARGETED_SCHEMA, buildReviewerPrompt, buildTargetedPrompt, planParts,
-    normalizeReviewer, normalizeTargeted, textForTopics,
+    FIRST_ROUND_MAX, QUESTION_COUNTS, REVIEWER_SCHEMA, REVIEWER_SYSTEM, TARGETED_SCHEMA, buildReviewerPrompt, buildTargetedPrompt,
+    planParts, normalizeReviewer, normalizeTargeted, textForTopics,
 } from '../utils/reviewerContent.js';
+import { WAVES_STOP_AFTER_MS, writeMoreQuestions } from '../utils/reviewerMoreQuestions.js';
 
 const args = process.argv.slice(2);
-const countArg = /^\d+$/.test(args.at(-1) ?? '') ? args.pop() : '';
+const countAt = args.indexOf('--count');
+const countArg = countAt === -1 ? '' : args.splice(countAt, 2)[1];
 const paths = args;
-if (!paths.length) {
-    console.error('Usage: npm run smoke:gemini -- path/to/notes.pdf [more files...] [questionCount]');
+if (!paths.length || (countArg && !QUESTION_COUNTS.includes(Number(countArg)))) {
+    console.error(`Usage: npm run smoke:gemini -- [--count ${QUESTION_COUNTS.join('|')}] path/to/notes.pdf [more files...]`);
     process.exit(1);
 }
 if (!isGeminiConfigured()) {
@@ -48,6 +50,7 @@ const printQuestion = (q) => {
 };
 
 const questionCount = Number(countArg) || 10;
+const firstRound = Math.min(questionCount, FIRST_ROUND_MAX);
 const file = paths.map((path) => basename(path)).join(', ');
 const items = [];
 for (const path of paths) {
@@ -74,7 +77,7 @@ if (combined.bodyChars < MIN_SOURCE_CHARS) {
     process.exit(1);
 }
 const parts = splitIntoParts(combined.text);
-const plan = planParts(parts.map((p) => p.length), questionCount);
+const plan = planParts(parts.map((p) => p.length), firstRound);
 console.log(`Asking ${geminiModel()} for ${questionCount} questions in ${parts.length} ${parts.length === 1 ? 'request' : 'requests at once'}...`);
 
 try {
@@ -84,12 +87,28 @@ try {
         prompt: buildReviewerPrompt({ title: file, course: '', text, part: plan[i] }),
         schema: REVIEWER_SCHEMA,
     })));
-    const reviewer = normalizeReviewer(answers.map((a) => a.data), { questionCount, shares: plan.map((p) => p.questions) });
+    const reviewer = normalizeReviewer(answers.map((a) => a.data), { questionCount: firstRound, shares: plan.map((p) => p.questions) });
     const written = answers.reduce((sum, a) => sum + (a.data.questions?.length ?? 0), 0);
     console.log(`Answered by ${answers[0].model} in ${seconds(started)}`);
+    if (questionCount > firstRound) {
+        console.log(`\nWriting ${questionCount - reviewer.questions.length} more questions in waves...`);
+        started = Date.now();
+        reviewer.questions.push(...await writeMoreQuestions({
+            title: file,
+            course: '',
+            parts,
+            topics: reviewer.topics.map((t) => t.name),
+            questions: reviewer.questions,
+            target: questionCount,
+            retry,
+            deadline: Date.now() + WAVES_STOP_AFTER_MS,
+            onProgress: (done, total) => console.log(`  ${done} of ${total} questions (${seconds(started)})`),
+        }));
+        console.log(`Kept ${reviewer.questions.length} of ${questionCount} questions in ${seconds(started)}`);
+    }
     console.log(`Title: ${reviewer.title}`);
     console.log(`Topics: ${reviewer.topics.map((t) => t.name).join(', ')}`);
-    console.log(`Key points: ${reviewer.keyPoints.length}, key terms: ${reviewer.keyTerms.length}, questions kept: ${reviewer.questions.length} of ${written}`);
+    console.log(`Key points: ${reviewer.keyPoints.length}, key terms: ${reviewer.keyTerms.length}, questions kept: ${reviewer.questions.length}${questionCount > firstRound ? '' : ` of ${written}`}`);
     console.log(`Difficulty: ${['easy', 'medium', 'hard'].map((d) => `${reviewer.questions.filter((q) => q.difficulty === d).length} ${d}`).join(', ')}`);
     console.log('\nSample:');
     printQuestion(reviewer.questions[0]);

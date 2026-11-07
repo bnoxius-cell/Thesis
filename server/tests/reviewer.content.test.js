@@ -1,7 +1,9 @@
 import { describe, test, expect } from 'vitest';
 import {
-    normalizeReviewer, normalizeTargeted, buildReviewerPrompt, buildTargetedPrompt, planParts, shareOut, textForTopics, clip, MIN_QUESTIONS,
+    normalizeReviewer, normalizeTargeted, buildReviewerPrompt, buildTargetedPrompt, buildMorePrompt, withoutRepeats, planParts, shareOut,
+    textForTopics, clip, MIN_QUESTIONS, QUESTION_COUNTS, DEFAULT_QUESTION_COUNT, MAX_REVIEWER_QUESTIONS, questionWeight,
 } from '../utils/reviewerContent.js';
+import { QUESTION_COUNTS as CLIENT_QUESTION_COUNTS, DEFAULT_QUESTION_COUNT as CLIENT_DEFAULT_COUNT } from '../../client/src/features/study/reviewerForm.js';
 import { computeProgress, topicStatsFor, topicLevel, scorePercent } from '../utils/reviewerProgress.js';
 import { extractPdfText, cleanPageText, isPdfBuffer, splitIntoParts } from '../utils/pdfText.js';
 import { makePdf, STUDY_LINES } from './helpers/pdf.js';
@@ -243,6 +245,51 @@ describe('targeted review', () => {
         expect(out.every((q) => q.topic === 'Respiration')).toBe(true);
         expect(() => normalizeTargeted({ questions: [question()] }, { topics: ['Respiration'], questionCount: 5 })).toThrow(/enough usable/);
         expect(() => normalizeTargeted(null, { topics: ['Respiration'], questionCount: 5 })).toThrow();
+    });
+});
+
+describe('more questions for a big set', () => {
+    test('the prompt names the topics and the count, and lists the questions already made, clipped', () => {
+        const long = `${'Why does this long question go on and on? '.repeat(10)}END`;
+        const existing = Array.from({ length: 140 }, (_, i) => `Made ${i}?`);
+        const prompt = buildMorePrompt({
+            title: 'Bio', course: 'BIO 101', text: 'Cells', topics: ['Respiration', 'Fermentation'], questionCount: 25, existing: [long, ...existing],
+        });
+        expect(prompt).toContain('exactly 25 new multiple-choice questions');
+        expect(prompt).toContain('"Respiration", "Fermentation"');
+        expect(prompt).toContain('already has 141 questions');
+        expect(prompt).toContain('about 30% easy (recall), 50% medium');
+        expect(prompt).toContain('<study_material>\nCells\n</study_material>');
+        expect(prompt).not.toContain('END');
+        expect(prompt).toContain('- Made 128?');
+        expect(prompt).not.toContain('- Made 129?');
+    });
+
+    test('a thin answer is kept when minQuestions is 0, and still fails when the answer is not usable', () => {
+        const options = { topics: ['Cells'], questionCount: 25, minQuestions: 0 };
+        expect(normalizeTargeted({ questions: [] }, options)).toEqual([]);
+        expect(normalizeTargeted({ questions: [question({ topic: 'Cells', prompt: 'One?' })] }, options)).toHaveLength(1);
+        expect(() => normalizeTargeted(null, options)).toThrow();
+        expect(() => normalizeTargeted({ questions: [] }, { topics: ['Cells'], questionCount: 25 })).toThrow(/enough usable/);
+    });
+
+    test('withoutRepeats drops what is known and what an earlier question already asks', () => {
+        const kept = withoutRepeats(
+            [question({ prompt: 'Known one?' }), question({ prompt: 'New one?' }), question({ prompt: 'new  ONE' }), question({ prompt: 'Another?' })],
+            ['Known one'],
+        );
+        expect(kept.map((q) => q.prompt)).toEqual(['New one?', 'Another?']);
+    });
+
+    test('the counts, the default and the weights', () => {
+        expect(QUESTION_COUNTS).toEqual([10, 15, 20, 30, 50, 100]);
+        expect([10, 15, 20, 30, 50, 100].map(questionWeight)).toEqual([1, 1, 1, 1, 2, 3]);
+        expect(MAX_REVIEWER_QUESTIONS).toBe(130);
+    });
+
+    test('the client offers the same counts and default', () => {
+        expect(CLIENT_QUESTION_COUNTS).toEqual(QUESTION_COUNTS);
+        expect(CLIENT_DEFAULT_COUNT).toBe(DEFAULT_QUESTION_COUNT);
     });
 });
 

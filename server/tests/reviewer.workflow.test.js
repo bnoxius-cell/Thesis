@@ -9,7 +9,7 @@ import userModel from '../models/userModel.js';
 import { generateJson } from '../utils/gemini.js';
 import { WEAK_BELOW, STRONG_FROM } from '../utils/reviewerProgress.js';
 import { MAX_SOURCE_CHARS } from '../utils/pdfText.js';
-import { generationSettings, settleGenerationJobs, STALE_AFTER_MS } from '../controllers/reviewerController.js';
+import { DAILY_GENERATION_LIMIT, generationSettings, settleGenerationJobs, STALE_AFTER_MS } from '../controllers/reviewerController.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
 import { makePdf, makePagedPdf, STUDY_LINES } from './helpers/pdf.js';
@@ -491,6 +491,227 @@ describe('what Gemini sends back is checked before it is saved', () => {
         expect(status.error).toMatch(message);
         expect(status.error).not.toMatch(/API key|503|aborted|SAFETY/);
         log.mockRestore();
+    });
+});
+
+describe('up to 100 questions', () => {
+    const TOPIC = 'Topic A';
+    // The answer to round 1 (the content and `n` questions), and to a call that adds `n` more.
+    const firstRound = (n = 30) => output([[TOPIC, n]]);
+    const moreOf = (tag, n) => ({ questions: output([[TOPIC, n]]).questions.map((q) => ({ ...q, prompt: `${tag} ${q.prompt}` })) });
+    // Gemini answers with these in the order it is asked.
+    const answers = (...list) => {
+        generateJson.mockReset();
+        for (const data of list) generateJson.mockResolvedValueOnce({ data, model: 'gemini-test' });
+    };
+    const makeSet = (agent, count) => makeReady(agent, { fields: { questionCount: String(count) } });
+    const fullSet = () => [firstRound(), moreOf('B', 25), moreOf('C', 25), moreOf('D', 20)];
+    const useUp = async (count) => {
+        const user = await userId();
+        await aiRequestModel.insertMany(Array.from({ length: count }, () => ({ user })));
+    };
+    const promptOf = (call) => generateJson.mock.calls[call][0].prompt;
+
+    test('30 questions is one call per part, as it always was', async () => {
+        const alice = await signUp();
+        const id = await makeSet(alice, 30);
+        expect(generateJson).toHaveBeenCalledTimes(1);
+        expect(promptOf(0)).toContain('exactly 30 multiple-choice questions');
+        expect(await reviewerModel.findById(id)).toMatchObject({ status: 'ready', note: '', questionTarget: 30 });
+        expect(await aiRequestModel.countDocuments()).toBe(1);
+    });
+
+    test('100 questions: 30 with the content, then waves of two calls that see what was written', async () => {
+        const alice = await signUp();
+        const queue = fullSet();
+        let running = 0;
+        let peak = 0;
+        generateJson.mockReset();
+        generateJson.mockImplementation(async () => {
+            const data = queue[generateJson.mock.calls.length - 1];
+            running += 1;
+            peak = Math.max(peak, running);
+            await new Promise((resolve) => { setTimeout(resolve, 5); });
+            running -= 1;
+            return { data, model: 'gemini-test' };
+        });
+        const id = await makeSet(alice, 100);
+
+        expect(generateJson).toHaveBeenCalledTimes(4);
+        expect(peak).toBe(2);
+        expect(promptOf(0)).toContain('exactly 30 multiple-choice questions');
+        expect(promptOf(1)).toContain('exactly 25 new multiple-choice questions');
+        expect(promptOf(3)).toContain('exactly 20 new multiple-choice questions');
+        expect(promptOf(3)).toContain('- B Topic A, question 25?');
+        expect(promptOf(3)).toContain('- Topic A, question 30?');
+
+        const stored = await reviewerModel.findById(id);
+        expect(stored).toMatchObject({ status: 'ready', note: '', questionTarget: 100, version: 1 });
+        expect(stored.progress).toMatchObject({ stage: '', done: 0, total: 0 });
+        expect(stored.questions).toHaveLength(100);
+        expect(stored.questions.every((q) => q.batch === '' && q.topic === TOPIC)).toBe(true);
+        expect(new Set(stored.questions.map((q) => q.prompt)).size).toBe(100);
+        expect((await alice.get('/api/reviewers')).body.reviewers[0]).toMatchObject({ questionCount: 100, questionTarget: 100 });
+        expect(await aiRequestModel.countDocuments()).toBe(3);
+    });
+
+    test('progress counts the questions made, after each wave', async () => {
+        const alice = await signUp();
+        const queue = fullSet();
+        let release;
+        generateJson.mockReset();
+        generateJson.mockImplementation(() => {
+            const data = queue[generateJson.mock.calls.length - 1];
+            if (generateJson.mock.calls.length < 4) return Promise.resolve({ data, model: 'gemini-test' });
+            return new Promise((resolve) => { release = () => resolve({ data, model: 'gemini-test' }); });
+        });
+        const res = await upload(alice, { fields: { questionCount: '100' } });
+        await vi.waitFor(() => expect(release).toBeTypeOf('function'));
+        const status = (await alice.get(`/api/reviewers/${res.body.reviewer._id}/status`)).body;
+        expect(status).toMatchObject({ status: 'processing', progress: { stage: 'writing', done: 80, total: 100 } });
+        release();
+        await settleGenerationJobs();
+    });
+
+    test('a call that finds little ends the waves: ready, with what was made and a note', async () => {
+        const alice = await signUp();
+        answers(firstRound(), moreOf('B', 5), moreOf('C', 5));
+        const id = await makeSet(alice, 100);
+        expect(generateJson).toHaveBeenCalledTimes(3);
+        const stored = await reviewerModel.findById(id);
+        expect(stored.status).toBe('ready');
+        expect(stored.questions).toHaveLength(40);
+        expect(stored.note).toBe('We made 40 of 100 questions. There may not be enough material for more.');
+        expect((await alice.get(`/api/reviewers/${id}/status`)).body.note).toBe(stored.note);
+    });
+
+    test('a call that keeps failing ends the waves: ready with the first 30 and a note', async () => {
+        const alice = await signUp();
+        generateJson.mockReset();
+        generateJson.mockResolvedValueOnce({ data: firstRound(), model: 'gemini-test' });
+        generateJson.mockRejectedValue(Object.assign(new Error('down'), { status: 503 }));
+        const id = await makeSet(alice, 100);
+        // Round 1, then the two calls of the first wave with their four tries each.
+        expect(generateJson).toHaveBeenCalledTimes(1 + 4 + 4);
+        const stored = await reviewerModel.findById(id);
+        expect(stored).toMatchObject({ status: 'ready', error: '', version: 1 });
+        expect(stored.questions).toHaveLength(30);
+        expect(stored.note).toBe('We made 30 of 100 questions. There may not be enough material for more.');
+    });
+
+    test('questions repeated across calls are kept once', async () => {
+        const alice = await signUp();
+        answers(firstRound(), moreOf('B', 25), moreOf('B', 25), moreOf('C', 20));
+        const id = await makeSet(alice, 100);
+        const stored = await reviewerModel.findById(id);
+        expect(stored.questions).toHaveLength(75);
+        expect(new Set(stored.questions.map((q) => q.prompt)).size).toBe(75);
+    });
+
+    test('if round 1 fails the reviewer fails, as before, and nothing more is asked', async () => {
+        const alice = await signUp();
+        generateJson.mockRejectedValue(Object.assign(new Error('bad'), { status: 400 }));
+        const id = await makeSet(alice, 100);
+        expect(generateJson).toHaveBeenCalledTimes(1);
+        const stored = await reviewerModel.findById(id);
+        expect(stored).toMatchObject({ status: 'failed', note: '' });
+        expect(stored.error).toMatch(/couldn't work with this material/);
+    });
+
+    test('regenerating with 100 uses the waves and costs 3', async () => {
+        const alice = await signUp();
+        const id = await makeReady(alice);
+        answers(...fullSet());
+        await alice.post(`/api/reviewers/${id}/regenerate`).send({ questionCount: 100 }).expect(200);
+        await settleGenerationJobs();
+        expect((await reviewerModel.findById(id)).questions).toHaveLength(100);
+        expect(await aiRequestModel.countDocuments()).toBe(1 + 3);
+    });
+
+    test('only 10, 15, 20, 30, 50 or 100 are allowed', async () => {
+        const alice = await signUp();
+        const res = await upload(alice, { fields: { questionCount: '25' } });
+        expect(res.status).toBe(400);
+        expect(res.body.message).toBe('Pick 10, 15, 20, 30, 50 or 100 questions.');
+        const id = await makeReady(alice);
+        expect((await alice.post(`/api/reviewers/${id}/regenerate`).send({ questionCount: 60 })).status).toBe(400);
+        expect(generateJson).toHaveBeenCalledTimes(1);
+    });
+
+    test('a big set counts more against the day: 50 is 2, 100 is 3, the rest 1', async () => {
+        const alice = await signUp();
+        expect((await alice.get('/api/reviewers')).body.weights).toEqual({ 50: 2, 100: 3 });
+
+        await makeSet(alice, 50);
+        expect(await aiRequestModel.countDocuments()).toBe(2);
+        await makeSet(alice, 30);
+        const list = (await alice.get('/api/reviewers')).body;
+        expect(list).toMatchObject({ usedToday: 3, dailyLimit: DAILY_GENERATION_LIMIT });
+    });
+
+    test('with 8 used, 100 is refused and 15 is not; the refusal costs nothing', async () => {
+        const alice = await signUp();
+        await useUp(8);
+        const refused = await upload(alice, { fields: { questionCount: '100' } });
+        expect(refused.status).toBe(429);
+        expect(refused.body.message).toBe("You've reached today's limit for making reviewers. You can make more tomorrow.");
+        expect(await reviewerModel.countDocuments()).toBe(0);
+        expect(await aiRequestModel.countDocuments()).toBe(8);
+        expect(generateJson).not.toHaveBeenCalled();
+
+        expect((await upload(alice, { fields: { questionCount: '15' } })).status).toBe(201);
+        await settleGenerationJobs();
+        expect(await aiRequestModel.countDocuments()).toBe(9);
+    });
+
+    test('regenerating with a big count is refused when it no longer fits', async () => {
+        const alice = await signUp();
+        const id = await makeReady(alice);
+        await useUp(8);
+        expect((await alice.post(`/api/reviewers/${id}/regenerate`).send({ questionCount: 100 })).status).toBe(429);
+        expect((await alice.post(`/api/reviewers/${id}/regenerate`).send({ questionCount: 50 })).status).toBe(429);
+        expect((await alice.post(`/api/reviewers/${id}/regenerate`).send({ questionCount: 30 })).status).toBe(200);
+        await settleGenerationJobs();
+    });
+
+    test('targeted review works on a 100-question reviewer, and stops at 130', async () => {
+        const alice = await signUp();
+        answers(...fullSet());
+        const id = await makeSet(alice, 100);
+
+        answers(moreOf('T', 5));
+        const ask = () => alice.post(`/api/reviewers/${id}/targeted`).send({ topics: [TOPIC] });
+        expect((await ask()).status).toBe(202);
+        await settleGenerationJobs();
+        const stored = await reviewerModel.findById(id);
+        expect(stored.questions).toHaveLength(105);
+        expect(stored.questions.filter((q) => q.batch)).toHaveLength(5);
+
+        const filler = stored.questions[0].toObject();
+        delete filler._id;
+        stored.questions.push(...Array.from({ length: 21 }, () => ({ ...filler })));
+        await stored.save();
+        const full = await ask();
+        expect(full.status).toBe(409);
+        expect(full.body.message).toMatch(/the most it can hold/);
+    });
+
+    test('Learning Mode takes all 100 questions, and a session can be left and resumed', async () => {
+        const alice = await signUp();
+        answers(...fullSet());
+        const id = await makeSet(alice, 100);
+
+        const session = await startSession(alice, id);
+        expect(session.total).toBe(100);
+        const key = await answerKey(id);
+        const base = `/api/reviewers/${id}/sessions/${session._id}`;
+        for (const q of session.questions.slice(0, 4)) {
+            await alice.post(`${base}/answer`).send({ questionId: q._id, choice: key.get(q._id).correctIndex }).expect(200);
+        }
+        expect((await alice.get(`/api/reviewers/${id}`)).body.openSession).toMatchObject({ _id: session._id, answered: 4, total: 100 });
+        const resumed = (await alice.get(base)).body.session;
+        expect(resumed.total).toBe(100);
+        expect(resumed.answers).toHaveLength(4);
     });
 });
 
