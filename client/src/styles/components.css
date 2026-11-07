@@ -663,14 +663,12 @@
     grid-row: 2;
     width: 100%;
   }
-  .app-footer nav,
-  .site-footer nav {
+  .app-footer nav {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-1) var(--space-4);
   }
-  .app-footer a,
-  .site-footer nav a {
+  .app-footer a {
     display: inline-flex;
     align-items: center;
     min-height: 32px;
@@ -678,33 +676,11 @@
     font-size: var(--text-sm);
     text-decoration: none;
   }
-  .app-footer a:hover,
-  .site-footer nav a:hover {
+  .app-footer a:hover {
     color: var(--text-primary);
     text-decoration: underline;
   }
 
-  /* Signed out: logo, four links, a copyright line. No email addresses, no links into the app. */
-  .site-footer {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-2) var(--space-5);
-    margin-top: auto;
-    padding: var(--space-4) 40px;
-    border-top: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text-muted);
-    font-size: var(--text-xs);
-  }
-  .site-footer .logo-link {
-    font-size: var(--text-md);
-  }
-  .site-footer .logo-svg {
-    width: 24px;
-    height: 24px;
-  }
   .header-auth {
     display: flex;
     align-items: center;
@@ -854,8 +830,7 @@
       margin-top: auto;
       padding: var(--space-2) var(--space-4);
     }
-    .app-footer a,
-    .site-footer nav a {
+    .app-footer a {
       min-height: 44px;
     }
     .sidepanel {
@@ -980,17 +955,6 @@
 
     .header-auth {
       padding: env(safe-area-inset-top, 0px) max(var(--space-4), env(safe-area-inset-right, 0px)) 0 max(var(--space-4), env(safe-area-inset-left, 0px));
-    }
-    .site-footer {
-      justify-content: center;
-      padding: var(--space-2) max(var(--space-4), env(safe-area-inset-right, 0px)) var(--space-3) max(var(--space-4), env(safe-area-inset-left, 0px));
-      text-align: center;
-    }
-    /* Two lines: the links first, then the logo with the copyright. */
-    .site-footer nav {
-      order: -1;
-      justify-content: center;
-      width: 100%;
     }
 
     /* Guide: a sheet that comes up from the bottom edge, above the home bar */

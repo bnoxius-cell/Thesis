@@ -15,11 +15,6 @@
     position: absolute;
     z-index: 1000;
   }
-  @media (min-width: 900px) {
-    .app.auth-layout:has(.auth-split) > .site-footer {
-      display: none;
-    }
-  }
   .app.auth-layout > main.auth-page {
     width: 100%;
     max-width: none;
