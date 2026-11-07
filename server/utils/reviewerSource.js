@@ -21,6 +21,8 @@ export const MAX_NOTES_CHARS = 100000;
 export const MAX_SOURCE_SLOTS = 2;
 // A scanned PDF up to this many pages is read as pictures; longer ones need a text layer.
 export const MAX_SCAN_PAGES = 15;
+// Pictures read in one reviewer: a photo is one, a scanned PDF is one per page.
+export const MAX_PICTURES = 15;
 
 // What a file can be, by the type its bytes show (never its name). Each maps to the label stored on
 // the reviewer.
@@ -28,6 +30,9 @@ const SOURCE_KINDS = Object.freeze({ pdf: 'pdf', docx: 'docx', pptx: 'pptx', png
 export const REVIEWER_SOURCE_TYPES = Object.freeze(Object.keys(SOURCE_KINDS));
 // 'pdf' | 'docx' | 'pptx' | 'image' for a detected file extension, null for anything else.
 export const sourceKindOf = (ext) => SOURCE_KINDS[ext] ?? null;
+
+// What Gemini is told each picture is. A scanned PDF is sent whole, as a PDF.
+const PICTURE_MIME_TYPES = Object.freeze({ png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', pdf: 'application/pdf' });
 
 const OLE_HEADER = Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
 // Names that would be Word or PowerPoint files, old or new. A password-protected one is an OLE file too.
@@ -61,8 +66,7 @@ const REFUSALS = {
     damaged: [422, (name) => `We couldn't read ${name}. It may be damaged. Try saving it again, or as a PDF.`],
     too_big_inside: [422, (name) => `${name} is too big inside for us to read. Try saving it as a PDF, or split it.`],
     scanned_long: [422, (name) => `${name} looks scanned and has more than ${MAX_SCAN_PAGES} pages. Split it into parts of ${MAX_SCAN_PAGES} pages or fewer.`],
-    // Temporary: removed when photos and scanned PDFs are read (plan 21, R3b).
-    pictures_later: [422, () => "Photos and scanned PDFs can't be read yet."],
+    too_many_pictures: [422, () => `That's a lot to read. Use up to ${MAX_PICTURES} photos or scanned pages in one reviewer.`],
     too_little_pdf: [422, TOO_LITTLE_TEXT.pdf],
     too_little_docx: [422, TOO_LITTLE_TEXT.docx],
     too_little_pptx: [422, TOO_LITTLE_TEXT.pptx],
@@ -161,19 +165,50 @@ const pdfText = async (buffer, name) => {
     } catch (error) {
         throw new SourceError(error?.name === 'PasswordException' ? 'pdf_password' : 'damaged', name);
     }
-    if (isScannedPdf(extracted.chars, extracted.pages)) {
-        // A scan that is short enough will be read as pictures (plan 21, R3b); until then it is refused.
-        if (extracted.pages <= MAX_SCAN_PAGES) throw new SourceError('pictures_later');
-        if (extracted.chars < MIN_SOURCE_CHARS) throw new SourceError('scanned_long', name);
-    }
+    if (!isScannedPdf(extracted.chars, extracted.pages)) return extracted;
+    // A scan short enough is read as pictures; a longer one has to have a text layer.
+    if (extracted.pages <= MAX_SCAN_PAGES) return { ...extracted, scanned: true };
+    if (extracted.chars < MIN_SOURCE_CHARS) throw new SourceError('scanned_long', name);
     return extracted;
 };
 
-// { text, pages, slides, chars, truncated } for a PDF, Word or PowerPoint file of that `kind`.
-// Throws a SourceError naming the file when it can't be read.
+// { text, pages, slides, chars, truncated } for a PDF, Word or PowerPoint file of that `kind`, plus
+// `scanned: true` for a PDF that has to be read as pictures. Throws a SourceError naming the file
+// when it can't be read.
 export const readSourceText = async (kind, buffer, name) => {
     const shown = displayName(name);
     return kind === 'pdf' ? pdfText(buffer, shown) : officeText(kind, buffer, shown);
+};
+
+const NO_TEXT = Object.freeze({ text: '', pages: 0, slides: 0, chars: 0, truncated: false });
+
+// How many pictures a source adds up to.
+const picturesIn = (source) => (source.picture ? Math.max(1, source.pages) : 0);
+
+// The text of each file, one at a time, in the order given. `items` is [{ buffer, name, kind, ext, bytes,
+// file }] and is emptied as it goes, so a file's bytes can be freed as soon as its text is out. A photo or
+// a scanned PDF has no text yet: it keeps its bytes as `picture`, to be read by Gemini (reviewerPictures.js).
+export const readSources = async (items) => {
+    const sources = [];
+    let pictures = 0;
+    while (items.length) {
+        const { buffer, name, kind, ext, bytes, file } = items.shift();
+        const extracted = kind === 'image' ? NO_TEXT : await readSourceText(kind, buffer, name);
+        const isPicture = kind === 'image' || Boolean(extracted.scanned);
+        const source = {
+            ...extracted,
+            kind,
+            fileName: name,
+            bytes,
+            file,
+            read: isPicture ? 'picture' : 'text',
+            picture: isPicture ? { mimeType: PICTURE_MIME_TYPES[ext], data: buffer } : null,
+        };
+        pictures += picturesIn(source);
+        if (pictures > MAX_PICTURES) throw new SourceError('too_many_pictures');
+        sources.push(source);
+    }
+    return sources;
 };
 
 // Pasted notes, cleaned: line endings made plain, control characters removed (a NUL or an escape
@@ -208,39 +243,47 @@ export const fitSources = (lengths, budget = MAX_SOURCE_CHARS) => {
 const SEPARATOR = '\n\n';
 const headerOf = (position, name) => `Source ${position + 1}: ${name}\n`;
 
-// `sources`: [{ kind, fileName, text, pages, slides, chars, truncated, bytes, file }] in the order the
-// student chose, text already cleaned. Returns the one text everything downstream works from and the
-// details to store: `summary` for the list and `items` per source. With two or more sources each
-// block starts with a "Source N: name" line.
-export const combineSources = (sources, fingerprint) => {
-    const labelled = sources.length > 1;
-    const headers = sources.map((source, i) => (labelled ? headerOf(i, source.fileName) : ''));
-    const room = MAX_SOURCE_CHARS - SEPARATOR.length * (sources.length - 1);
-    const kept = fitSources(sources.map((source, i) => headers[i].length + source.text.length), room);
+const itemOf = (source) => ({
+    type: source.kind,
+    fileName: source.fileName,
+    pages: source.pages ?? 0,
+    slides: source.slides ?? 0,
+    chars: source.chars,
+    truncated: source.truncated,
+    bytes: source.bytes,
+    file: source.file ?? null,
+    read: source.read ?? 'text',
+    skipped: false,
+});
 
-    const items = sources.map((source, i) => {
-        const bodyLength = Math.max(0, kept[i] - headers[i].length);
-        return {
-            type: source.kind,
-            fileName: source.fileName,
-            pages: source.pages ?? 0,
-            slides: source.slides ?? 0,
-            chars: source.chars,
-            truncated: source.truncated || bodyLength < source.text.length,
-            bytes: source.bytes,
-            file: source.file ?? null,
-            read: 'text',
-            skipped: false,
-            body: source.text.slice(0, bodyLength).trimEnd(),
-        };
+// `sources`: [{ kind, fileName, text, pages, slides, chars, truncated, bytes, file, read, skipped }] in the
+// order the student chose, text already cleaned. A `skipped` source (a picture we couldn't read) is listed
+// but adds no text. Returns the one text everything downstream works from and the details to store:
+// `summary` for the list and `items` per source. With two or more sources that add text, each block starts
+// with a "Source N: name" line.
+export const combineSources = (sources, fingerprint) => {
+    const used = sources.filter((source) => !source.skipped);
+    const labelled = used.length > 1;
+    const headers = used.map((source, i) => (labelled ? headerOf(i, source.fileName) : ''));
+    const room = MAX_SOURCE_CHARS - SEPARATOR.length * Math.max(0, used.length - 1);
+    const kept = fitSources(used.map((source, i) => headers[i].length + source.text.length), room);
+    const bodyRoom = used.map((source, i) => Math.max(0, kept[i] - headers[i].length));
+    const bodies = used.map((source, i) => source.text.slice(0, bodyRoom[i]).trimEnd());
+
+    let next = 0;
+    const items = sources.map((source) => {
+        if (source.skipped) return { ...itemOf(source), chars: 0, truncated: false, skipped: true };
+        const cut = bodyRoom[next] < source.text.length;
+        next += 1;
+        return { ...itemOf(source), truncated: source.truncated || cut };
     });
-    const text = items.map((item, i) => headers[i] + item.body).join(SEPARATOR);
+    const text = used.map((source, i) => headers[i] + bodies[i]).join(SEPARATOR);
 
     const kinds = new Set(items.map((item) => item.type));
     const sum = (field) => items.reduce((total, item) => total + item[field], 0);
     return {
         text,
-        items: items.map(({ body, ...item }) => item),
+        items,
         summary: {
             type: kinds.size === 1 ? items[0].type : 'mixed',
             fileName: items[0].fileName,
@@ -252,7 +295,7 @@ export const combineSources = (sources, fingerprint) => {
             bytes: sum('bytes'),
             fingerprint,
         },
-        bodyChars: items.reduce((total, item) => total + item.body.length, 0),
+        bodyChars: bodies.reduce((total, body) => total + body.length, 0),
     };
 };
 

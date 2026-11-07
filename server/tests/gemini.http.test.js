@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { startFakeGemini, GEMINI_ERRORS } from './helpers/fakeGemini.js';
 import { generateJson, geminiSettings, isGeminiConfigured, DEFAULT_GEMINI_MODEL } from '../utils/gemini.js';
 import { friendlyError, isRetryable, isSetupProblem, isTimeout, withRetries, describeError } from '../utils/aiErrors.js';
-import { REVIEWER_SCHEMA, REVIEWER_SYSTEM } from '../utils/reviewerContent.js';
+import { REVIEWER_SCHEMA, REVIEWER_SYSTEM, TRANSCRIBE_PROMPT, TRANSCRIBE_SCHEMA, TRANSCRIBE_SYSTEM } from '../utils/reviewerContent.js';
 
 // utils/gemini.js and the real SDK, talking HTTP to a fake Gemini on localhost.
 
@@ -63,6 +63,48 @@ describe('a request', () => {
     });
 });
 
+describe('a request with files', () => {
+    const picture = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 250, 251, 252]);
+    const read = (files) => generateJson({ system: TRANSCRIBE_SYSTEM, prompt: TRANSCRIBE_PROMPT, schema: TRANSCRIBE_SCHEMA, temperature: 0, files });
+
+    test('each file goes as an inline base64 part ahead of the prompt', async () => {
+        gemini.reply(() => ({ json: { text: 'Cells.' } }));
+        const out = await read([{ mimeType: 'image/png', data: picture }, { mimeType: 'application/pdf', data: Buffer.from('%PDF-1.4') }]);
+        expect(out.data).toEqual({ text: 'Cells.' });
+
+        const [req] = gemini.requests;
+        const parts = req.body.contents[0].parts;
+        expect(req.body.contents[0].role).toBe('user');
+        expect(parts).toEqual([
+            { inlineData: { mimeType: 'image/png', data: picture.toString('base64') } },
+            { inlineData: { mimeType: 'application/pdf', data: Buffer.from('%PDF-1.4').toString('base64') } },
+            { text: TRANSCRIBE_PROMPT },
+        ]);
+        expect(req.files.map((file) => file.mimeType)).toEqual(['image/png', 'application/pdf']);
+        expect(req.prompt).toBe(TRANSCRIBE_PROMPT);
+        expect(req.body.generationConfig).toMatchObject({ temperature: 0 });
+        expect(req.body.generationConfig.responseJsonSchema).toEqual(TRANSCRIBE_SCHEMA);
+    });
+
+    test('without files the prompt goes alone, as before', async () => {
+        await ask();
+        expect(gemini.requests[0].files).toEqual([]);
+        expect(gemini.requests[0].body.contents[0].parts).toEqual([{ text: 'Make a reviewer.' }]);
+    });
+
+    test.each(['image/gif', 'image/svg+xml', 'text/plain', undefined])('a %s file is refused before anything is sent', async (mimeType) => {
+        const error = await failure(read([{ mimeType, data: picture }]));
+        expect(error).toBeInstanceOf(TypeError);
+        expect(isRetryable(error)).toBe(false);
+        expect(gemini.requests).toHaveLength(0);
+    });
+
+    test('bytes that are not a Buffer are refused too', async () => {
+        expect(await failure(read([{ mimeType: 'image/png', data: 'AAAA' }]))).toBeInstanceOf(TypeError);
+        expect(gemini.requests).toHaveLength(0);
+    });
+});
+
 describe('answers that cannot be used', () => {
     test('an empty answer (for example a blocked one) is unusable, so it gets asked again', async () => {
         gemini.reply(() => ({ text: undefined, finishReason: 'SAFETY' }));
@@ -105,6 +147,19 @@ describe('errors from Gemini', () => {
         // What a student sees never includes Gemini's own wording or the key.
         expect(friendlyError(error)).not.toMatch(/API key|quota|INVALID|test-key/);
         if (expected.setup) expect(describeError(error)).toMatch(/check GEMINI_API_KEY and GEMINI_MODEL/);
+    });
+
+    test('while reading a photo, the failures that are about the picture say so', () => {
+        const reading = { reading: true };
+        const picture = "We couldn't read this photo. Try again, or use a clearer photo.";
+        expect(friendlyError({ status: 503 }, reading)).toBe(picture);
+        expect(friendlyError({ code: 'invalid_output' }, reading)).toBe(picture);
+        expect(friendlyError({ status: 400 }, reading)).toBe(picture);
+        expect(friendlyError(new Error('boom'), reading)).toBe(picture);
+        // A busy service, a slow answer and our own setup problems are still what they are.
+        expect(friendlyError({ status: 429 }, reading)).toMatch(/busy right now/);
+        expect(friendlyError({ status: 504 }, reading)).toMatch(/took too long/);
+        expect(friendlyError({ status: 403 }, reading)).toMatch(/aren't working on our side/);
     });
 
     test('a request that takes too long is stopped, and counts as a timeout', async () => {

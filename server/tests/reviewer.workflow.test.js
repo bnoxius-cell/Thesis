@@ -12,7 +12,7 @@ import { MAX_SOURCE_CHARS } from '../utils/pdfText.js';
 import { generationSettings, settleGenerationJobs, STALE_AFTER_MS } from '../controllers/reviewerController.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
-import { makePdf, makePagedPdf, makeImageOnlyPdf, STUDY_LINES } from './helpers/pdf.js';
+import { makePdf, makePagedPdf, STUDY_LINES } from './helpers/pdf.js';
 
 // The checks from the thesis test plan that the other reviewer tests don't already cover:
 // exact scores, topic scores and weak topics, when Gemini is (and isn't) called, refreshing in
@@ -378,8 +378,7 @@ describe('real PDFs', () => {
             ['a damaged PDF (cut in half)', HANDOUT.subarray(0, Math.floor(HANDOUT.length / 2)), 422, /may be damaged/],
             ['a PDF with only the header', Buffer.from('%PDF-1.7\n'), 422, /may be damaged/],
             ['a password-protected PDF', makePagedPdf([STUDY_LINES], { encrypt: true }), 422, /password protected/],
-            ['a scanned (image-only) PDF', makeImageOnlyPdf(), 422, /Photos and scanned PDFs can't be read yet/],
-            ['a PDF with one short line', makePdf(['Just one short line.']), 422, /Photos and scanned PDFs can't be read yet/],
+            ['a long scan with almost no text', makePagedPdf(Array.from({ length: 16 }, () => ['x'])), 422, /looks scanned and has more than 15 pages/],
         ];
         for (const [label, file, status, message] of cases) {
             const res = await upload(alice, { file });

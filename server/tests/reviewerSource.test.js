@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import {
     MAX_NOTES_CHARS, MAX_SOURCES_BYTES, REVIEWER_SOURCE_TYPES, SourceError, cleanNotes, combineSources, displayName, fitSources,
-    isScannedPdf, readSourceText, sourceFingerprint, sourceSlots, sourceTypeOf, tooLittleTextError,
+    isScannedPdf, readSourceText, readSources, sourceFingerprint, sourceSlots, sourceTypeOf, tooLittleTextError,
 } from '../utils/reviewerSource.js';
 import { MAX_SOURCE_CHARS, MIN_SOURCE_CHARS } from '../utils/pdfText.js';
 import { makeDocx, makeJpeg, makeOffice, makePng, makePptx, makeWebp, makeZip } from './helpers/fileFixtures.js';
@@ -148,10 +148,11 @@ describe('readSourceText', () => {
         expect(pptx.text.indexOf('Slide 1')).toBeLessThan(pptx.text.indexOf('Slide 2'));
     });
 
-    test('a scanned PDF is refused for now; a long scan with a little text says so', async () => {
-        expect(await asyncRefusal(readSourceText('pdf', makeImageOnlyPdf(), 'scan.pdf'))).toMatchObject({
-            status: 422, message: "Photos and scanned PDFs can't be read yet.",
-        });
+    test('a scanned PDF is marked to be read as pictures; a long scan with a little text is refused', async () => {
+        const scan = await readSourceText('pdf', makeImageOnlyPdf(), 'scan.pdf');
+        expect(scan).toMatchObject({ scanned: true, pages: 2 });
+        const typed = await readSourceText('pdf', makePdf(STUDY_LINES), 'typed.pdf');
+        expect(typed.scanned).toBeUndefined();
         const pages = Array.from({ length: 16 }, () => ['x']);
         expect(await asyncRefusal(readSourceText('pdf', makePagedPdf(pages), 'long scan.pdf'))).toMatchObject({
             status: 422, code: 'scanned_long',
@@ -188,8 +189,54 @@ describe('readSourceText', () => {
     });
 });
 
+describe('readSources', () => {
+    const item = (buffer, name) => ({ buffer, name, bytes: buffer.length, file: null, ...sourceTypeOf(buffer, name) });
+
+    test('text files give text; photos and scanned PDFs keep their bytes and the right mime type, in order', async () => {
+        const items = [
+            item(makeDocx(STUDY_LINES), 'a.docx'),
+            item(makePng(), 'photo.png'),
+            item(makeJpeg(), 'photo.jpg'),
+            item(makeWebp(), 'photo.webp'),
+            item(makeImageOnlyPdf(), 'scan.pdf'),
+            item(makePdf(STUDY_LINES), 'typed.pdf'),
+        ];
+        const sources = await readSources(items);
+        expect(items).toHaveLength(0);
+        expect(sources.map((source) => source.fileName)).toEqual(['a.docx', 'photo.png', 'photo.jpg', 'photo.webp', 'scan.pdf', 'typed.pdf']);
+        expect(sources.map((source) => source.read)).toEqual(['text', 'picture', 'picture', 'picture', 'picture', 'text']);
+        expect(sources.map((source) => source.picture?.mimeType ?? null)).toEqual([null, 'image/png', 'image/jpeg', 'image/webp', 'application/pdf', null]);
+        expect(sources[0].text).toContain('Calvin cycle');
+        expect(sources[1]).toMatchObject({ text: '', kind: 'image', chars: 0 });
+        expect(Buffer.isBuffer(sources[1].picture.data)).toBe(true);
+    });
+
+    test('a scanned PDF counts one picture per page, and 15 is the most', async () => {
+        const photos = (count) => Array.from({ length: count }, (_, i) => item(makePng(), `p${i}.png`));
+        // The two-page scan brings 13 photos to exactly 15.
+        expect(await readSources([...photos(13), item(makeImageOnlyPdf(), 'scan.pdf')])).toHaveLength(14);
+        const tooMany = await asyncRefusal(readSources([...photos(14), item(makeImageOnlyPdf(), 'scan.pdf')]));
+        expect(tooMany).toMatchObject({ status: 422, code: 'too_many_pictures' });
+        expect(tooMany.message).toBe("That's a lot to read. Use up to 15 photos or scanned pages in one reviewer.");
+    });
+});
+
 describe('combineSources', () => {
     const source = (kind, fileName, text, extra = {}) => ({ kind, fileName, text, pages: null, slides: null, chars: text.length, truncated: false, bytes: 1000, file: null, ...extra });
+
+    test('a skipped source is listed with no text, and the others are numbered without it', () => {
+        const combined = combineSources([
+            source('image', 'a.jpg', 'First page of notes.', { read: 'picture' }),
+            source('image', 'b.jpg', '', { read: 'picture', skipped: true }),
+            source('docx', 'c.docx', 'Third text.'),
+        ], 'fp');
+        expect(combined.text).toBe('Source 1: a.jpg\nFirst page of notes.\n\nSource 2: c.docx\nThird text.');
+        expect(combined.items.map((item) => [item.fileName, item.skipped, item.read])).toEqual([
+            ['a.jpg', false, 'picture'], ['b.jpg', true, 'picture'], ['c.docx', false, 'text'],
+        ]);
+        expect(combined.summary).toMatchObject({ count: 3, type: 'mixed' });
+        expect(combined.bodyChars).toBe('First page of notes.'.length + 'Third text.'.length);
+    });
 
     test('one source has no header and keeps its type', () => {
         const combined = combineSources([source('docx', 'Notes.docx', 'Some text here.')], 'fp');

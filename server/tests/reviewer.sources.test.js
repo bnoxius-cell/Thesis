@@ -16,6 +16,7 @@ import { generateJson, isGeminiConfigured } from '../utils/gemini.js';
 import { extractDocxText } from '../utils/officeText.js';
 import { generationSettings, settleGenerationJobs, DAILY_GENERATION_LIMIT } from '../controllers/reviewerController.js';
 import { sourceSlots } from '../utils/reviewerSource.js';
+import { TRANSCRIBE_SCHEMA } from '../utils/reviewerContent.js';
 import { monthId } from '../utils/fileBudget.js';
 import { detectFileType } from '../utils/fileTypes.js';
 import { reloadFileLimits, setFileLimitsForTests } from '../utils/fileLimits.js';
@@ -25,7 +26,7 @@ import { removeFiles, storeFile } from '../utils/storedFiles.js';
 import { resetRateLimits } from '../utils/rateLimit.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
-import { makeDocx, makeOffice, makePng, makePptx, makeZip } from './helpers/fileFixtures.js';
+import { makeDocx, makeJpeg, makeOffice, makePng, makePptx, makeWebp, makeZip } from './helpers/fileFixtures.js';
 import { STUDY_LINES, makeImageOnlyPdf, makePagedPdf, makePdf } from './helpers/pdf.js';
 
 vi.mock('../utils/emailService.js', () => ({
@@ -142,6 +143,30 @@ const noReviewerMade = async () => {
     expect(generateJson).not.toHaveBeenCalled();
 };
 const slotsFree = () => vi.waitFor(() => expect(sourceSlots.inUse()).toBe(0));
+
+// A Gemini that reads the pictures it is sent as `read(n)` (n counts the reads from 0, in the order
+// they start; an Error is thrown) and writes the reviewer as usual. `seen` collects what tests look at.
+const readsPhotos = (read = () => STUDY_LINES.join('\n'), seen = {}) => async (request) => {
+    const progressNow = async () => (await reviewerModel.findOne().select('progress').lean()).progress;
+    if (request.schema !== TRANSCRIBE_SCHEMA) {
+        seen.writing = await progressNow();
+        return { data: aiOutput(), model: 'gemini-test' };
+    }
+    const n = seen.reads ?? 0;
+    seen.reads = n + 1;
+    seen.running = (seen.running ?? 0) + 1;
+    seen.mostAtOnce = Math.max(seen.mostAtOnce ?? 0, seen.running);
+    const progress = await progressNow();
+    seen.progress = [...(seen.progress ?? []), progress];
+    await new Promise((resolve) => { setTimeout(resolve, 5); });
+    seen.running -= 1;
+    const result = read(n);
+    if (result instanceof Error) throw result;
+    return { data: { text: result }, model: 'gemini-test' };
+};
+const readCalls = () => generateJson.mock.calls.map(([request]) => request).filter((request) => request.schema === TRANSCRIBE_SCHEMA);
+const overloaded = () => Object.assign(new Error('The model is overloaded.'), { status: 503 });
+const pageText = (n) => `Page ${n}: ${STUDY_LINES.join(' ')}`;
 
 let server;
 let port;
@@ -327,16 +352,6 @@ describe('files that cannot be a source', () => {
         const res = await send(agent, { files: [[ole, 'notes.docx']] });
         expect(res.status).toBe(422);
         expect(res.body.message).toMatch(/^We can't open notes\.docx\./);
-        await noReviewerMade();
-    });
-
-    test('photos and scanned PDFs are not read yet', async () => {
-        const { agent } = await signUp();
-        for (const files of [[[makePng(), 'photo.png']], [[docx(), 'a.docx'], [makePng(), 'photo.png']], [[makeImageOnlyPdf(), 'scan.pdf']]]) {
-            const res = await send(agent, { files });
-            expect(res.status).toBe(422);
-            expect(res.body.message).toBe("Photos and scanned PDFs can't be read yet.");
-        }
         await noReviewerMade();
     });
 
@@ -603,14 +618,19 @@ describe('files picked from My files', () => {
         expect(await storedProps(user)).toEqual(before);
     });
 
-    test('photos in My files are not read yet, and cost nothing', async () => {
+    test('a photo in My files is read like an uploaded one, and the read is budgeted as a link', async () => {
         const { agent, user } = await signUp();
         const photo = await libraryFile(user, makePng(), 'photo.png');
-        const get = vi.spyOn(store, 'get');
+        const before = await storedProps(user);
+        generateJson.mockImplementation(readsPhotos(() => STUDY_LINES.join('\n')));
         const res = await pick(agent, [photo._id]);
-        expect(res.status).toBe(422);
-        expect(res.body.message).toBe("Photos and scanned PDFs can't be read yet.");
-        expect(get).not.toHaveBeenCalled();
+        expect(res.status).toBe(201);
+        expect(res.body.reviewer.source).toMatchObject({ type: 'image', count: 1 });
+        expect(res.body.reviewer.source.items[0].fileId).toBe(String(photo._id));
+        await settleGenerationJobs();
+        expect(generateJson.mock.calls[0][0].files).toEqual([expect.objectContaining({ mimeType: 'image/png' })]);
+        expect((await storedProps(user)).links).toBe(before.links + 1);
+        expect((await reviewerModel.findOne()).status).toBe('ready');
     });
 
     test('files off is 503 files_off, with no read', async () => {
@@ -690,6 +710,185 @@ describe('files picked from My files', () => {
         const res = await pick(agent, [row._id]);
         expect(res.status).toBe(422);
         expect(res.body.message).toMatch(/^We couldn't read a\.docx/);
+    });
+});
+
+// --- photos and scanned PDFs ---
+
+describe('photos and scanned PDFs', () => {
+    test.each([
+        ['PNG', makePng, 'photo.png', 'image/png'],
+        ['JPEG', makeJpeg, 'photo.jpg', 'image/jpeg'],
+        ['WebP', makeWebp, 'photo.webp', 'image/webp'],
+    ])('a %s photo is read first, then the reviewer is made from what was read', async (_, make, name, mimeType) => {
+        const { agent } = await signUp();
+        generateJson.mockImplementation(readsPhotos(() => pageText(1)));
+        const res = await send(agent, { files: [[make(), name]] });
+        expect(res.status).toBe(201);
+        expect(res.body.reviewer.status).toBe('processing');
+        expect(res.body.reviewer.source).toMatchObject({ type: 'image', fileName: name, count: 1 });
+        await settleGenerationJobs();
+
+        expect(generateJson).toHaveBeenCalledTimes(2);
+        const [first, second] = generateJson.mock.calls.map(([request]) => request);
+        expect(first.schema).toBe(TRANSCRIBE_SCHEMA);
+        expect(first.files).toEqual([{ mimeType, data: expect.any(Buffer) }]);
+        expect(second.files).toBeUndefined();
+        expect(second.prompt).toContain('Page 1: ');
+        expect(await aiRequestModel.countDocuments()).toBe(1);
+
+        const stored = await reviewerModel.findById(res.body.reviewer._id).select('+sourceText');
+        expect(stored.status).toBe('ready');
+        expect(stored.sourceText).toBe(pageText(1));
+        expect(stored.sources).toHaveLength(1);
+        expect(stored.sources[0]).toMatchObject({ type: 'image', read: 'picture', skipped: false, chars: pageText(1).length });
+        expect(stored.progress).toMatchObject({ stage: '', done: 0, total: 0 });
+        expect(stored.note).toBe('');
+    });
+
+    test('3 photos and a Word file: two reads at a time, the text in the chosen order, progress reading then writing', async () => {
+        const { agent } = await signUp();
+        const seen = {};
+        generateJson.mockImplementation(readsPhotos((n) => pageText(n + 1), seen));
+        const res = await send(agent, { files: [[makePng(), 'a.png'], [docx(), 'b.docx'], [makeJpeg(), 'c.jpg'], [makeWebp(), 'd.webp']] });
+        expect(res.status).toBe(201);
+        expect(res.body.reviewer.source.type).toBe('mixed');
+        await settleGenerationJobs();
+
+        expect(readCalls()).toHaveLength(3);
+        expect(seen.mostAtOnce).toBe(2);
+        expect(seen.progress[0]).toEqual({ stage: 'reading', done: 0, total: 3 });
+        expect(seen.progress[2].done).toBeGreaterThanOrEqual(1);
+        expect(seen.writing).toEqual({ stage: 'writing', done: 0, total: 0 });
+
+        const text = await textOf(res.body.reviewer._id);
+        const at = ['a.png', 'b.docx', 'c.jpg', 'd.webp'].map((name, i) => text.indexOf(`Source ${i + 1}: ${name}`));
+        expect(at.every((i) => i >= 0)).toBe(true);
+        expect(at).toEqual([...at].sort((a, b) => a - b));
+        const stored = await reviewerModel.findById(res.body.reviewer._id);
+        expect(stored.sources.map((item) => item.read)).toEqual(['picture', 'text', 'picture', 'picture']);
+        expect(stored.status).toBe('ready');
+    });
+
+    test('a photo with almost no text is left out and named; the reviewer is made from the rest', async () => {
+        const { agent } = await signUp();
+        generateJson.mockImplementation(readsPhotos((n) => (n === 1 ? 'Just a smudge.' : pageText(n + 1))));
+        const res = await send(agent, { files: [[makePng(), 'one.png'], [makePng(), 'two.png'], [makePng(), 'three.png']] });
+        await settleGenerationJobs();
+
+        const id = res.body.reviewer._id;
+        const status = (await agent.get(`/api/reviewers/${id}/status`)).body;
+        expect(status.status).toBe('ready');
+        expect(status.note).toBe("We couldn't read 1 of 3 photos (two.png), so it was left out.");
+        const opened = (await agent.get(`/api/reviewers/${id}`)).body.reviewer;
+        expect(opened.source.items.map((item) => item.skipped)).toEqual([false, true, false]);
+        const text = await textOf(id);
+        expect(text).toContain('Source 1: one.png');
+        expect(text).toContain('Source 2: three.png');
+        expect(text).not.toContain('two.png');
+    });
+
+    test('when every photo gives too little text, the reviewer fails and says so', async () => {
+        const { agent } = await signUp();
+        generateJson.mockImplementation(readsPhotos(() => 'Blurry.'));
+        const res = await send(agent, { files: [[makePng(), 'a.png'], [makePng(), 'b.png'], [makePng(), 'c.png']] });
+        await settleGenerationJobs();
+        const status = (await agent.get(`/api/reviewers/${res.body.reviewer._id}/status`)).body;
+        expect(status).toMatchObject({ status: 'failed', error: "We couldn't find enough text in these files. Try clearer photos or scans." });
+        expect(status.progress).toEqual({ stage: '', done: 0, total: 0 });
+        expect(generateJson).toHaveBeenCalledTimes(3);
+
+        generateJson.mockClear();
+        generateJson.mockImplementation(readsPhotos(() => ''));
+        const one = await send(agent, { files: [[makePng(), 'one.png']] });
+        await settleGenerationJobs();
+        expect((await agent.get(`/api/reviewers/${one.body.reviewer._id}/status`)).body.error).toMatch(/enough text in this photo/);
+    });
+
+    test('a photo that keeps failing, with nothing else to read, fails the reviewer with a message about the photo', async () => {
+        const { agent } = await signUp();
+        generateJson.mockImplementation(readsPhotos(() => overloaded()));
+        const res = await send(agent, { files: [[makePng(), 'a.png']] });
+        await settleGenerationJobs();
+        expect(readCalls()).toHaveLength(4);
+        const status = (await agent.get(`/api/reviewers/${res.body.reviewer._id}/status`)).body;
+        expect(status).toMatchObject({ status: 'failed', error: "We couldn't read this photo. Try again, or use a clearer photo." });
+    });
+
+    test('an answer without the text field is asked again', async () => {
+        const { agent } = await signUp();
+        let reads = 0;
+        generateJson.mockImplementation(async (request) => {
+            if (request.schema !== TRANSCRIBE_SCHEMA) return { data: aiOutput(), model: 'gemini-test' };
+            reads += 1;
+            return { data: reads === 1 ? {} : { text: pageText(reads) }, model: 'gemini-test' };
+        });
+        const res = await send(agent, { files: [[makePng(), 'a.png']] });
+        await settleGenerationJobs();
+        expect(reads).toBe(2);
+        expect((await reviewerModel.findById(res.body.reviewer._id)).status).toBe('ready');
+    });
+
+    test('an image-only PDF of 2 pages is read as a PDF; a long scan is refused; a long PDF with text is read as text', async () => {
+        const { agent } = await signUp();
+        generateJson.mockImplementation(readsPhotos(() => pageText(1)));
+        const scan = await send(agent, { files: [[makeImageOnlyPdf(2), 'scan.pdf']] });
+        expect(scan.status).toBe(201);
+        expect(scan.body.reviewer.source).toMatchObject({ type: 'pdf', pages: 2 });
+        await settleGenerationJobs();
+        expect(readCalls()).toHaveLength(1);
+        expect(readCalls()[0].files).toEqual([{ mimeType: 'application/pdf', data: expect.any(Buffer) }]);
+        expect(await textOf(scan.body.reviewer._id)).toBe(pageText(1));
+
+        generateJson.mockClear();
+        const aiBefore = await aiRequestModel.countDocuments();
+        const long = await send(agent, { files: [[makeImageOnlyPdf(16), 'long scan.pdf']] });
+        expect(long.status).toBe(422);
+        expect(long.body.message).toMatch(/^long scan\.pdf looks scanned and has more than 15 pages/);
+        expect(generateJson).not.toHaveBeenCalled();
+        expect(await aiRequestModel.countDocuments()).toBe(aiBefore);
+
+        const texty = await send(agent, { files: [[makePagedPdf(Array.from({ length: 16 }, () => STUDY_LINES)), 'long.pdf']] });
+        expect(texty.status).toBe(201);
+        await settleGenerationJobs();
+        expect(readCalls()).toHaveLength(0);
+        expect((await reviewerModel.findById(texty.body.reviewer._id)).status).toBe('ready');
+    });
+
+    test('more than 15 pictures in one reviewer is 422 before any Gemini call', async () => {
+        const { agent } = await signUp();
+        const res = await send(agent, { files: [[makeImageOnlyPdf(15), 'scan.pdf'], [makePng(), 'extra.png']] });
+        expect(res.status).toBe(422);
+        expect(res.body.message).toBe("That's a lot to read. Use up to 15 photos or scanned pages in one reviewer.");
+        await noReviewerMade();
+        await slotsFree();
+    });
+
+    test('the job keeps its slot while it reads and gives it back when the reading ends, also when it fails', async () => {
+        const { agent } = await signUp();
+        let finish;
+        const gate = new Promise((resolve) => { finish = resolve; });
+        generateJson.mockImplementation(async (request) => {
+            if (request.schema !== TRANSCRIBE_SCHEMA) return { data: aiOutput(), model: 'gemini-test' };
+            await gate;
+            return { data: { text: pageText(1) }, model: 'gemini-test' };
+        });
+        expect((await send(agent, { files: [[makePng(), 'a.png']] })).status).toBe(201);
+        expect(sourceSlots.inUse()).toBe(1);
+        expect((await send(agent, { files: [[makePng(5), 'b.png']] })).status).toBe(201);
+        expect(sourceSlots.inUse()).toBe(2);
+        expect((await send(agent, { files: [[docx(), 'c.docx']] })).status).toBe(503);
+
+        finish();
+        await settleGenerationJobs();
+        await slotsFree();
+        expect((await send(agent, { files: [[docx(), 'c.docx']] })).status).toBe(201);
+
+        generateJson.mockReset();
+        generateJson.mockImplementation(readsPhotos(() => overloaded()));
+        await send(agent, { files: [[makePng(6), 'd.png']] });
+        await settleGenerationJobs();
+        await slotsFree();
     });
 });
 

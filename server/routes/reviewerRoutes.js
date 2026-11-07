@@ -29,11 +29,17 @@ const bodyCap = (req, res, next) => {
 };
 
 // Only a couple of requests hold file bytes at once. The slot goes back when the response is closed
-// (done, failed or dropped); release is safe to call twice.
+// (done, failed or dropped). A request whose job still holds picture bytes after it has answered takes
+// the slot over with res.locals.keepSlot(), and the job releases it; release is safe to call twice.
 const takeSourceSlot = (req, res, next) => {
     const release = sourceSlots.take();
     if (!release) return refuse(req, res, new SourceError('busy'));
-    res.once('close', release);
+    let kept = false;
+    res.locals.keepSlot = () => {
+        kept = true;
+        return release;
+    };
+    res.once('close', () => { if (!kept) release(); });
     next();
 };
 

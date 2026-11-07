@@ -18,15 +18,19 @@ import { FileLimitError } from '../utils/fileBudget.js';
 import { allowBurst, sendFileError } from '../utils/fileResponse.js';
 import { getFileLimits } from '../utils/fileLimits.js';
 import { extensionOf } from '../utils/fileNames.js';
-import { SourceError, combineSources, sendSourceError, tooLittleTextError } from '../utils/reviewerSource.js';
-import { checkSourceRequest, loadPickedFiles, notesSource, readSourceRequest, readSources } from '../utils/reviewerIntake.js';
+import { SourceError, combineSources, readSources, sendSourceError, tooLittleTextError } from '../utils/reviewerSource.js';
+import { checkSourceRequest, loadPickedFiles, notesSource, readSourceRequest } from '../utils/reviewerIntake.js';
+import { PictureError, dropPictures, skippedNote, transcribeSources, unreadableError } from '../utils/reviewerPictures.js';
 
 // Everyone shares one Gemini key, so each student gets a few generations a day.
 export const DAILY_GENERATION_LIMIT = 10;
 // Generation runs in the background after the upload answers. If the server restarts in the
-// middle, nothing would ever finish it, so anything still "processing" after this is failed.
-// Long enough for every retry below to run: 4 tries of up to 150s (utils/gemini.js) plus waits.
-export const STALE_AFTER_MS = 12 * 60 * 1000;
+// middle, nothing would ever finish it, so a "processing" reviewer is failed once it has gone this long
+// without finishing a step (each picture read, each wave of questions). Long enough for one step's
+// retries: 4 tries of up to 150s (utils/gemini.js) plus waits.
+export const STALE_AFTER_MS = 15 * 60 * 1000;
+// Whatever the steps, no run lasts longer than this.
+export const MAX_JOB_MS = 45 * 60 * 1000;
 // Retries for a busy or flaky AI service. The free tier often answers "high demand" (503) for
 // a minute or so, so the last wait is longer. Tests set these to 0.
 export const generationSettings = { retryDelaysMs: [4000, 12000, 30000] };
@@ -39,6 +43,7 @@ const DUPLICATE_UPLOAD_MS = 2 * 60 * 1000;
 const TOO_LONG = 'This took too long, so we stopped. Try again.';
 
 const NO_TARGETED = { status: 'none', topics: [], count: 0, added: 0, batch: '', jobId: '', requestedAt: null, error: '' };
+const NO_PROGRESS = { stage: '', done: 0, total: 0 };
 
 const isId = (id) => mongoose.Types.ObjectId.isValid(id);
 const cleanLine = (value, max) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '');
@@ -131,15 +136,21 @@ const publicReviewer = (r) => ({
 // `error` stays on it, so the student is told why the new set didn't come.
 const markRunFailed = (filter, error) => reviewerModel.updateMany(
     filter,
-    [{ $set: { status: { $cond: [{ $gt: ['$version', 0] }, 'ready', 'failed'] }, error: { $literal: error }, jobId: '' } }],
+    [{ $set: { status: { $cond: [{ $gt: ['$version', 0] }, 'ready', 'failed'] }, error: { $literal: error }, jobId: '', progress: { $literal: NO_PROGRESS } } }],
     { updatePipeline: true },
 );
 
+// A run with no step finished lately (the last step, or its start when it has none), or one past the ceiling.
 const expireStale = async (filter) => {
-    const before = new Date(Date.now() - STALE_AFTER_MS);
-    await markRunFailed({ ...filter, status: 'processing', requestedAt: { $lt: before } }, TOO_LONG);
+    const quiet = new Date(Date.now() - STALE_AFTER_MS);
+    const tooOld = new Date(Date.now() - MAX_JOB_MS);
+    await markRunFailed({
+        ...filter,
+        status: 'processing',
+        $or: [{ progressAt: { $lt: quiet } }, { progressAt: null, requestedAt: { $lt: quiet } }, { requestedAt: { $lt: tooOld } }],
+    }, TOO_LONG);
     await reviewerModel.updateMany(
-        { ...filter, 'targeted.status': 'processing', 'targeted.requestedAt': { $lt: before } },
+        { ...filter, 'targeted.status': 'processing', 'targeted.requestedAt': { $lt: quiet } },
         { $set: { 'targeted.status': 'failed', 'targeted.error': TOO_LONG, 'targeted.jobId': '' } },
     );
 };
@@ -182,17 +193,54 @@ export const settleGenerationJobs = () => Promise.allSettled([...runningJobs.val
 // Asks again when the AI service is busy, slow or flaky, or answered with something unusable.
 const withRetries = (request) => retrying(request, generationSettings.retryDelaysMs);
 
+const reportProgress = (reviewerId, jobId, progress) => reviewerModel.updateOne(
+    { _id: reviewerId, jobId, status: 'processing' },
+    { $set: { progress, progressAt: new Date() } },
+);
+
+// Photos and scanned PDFs are read into text first (plan 21, 3.5). The text of all the sources is saved
+// before any question is written, and the picture bytes and the slot they held are let go as soon as
+// the reading is over, whatever way it ends. Returns the text and a note about anything left out, or
+// null when this run was replaced in the meantime.
+const readPictures = async (reviewer, jobId, { sources, release }) => {
+    try {
+        const read = await transcribeSources(sources, {
+            retry: withRetries,
+            onProgress: (done, total) => reportProgress(reviewer._id, jobId, { stage: 'reading', done, total }),
+        });
+        const combined = combineSources(read, reviewer.source.fingerprint);
+        if (combined.bodyChars < MIN_SOURCE_CHARS) throw unreadableError(read);
+
+        const saved = await reviewerModel.updateOne({ _id: reviewer._id, jobId, status: 'processing' }, {
+            $set: {
+                source: combined.summary,
+                sources: combined.items,
+                sourceText: combined.text,
+                progress: { stage: 'writing', done: 0, total: 0 },
+                progressAt: new Date(),
+            },
+        });
+        return saved.matchedCount ? { text: combined.text, note: skippedNote(read) } : null;
+    } finally {
+        dropPictures(sources);
+        release();
+    }
+};
+
 // Most PDFs are one request. A long one is split into parts that are sent at the same time and
 // merged. If any part still fails after its retries, the whole reviewer fails: a reviewer that
-// quietly skipped part of the material would be worse than a clear "try again".
-const generate = async (reviewerId, jobId) => {
+// quietly skipped part of the material would be worse than a clear "try again". `pending` holds the
+// sources of a reviewer with pictures, which are read before this.
+const generate = async (reviewerId, jobId, pending) => {
     const reviewer = await reviewerModel.findOne({ _id: reviewerId, jobId, status: 'processing' }).select('+sourceText');
     if (!reviewer) return;
 
-    const parts = splitIntoParts(reviewer.sourceText);
-    const plan = planParts(parts.map((p) => p.length), reviewer.questionTarget);
-
     try {
+        const material = pending ? await readPictures(reviewer, jobId, pending) : { text: reviewer.sourceText, note: '' };
+        if (!material) return;
+        const parts = splitIntoParts(material.text);
+        const plan = planParts(parts.map((p) => p.length), reviewer.questionTarget);
+
         const settled = await Promise.allSettled(parts.map((text, i) => withRetries(async () => {
             const prompt = buildReviewerPrompt({ title: reviewer.title, course: reviewer.course, text, part: plan[i] });
             const { data, model } = await generateJson({ system: REVIEWER_SYSTEM, prompt, schema: REVIEWER_SCHEMA });
@@ -218,6 +266,8 @@ const generate = async (reviewerId, jobId) => {
                     jobId: '',
                     generatedAt: new Date(),
                     aiModel: answers[0].model,
+                    note: material.note,
+                    progress: NO_PROGRESS,
                     targeted: NO_TARGETED,
                 },
                 $inc: { version: 1 },
@@ -230,7 +280,8 @@ const generate = async (reviewerId, jobId) => {
         }
     } catch (error) {
         console.error('Reviewer generation failed:', describeError(error));
-        await markRunFailed({ _id: reviewerId, jobId, status: 'processing' }, friendlyError(error));
+        const message = error instanceof PictureError ? error.message : friendlyError(error);
+        await markRunFailed({ _id: reviewerId, jobId, status: 'processing' }, message);
     }
 };
 
@@ -285,7 +336,10 @@ const track = (key, work) => {
         .finally(() => { if (runningJobs.get(key) === job) runningJobs.delete(key); });
     runningJobs.set(key, job);
 };
-const startGeneration = (reviewerId, jobId) => track(String(reviewerId), generate(reviewerId, jobId));
+// A reviewer with pictures holds a slot until they are read; the release here is for a run that
+// crashes before that. Releasing twice is harmless.
+const startGeneration = (reviewerId, jobId, pending = null) =>
+    track(String(reviewerId), generate(reviewerId, jobId, pending).finally(() => pending?.release()));
 const startTargeted = (reviewerId, jobId) => track(`${reviewerId}:targeted`, generateTargeted(reviewerId, jobId));
 
 // ---------------------------------------------------------------------------------------------
@@ -342,8 +396,10 @@ export const createReviewer = async (req, res) => {
 
         // Reading stored files shares the download burst limit.
         if (checked.kind === 'picked' && !allowBurst(res, `links:${req.userId}`, getFileLimits().linkBurst)) return;
-        const combined = combineSources(await textSources(checked, req.userId), checked.fingerprint);
-        if (combined.bodyChars < MIN_SOURCE_CHARS) throw tooLittleTextError(combined.items);
+        const sources = await textSources(checked, req.userId);
+        const pictures = sources.filter((source) => source.picture).length;
+        const combined = combineSources(sources, checked.fingerprint);
+        if (!pictures && combined.bodyChars < MIN_SOURCE_CHARS) throw tooLittleTextError(combined.items);
 
         const typedTitle = cleanLine(body.title, TITLE_MAX);
         const fallbackTitle = checked.kind === 'notes' ? NOTES_TITLE : titleFromFileName(combined.summary.fileName);
@@ -356,14 +412,17 @@ export const createReviewer = async (req, res) => {
             subject: link.subject?._id ?? null,
             source: combined.summary,
             sources: combined.items,
-            sourceText: combined.text,
+            // With pictures the text is only known once they are read (readPictures saves it).
+            sourceText: pictures ? '' : combined.text,
             questionTarget,
             status: 'processing',
             jobId,
             requestedAt: new Date(),
+            progress: pictures ? { stage: 'reading', done: 0, total: pictures } : NO_PROGRESS,
         });
         await aiRequestModel.create({ user: req.userId, kind: 'reviewer' });
-        startGeneration(reviewer._id, jobId);
+        // The job keeps the slot (and the picture bytes) after this request has answered.
+        startGeneration(reviewer._id, jobId, pictures ? { sources, release: res.locals.keepSlot() } : null);
 
         res.status(201).json({ success: true, reviewer: listItem(reviewer) });
     } catch (error) {
@@ -493,7 +552,7 @@ export const regenerateReviewer = async (req, res) => {
         }
 
         const jobId = randomUUID();
-        Object.assign(reviewer, { status: 'processing', error: '', jobId, requestedAt: new Date(), questionTarget });
+        Object.assign(reviewer, { status: 'processing', error: '', jobId, requestedAt: new Date(), progressAt: null, note: '', questionTarget });
         await reviewer.save();
         await aiRequestModel.create({ user: req.userId, kind: 'reviewer' });
         startGeneration(reviewer._id, jobId);

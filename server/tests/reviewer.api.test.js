@@ -6,7 +6,7 @@ import reviewerAttemptModel from '../models/reviewerAttemptModel.js';
 import aiRequestModel from '../models/aiRequestModel.js';
 import userModel from '../models/userModel.js';
 import { generateJson, isGeminiConfigured } from '../utils/gemini.js';
-import { generationSettings, settleGenerationJobs, DAILY_GENERATION_LIMIT, STALE_AFTER_MS } from '../controllers/reviewerController.js';
+import { generationSettings, settleGenerationJobs, DAILY_GENERATION_LIMIT, MAX_JOB_MS, STALE_AFTER_MS } from '../controllers/reviewerController.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
 import { makePdf, STUDY_LINES } from './helpers/pdf.js';
@@ -118,9 +118,6 @@ describe('uploading a PDF', () => {
         expect(wrongType.status).toBe(400);
         expect(wrongType.body.message).toMatch(/notes\.docx can't be made into a reviewer/);
         expect((await upload(alice, { fields: { questionCount: '7' } })).status).toBe(400);
-        const empty = await upload(alice, { file: makePdf(['Just one short line.']) });
-        expect(empty.status).toBe(422);
-        expect(empty.body.message).toMatch(/can't be read yet/);
         expect(await reviewerModel.countDocuments()).toBe(0);
         expect(generateJson).not.toHaveBeenCalled();
     });
@@ -216,6 +213,24 @@ describe('when the AI fails', () => {
         const list = await alice.get('/api/reviewers');
         expect(list.body.reviewers[0]).toMatchObject({ _id: String(stuck._id), status: 'failed' });
         expect(list.body.reviewers[0].error).toMatch(/too long/);
+    });
+
+    test('a run counts as stuck when no step has finished for 15 minutes, or when it passes 45', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const user = await userModel.findOne({ email: 'alice@student.fatima.edu.ph' });
+        const ago = (ms) => new Date(Date.now() - ms);
+        const MINUTE = 60 * 1000;
+        const run = (title, requestedAt, progressAt) => reviewerModel.create({
+            owner: user._id, title, status: 'processing', jobId: 'gone', requestedAt, progressAt,
+        });
+        await run('Steady', ago(20 * MINUTE), ago(MINUTE));
+        await run('Quiet', ago(20 * MINUTE), ago(STALE_AFTER_MS + MINUTE));
+        await run('Too long', ago(MAX_JOB_MS + MINUTE), ago(MINUTE));
+        await run('No steps yet', ago(STALE_AFTER_MS - MINUTE), null);
+
+        const list = await alice.get('/api/reviewers');
+        const status = Object.fromEntries(list.body.reviewers.map((r) => [r.title, r.status]));
+        expect(status).toEqual({ Steady: 'processing', Quiet: 'failed', 'Too long': 'failed', 'No steps yet': 'processing' });
     });
 });
 

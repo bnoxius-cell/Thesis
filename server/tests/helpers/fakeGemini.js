@@ -9,7 +9,7 @@ import http from 'http';
 //   gemini.reply(() => ({ status: 429 }));                 // busy
 //   gemini.reply(() => ({ text: '{"cut off' }));           // not JSON
 //   gemini.reply(() => ({ delayMs: 2000, json: {} }));     // slow
-//   gemini.requests                                       // everything it was sent
+//   gemini.requests                                       // everything it was sent (prompt, files)
 
 // What Gemini sends back for a few real failures.
 export const GEMINI_ERRORS = {
@@ -45,6 +45,8 @@ export const startFakeGemini = async () => {
                 apiKey: req.headers['x-goog-api-key'],
                 body,
                 prompt: body?.contents?.[0]?.parts?.map((p) => p.text).join('') ?? '',
+                // The inline files sent with the prompt, as { mimeType, data } with data in base64.
+                files: (body?.contents?.[0]?.parts ?? []).filter((p) => p.inlineData).map((p) => p.inlineData),
             };
             requests.push(entry);
 

@@ -1,13 +1,13 @@
 // Turns a "make a reviewer" request into the text the reviewer is made from (plan 21, 3.3). Three
 // kinds of source, exactly one per request: uploaded files, files picked from the student's own
 // library, or pasted notes. The cheap refusals all happen in checkSourceRequest, before a stored file
-// is read or any text is extracted; loadPickedFiles and readSources do the costly part.
+// is read or any text is extracted; loadPickedFiles (and readSources in reviewerSource.js) do the costly part.
 import fileModel from '../models/fileModel.js';
 import { FileLimitError, fileError } from './fileBudget.js';
 import { filesAvailability } from './fileLimits.js';
 import { readStoredFiles } from './storedFiles.js';
 import {
-    MAX_SOURCES, MAX_SOURCES_BYTES, SourceError, cleanNotes, displayName, hashBytes, readSourceText, sourceFingerprint,
+    MAX_SOURCES, MAX_SOURCES_BYTES, SourceError, cleanNotes, displayName, hashBytes, sourceFingerprint,
     sourceKindOf, sourceTypeOf,
 } from './reviewerSource.js';
 
@@ -44,15 +44,9 @@ export const readSourceRequest = (body, files) => {
     return { kind, notes: body.notes };
 };
 
-// Photos aren't read yet (plan 21, R3b); until then a request with one is refused here, before any read.
-const refusePictures = (kinds) => {
-    if (kinds.includes('image')) throw new SourceError('pictures_later');
-};
-
 const checkUploads = (files) => {
     if (files.length > MAX_SOURCES) throw new SourceError('too_many_files');
     const items = files.map(({ buffer, name }) => ({ buffer, name: displayName(name), bytes: buffer.length, file: null, ...sourceTypeOf(buffer, name) }));
-    refusePictures(items.map((item) => item.kind));
     if (items.reduce((total, item) => total + item.bytes, 0) > MAX_SOURCES_BYTES) throw new SourceError('too_big_together');
     return { kind: 'upload', items, fingerprint: sourceFingerprint('upload', files.map((file) => hashBytes(file.buffer))) };
 };
@@ -69,7 +63,6 @@ const checkPicked = async (ids, userId) => {
     for (const row of rows) {
         if (!sourceKindOf(row.ext)) throw new SourceError('bad_type', displayName(row.name));
     }
-    refusePictures(rows.map((row) => sourceKindOf(row.ext)));
     if (rows.reduce((total, row) => total + row.size, 0) > MAX_SOURCES_BYTES) throw new SourceError('too_big_together');
     return { kind: 'picked', rows, fingerprint: sourceFingerprint('picked', ids) };
 };
@@ -105,19 +98,8 @@ export const loadPickedFiles = async (rows, userId) => {
     });
 };
 
-// Text from each file, one at a time. The list is emptied as it goes, so a file's bytes can be freed
-// as soon as its text is out.
-export const readSources = async (items) => {
-    const sources = [];
-    while (items.length) {
-        const { buffer, name, kind, bytes, file } = items.shift();
-        const extracted = await readSourceText(kind, buffer, name);
-        sources.push({ ...extracted, kind, fileName: name, bytes, file });
-    }
-    return sources;
-};
-
 // Pasted notes as a source, shaped like the text read from a file.
 export const notesSource = (text) => ({
     kind: 'notes', fileName: '', text, pages: 0, slides: 0, chars: text.length, truncated: false, bytes: Buffer.byteLength(text), file: null,
+    read: 'text', picture: null,
 });
