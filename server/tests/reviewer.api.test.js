@@ -108,17 +108,19 @@ describe('uploading a PDF', () => {
 
     test('rejects a missing file, a non-PDF, a bad count and an empty PDF', async () => {
         const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
-        expect((await upload(alice, { file: null })).status).toBe(400);
+        const noFile = await upload(alice, { file: null, fields: { title: 'No file' } });
+        expect(noFile.status).toBe(400);
+        expect(noFile.body.message).toMatch(/Add a file or paste your notes/);
         const notPdf = await upload(alice, { file: Buffer.from('hello there, plain text'), filename: 'notes.pdf' });
         expect(notPdf.status).toBe(400);
-        expect(notPdf.body.message).toMatch(/isn't a PDF/);
+        expect(notPdf.body.message).toMatch(/notes\.pdf can't be made into a reviewer/);
         const wrongType = await alice.post('/api/reviewers').attach('pdf', Buffer.from('x'), { filename: 'notes.docx', contentType: 'application/msword' });
         expect(wrongType.status).toBe(400);
-        expect(wrongType.body.message).toMatch(/Only PDF/);
+        expect(wrongType.body.message).toMatch(/notes\.docx can't be made into a reviewer/);
         expect((await upload(alice, { fields: { questionCount: '7' } })).status).toBe(400);
         const empty = await upload(alice, { file: makePdf(['Just one short line.']) });
         expect(empty.status).toBe(422);
-        expect(empty.body.message).toMatch(/enough text/);
+        expect(empty.body.message).toMatch(/can't be read yet/);
         expect(await reviewerModel.countDocuments()).toBe(0);
         expect(generateJson).not.toHaveBeenCalled();
     });
@@ -129,6 +131,7 @@ describe('uploading a PDF', () => {
         const res = await upload(alice, { file: big });
         expect(res.status).toBe(413);
         expect(res.body.success).toBe(false);
+        expect(res.body.message).toMatch(/too big/);
     });
 
     test('says so when the server has no Gemini key', async () => {
@@ -458,7 +461,7 @@ describe('long PDFs', () => {
         await settleGenerationJobs();
         const status = (await alice.get(`/api/reviewers/${reviewer._id}/status`)).body;
         expect(status.status).toBe('failed');
-        expect(status.error).toMatch(/different PDF/);
+        expect(status.error).toMatch(/something different/);
     });
 });
 

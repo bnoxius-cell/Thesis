@@ -21,13 +21,13 @@ export const friendlyError = (error, { targeted = false } = {}) => {
     if (error?.code === 'invalid_output') {
         return targeted
             ? "We couldn't get good questions on those topics. Try again, or pick other topics."
-            : "We couldn't get good questions out of this PDF. Try again, or try a PDF with more text.";
+            : "We couldn't get good questions out of these notes. Try again, or use material with more text.";
     }
     if (isSetupProblem(error)) return "Reviewers aren't working on our side right now. Try again later.";
     if (error?.status === 429) return 'The AI service is busy right now. Try again in a few minutes.';
-    if (isTimeout(error)) return 'The AI took too long to answer. Try again, or try a shorter PDF.';
+    if (isTimeout(error)) return 'The AI took too long to answer. Try again, or try less material.';
     if (error?.status >= 500) return 'The AI service had a problem. Try again in a bit.';
-    if (error?.status === 400) return "The AI service couldn't work with this material. Try a different PDF.";
+    if (error?.status === 400) return "The AI service couldn't work with this material. Try something different.";
     return "We couldn't make this reviewer. Try again.";
 };
 

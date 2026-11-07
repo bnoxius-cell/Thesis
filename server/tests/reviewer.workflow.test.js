@@ -373,13 +373,13 @@ describe('real PDFs', () => {
         const alice = await signUp();
         const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(200)]);
         const cases = [
-            ['a PNG renamed to .pdf', png, 400, /isn't a PDF/],
-            ['an empty file', Buffer.alloc(0), 400, /isn't a PDF|Choose a PDF/],
+            ['a PNG renamed to .pdf', png, 400, /Notes\.pdf can't be made into a reviewer/],
+            ['an empty file', Buffer.alloc(0), 400, /can't be made into a reviewer/],
             ['a damaged PDF (cut in half)', HANDOUT.subarray(0, Math.floor(HANDOUT.length / 2)), 422, /may be damaged/],
             ['a PDF with only the header', Buffer.from('%PDF-1.7\n'), 422, /may be damaged/],
             ['a password-protected PDF', makePagedPdf([STUDY_LINES], { encrypt: true }), 422, /password protected/],
-            ['a scanned (image-only) PDF', makeImageOnlyPdf(), 422, /enough text[\s\S]*Scanned/],
-            ['a PDF with one short line', makePdf(['Just one short line.']), 422, /enough text/],
+            ['a scanned (image-only) PDF', makeImageOnlyPdf(), 422, /Photos and scanned PDFs can't be read yet/],
+            ['a PDF with one short line', makePdf(['Just one short line.']), 422, /Photos and scanned PDFs can't be read yet/],
         ];
         for (const [label, file, status, message] of cases) {
             const res = await upload(alice, { file });

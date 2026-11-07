@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto';
 import reviewerModel from '../models/reviewerModel.js';
 import reviewerAttemptModel from '../models/reviewerAttemptModel.js';
 import aiRequestModel from '../models/aiRequestModel.js';
-import { extractPdfText, isPdfBuffer, splitIntoParts, MIN_SOURCE_CHARS, PART_CHARS } from '../utils/pdfText.js';
+import { splitIntoParts, MIN_SOURCE_CHARS, PART_CHARS } from '../utils/pdfText.js';
 import { generateJson, isGeminiConfigured } from '../utils/gemini.js';
 import { withRetries as retrying, friendlyError, describeError } from '../utils/aiErrors.js';
 import {
@@ -14,6 +14,12 @@ import {
 } from '../utils/reviewerContent.js';
 import { resolveItemSubject, applyItemSubject, subjectLabel } from '../utils/subjectMatch.js';
 import { computeProgress, summarizeAttempt, topicStatsFor, scorePercent } from '../utils/reviewerProgress.js';
+import { FileLimitError } from '../utils/fileBudget.js';
+import { allowBurst, sendFileError } from '../utils/fileResponse.js';
+import { getFileLimits } from '../utils/fileLimits.js';
+import { extensionOf } from '../utils/fileNames.js';
+import { SourceError, combineSources, sendSourceError, tooLittleTextError } from '../utils/reviewerSource.js';
+import { checkSourceRequest, loadPickedFiles, notesSource, readSourceRequest, readSources } from '../utils/reviewerIntake.js';
 
 // Everyone shares one Gemini key, so each student gets a few generations a day.
 export const DAILY_GENERATION_LIMIT = 10;
@@ -28,7 +34,7 @@ export const generationSettings = { retryDelaysMs: [4000, 12000, 30000] };
 const TITLE_MAX = 120;
 const COURSE_MAX = 80;
 const OPEN_SESSION_MS = 24 * 60 * 60 * 1000;
-// The same PDF sent again this soon, while the first is still being made, is a double submit.
+// The same source sent again this soon, while the first is still being made, is a double submit.
 const DUPLICATE_UPLOAD_MS = 2 * 60 * 1000;
 const TOO_LONG = 'This took too long, so we stopped. Try again.';
 
@@ -43,13 +49,42 @@ const decodeFileName = (name = '') => {
     const utf8 = Buffer.from(name, 'latin1').toString('utf8');
     return utf8.includes('�') ? name : utf8;
 };
-const titleFromFileName = (name) => cleanLine(name.replace(/\.pdf$/i, '').replace(/[_]+/g, ' '), TITLE_MAX) || 'Untitled reviewer';
+const titleFromFileName = (name) => {
+    const extension = extensionOf(name);
+    const base = extension ? name.slice(0, -(extension.length + 1)) : name;
+    return cleanLine(base.replace(/[_]+/g, ' '), TITLE_MAX) || 'Untitled reviewer';
+};
+const NOTES_TITLE = 'Pasted notes';
+const NO_TEXT_TO_REUSE = 'Add the files again to make new questions.';
 
 const parseQuestionCount = (value) => {
     if (value === undefined || value === null || value === '') return DEFAULT_QUESTION_COUNT;
     const count = Number(value);
     return QUESTION_COUNTS.includes(count) ? count : null;
 };
+
+// The source as a client sees it. Reviewers made before several sources existed have no type, count
+// or list: they read as one PDF. The fingerprint never goes out.
+const publicSourceItem = (item) => ({
+    type: item.type ?? 'pdf',
+    fileName: item.fileName ?? '',
+    pages: item.pages ?? 0,
+    slides: item.slides ?? 0,
+    chars: item.chars ?? 0,
+    truncated: Boolean(item.truncated),
+});
+
+const publicSource = (r) => {
+    const source = r.source ?? {};
+    const items = r.sources?.length ? r.sources : [source];
+    return {
+        ...publicSourceItem(source),
+        count: source.count ?? 1,
+        items: items.map((item) => ({ ...publicSourceItem(item), skipped: Boolean(item.skipped), fileId: item.file ? String(item.file) : null })),
+    };
+};
+
+const publicProgress = (r) => ({ stage: r.progress?.stage ?? '', done: r.progress?.done ?? 0, total: r.progress?.total ?? 0 });
 
 const listItem = (r) => ({
     _id: r._id,
@@ -58,7 +93,7 @@ const listItem = (r) => ({
     subject: r.subject ?? null,
     status: r.status,
     error: r.error,
-    source: r.source,
+    source: publicSource(r),
     questionTarget: r.questionTarget,
     questionCount: r.questionCount ?? r.questions?.length ?? 0,
     topicCount: r.topicCount ?? r.topics?.length ?? 0,
@@ -257,66 +292,71 @@ const startTargeted = (reviewerId, jobId) => track(`${reviewerId}:targeted`, gen
 // Reviewers
 // ---------------------------------------------------------------------------------------------
 
+// The uploaded files as [{ buffer, name }]. Multer's own copies are dropped, so each buffer can be
+// freed once its text is out. `pdf` is the field the old client sends.
+const takeUploadedFiles = (req) => {
+    const { files = [], pdf = [] } = req.files ?? {};
+    req.files = undefined;
+    return [...files, ...pdf].map((file) => ({ buffer: file.buffer, name: decodeFileName(file.originalname).slice(0, 200) }));
+};
+
+const findDuplicate = (userId, questionTarget, fingerprint) => reviewerModel.findOne({
+    owner: userId,
+    status: 'processing',
+    questionTarget,
+    'source.fingerprint': fingerprint,
+    createdAt: { $gt: new Date(Date.now() - DUPLICATE_UPLOAD_MS) },
+});
+
+// The text of each source, in the order the student chose. Picked files are read from storage here.
+const textSources = async (checked, userId) => {
+    if (checked.kind === 'notes') return [notesSource(checked.text)];
+    return readSources(checked.kind === 'picked' ? await loadPickedFiles(checked.rows, userId) : checked.items);
+};
+
+// Cheap refusals first (plan 21, 3.3): nothing is read from storage and nothing is extracted for a
+// request that will be turned down, and a double submit costs neither.
 export const createReviewer = async (req, res) => {
     try {
         if (!isGeminiConfigured()) return notConfigured(res);
 
-        const file = req.file;
-        if (!file) return res.status(400).json({ success: false, message: 'Choose a PDF to upload.' });
-        if (!isPdfBuffer(file.buffer)) return res.status(400).json({ success: false, message: "That file isn't a PDF." });
-
-        const questionTarget = parseQuestionCount(req.body.questionCount);
+        const body = req.body ?? {};
+        const questionTarget = parseQuestionCount(body.questionCount);
         if (!questionTarget) {
             return res.status(400).json({ success: false, message: `Pick ${QUESTION_COUNTS.join(', ')} questions.` });
         }
 
-        const course = cleanLine(req.body.course, COURSE_MAX);
-        const link = await resolveItemSubject(req.userId, { subject: req.body.subject, course });
+        const course = cleanLine(body.course, COURSE_MAX);
+        const link = await resolveItemSubject(req.userId, { subject: body.subject, course });
         if (link.error) return res.status(400).json({ success: false, message: link.error });
+
+        const request = readSourceRequest(body, takeUploadedFiles(req));
 
         if (await requestsToday(req.userId) >= DAILY_GENERATION_LIMIT) {
             return res.status(429).json({ success: false, message: limitMessage() });
         }
 
-        let extracted;
-        try {
-            extracted = await extractPdfText(file.buffer);
-        } catch (error) {
-            const message = error?.name === 'PasswordException'
-                ? 'This PDF is password protected. Remove the password and upload it again.'
-                : "We couldn't read this PDF. It may be damaged.";
-            return res.status(422).json({ success: false, message });
-        }
-        if (extracted.text.length < MIN_SOURCE_CHARS) {
-            return res.status(422).json({
-                success: false,
-                message: "This PDF doesn't have enough text to make a reviewer. Scanned pages and image-only slides can't be read yet.",
-            });
-        }
-
-        const fileName = decodeFileName(file.originalname).slice(0, 200);
-        // A double submit (same PDF and count, the first still being made) gets the first one back
-        // instead of a second reviewer and a second AI request.
-        const duplicate = await reviewerModel.findOne({
-            owner: req.userId,
-            status: 'processing',
-            questionTarget,
-            'source.fileName': fileName,
-            'source.chars': extracted.chars,
-            createdAt: { $gt: new Date(Date.now() - DUPLICATE_UPLOAD_MS) },
-        });
+        const checked = await checkSourceRequest(request, req.userId);
+        const duplicate = await findDuplicate(req.userId, questionTarget, checked.fingerprint);
         if (duplicate) return res.json({ success: true, reviewer: listItem(duplicate) });
 
-        const typedTitle = cleanLine(req.body.title, TITLE_MAX);
+        // Reading stored files shares the download burst limit.
+        if (checked.kind === 'picked' && !allowBurst(res, `links:${req.userId}`, getFileLimits().linkBurst)) return;
+        const combined = combineSources(await textSources(checked, req.userId), checked.fingerprint);
+        if (combined.bodyChars < MIN_SOURCE_CHARS) throw tooLittleTextError(combined.items);
+
+        const typedTitle = cleanLine(body.title, TITLE_MAX);
+        const fallbackTitle = checked.kind === 'notes' ? NOTES_TITLE : titleFromFileName(combined.summary.fileName);
         const jobId = randomUUID();
         const reviewer = await reviewerModel.create({
             owner: req.userId,
-            title: typedTitle || titleFromFileName(fileName),
+            title: typedTitle || fallbackTitle,
             autoTitle: !typedTitle,
             course: link.subject ? subjectLabel(link.subject) : course,
             subject: link.subject?._id ?? null,
-            source: { fileName, pages: extracted.pages, chars: extracted.chars, truncated: extracted.truncated },
-            sourceText: extracted.text,
+            source: combined.summary,
+            sources: combined.items,
+            sourceText: combined.text,
             questionTarget,
             status: 'processing',
             jobId,
@@ -327,6 +367,8 @@ export const createReviewer = async (req, res) => {
 
         res.status(201).json({ success: true, reviewer: listItem(reviewer) });
     } catch (error) {
+        if (error instanceof SourceError) return sendSourceError(res, error);
+        if (error instanceof FileLimitError) return sendFileError(res, error, 'Create reviewer error');
         serverError(res, 'Create reviewer error', error);
     }
 };
@@ -396,6 +438,8 @@ export const getReviewerStatus = async (req, res) => {
             status: reviewer.status,
             error: reviewer.error,
             version: reviewer.version,
+            progress: publicProgress(reviewer),
+            note: reviewer.note ?? '',
             targeted: publicTargeted(reviewer.targeted),
         });
     } catch (error) {
@@ -438,7 +482,7 @@ export const regenerateReviewer = async (req, res) => {
             return res.status(409).json({ success: false, message: 'Wait for the extra questions to finish first.' });
         }
         if (!reviewer.sourceText) {
-            return res.status(409).json({ success: false, message: 'Upload the PDF again to make new questions.' });
+            return res.status(409).json({ success: false, message: NO_TEXT_TO_REUSE });
         }
         const questionTarget = req.body.questionCount === undefined ? reviewer.questionTarget : parseQuestionCount(req.body.questionCount);
         if (!questionTarget) {
@@ -474,7 +518,7 @@ export const requestTargeted = async (req, res) => {
             return res.status(409).json({ success: false, message: 'New questions are already on the way.' });
         }
         if (!reviewer.sourceText) {
-            return res.status(409).json({ success: false, message: 'Upload the PDF again to make new questions.' });
+            return res.status(409).json({ success: false, message: NO_TEXT_TO_REUSE });
         }
 
         const known = new Set(reviewer.topics.map((t) => t.name));

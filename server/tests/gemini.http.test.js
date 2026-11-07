@@ -93,7 +93,7 @@ describe('errors from Gemini', () => {
         ['a model that does not exist', GEMINI_ERRORS.noModel, { retry: false, setup: true, says: /aren't working on our side/ }],
         ['a rate limit', GEMINI_ERRORS.busy, { retry: true, setup: false, says: /busy right now/ }],
         ['an overloaded model', GEMINI_ERRORS.overloaded, { retry: true, setup: false, says: /had a problem/ }],
-        ['material that is too big', GEMINI_ERRORS.tooBig, { retry: false, setup: false, says: /different PDF/ }],
+        ['material that is too big', GEMINI_ERRORS.tooBig, { retry: false, setup: false, says: /something different/ }],
     ];
     test.each(cases)('%s', async (_, reply, expected) => {
         gemini.reply(() => ({ error: reply }));

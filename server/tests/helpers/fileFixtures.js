@@ -116,3 +116,38 @@ const OFFICE_FOLDERS = { docx: 'word/document.xml', pptx: 'ppt/presentation.xml'
 
 // A minimal Office file of the given kind; `extra` adds more entry names (for example a macro project).
 export const makeOffice = (kind, extra = []) => makeZip(['[Content_Types].xml', OFFICE_FOLDERS[kind], ...extra]);
+
+const escapeXml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const XMLNS_W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+const XMLNS_P = 'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+
+// A real Word file whose body has one paragraph per line, so the text reader can run on it.
+export const makeDocx = (lines) => makeZip([
+    '[Content_Types].xml',
+    {
+        name: 'word/document.xml',
+        data: `<w:document ${XMLNS_W}><w:body>${lines.map((line) => `<w:p><w:r><w:t>${escapeXml(line)}</w:t></w:r></w:p>`).join('')}</w:body></w:document>`,
+        deflate: true,
+    },
+]);
+
+// A real PowerPoint file: `slides` is an array of line arrays (slide 1 first). `order` lists slide indexes
+// in show order when that isn't the numbering.
+export const makePptx = (slides, { order = slides.map((_, i) => i) } = {}) => makeZip([
+    '[Content_Types].xml',
+    {
+        name: 'ppt/presentation.xml',
+        data: `<p:presentation ${XMLNS_P}><p:sldIdLst>${order.map((n, i) => `<p:sldId id="${256 + i}" r:id="rId${n + 1}"/>`).join('')}</p:sldIdLst></p:presentation>`,
+        deflate: true,
+    },
+    {
+        name: 'ppt/_rels/presentation.xml.rels',
+        data: `<Relationships>${slides.map((_, n) => `<Relationship Id="rId${n + 1}" Type="slide" Target="slides/slide${n + 1}.xml"/>`).join('')}</Relationships>`,
+        deflate: true,
+    },
+    ...slides.map((lines, n) => ({
+        name: `ppt/slides/slide${n + 1}.xml`,
+        data: `<p:sld ${XMLNS_P}><p:cSld><p:spTree><p:sp><p:txBody>${lines.map((line) => `<a:p><a:r><a:t>${escapeXml(line)}</a:t></a:r></a:p>`).join('')}</p:txBody></p:sp></p:spTree></p:cSld></p:sld>`,
+        deflate: true,
+    })),
+]);
