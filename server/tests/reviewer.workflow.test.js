@@ -748,6 +748,28 @@ describe('up to 100 questions', () => {
         expect(await reviewerModel.countDocuments()).toBe(0);
     });
 
+    test('a reservation whose insert fails part-way keeps none of its rows', async () => {
+        const alice = await signUp();
+        await useUp(2);
+        const insertMany = aiRequestModel.insertMany.bind(aiRequestModel);
+        const insert = vi.spyOn(aiRequestModel, 'insertMany').mockImplementationOnce(async (rows) => {
+            await insertMany(rows.slice(0, 1));
+            throw new Error('write failed');
+        });
+        const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+        let res;
+        try {
+            // 100 questions weigh 3 rows.
+            res = await upload(alice, { fields: { questionCount: '100' } });
+        } finally {
+            insert.mockRestore();
+            log.mockRestore();
+        }
+        expect(res.status).toBe(500);
+        expect(await aiRequestModel.countDocuments()).toBe(2);
+        expect(await reviewerModel.countDocuments()).toBe(0);
+    });
+
     test('a new reviewer and a regenerate at once, with room for one, never go over the day', async () => {
         const alice = await signUp();
         const id = await makeReady(alice);

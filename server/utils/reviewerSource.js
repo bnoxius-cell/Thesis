@@ -22,9 +22,15 @@ export const MAX_NOTES_CHARS = 100000;
 export const MAX_UNPACKED_BYTES = 60 * MB;
 // Reviewer jobs holding file bytes at once, server-wide. One student holds at most one of them.
 export const MAX_SOURCE_SLOTS = 2;
-// How long the whole upload may take to arrive. 120 s fits the 21 MB cap on a 1.5 Mbps connection;
-// a body trickled in slower would hold a slot for nothing. Tests shorten it.
-export const sourceSettings = { bodyReadMs: 120 * 1000 };
+// How long the whole upload may take to arrive, scaled to the length it announced: a floor for the
+// connection and the small fields, plus the time its bytes need at a slow phone's 256 kbps, never more
+// than bodyMaxMs (which fits the 21 MB cap on a 1.5 Mbps connection). A small body gets a short
+// deadline, so a few junk bytes can't hold a slot for two minutes. Tests shorten them.
+export const sourceSettings = { bodyFloorMs: 10 * 1000, bodyBytesPerSecond: 32 * 1024, bodyMaxMs: 120 * 1000 };
+export const bodyDeadlineMs = (length) => {
+    const { bodyFloorMs, bodyBytesPerSecond, bodyMaxMs } = sourceSettings;
+    return Math.min(bodyMaxMs, bodyFloorMs + (length / bodyBytesPerSecond) * 1000);
+};
 // A scanned PDF up to this many pages is read as pictures; longer ones need a text layer.
 export const MAX_SCAN_PAGES = 15;
 // Pictures read in one reviewer: a photo is one, a scanned PDF is one per page.
@@ -136,6 +142,9 @@ const createSlots = (limit) => {
     };
 };
 export const sourceSlots = createSlots(MAX_SOURCE_SLOTS);
+// A student who holds a slot may have one small body read beside it, so a double submit gets the
+// first reviewer back. Only slot holders get one, so this never needs more than MAX_SOURCE_SLOTS.
+export const slotlessReads = createSlots(MAX_SOURCE_SLOTS);
 
 // ---------------------------------------------------------------------------------------------
 // Types

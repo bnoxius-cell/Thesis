@@ -184,8 +184,8 @@ const requestsToday = (userId) => aiRequestModel.countDocuments({
     at: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
 });
 
-// One row per unit of weight, so the count of rows stays the count of requests used.
-const recordRequests = (userId, kind, weight = 1) => aiRequestModel.insertMany(Array.from({ length: weight }, () => ({ user: userId, kind })));
+// One row per unit of weight (one id each), so the count of rows stays the count of requests used.
+const recordRequests = (userId, kind, ids) => aiRequestModel.insertMany(ids.map((_id) => ({ _id, user: userId, kind })));
 
 // Tried twice, so a passing database blip doesn't leave the student charged for nothing.
 const deleteRequests = async (ids, tries = 2) => {
@@ -206,11 +206,13 @@ const refundingOnError = (work, refund) => work.catch(async (error) => {
 // Takes `weight` of today's limit before the slow part of a request, so two requests at once can't
 // both fit in what was left. Returns a refund for a request that ends up not being made, or null
 // (with nothing kept) when it doesn't fit. Two at once may both be refused; neither goes over. The
-// refund only runs once, however often it is called.
+// refund only runs once, however often it is called. The ids are made here, so the refund knows
+// every row even when the insert fails part-way.
 const reserveRequests = async (userId, kind, weight = 1) => {
-    const rows = await recordRequests(userId, kind, weight);
+    const ids = Array.from({ length: weight }, () => new mongoose.Types.ObjectId());
     let refunded = null;
-    const refund = () => (refunded ??= deleteRequests(rows.map((row) => row._id)));
+    const refund = () => (refunded ??= deleteRequests(ids));
+    await refundingOnError(recordRequests(userId, kind, ids), refund);
     if (await refundingOnError(requestsToday(userId), refund) <= DAILY_GENERATION_LIMIT) return refund;
     await refund();
     return null;

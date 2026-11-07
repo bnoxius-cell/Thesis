@@ -15,7 +15,7 @@ import fileUserDayModel from '../models/fileUserDayModel.js';
 import { generateJson, isGeminiConfigured } from '../utils/gemini.js';
 import { extractDocxText } from '../utils/officeText.js';
 import { generationSettings, settleGenerationJobs, DAILY_GENERATION_LIMIT } from '../controllers/reviewerController.js';
-import { sourceSettings, sourceSlots } from '../utils/reviewerSource.js';
+import { slotlessReads, sourceSettings, sourceSlots } from '../utils/reviewerSource.js';
 import { TRANSCRIBE_SCHEMA } from '../utils/reviewerContent.js';
 import { monthId } from '../utils/fileBudget.js';
 import { detectFileType } from '../utils/fileTypes.js';
@@ -226,6 +226,19 @@ const formField = (name, value) => `--x\r\nContent-Disposition: form-data; name=
 const partialNotes = `${formField('title', 'Slow')}--x\r\nContent-Disposition: form-data; name="notes"\r\n\r\nThe start of`;
 const tick = (ms = 20) => new Promise((resolve) => { setTimeout(resolve, ms); });
 
+// Runs `work` with some body deadline settings replaced (sourceSettings), put back afterwards.
+const withBodySettings = async (settings, work) => {
+    const before = { ...sourceSettings };
+    Object.assign(sourceSettings, settings);
+    try {
+        return await work();
+    } finally {
+        Object.assign(sourceSettings, before);
+    }
+};
+// Every body gets `ms` to arrive, whatever its length.
+const fixedDeadline = (ms) => ({ bodyFloorMs: ms, bodyMaxMs: ms });
+
 // --- Word and PowerPoint ---
 
 describe('one Word or PowerPoint file', () => {
@@ -357,9 +370,7 @@ describe('how much can be sent', () => {
 
     test('a body that takes too long to arrive is 400 slow_upload, the connection closed and the slot given back', async () => {
         const { agent, user } = await signUp();
-        const before = sourceSettings.bodyReadMs;
-        sourceSettings.bodyReadMs = 200;
-        try {
+        await withBodySettings(fixedDeadline(200), async () => {
             const raw = openRaw(user, { 'content-length': '5000' }, partialNotes);
             const answer = await raw.answered;
             expect(answer.status).toBe(400);
@@ -370,18 +381,14 @@ describe('how much can be sent', () => {
             raw.done();
             await slotsFree();
             await noReviewerMade();
-        } finally {
-            sourceSettings.bodyReadMs = before;
-        }
+        });
         expect((await send(agent, { files: [[docx(), 'a.docx']] })).status).toBe(201);
     });
 
     test('two uploads that run out of time use up the tries for the window', async () => {
         useLimits({ reviewerBurst: { limit: 4, windowMs: 60_000 } });
         const { agent, user } = await signUp();
-        const before = sourceSettings.bodyReadMs;
-        sourceSettings.bodyReadMs = 200;
-        try {
+        await withBodySettings(fixedDeadline(200), async () => {
             for (let i = 0; i < 2; i += 1) {
                 const raw = openRaw(user, { 'content-length': '5000' }, partialNotes);
                 expect((await raw.answered).body.code).toBe('slow_upload');
@@ -389,12 +396,51 @@ describe('how much can be sent', () => {
                 raw.done();
                 await slotsFree();
             }
-        } finally {
-            sourceSettings.bodyReadMs = before;
-        }
+        });
         const refused = await send(agent, { files: [[docx(), 'a.docx']] });
         expect(refused.status).toBe(429);
         expect(refused.body.code).toBe('slow_down');
+        await noReviewerMade();
+    });
+
+    test('two bodies that arrive just before their deadline use up the tries for the window too', async () => {
+        useLimits({ reviewerBurst: { limit: 4, windowMs: 60_000 } });
+        const { agent, user } = await signUp();
+        const body = `${formField('notes', 'Too short')}--x--\r\n`;
+        const rest = body.length - 8;
+        await withBodySettings(fixedDeadline(600), async () => {
+            for (let i = 0; i < 2; i += 1) {
+                const raw = openRaw(user, { 'content-length': String(body.length) }, body.slice(0, rest));
+                // Past half the deadline, short of all of it.
+                await tick(450);
+                raw.req.end(body.slice(rest));
+                expect((await raw.answered).body.code).toBe('notes_short');
+                raw.done();
+                await slotsFree();
+            }
+        });
+        const refused = await send(agent, { files: [[docx(), 'a.docx']] });
+        expect(refused.status).toBe(429);
+        expect(refused.body.code).toBe('slow_down');
+        await noReviewerMade();
+    });
+
+    test('the deadline follows the announced length: a small body is cut off soon, a big one is still waited for', async () => {
+        const [{ user: slowBig }, { user: slowSmall }] = [await signUp(), await signUp()];
+        // 150 ms plus 1 ms for every 10 bytes: 2150 ms for 20,000 bytes, 200 ms for 500.
+        await withBodySettings({ bodyFloorMs: 150, bodyBytesPerSecond: 10_000, bodyMaxMs: 60_000 }, async () => {
+            const big = openRaw(slowBig, { 'content-length': '20000' }, partialNotes);
+            await vi.waitFor(() => expect(sourceSlots.inUse()).toBe(1));
+            const small = openRaw(slowSmall, { 'content-length': '500' }, partialNotes);
+            expect((await small.answered).body.code).toBe('slow_upload');
+            await small.serverClosed;
+            small.done();
+            expect(sourceSlots.inUse()).toBe(1);
+            big.req.destroy();
+            await big.serverClosed;
+            big.done();
+        });
+        await slotsFree();
         await noReviewerMade();
     });
 
@@ -1183,6 +1229,86 @@ describe('a double submit', () => {
         expect(second.status).toBe(200);
         expect(extractDocxText).toHaveBeenCalledTimes(1);
         await finish();
+    });
+});
+
+describe('a small body beside a held slot', () => {
+    const photos = [[makePng(), 'a.png'], [makeJpeg(), 'b.jpg']];
+    const notes = 'Osmosis moves water across a membrane. '.repeat(15);
+
+    // The student's first reviewer, made from `photos`, holds their slot while its photos are read,
+    // until `finish()`.
+    const holdSlot = async (agent) => {
+        let release;
+        const gate = new Promise((resolve) => { release = resolve; });
+        generateJson.mockImplementation(async (request) => {
+            if (request.schema !== TRANSCRIBE_SCHEMA) return { data: aiOutput(), model: 'gemini-test' };
+            await gate;
+            return { data: { text: pageText(1) }, model: 'gemini-test' };
+        });
+        const first = await send(agent, { files: photos });
+        expect(first.status).toBe(201);
+        expect(sourceSlots.inUse()).toBe(1);
+        return {
+            first,
+            finish: async () => {
+                release();
+                await settleGenerationJobs();
+                await slotsFree();
+            },
+        };
+    };
+
+    test('the same photos again are read beside it and get the first reviewer back; other photos are 409 busy_you', async () => {
+        const { agent } = await signUp();
+        const held = await holdSlot(agent);
+        const again = await send(agent, { files: photos });
+        expect(again.status).toBe(200);
+        expect(again.body.reviewer._id).toBe(held.first.body.reviewer._id);
+        const other = await send(agent, { files: [[makePng(8, 6), 'c.png']] });
+        expect(other.status).toBe(409);
+        expect(other.body.code).toBe('busy_you');
+        expect(slotlessReads.inUse()).toBe(0);
+        expect(await aiRequestModel.countDocuments()).toBe(1);
+        await held.finish();
+    });
+
+    test('only one at a time: a second while the first arrives is 409, and dropping the first costs half the window and frees it', async () => {
+        useLimits({ reviewerBurst: { limit: 6, windowMs: 60_000 } });
+        const { agent, user } = await signUp();
+        const held = await holdSlot(agent);
+        const raw = openRaw(user, { 'content-length': '5000' }, partialNotes);
+        await vi.waitFor(() => expect(slotlessReads.inUse()).toBe(1));
+        const second = await send(agent, { fields: { notes } });
+        expect(second.status).toBe(409);
+        expect(second.body.code).toBe('busy_you');
+
+        raw.req.destroy();
+        await raw.serverClosed;
+        raw.done();
+        await vi.waitFor(() => expect(slotlessReads.inUse()).toBe(0));
+        // Tries so far: 3, plus 2 for the dropped body. One more fits, then the window is used up.
+        expect((await send(agent, { files: photos })).status).toBe(200);
+        expect((await send(agent, { files: photos })).status).toBe(429);
+        expect(await aiRequestModel.countDocuments()).toBe(1);
+        await held.finish();
+    });
+
+    test('one that runs out of time costs half the window and frees its place', async () => {
+        useLimits({ reviewerBurst: { limit: 4, windowMs: 60_000 } });
+        const { agent, user } = await signUp();
+        const held = await holdSlot(agent);
+        await withBodySettings(fixedDeadline(200), async () => {
+            const raw = openRaw(user, { 'content-length': '5000' }, partialNotes);
+            expect((await raw.answered).body.code).toBe('slow_upload');
+            await raw.serverClosed;
+            raw.done();
+        });
+        await vi.waitFor(() => expect(slotlessReads.inUse()).toBe(0));
+        // Tries so far: 2, plus 1 for the stalled body.
+        expect((await send(agent, { files: photos })).status).toBe(200);
+        expect((await send(agent, { files: photos })).status).toBe(429);
+        await held.finish();
     });
 });
 
