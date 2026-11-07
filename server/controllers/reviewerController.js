@@ -15,7 +15,7 @@ import {
 import { resolveItemSubject, applyItemSubject, subjectLabel } from '../utils/subjectMatch.js';
 import { computeProgress, summarizeAttempt, topicStatsFor, scorePercent } from '../utils/reviewerProgress.js';
 import { FileLimitError } from '../utils/fileBudget.js';
-import { allowBurst, sendFileError } from '../utils/fileResponse.js';
+import { sendFileError, takeBurst } from '../utils/fileResponse.js';
 import { getFileLimits } from '../utils/fileLimits.js';
 import { extensionOf } from '../utils/fileNames.js';
 import { SourceError, combineSources, readSources, sendSourceError, tooLittleTextError } from '../utils/reviewerSource.js';
@@ -184,21 +184,17 @@ const requestsToday = (userId) => aiRequestModel.countDocuments({
     at: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
 });
 
-// One row per unit of weight, so the count of rows stays the count of requests used.
-const recordRequests = (userId, kind, weight = 1) => aiRequestModel.insertMany(Array.from({ length: weight }, () => ({ user: userId, kind })));
+// One row per unit of weight (one id each), so the count of rows stays the count of requests used.
+const recordRequests = (userId, kind, ids) => aiRequestModel.insertMany(ids.map((_id) => ({ _id, user: userId, kind })));
 
-// Takes `weight` of today's limit before the slow part of a request, so two requests at once can't
-// both fit in what was left. Returns a refund for a request that ends up not being made, or null
-// (with nothing kept) when it doesn't fit. Two at once may both be refused; neither goes over. The
-// refund only runs once, however often it is called.
-const reserveRequests = async (userId, kind, weight = 1) => {
-    const rows = await recordRequests(userId, kind, weight);
-    let refunded = null;
-    const refund = () => (refunded ??= aiRequestModel.deleteMany({ _id: { $in: rows.map((row) => row._id) } })
-        .catch((error) => console.error('Refunding AI requests failed:', error)));
-    if (await requestsToday(userId) <= DAILY_GENERATION_LIMIT) return refund;
-    await refund();
-    return null;
+// Tried twice, so a passing database blip doesn't leave the student charged for nothing.
+const deleteRequests = async (ids, tries = 2) => {
+    try {
+        await aiRequestModel.deleteMany({ _id: { $in: ids } });
+    } catch (error) {
+        if (tries > 1) return deleteRequests(ids, tries - 1);
+        console.error('Refunding AI requests failed:', error);
+    }
 };
 
 // `work`'s result; when it fails, the reserved requests are given back first.
@@ -206,6 +202,21 @@ const refundingOnError = (work, refund) => work.catch(async (error) => {
     await refund();
     throw error;
 });
+
+// Takes `weight` of today's limit before the slow part of a request, so two requests at once can't
+// both fit in what was left. Returns a refund for a request that ends up not being made, or null
+// (with nothing kept) when it doesn't fit. Two at once may both be refused; neither goes over. The
+// refund only runs once, however often it is called. The ids are made here, so the refund knows
+// every row even when the insert fails part-way.
+const reserveRequests = async (userId, kind, weight = 1) => {
+    const ids = Array.from({ length: weight }, () => new mongoose.Types.ObjectId());
+    let refunded = null;
+    const refund = () => (refunded ??= deleteRequests(ids));
+    await refundingOnError(recordRequests(userId, kind, ids), refund);
+    if (await refundingOnError(requestsToday(userId), refund) <= DAILY_GENERATION_LIMIT) return refund;
+    await refund();
+    return null;
+};
 
 const limitMessage = () => "You've reached today's limit for making reviewers. You can make more tomorrow.";
 const notConfigured = (res) => res.status(503).json({ success: false, message: "Reviewers aren't set up on this server yet." });
@@ -434,8 +445,11 @@ const textSources = async (checked, userId) => {
 
 // Cheap refusals first (plan 21, 3.3): nothing is read from storage and nothing is extracted for a
 // request that will be turned down, and a double submit costs neither. The day's requests are
-// reserved before the slow part and refunded unless a reviewer is made.
+// reserved before the slow part and refunded unless a reviewer is made. A student whose other
+// reviewer still holds their slot (res.locals.slotHeldElsewhere) only gets a double submit answered:
+// anything else is busy_you, and the day is never charged for it.
 export const createReviewer = async (req, res) => {
+    const busy = Boolean(res.locals.slotHeldElsewhere);
     let refund = null;
     try {
         if (!isGeminiConfigured()) return notConfigured(res);
@@ -452,20 +466,23 @@ export const createReviewer = async (req, res) => {
 
         const request = readSourceRequest(body, takeUploadedFiles(req));
 
-        refund = await reserveRequests(req.userId, 'reviewer', questionWeight(questionTarget));
-        if (!refund) return res.status(429).json({ success: false, message: limitMessage() });
+        if (!busy) {
+            refund = await reserveRequests(req.userId, 'reviewer', questionWeight(questionTarget));
+            if (!refund) return res.status(429).json({ success: false, message: limitMessage() });
+        }
 
         const checked = await checkSourceRequest(request, req.userId);
         // The checked items now hold the only copy of each upload, so readSources can free them one by one.
         request.files = null;
         const duplicate = await findDuplicate(req.userId, questionTarget, checked.fingerprint);
         if (duplicate) {
-            await refund();
+            await refund?.();
             return res.json({ success: true, reviewer: listItem(duplicate) });
         }
+        if (busy) throw new SourceError('busy_you');
 
         // Reading stored files shares the download burst limit.
-        if (checked.kind === 'picked' && !allowBurst(res, `links:${req.userId}`, getFileLimits().linkBurst)) return;
+        if (checked.kind === 'picked') takeBurst(res, `links:${req.userId}`, getFileLimits().linkBurst);
         const sources = await textSources(checked, req.userId);
         const pictures = sources.filter((source) => source.picture).length;
         const combined = combineSources(sources, checked.fingerprint);
@@ -501,9 +518,6 @@ export const createReviewer = async (req, res) => {
         if (error instanceof SourceError) return sendSourceError(res, error);
         if (error instanceof FileLimitError) return sendFileError(res, error, 'Create reviewer error');
         serverError(res, 'Create reviewer error', error);
-    } finally {
-        // Any other way out (the link burst refusal) is refunded here.
-        await refund?.();
     }
 };
 

@@ -17,15 +17,25 @@ export const sendFileError = (res, error, label) => {
     return res.status(error.status).json(body);
 };
 
+// Counts one hit for `key`. When the student is over the limit it sets Retry-After and throws the
+// 429 `slow_down` error, for a caller that answers (and cleans up) in its own catch.
+export const takeBurst = (res, key, rule) => {
+    const { ok, retryAfterMs } = hit(key, rule);
+    if (ok) return;
+    res.set('Retry-After', String(Math.ceil(retryAfterMs / 1000)));
+    throw fileError('slow_down');
+};
+
 // Counts one hit for `key`. When the student is over the limit the 429 `slow_down` answer is
 // already sent and this returns false.
 export const allowBurst = (res, key, rule) => {
-    const { ok, retryAfterMs } = hit(key, rule);
-    if (!ok) {
-        res.set('Retry-After', String(Math.ceil(retryAfterMs / 1000)));
-        sendFileError(res, fileError('slow_down'));
+    try {
+        takeBurst(res, key, rule);
+        return true;
+    } catch (error) {
+        sendFileError(res, error);
+        return false;
     }
-    return ok;
 };
 
 // Answers a link route: `rows` are the file rows the route loaded from its parent (group or

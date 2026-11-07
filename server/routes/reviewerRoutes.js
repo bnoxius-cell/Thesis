@@ -6,10 +6,12 @@ import {
     startSession, getSession, answerQuestion, finishSession, getProgress,
 } from '../controllers/reviewerController.js';
 import {
-    BODY_OVERHEAD_BYTES, MAX_SOURCES, MAX_SOURCE_BYTES, MAX_SOURCES_BYTES, SourceError, sendSourceError, sourceSettings, sourceSlots,
+    BODY_OVERHEAD_BYTES, MAX_SOURCES, MAX_SOURCE_BYTES, MAX_SOURCES_BYTES, SourceError, bodyDeadlineMs, sendSourceError, slotlessReads,
+    sourceSlots,
 } from '../utils/reviewerSource.js';
 import { allowBurst } from '../utils/fileResponse.js';
 import { getFileLimits } from '../utils/fileLimits.js';
+import { addHits } from '../utils/rateLimit.js';
 
 // Notes arrive as a text field of at most 100,000 characters; this leaves room for multi-byte ones.
 const MAX_FIELD_BYTES = 512 * 1024;
@@ -33,13 +35,28 @@ const bodyCap = (req, res, next) => {
     next();
 };
 
+// Small enough to read beside a slot the student already holds: pasted notes, picked file ids or a
+// few photos, never a real set of files.
+const SLOTLESS_BODY_BYTES = MAX_FIELD_BYTES + 64 * 1024;
+
+const burstKey = (req) => `reviewer:${req.userId}`;
+
 // Counted before the body is read. A file refused as unreadable costs no daily charge, so this is
 // what stops a student from making the server unpack file after file.
 const reviewerBurst = (req, res, next) => {
     closeAfterAnswer(res);
-    if (!allowBurst(res, `reviewer:${req.userId}`, getFileLimits().reviewerBurst)) return;
+    if (!allowBurst(res, burstKey(req), getFileLimits().reviewerBurst)) return;
     res.removeHeader('Connection');
     next();
+};
+
+// A body that ran out of time, was dropped half-way, or took more than half its deadline held a slot
+// while sending little. It uses up half the window's tries, so a student gets two such tries per
+// window. Trickling is still possible, but each try holds the slot for at most its deadline (short
+// for a small body), and holding one longer means really sending the bytes the body announced.
+const chargeStalledUpload = (req) => {
+    const rule = getFileLimits().reviewerBurst;
+    addHits(burstKey(req), rule, Math.ceil(rule.limit / 2) - 1);
 };
 
 // Only a couple of requests hold file bytes at once, and one student holds at most one of them. Until
@@ -47,10 +64,15 @@ const reviewerBurst = (req, res, next) => {
 // while the body was arriving). From then on it is held until createReviewer settles, even if the
 // student leaves, because the files are still being read. A job that still holds picture bytes after
 // the answer takes the slot over with res.locals.keepSlot() and releases it itself.
+// A student who already holds one may still send a small body, one at a time, read beside it (a
+// slotlessReads slot, held the same way) so a double submit gets the first reviewer back
+// (createReviewer refuses anything else as busy_you).
 const takeSourceSlot = (req, res, next) => {
-    if (sourceSlots.holds(req.userId)) return refuse(res, new SourceError('busy_you'));
-    const release = sourceSlots.take(req.userId);
-    if (!release) return refuse(res, new SourceError('busy'));
+    const holdsOne = sourceSlots.holds(req.userId);
+    if (holdsOne && Number(req.headers['content-length']) > SLOTLESS_BODY_BYTES) return refuse(res, new SourceError('busy_you'));
+    const release = (holdsOne ? slotlessReads : sourceSlots).take(req.userId);
+    if (!release) return refuse(res, new SourceError(holdsOne ? 'busy_you' : 'busy'));
+    res.locals.slotHeldElsewhere = holdsOne;
     const slot = { release, started: false, closed: false, kept: false };
     res.locals.sourceSlot = slot;
     res.locals.keepSlot = () => {
@@ -96,12 +118,23 @@ const uploadError = (error) => {
     return new SourceError('bad_upload');
 };
 
-// The whole body has to arrive within sourceSettings.bodyReadMs. One trickled in slower is answered
-// and its connection closed, which ends multer's read as well.
+// The whole body has to arrive within its deadline (bodyDeadlineMs). One trickled in slower is
+// answered and its connection closed, which ends multer's read as well. Multer drains the body before
+// it reports an error of its own, so an error with the body still incomplete means the student dropped it.
 const uploadSources = (req, res, next) => {
-    const deadline = setTimeout(() => refuse(res, new SourceError('slow_upload')), sourceSettings.bodyReadMs);
+    const allowedMs = bodyDeadlineMs(Number(req.headers['content-length']));
+    const started = Date.now();
+    let timedOut = false;
+    const deadline = setTimeout(() => {
+        timedOut = true;
+        chargeStalledUpload(req);
+        refuse(res, new SourceError('slow_upload'));
+    }, allowedMs);
     parseSources(req, res, (error) => {
         clearTimeout(deadline);
+        const dropped = error && !req.complete;
+        const slow = Date.now() - started > allowedMs / 2;
+        if (!timedOut && (dropped || slow)) chargeStalledUpload(req);
         if (res.headersSent) return;
         if (error) return sendSourceError(res, uploadError(error));
         next();

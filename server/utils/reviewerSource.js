@@ -22,9 +22,15 @@ export const MAX_NOTES_CHARS = 100000;
 export const MAX_UNPACKED_BYTES = 60 * MB;
 // Reviewer jobs holding file bytes at once, server-wide. One student holds at most one of them.
 export const MAX_SOURCE_SLOTS = 2;
-// How long the whole upload may take to arrive. 120 s fits the 21 MB cap on a 1.5 Mbps connection;
-// a body trickled in slower would hold a slot for nothing. Tests shorten it.
-export const sourceSettings = { bodyReadMs: 120 * 1000 };
+// How long the whole upload may take to arrive, scaled to the length it announced: a floor for the
+// connection and the small fields, plus the time its bytes need at a slow phone's 256 kbps, never more
+// than bodyMaxMs (which fits the 21 MB cap on a 1.5 Mbps connection). A small body gets a short
+// deadline, so a few junk bytes can't hold a slot for two minutes. Tests shorten them.
+export const sourceSettings = { bodyFloorMs: 10 * 1000, bodyBytesPerSecond: 32 * 1024, bodyMaxMs: 120 * 1000 };
+export const bodyDeadlineMs = (length) => {
+    const { bodyFloorMs, bodyBytesPerSecond, bodyMaxMs } = sourceSettings;
+    return Math.min(bodyMaxMs, bodyFloorMs + (length / bodyBytesPerSecond) * 1000);
+};
 // A scanned PDF up to this many pages is read as pictures; longer ones need a text layer.
 export const MAX_SCAN_PAGES = 15;
 // Pictures read in one reviewer: a photo is one, a scanned PDF is one per page.
@@ -62,7 +68,8 @@ const REFUSALS = {
     too_many_files: [400, () => `You can add up to ${MAX_SOURCES} files to one reviewer.`],
     bad_upload: [400, () => "The upload didn't go through. Try again."],
     no_length: [411, () => "The upload didn't go through. Try again."],
-    slow_upload: [408, () => 'The upload took too long. Try again with fewer or smaller files, or on a faster connection.'],
+    // Not 408: browsers resend a 408 on their own when the connection was reused.
+    slow_upload: [400, () => 'The upload took too long. Try again with fewer or smaller files, or on a faster connection.'],
     bad_type: [400, (name) => `${name} can't be made into a reviewer. Use PDF, Word or PowerPoint files, or photos (PNG, JPG or WebP).`],
     file_too_big: [413, (name) => (name
         ? `${name} is too big. Each file can be up to ${MAX_SOURCE_BYTES / MB} MB.`
@@ -84,7 +91,7 @@ const REFUSALS = {
     not_found: [404, () => 'File not found.'],
     stored_unreadable: [502, () => "We couldn't open that file right now. Try again."],
     busy: [503, () => 'Lots of reviewers are being made right now. Try again in a minute.'],
-    busy_you: [503, () => "You're already making a reviewer from files. Try again once it has finished reading them."],
+    busy_you: [409, () => "You're already making a reviewer. Try again once it has finished reading."],
 };
 
 // A request we turn down, with the status and message the student sees. `name` is a file name.
@@ -98,7 +105,7 @@ export class SourceError extends Error {
     }
 }
 
-export const sendSourceError = (res, error) => res.status(error.status).json({ success: false, message: error.message });
+export const sendSourceError = (res, error) => res.status(error.status).json({ success: false, code: error.code, message: error.message });
 
 // A file name that is safe to show in a message and keep on a reviewer: no control, invisible or
 // bidi characters, one line, not too long.
@@ -135,6 +142,9 @@ const createSlots = (limit) => {
     };
 };
 export const sourceSlots = createSlots(MAX_SOURCE_SLOTS);
+// A student who holds a slot may have one small body read beside it, so a double submit gets the
+// first reviewer back. Only slot holders get one, so this never needs more than MAX_SOURCE_SLOTS.
+export const slotlessReads = createSlots(MAX_SOURCE_SLOTS);
 
 // ---------------------------------------------------------------------------------------------
 // Types

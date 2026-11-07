@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import {
-    MAX_NOTES_CHARS, MAX_SOURCES_BYTES, MAX_UNPACKED_BYTES, REVIEWER_SOURCE_TYPES, SourceError, cleanNotes, combineSources, displayName, fitSources,
+    MAX_NOTES_CHARS, MAX_SOURCES_BYTES, MAX_UNPACKED_BYTES, REVIEWER_SOURCE_TYPES, SourceError, bodyDeadlineMs, cleanNotes, combineSources, displayName, fitSources,
     isScannedPdf, readSourceText, readSources, sourceFingerprint, sourceSlots, sourceTypeOf, tooLittleTextError,
 } from '../utils/reviewerSource.js';
 import { MAX_SOURCE_CHARS, MIN_SOURCE_CHARS } from '../utils/pdfText.js';
@@ -324,6 +324,15 @@ describe('sourceSlots', () => {
         const again = sourceSlots.take('a');
         expect(again).toBeTypeOf('function');
         again();
+    });
+});
+
+describe('bodyDeadlineMs', () => {
+    test('a small body gets little more than the floor, a bigger one time for its bytes, up to two minutes', () => {
+        expect(bodyDeadlineMs(0)).toBe(10_000);
+        expect(bodyDeadlineMs(5000)).toBeLessThan(10_200);
+        expect(bodyDeadlineMs(MIB)).toBe(10_000 + 32_000);
+        expect(bodyDeadlineMs(MAX_SOURCES_BYTES + MIB)).toBe(120_000);
     });
 });
 

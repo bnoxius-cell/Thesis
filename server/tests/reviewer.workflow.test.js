@@ -673,17 +673,101 @@ describe('up to 100 questions', () => {
         expect(await aiRequestModel.countDocuments()).toBe(7);
     });
 
-    test('two count-100 requests at once with 7 used never go over the day', async () => {
+    // Two new reviewers of one student never reserve at once (the second waits on the student's
+    // upload slot), so the race is a new reviewer against a regenerate. Each reservation waits here
+    // until the other is written too, so both counts see both.
+    test('a new reviewer and a regenerate that reserve at the same moment are both refused and both given back', async () => {
         const alice = await signUp();
-        await useUp(7);
-        const results = await Promise.all([
-            upload(alice, { fields: { questionCount: '100' } }),
-            upload(alice, { file: makePdf([...STUDY_LINES, 'One more line.']), fields: { questionCount: '100' } }),
-        ]);
-        await settleGenerationJobs();
-        expect(results.filter((res) => res.status === 201).length).toBeLessThanOrEqual(1);
-        expect(await reviewerModel.countDocuments()).toBeLessThanOrEqual(1);
-        expect(await aiRequestModel.countDocuments()).toBeLessThanOrEqual(DAILY_GENERATION_LIMIT);
+        const id = await makeReady(alice);
+        await useUp(6);
+        // 7 used; each asks for 3, so either one alone would fit.
+        const insertMany = aiRequestModel.insertMany.bind(aiRequestModel);
+        let reserved = 0;
+        let bothReserved;
+        const together = new Promise((resolve) => { bothReserved = resolve; });
+        const spy = vi.spyOn(aiRequestModel, 'insertMany').mockImplementation(async (...args) => {
+            const rows = await insertMany(...args);
+            reserved += 1;
+            if (reserved === 2) bothReserved();
+            await together;
+            return rows;
+        });
+        try {
+            const results = await Promise.all([
+                upload(alice, { file: makePdf([...STUDY_LINES, 'Another line.']), fields: { questionCount: '100' } }),
+                alice.post(`/api/reviewers/${id}/regenerate`).send({ questionCount: 100 }),
+            ]);
+            expect(results.map((res) => res.status)).toEqual([429, 429]);
+        } finally {
+            spy.mockRestore();
+        }
+        expect(await aiRequestModel.countDocuments()).toBe(7);
+        expect(await reviewerModel.countDocuments()).toBe(1);
+        expect(generateJson).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([
+        ['regenerate', (agent, id) => agent.post(`/api/reviewers/${id}/regenerate`).send({ questionCount: 50 })],
+        ['targeted', (agent, id) => agent.post(`/api/reviewers/${id}/targeted`).send({ topics: ['Topic A'] })],
+    ])('a %s whose save fails gives the reserved requests back', async (_, ask) => {
+        const alice = await signUp();
+        const id = await makeReady(alice);
+        const used = await aiRequestModel.countDocuments();
+        const save = vi.spyOn(reviewerModel.prototype, 'save').mockRejectedValueOnce(new Error('database down'));
+        const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            expect((await ask(alice, id)).status).toBe(500);
+        } finally {
+            save.mockRestore();
+            log.mockRestore();
+        }
+        expect(await aiRequestModel.countDocuments()).toBe(used);
+        expect(generateJson).toHaveBeenCalledTimes(1);
+    });
+
+    test('a count that fails after the reservation gives it back, even when the first try to give it back fails', async () => {
+        const alice = await signUp();
+        await useUp(2);
+        const count = vi.spyOn(aiRequestModel, 'countDocuments').mockRejectedValueOnce(new Error('database blip'));
+        const remove = vi.spyOn(aiRequestModel, 'deleteMany').mockRejectedValueOnce(new Error('database blip'));
+        const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+        let res;
+        let deletes;
+        try {
+            res = await upload(alice);
+            deletes = remove.mock.calls.length;
+        } finally {
+            count.mockRestore();
+            remove.mockRestore();
+            log.mockRestore();
+        }
+        expect(res.status).toBe(500);
+        expect(res.body.message).not.toMatch(/blip/);
+        expect(deletes).toBe(2);
+        expect(await aiRequestModel.countDocuments()).toBe(2);
+        expect(await reviewerModel.countDocuments()).toBe(0);
+    });
+
+    test('a reservation whose insert fails part-way keeps none of its rows', async () => {
+        const alice = await signUp();
+        await useUp(2);
+        const insertMany = aiRequestModel.insertMany.bind(aiRequestModel);
+        const insert = vi.spyOn(aiRequestModel, 'insertMany').mockImplementationOnce(async (rows) => {
+            await insertMany(rows.slice(0, 1));
+            throw new Error('write failed');
+        });
+        const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+        let res;
+        try {
+            // 100 questions weigh 3 rows.
+            res = await upload(alice, { fields: { questionCount: '100' } });
+        } finally {
+            insert.mockRestore();
+            log.mockRestore();
+        }
+        expect(res.status).toBe(500);
+        expect(await aiRequestModel.countDocuments()).toBe(2);
+        expect(await reviewerModel.countDocuments()).toBe(0);
     });
 
     test('a new reviewer and a regenerate at once, with room for one, never go over the day', async () => {
