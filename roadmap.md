@@ -22,6 +22,7 @@ Build order (efficiency order agreed 2026-11-01; one builder at a time, `/clear`
 - [~] Storage UI from the approved frames: SP1 DONE and merged (db750da), SF4 DONE and merged (685bc21, tester + code-reviewer passed). SF5 DONE and merged (4fccca2, tester + code-reviewer passed). SF6 DONE and merged (44735d9). Then footer, flashcards study screen, release (owner says when)
 - [x] One code-reviewer and security-review pass on the whole branch, then merge (merged; release to production not done, harmless while files are off)
 - [ ] Then CH4 chat uploads, TW-9 source picker
+- [ ] TW-9 scope (owner 2026-11-07): New reviewer is not just "upload". Add a source choice: Upload a PDF, or Choose from my files (the picker lists the student's PDFs from Files, any place). Reviewers stay separate from files; no merge. Server reads the stored file's text, so no re-upload. Optional later: "Make a reviewer" on a PDF row in Files, and a source-file chip on reviewer rows. Needs a dialog frame or a note that it follows the New reviewer frame 78:1272
 Right after the storage items:
 - [~] Site footer: drawn and APPROVED 2026-11-06 (Terms, Privacy, About, Help; desktop 164:3243, phone 164:3376), ready to build
 
