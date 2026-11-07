@@ -3,7 +3,7 @@ import { formatSize } from "@/shared/lib/formatSize";
 // The New reviewer form's numbers and checks. They match the server (utils/reviewerContent.js and
 // the upload route), which checks them again.
 
-export const QUESTION_COUNTS = [10, 15, 20, 30];
+export const QUESTION_COUNTS = [10, 15, 20, 30, 50, 100];
 export const DEFAULT_QUESTION_COUNT = 15;
 export const MAX_PDF_MB = 10;
 
@@ -23,7 +23,7 @@ export function limitMessage(limits) {
   if (!limits) return "";
   if (limits.enabled === false) return "Reviewers aren't set up on this server yet.";
   if (limits.usedToday >= limits.dailyLimit) {
-    return `You've made ${limits.dailyLimit} reviewers in the last 24 hours. You can make more tomorrow.`;
+    return "You've reached today's limit for making reviewers. You can make more tomorrow.";
   }
   return "";
 }

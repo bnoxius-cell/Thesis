@@ -3,6 +3,7 @@
 // Pure: a buffer and a claimed name in, a type description or null out.
 
 import { extensionOf } from './fileNames.js';
+import { listZipEntries } from './zipEntries.js';
 
 const type = (ext, mimeType, isImage = false) => Object.freeze({ ext, mimeType, isImage });
 
@@ -23,14 +24,8 @@ const TEXT_EXTENSIONS = { txt: TEXT, md: MARKDOWN, markdown: MARKDOWN };
 
 const CONTENT_TYPES_ENTRY = '[Content_Types].xml';
 const MACRO_ENTRY = /(?:^|\/)vbaProject\.bin$|\/macrosheets\//i;
-const MAX_ZIP_ENTRIES = 10_000;
 
 const ZIP_LOCAL_HEADER = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
-const EOCD_SIGNATURE = 0x06054b50;
-const EOCD_SIZE = 22;
-const MAX_ZIP_COMMENT = 0xffff;
-const CENTRAL_SIGNATURE = 0x02014b50;
-const CENTRAL_HEADER_SIZE = 46;
 
 const startsWith = (buf, bytes) => buf.length >= bytes.length && bytes.every((byte, i) => buf[i] === byte);
 
@@ -42,49 +37,10 @@ const binaryType = (buf) => {
     return null;
 };
 
-// The end-of-central-directory record, found by scanning back from the end. Only a record whose comment
-// runs exactly to the end of the file counts, so a fake one planted inside a comment is skipped.
-const findEndRecord = (buf) => {
-    const earliest = Math.max(0, buf.length - EOCD_SIZE - MAX_ZIP_COMMENT);
-    for (let pos = buf.length - EOCD_SIZE; pos >= earliest; pos--) {
-        if (buf.readUInt32LE(pos) === EOCD_SIGNATURE && pos + EOCD_SIZE + buf.readUInt16LE(pos + 20) === buf.length) return pos;
-    }
-    return -1;
-};
-
-// Entry names from the central directory, or null when the structure is not a plain single-disk ZIP.
-// Reads headers only, never entry data, and stops at MAX_ZIP_ENTRIES.
-const zipEntryNames = (buf) => {
-    const eocd = findEndRecord(buf);
-    if (eocd < 0) return null;
-    const diskNumber = buf.readUInt16LE(eocd + 4);
-    const centralDisk = buf.readUInt16LE(eocd + 6);
-    const entriesOnDisk = buf.readUInt16LE(eocd + 8);
-    const count = buf.readUInt16LE(eocd + 10);
-    const size = buf.readUInt32LE(eocd + 12);
-    const offset = buf.readUInt32LE(eocd + 16);
-    const isZip64 = count === 0xffff || size === 0xffffffff || offset === 0xffffffff;
-    if (diskNumber !== 0 || centralDisk !== 0 || entriesOnDisk !== count || isZip64) return null;
-    if (count === 0 || count > MAX_ZIP_ENTRIES || offset + size > eocd) return null;
-
-    const end = offset + size;
-    const names = [];
-    let pos = offset;
-    for (let i = 0; i < count; i++) {
-        if (pos + CENTRAL_HEADER_SIZE > end || buf.readUInt32LE(pos) !== CENTRAL_SIGNATURE) return null;
-        const nameLength = buf.readUInt16LE(pos + 28);
-        const next = pos + CENTRAL_HEADER_SIZE + nameLength + buf.readUInt16LE(pos + 30) + buf.readUInt16LE(pos + 32);
-        if (next > end) return null;
-        names.push(buf.toString('latin1', pos + CENTRAL_HEADER_SIZE, pos + CENTRAL_HEADER_SIZE + nameLength));
-        pos = next;
-    }
-    return names;
-};
-
 const officeType = (buf, claimedExt) => {
     const office = OFFICE[claimedExt];
     if (!office || !startsWith(buf, ZIP_LOCAL_HEADER)) return null;
-    const names = zipEntryNames(buf);
+    const names = listZipEntries(buf)?.map((entry) => entry.name);
     if (!names || !names.includes(CONTENT_TYPES_ENTRY)) return null;
     if (!names.some((name) => name.startsWith(office.folder))) return null;
     if (names.some((name) => MACRO_ENTRY.test(name))) return null;

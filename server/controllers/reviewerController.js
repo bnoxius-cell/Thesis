@@ -3,24 +3,36 @@ import { randomUUID } from 'crypto';
 import reviewerModel from '../models/reviewerModel.js';
 import reviewerAttemptModel from '../models/reviewerAttemptModel.js';
 import aiRequestModel from '../models/aiRequestModel.js';
-import { extractPdfText, isPdfBuffer, splitIntoParts, MIN_SOURCE_CHARS, PART_CHARS } from '../utils/pdfText.js';
+import { splitIntoParts, MIN_SOURCE_CHARS, PART_CHARS } from '../utils/pdfText.js';
 import { generateJson, isGeminiConfigured } from '../utils/gemini.js';
 import { withRetries as retrying, friendlyError, describeError } from '../utils/aiErrors.js';
 import {
     REVIEWER_SCHEMA, REVIEWER_SYSTEM, TARGETED_SCHEMA, buildReviewerPrompt, buildTargetedPrompt, planParts,
     normalizeReviewer, normalizeTargeted, textForTopics,
-    QUESTION_COUNTS, DEFAULT_QUESTION_COUNT, MIN_QUESTIONS,
+    QUESTION_COUNTS, QUESTION_WEIGHTS, DEFAULT_QUESTION_COUNT, FIRST_ROUND_MAX, MIN_QUESTIONS, questionWeight,
     TARGETED_COUNTS, DEFAULT_TARGETED_COUNT, MAX_TARGET_TOPICS, MAX_REVIEWER_QUESTIONS,
 } from '../utils/reviewerContent.js';
 import { resolveItemSubject, applyItemSubject, subjectLabel } from '../utils/subjectMatch.js';
 import { computeProgress, summarizeAttempt, topicStatsFor, scorePercent } from '../utils/reviewerProgress.js';
+import { FileLimitError } from '../utils/fileBudget.js';
+import { allowBurst, sendFileError } from '../utils/fileResponse.js';
+import { getFileLimits } from '../utils/fileLimits.js';
+import { extensionOf } from '../utils/fileNames.js';
+import { SourceError, combineSources, readSources, sendSourceError, tooLittleTextError } from '../utils/reviewerSource.js';
+import { checkSourceRequest, loadPickedFiles, notesSource, readSourceRequest } from '../utils/reviewerIntake.js';
+import { WAVES_STOP_AFTER_MS, writeMoreQuestions } from '../utils/reviewerMoreQuestions.js';
+import { PictureError, dropPictures, skippedNote, transcribeSources, unreadableError } from '../utils/reviewerPictures.js';
 
-// Everyone shares one Gemini key, so each student gets a few generations a day.
+// Everyone shares one Gemini key, so each student gets a few generations a day. A big set of
+// questions costs more of them (questionWeight in utils/reviewerContent.js).
 export const DAILY_GENERATION_LIMIT = 10;
 // Generation runs in the background after the upload answers. If the server restarts in the
-// middle, nothing would ever finish it, so anything still "processing" after this is failed.
-// Long enough for every retry below to run: 4 tries of up to 150s (utils/gemini.js) plus waits.
-export const STALE_AFTER_MS = 12 * 60 * 1000;
+// middle, nothing would ever finish it, so a "processing" reviewer is failed once it has gone this long
+// without finishing a step (each picture read, each wave of questions). Long enough for one step's
+// retries: 4 tries of up to 150s (utils/gemini.js) plus waits.
+export const STALE_AFTER_MS = 15 * 60 * 1000;
+// Whatever the steps, no run lasts longer than this.
+export const MAX_JOB_MS = 45 * 60 * 1000;
 // Retries for a busy or flaky AI service. The free tier often answers "high demand" (503) for
 // a minute or so, so the last wait is longer. Tests set these to 0.
 export const generationSettings = { retryDelaysMs: [4000, 12000, 30000] };
@@ -28,12 +40,15 @@ export const generationSettings = { retryDelaysMs: [4000, 12000, 30000] };
 const TITLE_MAX = 120;
 const COURSE_MAX = 80;
 const OPEN_SESSION_MS = 24 * 60 * 60 * 1000;
-// The same PDF sent again this soon, while the first is still being made, is a double submit.
+// The same source sent again this soon, while the first is still being made, is a double submit.
 const DUPLICATE_UPLOAD_MS = 2 * 60 * 1000;
 const TOO_LONG = 'This took too long, so we stopped. Try again.';
 
 const NO_TARGETED = { status: 'none', topics: [], count: 0, added: 0, batch: '', jobId: '', requestedAt: null, error: '' };
+const NO_PROGRESS = { stage: '', done: 0, total: 0 };
 
+// [5, 10] reads "5 or 10", [10, 15, 20] reads "10, 15 or 20".
+const listOf = (numbers) => `${numbers.slice(0, -1).join(', ')} or ${numbers.at(-1)}`;
 const isId = (id) => mongoose.Types.ObjectId.isValid(id);
 const cleanLine = (value, max) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '');
 
@@ -43,13 +58,42 @@ const decodeFileName = (name = '') => {
     const utf8 = Buffer.from(name, 'latin1').toString('utf8');
     return utf8.includes('�') ? name : utf8;
 };
-const titleFromFileName = (name) => cleanLine(name.replace(/\.pdf$/i, '').replace(/[_]+/g, ' '), TITLE_MAX) || 'Untitled reviewer';
+const titleFromFileName = (name) => {
+    const extension = extensionOf(name);
+    const base = extension ? name.slice(0, -(extension.length + 1)) : name;
+    return cleanLine(base.replace(/[_]+/g, ' '), TITLE_MAX) || 'Untitled reviewer';
+};
+const NOTES_TITLE = 'Pasted notes';
+const NO_TEXT_TO_REUSE = 'Add the files again to make new questions.';
 
 const parseQuestionCount = (value) => {
     if (value === undefined || value === null || value === '') return DEFAULT_QUESTION_COUNT;
     const count = Number(value);
     return QUESTION_COUNTS.includes(count) ? count : null;
 };
+
+// The source as a client sees it. Reviewers made before several sources existed have no type, count
+// or list: they read as one PDF. The fingerprint never goes out.
+const publicSourceItem = (item) => ({
+    type: item.type ?? 'pdf',
+    fileName: item.fileName ?? '',
+    pages: item.pages ?? 0,
+    slides: item.slides ?? 0,
+    chars: item.chars ?? 0,
+    truncated: Boolean(item.truncated),
+});
+
+const publicSource = (r) => {
+    const source = r.source ?? {};
+    const items = r.sources?.length ? r.sources : [source];
+    return {
+        ...publicSourceItem(source),
+        count: source.count ?? 1,
+        items: items.map((item) => ({ ...publicSourceItem(item), skipped: Boolean(item.skipped), fileId: item.file ? String(item.file) : null })),
+    };
+};
+
+const publicProgress = (r) => ({ stage: r.progress?.stage ?? '', done: r.progress?.done ?? 0, total: r.progress?.total ?? 0 });
 
 const listItem = (r) => ({
     _id: r._id,
@@ -58,7 +102,7 @@ const listItem = (r) => ({
     subject: r.subject ?? null,
     status: r.status,
     error: r.error,
-    source: r.source,
+    source: publicSource(r),
     questionTarget: r.questionTarget,
     questionCount: r.questionCount ?? r.questions?.length ?? 0,
     topicCount: r.topicCount ?? r.topics?.length ?? 0,
@@ -88,6 +132,7 @@ const publicReviewer = (r) => ({
     keyTerms: r.keyTerms,
     topics: r.topics.map((t) => ({ name: t.name, summary: t.summary })),
     questionCount: r.questions.length,
+    note: r.note ?? '',
     targeted: publicTargeted(r.targeted),
 });
 
@@ -96,15 +141,21 @@ const publicReviewer = (r) => ({
 // `error` stays on it, so the student is told why the new set didn't come.
 const markRunFailed = (filter, error) => reviewerModel.updateMany(
     filter,
-    [{ $set: { status: { $cond: [{ $gt: ['$version', 0] }, 'ready', 'failed'] }, error: { $literal: error }, jobId: '' } }],
+    [{ $set: { status: { $cond: [{ $gt: ['$version', 0] }, 'ready', 'failed'] }, error: { $literal: error }, jobId: '', progress: { $literal: NO_PROGRESS } } }],
     { updatePipeline: true },
 );
 
+// A run with no step finished lately (the last step, or its start when it has none), or one past the ceiling.
 const expireStale = async (filter) => {
-    const before = new Date(Date.now() - STALE_AFTER_MS);
-    await markRunFailed({ ...filter, status: 'processing', requestedAt: { $lt: before } }, TOO_LONG);
+    const quiet = new Date(Date.now() - STALE_AFTER_MS);
+    const tooOld = new Date(Date.now() - MAX_JOB_MS);
+    await markRunFailed({
+        ...filter,
+        status: 'processing',
+        $or: [{ progressAt: { $lt: quiet } }, { progressAt: null, requestedAt: { $lt: quiet } }, { requestedAt: { $lt: tooOld } }],
+    }, TOO_LONG);
     await reviewerModel.updateMany(
-        { ...filter, 'targeted.status': 'processing', 'targeted.requestedAt': { $lt: before } },
+        { ...filter, 'targeted.status': 'processing', 'targeted.requestedAt': { $lt: quiet } },
         { $set: { 'targeted.status': 'failed', 'targeted.error': TOO_LONG, 'targeted.jobId': '' } },
     );
 };
@@ -133,7 +184,30 @@ const requestsToday = (userId) => aiRequestModel.countDocuments({
     at: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
 });
 
-const limitMessage = () => `You've made ${DAILY_GENERATION_LIMIT} reviewers in the last 24 hours. You can make more tomorrow.`;
+// One row per unit of weight, so the count of rows stays the count of requests used.
+const recordRequests = (userId, kind, weight = 1) => aiRequestModel.insertMany(Array.from({ length: weight }, () => ({ user: userId, kind })));
+
+// Takes `weight` of today's limit before the slow part of a request, so two requests at once can't
+// both fit in what was left. Returns a refund for a request that ends up not being made, or null
+// (with nothing kept) when it doesn't fit. Two at once may both be refused; neither goes over. The
+// refund only runs once, however often it is called.
+const reserveRequests = async (userId, kind, weight = 1) => {
+    const rows = await recordRequests(userId, kind, weight);
+    let refunded = null;
+    const refund = () => (refunded ??= aiRequestModel.deleteMany({ _id: { $in: rows.map((row) => row._id) } })
+        .catch((error) => console.error('Refunding AI requests failed:', error)));
+    if (await requestsToday(userId) <= DAILY_GENERATION_LIMIT) return refund;
+    await refund();
+    return null;
+};
+
+// `work`'s result; when it fails, the reserved requests are given back first.
+const refundingOnError = (work, refund) => work.catch(async (error) => {
+    await refund();
+    throw error;
+});
+
+const limitMessage = () => "You've reached today's limit for making reviewers. You can make more tomorrow.";
 const notConfigured = (res) => res.status(503).json({ success: false, message: "Reviewers aren't set up on this server yet." });
 
 // ---------------------------------------------------------------------------------------------
@@ -147,17 +221,84 @@ export const settleGenerationJobs = () => Promise.allSettled([...runningJobs.val
 // Asks again when the AI service is busy, slow or flaky, or answered with something unusable.
 const withRetries = (request) => retrying(request, generationSettings.retryDelaysMs);
 
+const reportProgress = (reviewerId, jobId, progress) => reviewerModel.updateOne(
+    { _id: reviewerId, jobId, status: 'processing' },
+    { $set: { progress, progressAt: new Date() } },
+);
+
+// Photos and scanned PDFs are read into text first (plan 21, 3.5). The text of all the sources is saved
+// before any question is written, and the picture bytes and the slot they held are let go as soon as
+// the reading is over, whatever way it ends. Returns the text and a note about anything left out, or
+// null when this run was replaced, deleted or failed in the meantime (then the reading stops early).
+const readPictures = async (reviewer, jobId, { sources, release }) => {
+    try {
+        const read = await transcribeSources(sources, {
+            retry: withRetries,
+            onProgress: async (done, total) => (await reportProgress(reviewer._id, jobId, { stage: 'reading', done, total })).matchedCount > 0,
+        });
+        if (!read) return null;
+        const combined = combineSources(read, reviewer.source.fingerprint);
+        if (combined.bodyChars < MIN_SOURCE_CHARS) throw unreadableError(read);
+
+        const saved = await reviewerModel.updateOne({ _id: reviewer._id, jobId, status: 'processing' }, {
+            $set: {
+                source: combined.summary,
+                sources: combined.items,
+                sourceText: combined.text,
+                progress: { stage: 'writing', done: 0, total: 0 },
+                progressAt: new Date(),
+            },
+        });
+        return saved.matchedCount ? { text: combined.text, note: skippedNote(read) } : null;
+    } finally {
+        dropPictures(sources);
+        release();
+    }
+};
+
+// The questions past the first round, from the material and the topics the first round found, and
+// whether a failed call or the time limit cut them short. Progress counts questions made so far.
+const moreQuestions = async (reviewer, jobId, parts, content) => {
+    const target = reviewer.questionTarget;
+    const onProgress = (done) => reportProgress(reviewer._id, jobId, { stage: 'writing', done, total: target });
+    await onProgress(content.questions.length);
+    return writeMoreQuestions({
+        title: reviewer.title,
+        course: reviewer.course,
+        parts,
+        topics: content.topics.map((t) => t.name),
+        questions: content.questions,
+        target,
+        retry: withRetries,
+        deadline: reviewer.requestedAt.getTime() + WAVES_STOP_AFTER_MS,
+        onProgress,
+    });
+};
+
+// '' unless a set of more than 30 came out short. `interrupted`: a call failed or time ran out, so it
+// wasn't the material that ran short.
+const shortSetNote = (made, target, interrupted) => {
+    if (target <= FIRST_ROUND_MAX || made >= target) return '';
+    const why = interrupted ? 'Something went wrong while writing the rest.' : 'There may not be enough material for more.';
+    return `We made ${made} of ${target} questions. ${why}`;
+};
+
 // Most PDFs are one request. A long one is split into parts that are sent at the same time and
 // merged. If any part still fails after its retries, the whole reviewer fails: a reviewer that
-// quietly skipped part of the material would be worse than a clear "try again".
-const generate = async (reviewerId, jobId) => {
+// quietly skipped part of the material would be worse than a clear "try again". `pending` holds the
+// sources of a reviewer with pictures, which are read before this.
+const generate = async (reviewerId, jobId, pending) => {
     const reviewer = await reviewerModel.findOne({ _id: reviewerId, jobId, status: 'processing' }).select('+sourceText');
     if (!reviewer) return;
 
-    const parts = splitIntoParts(reviewer.sourceText);
-    const plan = planParts(parts.map((p) => p.length), reviewer.questionTarget);
-
     try {
+        const material = pending ? await readPictures(reviewer, jobId, pending) : { text: reviewer.sourceText, note: '' };
+        if (!material) return;
+        const parts = splitIntoParts(material.text);
+        // Up to 30 questions come with the content, one call per part. More are written after (below).
+        const firstRound = Math.min(reviewer.questionTarget, FIRST_ROUND_MAX);
+        const plan = planParts(parts.map((p) => p.length), firstRound);
+
         const settled = await Promise.allSettled(parts.map((text, i) => withRetries(async () => {
             const prompt = buildReviewerPrompt({ title: reviewer.title, course: reviewer.course, text, part: plan[i] });
             const { data, model } = await generateJson({ system: REVIEWER_SYSTEM, prompt, schema: REVIEWER_SCHEMA });
@@ -170,9 +311,15 @@ const generate = async (reviewerId, jobId) => {
 
         const answers = settled.map((r) => r.value);
         const { title, ...content } = normalizeReviewer(answers.map((a) => a.data), {
-            questionCount: reviewer.questionTarget,
+            questionCount: firstRound,
             shares: plan.map((p) => p.questions),
         });
+        let interrupted = false;
+        if (reviewer.questionTarget > firstRound) {
+            const more = await moreQuestions(reviewer, jobId, parts, content);
+            content.questions.push(...more.questions);
+            interrupted = more.interrupted;
+        }
         const saved = await reviewerModel.updateOne(
             { _id: reviewerId, jobId, status: 'processing' },
             {
@@ -183,6 +330,8 @@ const generate = async (reviewerId, jobId) => {
                     jobId: '',
                     generatedAt: new Date(),
                     aiModel: answers[0].model,
+                    note: [material.note, shortSetNote(content.questions.length, reviewer.questionTarget, interrupted)].filter(Boolean).join(' '),
+                    progress: NO_PROGRESS,
                     targeted: NO_TARGETED,
                 },
                 $inc: { version: 1 },
@@ -195,7 +344,8 @@ const generate = async (reviewerId, jobId) => {
         }
     } catch (error) {
         console.error('Reviewer generation failed:', describeError(error));
-        await markRunFailed({ _id: reviewerId, jobId, status: 'processing' }, friendlyError(error));
+        const message = error instanceof PictureError ? error.message : friendlyError(error);
+        await markRunFailed({ _id: reviewerId, jobId, status: 'processing' }, message);
     }
 };
 
@@ -250,84 +400,110 @@ const track = (key, work) => {
         .finally(() => { if (runningJobs.get(key) === job) runningJobs.delete(key); });
     runningJobs.set(key, job);
 };
-const startGeneration = (reviewerId, jobId) => track(String(reviewerId), generate(reviewerId, jobId));
+// A reviewer with pictures holds a slot until they are read; the release here is for a run that
+// crashes before that. Releasing twice is harmless.
+const startGeneration = (reviewerId, jobId, pending = null) =>
+    track(String(reviewerId), generate(reviewerId, jobId, pending).finally(() => pending?.release()));
 const startTargeted = (reviewerId, jobId) => track(`${reviewerId}:targeted`, generateTargeted(reviewerId, jobId));
 
 // ---------------------------------------------------------------------------------------------
 // Reviewers
 // ---------------------------------------------------------------------------------------------
 
+// The uploaded files as [{ buffer, name }]. Multer's own copies are dropped, so each buffer can be
+// freed once its text is out. `pdf` is the field the old client sends.
+const takeUploadedFiles = (req) => {
+    const { files = [], pdf = [] } = req.files ?? {};
+    req.files = undefined;
+    return [...files, ...pdf].map((file) => ({ buffer: file.buffer, name: decodeFileName(file.originalname).slice(0, 200) }));
+};
+
+const findDuplicate = (userId, questionTarget, fingerprint) => reviewerModel.findOne({
+    owner: userId,
+    status: 'processing',
+    questionTarget,
+    'source.fingerprint': fingerprint,
+    createdAt: { $gt: new Date(Date.now() - DUPLICATE_UPLOAD_MS) },
+});
+
+// The text of each source, in the order the student chose. Picked files are read from storage here.
+const textSources = async (checked, userId) => {
+    if (checked.kind === 'notes') return [notesSource(checked.text)];
+    return readSources(checked.kind === 'picked' ? await loadPickedFiles(checked.rows, userId) : checked.items);
+};
+
+// Cheap refusals first (plan 21, 3.3): nothing is read from storage and nothing is extracted for a
+// request that will be turned down, and a double submit costs neither. The day's requests are
+// reserved before the slow part and refunded unless a reviewer is made.
 export const createReviewer = async (req, res) => {
+    let refund = null;
     try {
         if (!isGeminiConfigured()) return notConfigured(res);
 
-        const file = req.file;
-        if (!file) return res.status(400).json({ success: false, message: 'Choose a PDF to upload.' });
-        if (!isPdfBuffer(file.buffer)) return res.status(400).json({ success: false, message: "That file isn't a PDF." });
-
-        const questionTarget = parseQuestionCount(req.body.questionCount);
+        const body = req.body ?? {};
+        const questionTarget = parseQuestionCount(body.questionCount);
         if (!questionTarget) {
-            return res.status(400).json({ success: false, message: `Pick ${QUESTION_COUNTS.join(', ')} questions.` });
+            return res.status(400).json({ success: false, message: `Pick ${listOf(QUESTION_COUNTS)} questions.` });
         }
 
-        const course = cleanLine(req.body.course, COURSE_MAX);
-        const link = await resolveItemSubject(req.userId, { subject: req.body.subject, course });
+        const course = cleanLine(body.course, COURSE_MAX);
+        const link = await resolveItemSubject(req.userId, { subject: body.subject, course });
         if (link.error) return res.status(400).json({ success: false, message: link.error });
 
-        if (await requestsToday(req.userId) >= DAILY_GENERATION_LIMIT) {
-            return res.status(429).json({ success: false, message: limitMessage() });
+        const request = readSourceRequest(body, takeUploadedFiles(req));
+
+        refund = await reserveRequests(req.userId, 'reviewer', questionWeight(questionTarget));
+        if (!refund) return res.status(429).json({ success: false, message: limitMessage() });
+
+        const checked = await checkSourceRequest(request, req.userId);
+        // The checked items now hold the only copy of each upload, so readSources can free them one by one.
+        request.files = null;
+        const duplicate = await findDuplicate(req.userId, questionTarget, checked.fingerprint);
+        if (duplicate) {
+            await refund();
+            return res.json({ success: true, reviewer: listItem(duplicate) });
         }
 
-        let extracted;
-        try {
-            extracted = await extractPdfText(file.buffer);
-        } catch (error) {
-            const message = error?.name === 'PasswordException'
-                ? 'This PDF is password protected. Remove the password and upload it again.'
-                : "We couldn't read this PDF. It may be damaged.";
-            return res.status(422).json({ success: false, message });
-        }
-        if (extracted.text.length < MIN_SOURCE_CHARS) {
-            return res.status(422).json({
-                success: false,
-                message: "This PDF doesn't have enough text to make a reviewer. Scanned pages and image-only slides can't be read yet.",
-            });
-        }
+        // Reading stored files shares the download burst limit.
+        if (checked.kind === 'picked' && !allowBurst(res, `links:${req.userId}`, getFileLimits().linkBurst)) return;
+        const sources = await textSources(checked, req.userId);
+        const pictures = sources.filter((source) => source.picture).length;
+        const combined = combineSources(sources, checked.fingerprint);
+        if (!pictures && combined.bodyChars < MIN_SOURCE_CHARS) throw tooLittleTextError(combined.items);
 
-        const fileName = decodeFileName(file.originalname).slice(0, 200);
-        // A double submit (same PDF and count, the first still being made) gets the first one back
-        // instead of a second reviewer and a second AI request.
-        const duplicate = await reviewerModel.findOne({
-            owner: req.userId,
-            status: 'processing',
-            questionTarget,
-            'source.fileName': fileName,
-            'source.chars': extracted.chars,
-            createdAt: { $gt: new Date(Date.now() - DUPLICATE_UPLOAD_MS) },
-        });
-        if (duplicate) return res.json({ success: true, reviewer: listItem(duplicate) });
-
-        const typedTitle = cleanLine(req.body.title, TITLE_MAX);
+        const typedTitle = cleanLine(body.title, TITLE_MAX);
+        const fallbackTitle = checked.kind === 'notes' ? NOTES_TITLE : titleFromFileName(combined.summary.fileName);
         const jobId = randomUUID();
         const reviewer = await reviewerModel.create({
             owner: req.userId,
-            title: typedTitle || titleFromFileName(fileName),
+            title: typedTitle || fallbackTitle,
             autoTitle: !typedTitle,
             course: link.subject ? subjectLabel(link.subject) : course,
             subject: link.subject?._id ?? null,
-            source: { fileName, pages: extracted.pages, chars: extracted.chars, truncated: extracted.truncated },
-            sourceText: extracted.text,
+            source: combined.summary,
+            sources: combined.items,
+            // With pictures the text is only known once they are read (readPictures saves it).
+            sourceText: pictures ? '' : combined.text,
             questionTarget,
             status: 'processing',
             jobId,
             requestedAt: new Date(),
+            progress: pictures ? { stage: 'reading', done: 0, total: pictures } : NO_PROGRESS,
         });
-        await aiRequestModel.create({ user: req.userId, kind: 'reviewer' });
-        startGeneration(reviewer._id, jobId);
+        refund = null;
+        // The job keeps the slot (and the picture bytes) after this request has answered.
+        startGeneration(reviewer._id, jobId, pictures ? { sources, release: res.locals.keepSlot() } : null);
 
         res.status(201).json({ success: true, reviewer: listItem(reviewer) });
     } catch (error) {
+        // Refunded before the answer, so the student never sees a refused request counted.
+        await refund?.();
+        if (error instanceof SourceError) return sendSourceError(res, error);
+        if (error instanceof FileLimitError) return sendFileError(res, error, 'Create reviewer error');
         serverError(res, 'Create reviewer error', error);
+    } finally {
+        // Any other way out (the link burst refusal) is refunded here.
+        await refund?.();
     }
 };
 
@@ -353,6 +529,7 @@ export const getReviewers = async (req, res) => {
         res.json({
             success: true,
             dailyLimit: DAILY_GENERATION_LIMIT,
+            weights: QUESTION_WEIGHTS,
             usedToday: await requestsToday(req.userId),
             enabled: isGeminiConfigured(),
             reviewers: reviewers.map((r) => {
@@ -396,6 +573,8 @@ export const getReviewerStatus = async (req, res) => {
             status: reviewer.status,
             error: reviewer.error,
             version: reviewer.version,
+            progress: publicProgress(reviewer),
+            note: reviewer.note ?? '',
             targeted: publicTargeted(reviewer.targeted),
         });
     } catch (error) {
@@ -438,20 +617,18 @@ export const regenerateReviewer = async (req, res) => {
             return res.status(409).json({ success: false, message: 'Wait for the extra questions to finish first.' });
         }
         if (!reviewer.sourceText) {
-            return res.status(409).json({ success: false, message: 'Upload the PDF again to make new questions.' });
+            return res.status(409).json({ success: false, message: NO_TEXT_TO_REUSE });
         }
         const questionTarget = req.body.questionCount === undefined ? reviewer.questionTarget : parseQuestionCount(req.body.questionCount);
         if (!questionTarget) {
-            return res.status(400).json({ success: false, message: `Pick ${QUESTION_COUNTS.join(', ')} questions.` });
+            return res.status(400).json({ success: false, message: `Pick ${listOf(QUESTION_COUNTS)} questions.` });
         }
-        if (await requestsToday(req.userId) >= DAILY_GENERATION_LIMIT) {
-            return res.status(429).json({ success: false, message: limitMessage() });
-        }
+        const refund = await reserveRequests(req.userId, 'reviewer', questionWeight(questionTarget));
+        if (!refund) return res.status(429).json({ success: false, message: limitMessage() });
 
         const jobId = randomUUID();
-        Object.assign(reviewer, { status: 'processing', error: '', jobId, requestedAt: new Date(), questionTarget });
-        await reviewer.save();
-        await aiRequestModel.create({ user: req.userId, kind: 'reviewer' });
+        Object.assign(reviewer, { status: 'processing', error: '', jobId, requestedAt: new Date(), progressAt: null, note: '', questionTarget });
+        await refundingOnError(reviewer.save(), refund);
         startGeneration(reviewer._id, jobId);
 
         res.json({ success: true, reviewer: listItem(reviewer) });
@@ -474,7 +651,7 @@ export const requestTargeted = async (req, res) => {
             return res.status(409).json({ success: false, message: 'New questions are already on the way.' });
         }
         if (!reviewer.sourceText) {
-            return res.status(409).json({ success: false, message: 'Upload the PDF again to make new questions.' });
+            return res.status(409).json({ success: false, message: NO_TEXT_TO_REUSE });
         }
 
         const known = new Set(reviewer.topics.map((t) => t.name));
@@ -487,7 +664,7 @@ export const requestTargeted = async (req, res) => {
         }
         const count = req.body.questionCount === undefined ? DEFAULT_TARGETED_COUNT : Number(req.body.questionCount);
         if (!TARGETED_COUNTS.includes(count)) {
-            return res.status(400).json({ success: false, message: `Pick ${TARGETED_COUNTS.join(' or ')} questions.` });
+            return res.status(400).json({ success: false, message: `Pick ${listOf(TARGETED_COUNTS)} questions.` });
         }
         const room = MAX_REVIEWER_QUESTIONS - reviewer.questions.length;
         if (room < Math.min(...TARGETED_COUNTS)) {
@@ -496,14 +673,12 @@ export const requestTargeted = async (req, res) => {
                 message: `This reviewer already has ${reviewer.questions.length} questions, the most it can hold. Use New questions to start a fresh set.`,
             });
         }
-        if (await requestsToday(req.userId) >= DAILY_GENERATION_LIMIT) {
-            return res.status(429).json({ success: false, message: limitMessage() });
-        }
+        const refund = await reserveRequests(req.userId, 'targeted');
+        if (!refund) return res.status(429).json({ success: false, message: limitMessage() });
 
         const jobId = randomUUID();
         reviewer.targeted = { ...NO_TARGETED, status: 'processing', topics, count: Math.min(count, room), jobId, requestedAt: new Date() };
-        await reviewer.save();
-        await aiRequestModel.create({ user: req.userId, kind: 'targeted' });
+        await refundingOnError(reviewer.save(), refund);
         startTargeted(reviewer._id, jobId);
 
         res.status(202).json({ success: true, targeted: publicTargeted(reviewer.targeted) });

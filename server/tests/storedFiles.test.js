@@ -1,4 +1,5 @@
 import { describe, test, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { createHash } from 'node:crypto';
 import mongoose from 'mongoose';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { makePng } from './helpers/fileFixtures.js';
@@ -10,7 +11,7 @@ import { reloadFileLimits, setFileLimitsForTests } from '../utils/fileLimits.js'
 import { setFileStoreForTests } from '../utils/fileStore.js';
 import { createMemoryStore, DEV_LINK_PREFIX } from '../utils/fileStores/memoryStore.js';
 import { monthId } from '../utils/fileBudget.js';
-import { issueFileLinks, objectHeaders, removeFiles, storeFile, sweepFiles } from '../utils/storedFiles.js';
+import { issueFileLinks, objectHeaders, readStoredFiles, removeFiles, storeFile, sweepFiles } from '../utils/storedFiles.js';
 import { deleteUserData } from '../utils/userData.js';
 
 vi.mock('../utils/emailService.js', () => ({ sendOwnerAlertEmail: vi.fn().mockResolvedValue(undefined) }));
@@ -303,6 +304,161 @@ describe('issueFileLinks', () => {
         expect(store.devReads(row.storageId.slice('memory:'.length))).toBe(3);
         expect((await month()).classB).toBe(1);
         expect(store.openDevLink(tokenOf(link.url), NOW.getTime() + 61 * 1000)).toEqual({ reason: 'expired' });
+    });
+});
+
+describe('readStoredFiles', () => {
+    const linksToday = async (user) => (await fileUserDayModel.findOne({ user: user._id }).lean())?.links ?? 0;
+    const keyOf = (row) => row.storageId.slice('memory:'.length);
+    const read = (user, rows) => readStoredFiles(rows, { userId: user._id, now: NOW });
+    // Three ready library files of different sizes, so the order of the buffers shows.
+    const threeFiles = async (user) => [await store1(user, { file: pdf(10) }), await store1(user, { file: pdf(20) }), await store1(user, { file: pdf(30) })];
+
+    const expectNothingSpent = async (user, getSpy) => {
+        expect((await month()).classB ?? 0).toBe(0);
+        expect(await linksToday(user)).toBe(0);
+        expect(getSpy).not.toHaveBeenCalled();
+    };
+
+    test('returns the buffers in the rows order and reserves one link each, once, before the reads', async () => {
+        const user = await makeUser();
+        const rows = await threeFiles(user);
+        const reservedWhenFirstReadStarts = [];
+        const original = store.get;
+        let running = 0;
+        let mostAtOnce = 0;
+        store.get = async (...args) => {
+            if (!reservedWhenFirstReadStarts.length) reservedWhenFirstReadStarts.push((await month()).classB);
+            running += 1;
+            mostAtOnce = Math.max(mostAtOnce, running);
+            try {
+                return await original(...args);
+            } finally {
+                running -= 1;
+            }
+        };
+
+        const buffers = await read(user, [rows[2], rows[0], rows[1]]);
+        expect(buffers.map((buffer) => buffer.length)).toEqual([30, 10, 20]);
+        expect(buffers[1].equals(Buffer.alloc(10, 1))).toBe(true);
+        expect(reservedWhenFirstReadStarts).toEqual([3]);
+        expect(mostAtOnce).toBe(1);
+        expect((await month()).classB).toBe(3);
+        expect(await linksToday(user)).toBe(3);
+        expect(store.size()).toBe(3);
+    });
+
+    test('no rows is an empty list and spends nothing', async () => {
+        const user = await makeUser();
+        expect(await read(user, [])).toEqual([]);
+        expect((await month()).classB ?? 0).toBe(0);
+    });
+
+    test("another student's row among the owner's: not_found, nothing reserved, no read", async () => {
+        const [owner, other] = [await makeUser(), await makeUser()];
+        const [first, second] = await threeFiles(owner);
+        const foreign = await store1(other);
+        const getSpy = vi.spyOn(store, 'get');
+        await expect(read(owner, [first, foreign, second])).rejects.toMatchObject({ status: 404, code: 'not_found' });
+        await expectNothingSpent(owner, getSpy);
+        expect(await linksToday(other)).toBe(0);
+    });
+
+    test.each([
+        ['a chat row', { scope: 'chat' }],
+        ['an uploading row', { state: 'uploading' }],
+        ['a removing row', { state: 'removing' }],
+        ['a row of another store', { storageId: 'r2:f/00000000-0000-4000-8000-000000000000' }],
+    ])('%s: not_found, nothing reserved, no read', async (name, change) => {
+        const user = await makeUser();
+        const [good, other] = await threeFiles(user);
+        await fileModel.updateOne({ _id: other._id }, { $set: change });
+        const getSpy = vi.spyOn(store, 'get');
+        await expect(read(user, [good, await fileModel.findById(other._id).lean()])).rejects.toMatchObject({ code: 'not_found' });
+        await expectNothingSpent(user, getSpy);
+    });
+
+    test('files off: files_off before anything else', async () => {
+        const user = await makeUser();
+        const [row] = await threeFiles(user);
+        useLimits({ availability: { on: false, store: null, reason: 'disabled' } });
+        await expect(read(user, [row])).rejects.toMatchObject({ status: 503, code: 'files_off' });
+        expect((await month()).classB ?? 0).toBe(0);
+    });
+
+    test('tripped reads: files_paused, no read and nothing reserved', async () => {
+        const user = await makeUser();
+        const rows = await threeFiles(user);
+        await fileUsageModel.updateOne({ _id: monthId(NOW) }, { $set: { 'tripped.reads': 'uncounted_reads' } });
+        const getSpy = vi.spyOn(store, 'get');
+        await expect(read(user, rows)).rejects.toMatchObject({ code: 'files_paused' });
+        expect(getSpy).not.toHaveBeenCalled();
+        expect((await month()).classB ?? 0).toBe(0);
+    });
+
+    test('the daily link limit refuses the whole batch with no read', async () => {
+        useLimits({ linksPerDay: 2 });
+        const user = await makeUser();
+        const rows = await threeFiles(user);
+        const getSpy = vi.spyOn(store, 'get');
+        await expect(read(user, rows)).rejects.toMatchObject({ status: 429, code: 'daily_limit' });
+        await expectNothingSpent(user, getSpy);
+    });
+
+    test('bytes one short of the recorded size: store_failed, and the reservation stays spent', async () => {
+        const user = await makeUser();
+        const rows = await threeFiles(user);
+        await store.put(keyOf(rows[1]), Buffer.alloc(19, 1));
+        await expect(read(user, rows)).rejects.toMatchObject({ status: 502, code: 'store_failed' });
+        expect((await month()).classB).toBe(3);
+        expect(await linksToday(user)).toBe(3);
+    });
+
+    test('bytes longer than the recorded size: store_failed', async () => {
+        const user = await makeUser();
+        const [row] = await threeFiles(user);
+        await store.put(keyOf(row), Buffer.alloc(11, 1));
+        await expect(read(user, [row])).rejects.toMatchObject({ code: 'store_failed' });
+    });
+
+    test('the right length with the wrong content: store_failed', async () => {
+        const user = await makeUser();
+        const [row] = await threeFiles(user);
+        expect(row.sha256).toBe(createHash('sha256').update(Buffer.alloc(10, 1)).digest('hex'));
+        await store.put(keyOf(row), Buffer.alloc(10, 9));
+        await expect(read(user, [row])).rejects.toMatchObject({ code: 'store_failed' });
+    });
+
+    test('a row without a recorded hash is checked by length only', async () => {
+        const user = await makeUser();
+        const [row] = await threeFiles(user);
+        await fileModel.updateOne({ _id: row._id }, { $set: { sha256: '' } });
+        await store.put(keyOf(row), Buffer.alloc(10, 9));
+        const [buffer] = await read(user, [await fileModel.findById(row._id).lean()]);
+        expect(buffer.equals(Buffer.alloc(10, 9))).toBe(true);
+    });
+
+    test('an object that is gone or a store that fails: store_failed, logged without a URL', async () => {
+        const user = await makeUser();
+        const rows = await threeFiles(user);
+        await store.remove(keyOf(rows[0]));
+        await expect(read(user, rows)).rejects.toMatchObject({ code: 'store_failed' });
+
+        store.failNext('get');
+        await expect(read(user, [rows[1]])).rejects.toMatchObject({ code: 'store_failed' });
+        const logged = console.error.mock.calls.flat().join('\n');
+        expect(logged).toContain(String(rows[0]._id));
+        expect(logged).toContain(String(rows[1]._id));
+        expect(logged).not.toMatch(/https?:|Signature/);
+    });
+
+    test('stops at the first bad file: later files are not read', async () => {
+        const user = await makeUser();
+        const rows = await threeFiles(user);
+        await store.put(keyOf(rows[0]), Buffer.alloc(10, 9));
+        const getSpy = vi.spyOn(store, 'get');
+        await expect(read(user, rows)).rejects.toMatchObject({ code: 'store_failed' });
+        expect(getSpy).toHaveBeenCalledTimes(1);
     });
 });
 

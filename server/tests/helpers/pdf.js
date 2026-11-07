@@ -41,8 +41,8 @@ export const makePdf = (lines) => buildPdf([textStream(lines)]);
 // One page per array of lines.
 export const makePagedPdf = (pages, options) => buildPdf(pages.map(textStream), options);
 
-// Like a scanned page: something drawn, but no text layer at all.
-export const makeImageOnlyPdf = () => buildPdf(['0.2 0.4 0.6 rg 50 400 500 300 re f', '0 0 0 RG 4 w 60 60 m 550 700 l S']);
+// Like scanned pages (2 by default): something drawn on each, but no text layer at all.
+export const makeImageOnlyPdf = (pages = 2) => buildPdf(Array(pages).fill(['0.2 0.4 0.6 rg 50 400 500 300 re f', '0 0 0 RG 4 w 60 60 m 550 700 l S'].join('\n')));
 
 // About 1,000 characters of study material: enough to pass the minimum.
 export const STUDY_LINES = [

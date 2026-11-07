@@ -27,14 +27,29 @@ export const geminiModel = () => process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODE
 // An answer we can't use at all. Same code as InvalidReviewerOutput, so it's asked again.
 const unusable = (message) => Object.assign(new Error(message), { code: 'invalid_output' });
 
-// Asks for JSON that follows `schema` and returns it parsed. Throws on API errors (their
-// `status` is kept, so callers can tell a busy quota (429) from a bad request) and on an empty
-// or cut-off answer, or one that isn't valid JSON.
-export const generateJson = async ({ system, prompt, schema, temperature = 0.4 }) => {
+// The only kinds of file we send along with a prompt: pictures and PDFs. Anything else is a bug here.
+const FILE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'application/pdf']);
+
+// The prompt alone, or one user turn with the files first and the prompt last. A file's bytes are
+// turned into base64 only here, so only the call being made holds the larger copy.
+const contentsOf = (prompt, files) => {
+    if (!files.length) return prompt;
+    for (const { mimeType, data } of files) {
+        if (!FILE_TYPES.has(mimeType) || !Buffer.isBuffer(data)) throw new TypeError(`Can't send ${mimeType} to Gemini.`);
+    }
+    const parts = files.map(({ mimeType, data }) => ({ inlineData: { mimeType, data: data.toString('base64') } }));
+    return [{ role: 'user', parts: [...parts, { text: prompt }] }];
+};
+
+// Asks for JSON that follows `schema` and returns it parsed. `files` is [{ mimeType, data: Buffer }].
+// Throws on API errors (their `status` is kept, so callers can tell a busy quota (429) from a bad
+// request) and on an empty or cut-off answer, or one that isn't valid JSON.
+export const generateJson = async ({ system, prompt, schema, temperature = 0.4, files = [] }) => {
     const model = geminiModel();
+    const contents = contentsOf(prompt, files);
     const response = await getClient().models.generateContent({
         model,
-        contents: prompt,
+        contents,
         config: {
             systemInstruction: system,
             responseMimeType: 'application/json',

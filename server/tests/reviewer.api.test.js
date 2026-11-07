@@ -6,7 +6,7 @@ import reviewerAttemptModel from '../models/reviewerAttemptModel.js';
 import aiRequestModel from '../models/aiRequestModel.js';
 import userModel from '../models/userModel.js';
 import { generateJson, isGeminiConfigured } from '../utils/gemini.js';
-import { generationSettings, settleGenerationJobs, DAILY_GENERATION_LIMIT, STALE_AFTER_MS } from '../controllers/reviewerController.js';
+import { generationSettings, settleGenerationJobs, DAILY_GENERATION_LIMIT, MAX_JOB_MS, STALE_AFTER_MS } from '../controllers/reviewerController.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
 import { makePdf, STUDY_LINES } from './helpers/pdf.js';
@@ -108,17 +108,16 @@ describe('uploading a PDF', () => {
 
     test('rejects a missing file, a non-PDF, a bad count and an empty PDF', async () => {
         const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
-        expect((await upload(alice, { file: null })).status).toBe(400);
+        const noFile = await upload(alice, { file: null, fields: { title: 'No file' } });
+        expect(noFile.status).toBe(400);
+        expect(noFile.body.message).toMatch(/Add a file or paste your notes/);
         const notPdf = await upload(alice, { file: Buffer.from('hello there, plain text'), filename: 'notes.pdf' });
         expect(notPdf.status).toBe(400);
-        expect(notPdf.body.message).toMatch(/isn't a PDF/);
+        expect(notPdf.body.message).toMatch(/notes\.pdf can't be made into a reviewer/);
         const wrongType = await alice.post('/api/reviewers').attach('pdf', Buffer.from('x'), { filename: 'notes.docx', contentType: 'application/msword' });
         expect(wrongType.status).toBe(400);
-        expect(wrongType.body.message).toMatch(/Only PDF/);
+        expect(wrongType.body.message).toMatch(/notes\.docx can't be made into a reviewer/);
         expect((await upload(alice, { fields: { questionCount: '7' } })).status).toBe(400);
-        const empty = await upload(alice, { file: makePdf(['Just one short line.']) });
-        expect(empty.status).toBe(422);
-        expect(empty.body.message).toMatch(/enough text/);
         expect(await reviewerModel.countDocuments()).toBe(0);
         expect(generateJson).not.toHaveBeenCalled();
     });
@@ -129,6 +128,7 @@ describe('uploading a PDF', () => {
         const res = await upload(alice, { file: big });
         expect(res.status).toBe(413);
         expect(res.body.success).toBe(false);
+        expect(res.body.message).toMatch(/too big/);
     });
 
     test('says so when the server has no Gemini key', async () => {
@@ -146,7 +146,7 @@ describe('uploading a PDF', () => {
         await aiRequestModel.insertMany(Array.from({ length: DAILY_GENERATION_LIMIT }, () => ({ user: user._id })));
         const res = await upload(alice);
         expect(res.status).toBe(429);
-        expect(res.body.message).toMatch(/last 24 hours/);
+        expect(res.body.message).toMatch(/today's limit/);
         // Yesterday's requests don't count.
         await aiRequestModel.updateMany({}, { at: new Date(Date.now() - 25 * 60 * 60 * 1000) });
         expect((await upload(alice)).status).toBe(201);
@@ -213,6 +213,24 @@ describe('when the AI fails', () => {
         const list = await alice.get('/api/reviewers');
         expect(list.body.reviewers[0]).toMatchObject({ _id: String(stuck._id), status: 'failed' });
         expect(list.body.reviewers[0].error).toMatch(/too long/);
+    });
+
+    test('a run counts as stuck when no step has finished for 15 minutes, or when it passes 45', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const user = await userModel.findOne({ email: 'alice@student.fatima.edu.ph' });
+        const ago = (ms) => new Date(Date.now() - ms);
+        const MINUTE = 60 * 1000;
+        const run = (title, requestedAt, progressAt) => reviewerModel.create({
+            owner: user._id, title, status: 'processing', jobId: 'gone', requestedAt, progressAt,
+        });
+        await run('Steady', ago(20 * MINUTE), ago(MINUTE));
+        await run('Quiet', ago(20 * MINUTE), ago(STALE_AFTER_MS + MINUTE));
+        await run('Too long', ago(MAX_JOB_MS + MINUTE), ago(MINUTE));
+        await run('No steps yet', ago(STALE_AFTER_MS - MINUTE), null);
+
+        const list = await alice.get('/api/reviewers');
+        const status = Object.fromEntries(list.body.reviewers.map((r) => [r.title, r.status]));
+        expect(status).toEqual({ Steady: 'processing', Quiet: 'failed', 'Too long': 'failed', 'No steps yet': 'processing' });
     });
 });
 
@@ -458,7 +476,7 @@ describe('long PDFs', () => {
         await settleGenerationJobs();
         const status = (await alice.get(`/api/reviewers/${reviewer._id}/status`)).body;
         expect(status.status).toBe('failed');
-        expect(status.error).toMatch(/different PDF/);
+        expect(status.error).toMatch(/something different/);
     });
 });
 
@@ -545,7 +563,7 @@ describe('targeted review', () => {
         const reviewer = await reviewerModel.findById(id);
         const filler = reviewer.questions[0].toObject();
         delete filler._id;
-        reviewer.questions.push(...Array.from({ length: 56 }, () => ({ ...filler })));
+        reviewer.questions.push(...Array.from({ length: 124 }, () => ({ ...filler })));
         await reviewer.save();
         const full = await alice.post(`/api/reviewers/${id}/targeted`).send({ topics: ['Respiration'] });
         expect(full.status).toBe(409);

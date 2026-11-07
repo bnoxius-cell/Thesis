@@ -28,6 +28,11 @@ export const assertAsciiHeaders = (headers, key) => {
     }
 };
 
+// The most a server-side read may return, in whole bytes.
+export const assertMaxBytes = (maxBytes, key) => {
+    if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) throw new StoreError('BadLimit', { key });
+};
+
 // A link lives between the same bounds fileLimits enforces on FILE_LINK_TTL_SECONDS, in whole seconds.
 export const assertExpiresIn = (expiresIn, key) => {
     if (!Number.isInteger(expiresIn) || expiresIn < MIN_LINK_TTL_SECONDS || expiresIn > MAX_LINK_TTL_SECONDS) {

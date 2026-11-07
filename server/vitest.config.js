@@ -1,6 +1,9 @@
+import { fileURLToPath } from 'url';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+    // Lets tests import client files that use the client's "@/" paths.
+    resolve: { alias: { '@': fileURLToPath(new URL('../client/src', import.meta.url)) } },
     test: {
         environment: 'node',
         // mongodb-memory-server downloads/boots a real mongod binary on first
