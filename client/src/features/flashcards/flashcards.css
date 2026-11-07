@@ -1,0 +1,165 @@
+/* Flashcards study (Figma 164:3499, 164:3558 desktop; 164:3541, 164:3598 phone). It reuses Practice's
+   focus layout (practice.css): Exit and the deck name on top, one 640px column in the middle. The
+   card turns on its Y axis in 220ms; with reduced motion the faces swap with no turning. */
+@layer pages {
+  .flash-top__label {
+    min-width: 0;
+    margin: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-muted);
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .flash-column {
+    --flash-flip: 220ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .flash-card {
+    perspective: 1200px;
+    border-radius: 24px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .flash-card__inner {
+    display: grid; /* both faces share one cell, so the card is as tall as the taller one */
+    min-height: 300px;
+    transform-style: preserve-3d;
+    transition: transform var(--flash-flip);
+  }
+  .flash-card[data-flipped] .flash-card__inner {
+    transform: rotateY(180deg);
+  }
+
+  .flash-face {
+    grid-area: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    box-sizing: border-box;
+    padding: var(--space-5) 48px;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    box-shadow: var(--shadow-2);
+    text-align: center;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+  .flash-face--front {
+    background: var(--surface);
+  }
+  .flash-face--back {
+    background: var(--accent-soft);
+    transform: rotateY(180deg);
+  }
+  .flash-face > p {
+    margin: 0;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .flash-face__tag {
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .flash-face__tag--answer {
+    color: var(--accent);
+  }
+  .flash-face__term {
+    font: 600 var(--text-2xl) / 32px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .flash-face__answer {
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .flash-face__hint {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-muted);
+  }
+
+  .flash-actions {
+    display: flex;
+    gap: var(--space-3);
+  }
+  .flash-action.ui-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 52px;
+  }
+
+  /* Reduced motion (the rule in base.css, written out because the faces swap by opacity instead of
+     turning): the card never rotates, and the face you can't see is transparent. */
+  @media (prefers-reduced-motion: reduce) {
+    html:not([data-motion="on"]) .flash-card[data-flipped] .flash-card__inner {
+      transform: none;
+    }
+    html:not([data-motion="on"]) .flash-face--back {
+      transform: none;
+      opacity: 0;
+    }
+    html:not([data-motion="on"]) .flash-card[data-flipped] .flash-face--back {
+      opacity: 1;
+    }
+    html:not([data-motion="on"]) .flash-card[data-flipped] .flash-face--front {
+      opacity: 0;
+    }
+    html:not([data-motion="on"]) .flash-face {
+      transition: opacity var(--dur-2) var(--ease-out);
+    }
+  }
+  html[data-motion="off"] .flash-card[data-flipped] .flash-card__inner {
+    transform: none;
+  }
+  html[data-motion="off"] .flash-face--back {
+    transform: none;
+    opacity: 0;
+  }
+  html[data-motion="off"] .flash-card[data-flipped] .flash-face--back {
+    opacity: 1;
+  }
+  html[data-motion="off"] .flash-card[data-flipped] .flash-face--front {
+    opacity: 0;
+  }
+
+  /* Phone: the deck name moves under Exit as the screen's title, the card is taller, and the buttons
+     sit at the foot of the screen, clear of the home bar. */
+  @media (max-width: 720px) {
+    .flash-top {
+      flex-wrap: wrap;
+      row-gap: var(--space-2);
+    }
+    .flash-top__label {
+      flex: 1 0 100%;
+      padding-left: var(--space-2);
+      font: 600 var(--text-lg) / 26px var(--font-ui);
+      color: var(--text-primary);
+      text-align: left;
+    }
+    .practice-main:has(.flash-column) {
+      align-items: stretch;
+    }
+    .flash-column {
+      flex: 1;
+    }
+    .flash-card__inner {
+      min-height: 420px;
+    }
+    .flash-face {
+      padding: var(--space-5);
+    }
+    .flash-actions {
+      margin-top: auto;
+    }
+  }
+}
