@@ -8,6 +8,8 @@ import reviewerModel from '../models/reviewerModel.js';
 import aiRequestModel from '../models/aiRequestModel.js';
 import userModel from '../models/userModel.js';
 import fileModel from '../models/fileModel.js';
+import groupModel from '../models/groupMode.js';
+import groupMessageModel from '../models/groupMessageModel.js';
 import fileUsageModel from '../models/fileUsageModel.js';
 import fileUserDayModel from '../models/fileUserDayModel.js';
 import { generateJson, isGeminiConfigured } from '../utils/gemini.js';
@@ -532,6 +534,49 @@ describe('files picked from My files', () => {
         await noReviewerMade();
     });
 
+    // Each filter of the picked-files query is proven on its own. The file in each case would get
+    // through the later checks if the filter were missing (a type that is refused by name, or a chat
+    // file its member may read), so only the query itself can turn it into the same 404.
+    const expectNotFound = async (agent, user, ids) => {
+        const get = vi.spyOn(store, 'get');
+        const before = await storedProps(user);
+        const res = await pick(agent, ids);
+        expect(res.status).toBe(404);
+        expect(res.body.message).toBe('File not found.');
+        expect(get).not.toHaveBeenCalled();
+        expect(await storedProps(user)).toEqual(before);
+        await noReviewerMade();
+    };
+
+    test('owner: a library file of another student is not found, whatever its type', async () => {
+        const { agent, user } = await signUp();
+        const { user: other } = await signUp();
+        const mine = await libraryFile(user, docx(), 'mine.docx');
+        const theirs = await libraryFile(other, makeOffice('xlsx'), 'their budget.xlsx');
+        await expectNotFound(agent, user, [mine._id, theirs._id]);
+    });
+
+    test.each(['uploading', 'removing'])('state: your own library file that is %s is not found, whatever its type', async (state) => {
+        const { agent, user } = await signUp();
+        const mine = await libraryFile(user, docx(), 'mine.docx');
+        const unfinished = await libraryFile(user, makeOffice('xlsx'), 'budget.xlsx');
+        await fileModel.updateOne({ _id: unfinished._id }, { state });
+        await expectNotFound(agent, user, [mine._id, unfinished._id]);
+    });
+
+    test('scope: your own chat file, in a group you belong to, is not found', async () => {
+        const { agent, user } = await signUp();
+        const { user: friend } = await signUp();
+        const group = await groupModel.create({ name: 'Study', admin: user._id, members: [user._id, friend._id] });
+        const message = await groupMessageModel.create({ group: group._id, sender: user._id, text: 'notes' });
+        const chat = await storeFile({
+            ownerId: user._id, scope: 'chat', refs: { group: group._id, message: message._id },
+            file: { buffer: docx(), name: 'shared.docx', ext: 'docx', mimeType: 'x' },
+        });
+        const mine = await libraryFile(user, docx(), 'mine.docx');
+        await expectNotFound(agent, user, [mine._id, chat._id]);
+    });
+
     test('more than 10 ids is 400; duplicates are counted once', async () => {
         const { agent, user } = await signUp();
         const row = await libraryFile(user, docx(), 'a.docx');
@@ -747,6 +792,16 @@ describe('jobs holding file bytes', () => {
         held[1]();
         held[1]();
         expect(sourceSlots.inUse()).toBe(0);
+    });
+
+    test('a signed-out request gets the sign-in answer, not "busy", and takes no slot', async () => {
+        const held = [sourceSlots.take(), sourceSlots.take()];
+        const res = await request(app).post('/api/reviewers').attach('files', docx(), { filename: 'a.docx' });
+        expect(res.body).toEqual({ success: false, message: 'Unauthorized' });
+        expect(sourceSlots.inUse()).toBe(2);
+        held.forEach((release) => release());
+        expect(sourceSlots.inUse()).toBe(0);
+        await noReviewerMade();
     });
 
     test('every way a request can end gives its slot back exactly once', async () => {
