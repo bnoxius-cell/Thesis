@@ -596,7 +596,8 @@ describe('up to 100 questions', () => {
         const stored = await reviewerModel.findById(id);
         expect(stored).toMatchObject({ status: 'ready', error: '', version: 1 });
         expect(stored.questions).toHaveLength(30);
-        expect(stored.note).toBe('We made 30 of 100 questions. There may not be enough material for more.');
+        expect(stored.note).toBe('We made 30 of 100 questions. Something went wrong while writing the rest.');
+        expect((await alice.get(`/api/reviewers/${id}`)).body.reviewer.note).toBe(stored.note);
     });
 
     test('questions repeated across calls are kept once', async () => {
@@ -662,6 +663,41 @@ describe('up to 100 questions', () => {
         expect((await upload(alice, { fields: { questionCount: '15' } })).status).toBe(201);
         await settleGenerationJobs();
         expect(await aiRequestModel.countDocuments()).toBe(9);
+    });
+
+    test('a refusal after the limit check gives the reserved requests back', async () => {
+        const alice = await signUp();
+        await useUp(7);
+        const refused = await upload(alice, { file: Buffer.from('not a reviewer source'), filename: 'notes.txt', fields: { questionCount: '100' } });
+        expect(refused.status).toBe(400);
+        expect(await aiRequestModel.countDocuments()).toBe(7);
+    });
+
+    test('two count-100 requests at once with 7 used never go over the day', async () => {
+        const alice = await signUp();
+        await useUp(7);
+        const results = await Promise.all([
+            upload(alice, { fields: { questionCount: '100' } }),
+            upload(alice, { file: makePdf([...STUDY_LINES, 'One more line.']), fields: { questionCount: '100' } }),
+        ]);
+        await settleGenerationJobs();
+        expect(results.filter((res) => res.status === 201).length).toBeLessThanOrEqual(1);
+        expect(await reviewerModel.countDocuments()).toBeLessThanOrEqual(1);
+        expect(await aiRequestModel.countDocuments()).toBeLessThanOrEqual(DAILY_GENERATION_LIMIT);
+    });
+
+    test('a new reviewer and a regenerate at once, with room for one, never go over the day', async () => {
+        const alice = await signUp();
+        const id = await makeReady(alice);
+        await useUp(6);
+        // 7 used; each asks for 3.
+        const results = await Promise.all([
+            upload(alice, { file: makePdf([...STUDY_LINES, 'Another line.']), fields: { questionCount: '100' } }),
+            alice.post(`/api/reviewers/${id}/regenerate`).send({ questionCount: 100 }),
+        ]);
+        await settleGenerationJobs();
+        expect(results.filter((res) => res.status === 429).length).toBeGreaterThanOrEqual(1);
+        expect(await aiRequestModel.countDocuments()).toBeLessThanOrEqual(DAILY_GENERATION_LIMIT);
     });
 
     test('regenerating with a big count is refused when it no longer fits', async () => {

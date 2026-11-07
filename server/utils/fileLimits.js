@@ -25,6 +25,8 @@ const FIXED_LIMITS = {
     uploadsPerDay: 60,
     uploadBytesPerDay: 200 * MIB,
     linkBurst: { limit: 120, windowMs: TEN_MINUTES_MS },
+    // Making a reviewer from files or notes, counted before the body is read (refusals count too).
+    reviewerBurst: { limit: 20, windowMs: TEN_MINUTES_MS },
     linksPerDay: 400,
     maxLinksPerRequest: 24,
     maxConcurrentUploads: 2,

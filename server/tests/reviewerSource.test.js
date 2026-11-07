@@ -1,11 +1,13 @@
 import { describe, test, expect } from 'vitest';
 import {
-    MAX_NOTES_CHARS, MAX_SOURCES_BYTES, REVIEWER_SOURCE_TYPES, SourceError, cleanNotes, combineSources, displayName, fitSources,
+    MAX_NOTES_CHARS, MAX_SOURCES_BYTES, MAX_UNPACKED_BYTES, REVIEWER_SOURCE_TYPES, SourceError, cleanNotes, combineSources, displayName, fitSources,
     isScannedPdf, readSourceText, readSources, sourceFingerprint, sourceSlots, sourceTypeOf, tooLittleTextError,
 } from '../utils/reviewerSource.js';
 import { MAX_SOURCE_CHARS, MIN_SOURCE_CHARS } from '../utils/pdfText.js';
 import { makeDocx, makeJpeg, makeOffice, makePng, makePptx, makeWebp, makeZip } from './helpers/fileFixtures.js';
 import { STUDY_LINES, makeImageOnlyPdf, makePagedPdf, makePdf } from './helpers/pdf.js';
+
+const MIB = 1024 * 1024;
 
 const refusal = (fn) => {
     try {
@@ -219,6 +221,19 @@ describe('readSources', () => {
         expect(tooMany).toMatchObject({ status: 422, code: 'too_many_pictures' });
         expect(tooMany.message).toBe("That's a lot to read. Use up to 15 photos or scanned pages in one reviewer.");
     });
+
+    test('Word and PowerPoint files share one unpacked budget; a compressed bomb runs it out', async () => {
+        // About 21 KB packed, 21 MB unpacked: each fits its own 25 MB cap, three don't fit the shared 60 MB.
+        const bomb = makeZip([{ name: 'word/document.xml', data: `<w:document><w:body>${' '.repeat(21 * MIB)}</w:body></w:document>`, deflate: true }]);
+        expect(bomb.length).toBeLessThan(100 * 1024);
+        const item = (name) => ({ buffer: bomb, name, bytes: bomb.length, file: null, ext: 'docx', kind: 'docx' });
+
+        expect(await readSources([item('a.docx'), item('b.docx')])).toHaveLength(2);
+        const together = await asyncRefusal(readSources([item('a.docx'), item('b.docx'), item('c.docx')]));
+        expect(together).toMatchObject({ status: 422, code: 'too_big_inside_together' });
+        expect(together.message).toBe('These Word and PowerPoint files are too much for us to read together. Use fewer of them in one reviewer, or save some as PDFs.');
+        expect(MAX_UNPACKED_BYTES).toBe(60 * MIB);
+    });
 });
 
 describe('combineSources', () => {
@@ -282,20 +297,33 @@ describe('combineSources', () => {
 describe('sourceSlots', () => {
     test('hands out two, then none; a release frees one, and only once', () => {
         const base = sourceSlots.inUse();
-        const first = sourceSlots.take();
-        const second = sourceSlots.take();
+        const first = sourceSlots.take('a');
+        const second = sourceSlots.take('b');
         expect(first).toBeTypeOf('function');
         expect(second).toBeTypeOf('function');
-        expect(sourceSlots.take()).toBeNull();
+        expect(sourceSlots.take('c')).toBeNull();
         first();
         first();
         expect(sourceSlots.inUse()).toBe(base + 1);
-        const third = sourceSlots.take();
+        const third = sourceSlots.take('c');
         expect(third).toBeTypeOf('function');
-        expect(sourceSlots.take()).toBeNull();
+        expect(sourceSlots.take('d')).toBeNull();
         second();
         third();
         expect(sourceSlots.inUse()).toBe(base);
+    });
+
+    test('one owner holds one slot at a time, even with another free', () => {
+        const mine = sourceSlots.take('a');
+        expect(sourceSlots.holds('a')).toBe(true);
+        expect(sourceSlots.holds('b')).toBe(false);
+        expect(sourceSlots.take('a')).toBeNull();
+        expect(sourceSlots.inUse()).toBe(1);
+        mine();
+        expect(sourceSlots.holds('a')).toBe(false);
+        const again = sourceSlots.take('a');
+        expect(again).toBeTypeOf('function');
+        again();
     });
 });
 

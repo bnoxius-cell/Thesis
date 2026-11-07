@@ -4,7 +4,7 @@
 // that touches a response is sendSourceError.
 import { createHash } from 'node:crypto';
 import { extractPdfText, cleanPageText, MAX_SOURCE_CHARS, MIN_SOURCE_CHARS } from './pdfText.js';
-import { extractDocxText, extractPptxText } from './officeText.js';
+import { extractDocxText, extractPptxText, MAX_DOCX_XML_BYTES, MAX_PPTX_TOTAL_BYTES } from './officeText.js';
 import { ZipError } from './zipEntries.js';
 import { detectFileType } from './fileTypes.js';
 import { imageInfo } from './imageInfo.js';
@@ -17,8 +17,14 @@ export const MAX_SOURCES_BYTES = 20 * MB;
 // The multipart framing and the small text fields on top of the files.
 export const BODY_OVERHEAD_BYTES = 1 * MB;
 export const MAX_NOTES_CHARS = 100000;
-// Reviewer jobs holding file bytes at once, server-wide.
+// Word and PowerPoint XML unpacked for one reviewer, all its files together. Unpacking runs on the
+// event loop, so a small, very compressible file must not make it unpack hundreds of MB.
+export const MAX_UNPACKED_BYTES = 60 * MB;
+// Reviewer jobs holding file bytes at once, server-wide. One student holds at most one of them.
 export const MAX_SOURCE_SLOTS = 2;
+// How long the whole upload may take to arrive. 120 s fits the 21 MB cap on a 1.5 Mbps connection;
+// a body trickled in slower would hold a slot for nothing. Tests shorten it.
+export const sourceSettings = { bodyReadMs: 120 * 1000 };
 // A scanned PDF up to this many pages is read as pictures; longer ones need a text layer.
 export const MAX_SCAN_PAGES = 15;
 // Pictures read in one reviewer: a photo is one, a scanned PDF is one per page.
@@ -56,6 +62,7 @@ const REFUSALS = {
     too_many_files: [400, () => `You can add up to ${MAX_SOURCES} files to one reviewer.`],
     bad_upload: [400, () => "The upload didn't go through. Try again."],
     no_length: [411, () => "The upload didn't go through. Try again."],
+    slow_upload: [408, () => 'The upload took too long. Try again with fewer or smaller files, or on a faster connection.'],
     bad_type: [400, (name) => `${name} can't be made into a reviewer. Use PDF, Word or PowerPoint files, or photos (PNG, JPG or WebP).`],
     file_too_big: [413, (name) => (name
         ? `${name} is too big. Each file can be up to ${MAX_SOURCE_BYTES / MB} MB.`
@@ -65,6 +72,7 @@ const REFUSALS = {
     pdf_password: [422, (name) => `${name} is password protected. Remove the password and add it again.`],
     damaged: [422, (name) => `We couldn't read ${name}. It may be damaged. Try saving it again, or as a PDF.`],
     too_big_inside: [422, (name) => `${name} is too big inside for us to read. Try saving it as a PDF, or split it.`],
+    too_big_inside_together: [422, () => 'These Word and PowerPoint files are too much for us to read together. Use fewer of them in one reviewer, or save some as PDFs.'],
     scanned_long: [422, (name) => `${name} looks scanned and has more than ${MAX_SCAN_PAGES} pages. Split it into parts of ${MAX_SCAN_PAGES} pages or fewer.`],
     too_many_pictures: [422, () => `That's a lot to read. Use up to ${MAX_PICTURES} photos or scanned pages in one reviewer.`],
     too_little_pdf: [422, TOO_LITTLE_TEXT.pdf],
@@ -76,6 +84,7 @@ const REFUSALS = {
     not_found: [404, () => 'File not found.'],
     stored_unreadable: [502, () => "We couldn't open that file right now. Try again."],
     busy: [503, () => 'Lots of reviewers are being made right now. Try again in a minute.'],
+    busy_you: [503, () => "You're already making a reviewer from files. Try again once it has finished reading them."],
 };
 
 // A request we turn down, with the status and message the student sees. `name` is a file name.
@@ -103,22 +112,26 @@ export const displayName = (name) => String(name ?? '')
 // Concurrent jobs
 // ---------------------------------------------------------------------------------------------
 
-// Only a couple of requests may hold file bytes at once, so the small server keeps its memory.
-// take() hands back a release function, or null when none is free. Releasing twice is harmless.
+// Only a couple of requests may hold file bytes at once, so the small server keeps its memory, and one
+// student holds at most one of them, so nobody can take them all. take(owner) hands back a release
+// function, or null when none is free or the owner already holds one (holds(owner) tells which).
+// Releasing twice is harmless.
 const createSlots = (limit) => {
-    let held = 0;
+    const owners = new Set();
     return {
-        take() {
-            if (held >= limit) return null;
-            held += 1;
+        holds: (owner) => owners.has(String(owner)),
+        take(owner) {
+            const key = String(owner);
+            if (owners.size >= limit || owners.has(key)) return null;
+            owners.add(key);
             let released = false;
             return () => {
                 if (released) return;
                 released = true;
-                held -= 1;
+                owners.delete(key);
             };
         },
-        inUse: () => held,
+        inUse: () => owners.size,
     };
 };
 export const sourceSlots = createSlots(MAX_SOURCE_SLOTS);
@@ -149,12 +162,18 @@ export const sourceTypeOf = (buffer, name) => {
 // A PDF with hardly any text for its pages is a scan or a set of pictures.
 export const isScannedPdf = (chars, pages) => chars < Math.max(MIN_SOURCE_CHARS, 40 * pages);
 
-const officeText = (kind, buffer, name) => {
+const OFFICE_CAPS = { docx: MAX_DOCX_XML_BYTES, pptx: MAX_PPTX_TOTAL_BYTES };
+
+// `unpackedLeft` is what the reviewer's other files left of MAX_UNPACKED_BYTES. When that, not the
+// file's own cap, is what ran out, the message is about the files together.
+const officeText = (kind, buffer, name, unpackedLeft) => {
+    const extract = kind === 'docx' ? extractDocxText : extractPptxText;
     try {
-        return kind === 'docx' ? extractDocxText(buffer) : extractPptxText(buffer);
+        return extract(buffer, { maxBytes: unpackedLeft });
     } catch (error) {
         if (!(error instanceof ZipError)) throw error;
-        throw new SourceError(error.code === 'too_big' ? 'too_big_inside' : 'damaged', name);
+        if (error.code !== 'too_big') throw new SourceError('damaged', name);
+        throw new SourceError(unpackedLeft < OFFICE_CAPS[kind] ? 'too_big_inside_together' : 'too_big_inside', name);
     }
 };
 
@@ -173,11 +192,12 @@ const pdfText = async (buffer, name) => {
 };
 
 // { text, pages, slides, chars, truncated } for a PDF, Word or PowerPoint file of that `kind`, plus
-// `scanned: true` for a PDF that has to be read as pictures. Throws a SourceError naming the file
-// when it can't be read.
-export const readSourceText = async (kind, buffer, name) => {
+// `scanned: true` for a PDF that has to be read as pictures and `unpacked` (bytes) for Word and
+// PowerPoint, which may unpack at most `unpackedLeft`. Throws a SourceError naming the file when it
+// can't be read.
+export const readSourceText = async (kind, buffer, name, { unpackedLeft = MAX_UNPACKED_BYTES } = {}) => {
     const shown = displayName(name);
-    return kind === 'pdf' ? pdfText(buffer, shown) : officeText(kind, buffer, shown);
+    return kind === 'pdf' ? pdfText(buffer, shown) : officeText(kind, buffer, shown, unpackedLeft);
 };
 
 const NO_TEXT = Object.freeze({ text: '', pages: 0, slides: 0, chars: 0, truncated: false });
@@ -191,9 +211,11 @@ const picturesIn = (source) => (source.picture ? Math.max(1, source.pages) : 0);
 export const readSources = async (items) => {
     const sources = [];
     let pictures = 0;
+    let unpackedLeft = MAX_UNPACKED_BYTES;
     while (items.length) {
         const { buffer, name, kind, ext, bytes, file } = items.shift();
-        const extracted = kind === 'image' ? NO_TEXT : await readSourceText(kind, buffer, name);
+        const { unpacked = 0, ...extracted } = kind === 'image' ? NO_TEXT : await readSourceText(kind, buffer, name, { unpackedLeft });
+        unpackedLeft -= unpacked;
         const isPicture = kind === 'image' || Boolean(extracted.scanned);
         const source = {
             ...extracted,

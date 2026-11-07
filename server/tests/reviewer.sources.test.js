@@ -15,7 +15,7 @@ import fileUserDayModel from '../models/fileUserDayModel.js';
 import { generateJson, isGeminiConfigured } from '../utils/gemini.js';
 import { extractDocxText } from '../utils/officeText.js';
 import { generationSettings, settleGenerationJobs, DAILY_GENERATION_LIMIT } from '../controllers/reviewerController.js';
-import { sourceSlots } from '../utils/reviewerSource.js';
+import { sourceSettings, sourceSlots } from '../utils/reviewerSource.js';
 import { TRANSCRIBE_SCHEMA } from '../utils/reviewerContent.js';
 import { monthId } from '../utils/fileBudget.js';
 import { detectFileType } from '../utils/fileTypes.js';
@@ -196,6 +196,34 @@ const rawPost = (user, headers) => new Promise((resolve, reject) => {
     req.flushHeaders();
 });
 
+// A request written by hand on its own keep-alive connection, sending only `body` (which may be less
+// than the headers announce). `answered` resolves with the answer; `serverClosed` once the server has
+// closed the connection. The caller may destroy `req` to play a student who leaves.
+const openRaw = (user, headers, body = '') => {
+    const token = jwt.sign({ id: String(user._id) }, process.env.JWT_SECRET);
+    const agent = new http.Agent({ keepAlive: true });
+    const serverClosed = new Promise((resolve) => { server.once('connection', (socket) => socket.once('close', resolve)); });
+    const req = http.request({
+        host: '127.0.0.1', port, path: '/api/reviewers', method: 'POST', agent,
+        headers: { cookie: `token=${token}`, 'content-type': 'multipart/form-data; boundary=x', ...headers },
+    });
+    const answered = new Promise((resolve) => {
+        req.on('response', (res) => {
+            let raw = '';
+            res.on('data', (chunk) => { raw += chunk; });
+            res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: JSON.parse(raw) }));
+        });
+    });
+    // A reset once the server has answered or the student has left is expected.
+    req.on('error', () => {});
+    if (body) req.write(body);
+    else req.flushHeaders();
+    return { req, answered, serverClosed, done: () => agent.destroy() };
+};
+
+const formField = (name, value) => `--x\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`;
+const tick = (ms = 20) => new Promise((resolve) => { setTimeout(resolve, ms); });
+
 // --- Word and PowerPoint ---
 
 describe('one Word or PowerPoint file', () => {
@@ -309,6 +337,65 @@ describe('how much can be sent', () => {
         const res = await send(agent, { files: [[padded(10 * MIB), 'a.pdf'], [padded(10 * MIB), 'b.pdf'], [padded(2000), 'c.pdf']] });
         expect(res.status).toBe(413);
         expect(res.body.message).toBe('Those files are too big together. The limit is 20 MB for one reviewer.');
+        await slotsFree();
+        await noReviewerMade();
+    });
+
+    test('a refusal before the body closes the connection instead of reading the rest', async () => {
+        const { user } = await signUp();
+        // A chunked body that never ends: the server must not wait for it.
+        const raw = openRaw(user, { 'transfer-encoding': 'chunked' });
+        const answer = await raw.answered;
+        expect(answer.status).toBe(411);
+        expect(answer.headers.connection).toBe('close');
+        await raw.serverClosed;
+        raw.done();
+        await slotsFree();
+    });
+
+    test('a body that takes too long to arrive is 408, the connection closed and the slot given back', async () => {
+        const { agent, user } = await signUp();
+        const before = sourceSettings.bodyReadMs;
+        sourceSettings.bodyReadMs = 200;
+        try {
+            const raw = openRaw(user, { 'content-length': '5000' }, `${formField('title', 'Slow')}--x\r\nContent-Disposition: form-data; name="notes"\r\n\r\nThe start of`);
+            const answer = await raw.answered;
+            expect(answer.status).toBe(408);
+            expect(answer.body.message).toBe('The upload took too long. Try again with fewer or smaller files, or on a faster connection.');
+            expect(answer.headers.connection).toBe('close');
+            await raw.serverClosed;
+            raw.done();
+            await slotsFree();
+            await noReviewerMade();
+        } finally {
+            sourceSettings.bodyReadMs = before;
+        }
+        expect((await send(agent, { files: [[docx(), 'a.docx']] })).status).toBe(201);
+    });
+
+    test('too many tries in a short time are refused before the body is read', async () => {
+        useLimits({ reviewerBurst: { limit: 2, windowMs: 60_000 } });
+        const { agent } = await signUp();
+        expect((await send(agent, { files: [[makeOffice('xlsx'), 'a.xlsx']] })).status).toBe(400);
+        expect((await send(agent, { fields: { notes: 'short' } })).status).toBe(400);
+        const third = await send(agent, { files: [[docx(), 'a.docx']] });
+        expect(third.status).toBe(429);
+        expect(third.body.code).toBe('slow_down');
+        expect(third.headers['retry-after']).toBeDefined();
+        expect(third.headers.connection).toBe('close');
+        await slotsFree();
+        await noReviewerMade();
+        // Someone else is not held back.
+        expect((await send((await signUp()).agent, { files: [[docx(), 'a.docx']] })).status).toBe(201);
+    });
+
+    test('a compressed bomb runs out the unpacked budget: 422, no charge, slot back', async () => {
+        const { agent } = await signUp();
+        // About 21 KB each, 21 MB unpacked; two fit the 60 MB shared budget, three don't.
+        const bomb = makeZip(['[Content_Types].xml', { name: 'word/document.xml', data: `<w:document><w:body>${' '.repeat(21 * MIB)}</w:body></w:document>`, deflate: true }]);
+        const res = await send(agent, { files: [[bomb, 'a.docx'], [bomb, 'b.docx'], [bomb, 'c.docx']] });
+        expect(res.status).toBe(422);
+        expect(res.body.message).toBe('These Word and PowerPoint files are too much for us to read together. Use fewer of them in one reviewer, or save some as PDFs.');
         await slotsFree();
         await noReviewerMade();
     });
@@ -788,6 +875,20 @@ describe('photos and scanned PDFs', () => {
         expect(text).not.toContain('two.png');
     });
 
+    test('a photo left out and a short set of questions: both notes, joined with a space', async () => {
+        const { agent } = await signUp();
+        // Every writing call gives the same few questions, so the waves after round 1 add nothing.
+        generateJson.mockImplementation(readsPhotos((n) => (n === 1 ? 'Just a smudge.' : pageText(n + 1))));
+        const res = await send(agent, { files: [[makePng(), 'one.png'], [makePng(), 'two.png'], [makePng(), 'three.png']], fields: { questionCount: '100' } });
+        expect(res.status).toBe(201);
+        await settleGenerationJobs();
+        const stored = await reviewerModel.findById(res.body.reviewer._id);
+        expect(stored.status).toBe('ready');
+        expect(stored.note).toBe("We couldn't read 1 of 3 photos (two.png), so it was left out. "
+            + `We made ${stored.questions.length} of 100 questions. There may not be enough material for more.`);
+        expect((await agent.get(`/api/reviewers/${stored._id}`)).body.reviewer.note).toBe(stored.note);
+    });
+
     test('when every photo gives too little text, the reviewer fails and says so', async () => {
         const { agent } = await signUp();
         generateJson.mockImplementation(readsPhotos(() => 'Blurry.'));
@@ -866,6 +967,8 @@ describe('photos and scanned PDFs', () => {
 
     test('the job keeps its slot while it reads and gives it back when the reading ends, also when it fails', async () => {
         const { agent } = await signUp();
+        const { agent: second } = await signUp();
+        const { agent: third } = await signUp();
         let finish;
         const gate = new Promise((resolve) => { finish = resolve; });
         generateJson.mockImplementation(async (request) => {
@@ -875,9 +978,16 @@ describe('photos and scanned PDFs', () => {
         });
         expect((await send(agent, { files: [[makePng(), 'a.png']] })).status).toBe(201);
         expect(sourceSlots.inUse()).toBe(1);
-        expect((await send(agent, { files: [[makePng(5), 'b.png']] })).status).toBe(201);
+        // One student holds one slot, even with the other one free.
+        const mine = await send(agent, { files: [[docx(), 'c.docx']] });
+        expect(mine.status).toBe(503);
+        expect(mine.body.message).toBe("You're already making a reviewer from files. Try again once it has finished reading them.");
+        expect(sourceSlots.inUse()).toBe(1);
+        expect((await send(second, { files: [[makePng(5), 'b.png']] })).status).toBe(201);
         expect(sourceSlots.inUse()).toBe(2);
-        expect((await send(agent, { files: [[docx(), 'c.docx']] })).status).toBe(503);
+        const busy = await send(third, { files: [[docx(), 'c.docx']] });
+        expect(busy.status).toBe(503);
+        expect(busy.body.message).toBe('Lots of reviewers are being made right now. Try again in a minute.');
 
         finish();
         await settleGenerationJobs();
@@ -889,6 +999,31 @@ describe('photos and scanned PDFs', () => {
         await send(agent, { files: [[makePng(6), 'd.png']] });
         await settleGenerationJobs();
         await slotsFree();
+    });
+
+    test('a reviewer deleted while its photos are read stops the reading after the calls under way, and frees the slot', async () => {
+        const { agent } = await signUp();
+        let finish;
+        const gate = new Promise((resolve) => { finish = resolve; });
+        let started = 0;
+        generateJson.mockImplementation(async (request) => {
+            if (request.schema !== TRANSCRIBE_SCHEMA) return { data: aiOutput(), model: 'gemini-test' };
+            started += 1;
+            await gate;
+            return { data: { text: pageText(started) }, model: 'gemini-test' };
+        });
+        const res = await send(agent, { files: [[makePng(), 'a.png'], [makePng(5), 'b.png'], [makePng(6), 'c.png'], [makePng(7), 'd.png']] });
+        expect(res.status).toBe(201);
+        await vi.waitFor(() => expect(started).toBe(2));
+        expect((await agent.delete(`/api/reviewers/${res.body.reviewer._id}`)).status).toBe(200);
+
+        finish();
+        await settleGenerationJobs();
+        await slotsFree();
+        // The two calls already under way finished; no other picture was read and no question written.
+        expect(readCalls()).toHaveLength(2);
+        expect(generateJson).toHaveBeenCalledTimes(2);
+        expect(await reviewerModel.countDocuments()).toBe(0);
     });
 });
 
@@ -978,7 +1113,7 @@ describe('a double submit', () => {
 describe('jobs holding file bytes', () => {
     test('with both slots taken the next request is 503 before anything is read, and works once one frees', async () => {
         const { agent } = await signUp();
-        const held = [sourceSlots.take(), sourceSlots.take()];
+        const held = [sourceSlots.take('someone'), sourceSlots.take('someone else')];
         const busy = await send(agent, { files: [[docx(), 'a.docx']] });
         expect(busy.status).toBe(503);
         expect(busy.body.message).toBe('Lots of reviewers are being made right now. Try again in a minute.');
@@ -994,7 +1129,7 @@ describe('jobs holding file bytes', () => {
     });
 
     test('a signed-out request gets the sign-in answer, not "busy", and takes no slot', async () => {
-        const held = [sourceSlots.take(), sourceSlots.take()];
+        const held = [sourceSlots.take('someone'), sourceSlots.take('someone else')];
         const res = await request(app).post('/api/reviewers').attach('files', docx(), { filename: 'a.docx' });
         expect(res.body).toEqual({ success: false, message: 'Unauthorized' });
         expect(sourceSlots.inUse()).toBe(2);
@@ -1023,6 +1158,41 @@ describe('jobs holding file bytes', () => {
         // If a slot had leaked, these two would run out of room.
         expect((await send(agent, { fields: { notes: `${notes}1` } })).status).toBe(201);
         expect((await send(agent, { fields: { notes: `${notes}2` } })).status).toBe(201);
+        await slotsFree();
+    });
+
+    test('a student who leaves while the body is arriving gets the slot back at once', async () => {
+        const { agent, user } = await signUp();
+        const raw = openRaw(user, { 'content-length': '5000' }, `${formField('title', 'Leaving')}--x\r\nContent-Disposition: form-data; name="notes"\r\n\r\nThe start of`);
+        await vi.waitFor(() => expect(sourceSlots.inUse()).toBe(1));
+        raw.req.destroy();
+        await raw.serverClosed;
+        raw.done();
+        await slotsFree();
+        await noReviewerMade();
+        expect((await send(agent, { files: [[docx(), 'a.docx']] })).status).toBe(201);
+    });
+
+    test('a student who leaves while the files are read keeps the slot held until the reading is over', async () => {
+        const { user } = await signUp();
+        const row = await libraryFile(user, docx(), 'a.docx');
+        const read = store.get.bind(store);
+        let finish;
+        const gate = new Promise((resolve) => { finish = resolve; });
+        const get = vi.spyOn(store, 'get').mockImplementation(async (...args) => {
+            await gate;
+            return read(...args);
+        });
+        const body = `${formField('fileIds', String(row._id))}--x--\r\n`;
+        const raw = openRaw(user, { 'content-length': String(Buffer.byteLength(body)) }, body);
+        await vi.waitFor(() => expect(get).toHaveBeenCalled());
+        raw.req.destroy();
+        await raw.serverClosed;
+        raw.done();
+        await tick();
+        expect(sourceSlots.inUse()).toBe(1);
+
+        finish();
         await slotsFree();
     });
 });

@@ -94,6 +94,7 @@ const openPackage = (buffer, totalBytes) => {
     return {
         names: () => [...byName.keys()],
         has: (name) => byName.has(name),
+        unpacked: () => totalBytes - budget,
         // The entry's text, or null when there's no such entry.
         readText(name, maxBytes) {
             if (duplicates.has(name)) throw new ZipError('damaged');
@@ -198,19 +199,26 @@ const sourceText = (full, { slides = null, truncated = false } = {}) => {
     };
 };
 
+// Both readers take `maxBytes`, a lower cap on what they unpack in total (the caller's budget for
+// several files), and add `unpacked`, the bytes they did unpack, to the result.
+
 // The document body only: headers, footers, footnotes and comments live in other parts and are skipped.
-export const extractDocxText = (buffer) => {
-    const pkg = openPackage(buffer, MAX_DOCX_XML_BYTES);
-    const xml = pkg.readText(DOCUMENT_ENTRY, MAX_DOCX_XML_BYTES);
+export const extractDocxText = (buffer, { maxBytes = MAX_DOCX_XML_BYTES } = {}) => {
+    const cap = Math.min(maxBytes, MAX_DOCX_XML_BYTES);
+    const pkg = openPackage(buffer, cap);
+    const xml = pkg.readText(DOCUMENT_ENTRY, cap);
     if (xml === null) throw new ZipError('damaged');
-    return sourceText(cleanPageText(partText(xml, WORD)));
+    return { ...sourceText(cleanPageText(partText(xml, WORD))), unpacked: pkg.unpacked() };
 };
 
 // Slides in show order with their notes. `slides` counts every slide in the deck; only the first
 // MAX_SLIDES are read, and hidden ones are left out.
-export const extractPptxText = (buffer) => {
-    const pkg = openPackage(buffer, MAX_PPTX_TOTAL_BYTES);
+export const extractPptxText = (buffer, { maxBytes = MAX_PPTX_TOTAL_BYTES } = {}) => {
+    const pkg = openPackage(buffer, Math.min(maxBytes, MAX_PPTX_TOTAL_BYTES));
     const slides = slideOrder(pkg);
     const blocks = slides.slice(0, MAX_SLIDES).map((part, i) => slideBlock(pkg, part, i + 1)).filter(Boolean);
-    return sourceText(blocks.join('\n\n'), { slides: slides.length, truncated: slides.length > MAX_SLIDES });
+    return {
+        ...sourceText(blocks.join('\n\n'), { slides: slides.length, truncated: slides.length > MAX_SLIDES }),
+        unpacked: pkg.unpacked(),
+    };
 };

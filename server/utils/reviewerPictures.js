@@ -64,16 +64,20 @@ const readPicture = async (source, retry) => {
 
 // Reads every picture among `sources` (those with `picture` bytes) and returns all sources in the same
 // order, the pictures now with text. `retry` wraps one request in the job's retries; `onProgress(done, total)`
-// is told after each picture, read or not.
+// is told after each picture, read or not, and answers whether the run still wants the rest. When it
+// doesn't, no further picture is started (one already being read is never cut off) and this returns null.
 export const transcribeSources = async (sources, { retry, onProgress }) => {
     const pictures = sources.filter((source) => source.picture);
     let done = 0;
+    let stopped = false;
     const read = await mapLimit(pictures, AT_ONCE, async (source) => {
+        if (stopped) return null;
         const result = await readPicture(source, retry);
         done += 1;
-        await onProgress(done, pictures.length);
+        if (!(await onProgress(done, pictures.length))) stopped = true;
         return result;
     });
+    if (stopped) return null;
     const readOf = new Map(pictures.map((source, i) => [source, read[i]]));
     return sources.map((source) => readOf.get(source) ?? source);
 };

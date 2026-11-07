@@ -17,10 +17,11 @@ const reply = (...answers) => {
     generateJson.mockReset();
     for (const data of answers) generateJson.mockResolvedValueOnce({ data, model: 'gemini-test' });
 };
-const run = (overrides = {}) => writeMoreQuestions({
+const runFull = (overrides = {}) => writeMoreQuestions({
     title: 'Biology', course: '', parts: ['The cell makes energy.'], topics: TOPICS, questions: made(30), target: 100,
     retry: (request) => request(), deadline: Date.now() + WAVES_STOP_AFTER_MS, onProgress: vi.fn(), ...overrides,
 });
+const run = async (overrides) => (await runFull(overrides)).questions;
 const promptOf = (call) => generateJson.mock.calls[call][0].prompt;
 
 beforeEach(() => generateJson.mockReset());
@@ -30,9 +31,10 @@ describe('writeMoreQuestions', () => {
     test('asks two calls at a time, each showing what was written so far', async () => {
         reply(batch('A', 25), batch('B', 25), batch('C', 20));
         const onProgress = vi.fn();
-        const extra = await run({ onProgress });
+        const { questions: extra, interrupted } = await runFull({ onProgress });
 
         expect(extra).toHaveLength(70);
+        expect(interrupted).toBe(false);
         expect(generateJson).toHaveBeenCalledTimes(3);
         expect(promptOf(0)).toContain('exactly 25 new');
         expect(promptOf(1)).toContain('exactly 25 new');
@@ -73,8 +75,9 @@ describe('writeMoreQuestions', () => {
 
     test('stops when a wave adds less than half of what it asked for', async () => {
         reply(batch('A', 5), batch('B', 5));
-        const extra = await run();
+        const { questions: extra, interrupted } = await runFull();
         expect(extra).toHaveLength(10);
+        expect(interrupted).toBe(false);
         expect(generateJson).toHaveBeenCalledTimes(2);
     });
 
@@ -93,13 +96,14 @@ describe('writeMoreQuestions', () => {
     test('a failed call ends the waves and keeps what the other call wrote', async () => {
         generateJson.mockResolvedValueOnce({ data: batch('A', 25), model: 'gemini-test' });
         generateJson.mockRejectedValueOnce(Object.assign(new Error('down'), { status: 503 }));
-        const extra = await run();
+        const { questions: extra, interrupted } = await runFull();
         expect(extra).toHaveLength(25);
+        expect(interrupted).toBe(true);
         expect(generateJson).toHaveBeenCalledTimes(2);
     });
 
     test('starts no wave once the deadline has passed', async () => {
-        expect(await run({ deadline: Date.now() - 1 })).toEqual([]);
+        expect(await runFull({ deadline: Date.now() - 1 })).toEqual({ questions: [], interrupted: true });
         expect(generateJson).not.toHaveBeenCalled();
     });
 

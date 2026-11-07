@@ -30,16 +30,22 @@ const askForMore = ({ retry, ...request }) => retry(async () => {
     });
 });
 
-// The questions to add to `questions` (the ones made so far, as stored) to reach `target`.
-// `parts` is the text of the material; calls take them in turn, longest first. `retry` wraps one
-// request in the job's retries, `deadline` is a timestamp, and `onProgress(done, total)` is told
-// after each wave.
+// `questions`: the ones to add to those made so far (as stored) to reach `target`. `interrupted`: a
+// failed call or the deadline ended the waves, rather than the material running out or the target
+// being reached. `parts` is the text of the material; calls take them in turn, longest first. `retry`
+// wraps one request in the job's retries, `deadline` is a timestamp, and `onProgress(done, total)` is
+// told after each wave.
 export const writeMoreQuestions = async ({ title, course, parts, topics, questions, target, retry, deadline, onProgress }) => {
     const turns = [...parts].sort((a, b) => b.length - a.length);
     const made = [...questions];
     let turn = 0;
+    let interrupted = false;
 
-    while (made.length < target && Date.now() < deadline) {
+    while (made.length < target) {
+        if (Date.now() >= deadline) {
+            interrupted = true;
+            break;
+        }
         const sizes = waveSizes(target - made.length);
         const existing = made.map((q) => q.prompt);
         const settled = await Promise.allSettled(sizes.map((questionCount) => askForMore({
@@ -52,8 +58,12 @@ export const writeMoreQuestions = async ({ title, course, parts, topics, questio
         await onProgress(made.length, target);
 
         const failed = settled.find((r) => r.status === 'rejected');
-        if (failed) console.error('More questions failed:', describeError(failed.reason));
-        if (failed || added.length * 2 < sizes.reduce((a, b) => a + b, 0)) break;
+        if (failed) {
+            console.error('More questions failed:', describeError(failed.reason));
+            interrupted = true;
+            break;
+        }
+        if (added.length * 2 < sizes.reduce((a, b) => a + b, 0)) break;
     }
-    return made.slice(questions.length);
+    return { questions: made.slice(questions.length), interrupted };
 };

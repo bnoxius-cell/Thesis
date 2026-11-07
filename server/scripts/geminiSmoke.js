@@ -65,7 +65,10 @@ console.log(`Text read in ${seconds(started)}; ${sources.filter((source) => sour
 started = Date.now();
 const transcribed = await transcribeSources(sources, {
     retry,
-    onProgress: (done, total) => console.log(`  picture ${done} of ${total} read (${seconds(started)})`),
+    onProgress: (done, total) => {
+        console.log(`  picture ${done} of ${total} read (${seconds(started)})`);
+        return true;
+    },
 });
 for (const source of transcribed) {
     console.log(`  ${source.fileName}: ${source.chars} characters${source.skipped ? ' (left out, too little text)' : ''}`);
@@ -93,7 +96,7 @@ try {
     if (questionCount > firstRound) {
         console.log(`\nWriting ${questionCount - reviewer.questions.length} more questions in waves...`);
         started = Date.now();
-        reviewer.questions.push(...await writeMoreQuestions({
+        const more = await writeMoreQuestions({
             title: file,
             course: '',
             parts,
@@ -103,8 +106,9 @@ try {
             retry,
             deadline: Date.now() + WAVES_STOP_AFTER_MS,
             onProgress: (done, total) => console.log(`  ${done} of ${total} questions (${seconds(started)})`),
-        }));
-        console.log(`Kept ${reviewer.questions.length} of ${questionCount} questions in ${seconds(started)}`);
+        });
+        reviewer.questions.push(...more.questions);
+        console.log(`Kept ${reviewer.questions.length} of ${questionCount} questions in ${seconds(started)}${more.interrupted ? ' (a call failed or time ran out)' : ''}`);
     }
     console.log(`Title: ${reviewer.title}`);
     console.log(`Topics: ${reviewer.topics.map((t) => t.name).join(', ')}`);

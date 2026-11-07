@@ -132,6 +132,7 @@ const publicReviewer = (r) => ({
     keyTerms: r.keyTerms,
     topics: r.topics.map((t) => ({ name: t.name, summary: t.summary })),
     questionCount: r.questions.length,
+    note: r.note ?? '',
     targeted: publicTargeted(r.targeted),
 });
 
@@ -183,10 +184,28 @@ const requestsToday = (userId) => aiRequestModel.countDocuments({
     at: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
 });
 
-// Whether a request that costs `weight` no longer fits in today's limit.
-const overDailyLimit = async (userId, weight = 1) => await requestsToday(userId) + weight > DAILY_GENERATION_LIMIT;
 // One row per unit of weight, so the count of rows stays the count of requests used.
 const recordRequests = (userId, kind, weight = 1) => aiRequestModel.insertMany(Array.from({ length: weight }, () => ({ user: userId, kind })));
+
+// Takes `weight` of today's limit before the slow part of a request, so two requests at once can't
+// both fit in what was left. Returns a refund for a request that ends up not being made, or null
+// (with nothing kept) when it doesn't fit. Two at once may both be refused; neither goes over. The
+// refund only runs once, however often it is called.
+const reserveRequests = async (userId, kind, weight = 1) => {
+    const rows = await recordRequests(userId, kind, weight);
+    let refunded = null;
+    const refund = () => (refunded ??= aiRequestModel.deleteMany({ _id: { $in: rows.map((row) => row._id) } })
+        .catch((error) => console.error('Refunding AI requests failed:', error)));
+    if (await requestsToday(userId) <= DAILY_GENERATION_LIMIT) return refund;
+    await refund();
+    return null;
+};
+
+// `work`'s result; when it fails, the reserved requests are given back first.
+const refundingOnError = (work, refund) => work.catch(async (error) => {
+    await refund();
+    throw error;
+});
 
 const limitMessage = () => "You've reached today's limit for making reviewers. You can make more tomorrow.";
 const notConfigured = (res) => res.status(503).json({ success: false, message: "Reviewers aren't set up on this server yet." });
@@ -210,13 +229,14 @@ const reportProgress = (reviewerId, jobId, progress) => reviewerModel.updateOne(
 // Photos and scanned PDFs are read into text first (plan 21, 3.5). The text of all the sources is saved
 // before any question is written, and the picture bytes and the slot they held are let go as soon as
 // the reading is over, whatever way it ends. Returns the text and a note about anything left out, or
-// null when this run was replaced in the meantime.
+// null when this run was replaced, deleted or failed in the meantime (then the reading stops early).
 const readPictures = async (reviewer, jobId, { sources, release }) => {
     try {
         const read = await transcribeSources(sources, {
             retry: withRetries,
-            onProgress: (done, total) => reportProgress(reviewer._id, jobId, { stage: 'reading', done, total }),
+            onProgress: async (done, total) => (await reportProgress(reviewer._id, jobId, { stage: 'reading', done, total })).matchedCount > 0,
         });
+        if (!read) return null;
         const combined = combineSources(read, reviewer.source.fingerprint);
         if (combined.bodyChars < MIN_SOURCE_CHARS) throw unreadableError(read);
 
@@ -236,8 +256,8 @@ const readPictures = async (reviewer, jobId, { sources, release }) => {
     }
 };
 
-// The questions past the first round, from the material and the topics the first round found.
-// Progress counts questions made so far.
+// The questions past the first round, from the material and the topics the first round found, and
+// whether a failed call or the time limit cut them short. Progress counts questions made so far.
 const moreQuestions = async (reviewer, jobId, parts, content) => {
     const target = reviewer.questionTarget;
     const onProgress = (done) => reportProgress(reviewer._id, jobId, { stage: 'writing', done, total: target });
@@ -255,9 +275,13 @@ const moreQuestions = async (reviewer, jobId, parts, content) => {
     });
 };
 
-const shortSetNote = (made, target) => (target > FIRST_ROUND_MAX && made < target
-    ? `We made ${made} of ${target} questions. There may not be enough material for more.`
-    : '');
+// '' unless a set of more than 30 came out short. `interrupted`: a call failed or time ran out, so it
+// wasn't the material that ran short.
+const shortSetNote = (made, target, interrupted) => {
+    if (target <= FIRST_ROUND_MAX || made >= target) return '';
+    const why = interrupted ? 'Something went wrong while writing the rest.' : 'There may not be enough material for more.';
+    return `We made ${made} of ${target} questions. ${why}`;
+};
 
 // Most PDFs are one request. A long one is split into parts that are sent at the same time and
 // merged. If any part still fails after its retries, the whole reviewer fails: a reviewer that
@@ -290,8 +314,11 @@ const generate = async (reviewerId, jobId, pending) => {
             questionCount: firstRound,
             shares: plan.map((p) => p.questions),
         });
+        let interrupted = false;
         if (reviewer.questionTarget > firstRound) {
-            content.questions.push(...await moreQuestions(reviewer, jobId, parts, content));
+            const more = await moreQuestions(reviewer, jobId, parts, content);
+            content.questions.push(...more.questions);
+            interrupted = more.interrupted;
         }
         const saved = await reviewerModel.updateOne(
             { _id: reviewerId, jobId, status: 'processing' },
@@ -303,7 +330,7 @@ const generate = async (reviewerId, jobId, pending) => {
                     jobId: '',
                     generatedAt: new Date(),
                     aiModel: answers[0].model,
-                    note: [material.note, shortSetNote(content.questions.length, reviewer.questionTarget)].filter(Boolean).join(' '),
+                    note: [material.note, shortSetNote(content.questions.length, reviewer.questionTarget, interrupted)].filter(Boolean).join(' '),
                     progress: NO_PROGRESS,
                     targeted: NO_TARGETED,
                 },
@@ -406,8 +433,10 @@ const textSources = async (checked, userId) => {
 };
 
 // Cheap refusals first (plan 21, 3.3): nothing is read from storage and nothing is extracted for a
-// request that will be turned down, and a double submit costs neither.
+// request that will be turned down, and a double submit costs neither. The day's requests are
+// reserved before the slow part and refunded unless a reviewer is made.
 export const createReviewer = async (req, res) => {
+    let refund = null;
     try {
         if (!isGeminiConfigured()) return notConfigured(res);
 
@@ -423,13 +452,17 @@ export const createReviewer = async (req, res) => {
 
         const request = readSourceRequest(body, takeUploadedFiles(req));
 
-        if (await overDailyLimit(req.userId, questionWeight(questionTarget))) {
-            return res.status(429).json({ success: false, message: limitMessage() });
-        }
+        refund = await reserveRequests(req.userId, 'reviewer', questionWeight(questionTarget));
+        if (!refund) return res.status(429).json({ success: false, message: limitMessage() });
 
         const checked = await checkSourceRequest(request, req.userId);
+        // The checked items now hold the only copy of each upload, so readSources can free them one by one.
+        request.files = null;
         const duplicate = await findDuplicate(req.userId, questionTarget, checked.fingerprint);
-        if (duplicate) return res.json({ success: true, reviewer: listItem(duplicate) });
+        if (duplicate) {
+            await refund();
+            return res.json({ success: true, reviewer: listItem(duplicate) });
+        }
 
         // Reading stored files shares the download burst limit.
         if (checked.kind === 'picked' && !allowBurst(res, `links:${req.userId}`, getFileLimits().linkBurst)) return;
@@ -457,15 +490,20 @@ export const createReviewer = async (req, res) => {
             requestedAt: new Date(),
             progress: pictures ? { stage: 'reading', done: 0, total: pictures } : NO_PROGRESS,
         });
-        await recordRequests(req.userId, 'reviewer', questionWeight(questionTarget));
+        refund = null;
         // The job keeps the slot (and the picture bytes) after this request has answered.
         startGeneration(reviewer._id, jobId, pictures ? { sources, release: res.locals.keepSlot() } : null);
 
         res.status(201).json({ success: true, reviewer: listItem(reviewer) });
     } catch (error) {
+        // Refunded before the answer, so the student never sees a refused request counted.
+        await refund?.();
         if (error instanceof SourceError) return sendSourceError(res, error);
         if (error instanceof FileLimitError) return sendFileError(res, error, 'Create reviewer error');
         serverError(res, 'Create reviewer error', error);
+    } finally {
+        // Any other way out (the link burst refusal) is refunded here.
+        await refund?.();
     }
 };
 
@@ -585,14 +623,12 @@ export const regenerateReviewer = async (req, res) => {
         if (!questionTarget) {
             return res.status(400).json({ success: false, message: `Pick ${listOf(QUESTION_COUNTS)} questions.` });
         }
-        if (await overDailyLimit(req.userId, questionWeight(questionTarget))) {
-            return res.status(429).json({ success: false, message: limitMessage() });
-        }
+        const refund = await reserveRequests(req.userId, 'reviewer', questionWeight(questionTarget));
+        if (!refund) return res.status(429).json({ success: false, message: limitMessage() });
 
         const jobId = randomUUID();
         Object.assign(reviewer, { status: 'processing', error: '', jobId, requestedAt: new Date(), progressAt: null, note: '', questionTarget });
-        await reviewer.save();
-        await recordRequests(req.userId, 'reviewer', questionWeight(questionTarget));
+        await refundingOnError(reviewer.save(), refund);
         startGeneration(reviewer._id, jobId);
 
         res.json({ success: true, reviewer: listItem(reviewer) });
@@ -637,14 +673,12 @@ export const requestTargeted = async (req, res) => {
                 message: `This reviewer already has ${reviewer.questions.length} questions, the most it can hold. Use New questions to start a fresh set.`,
             });
         }
-        if (await overDailyLimit(req.userId)) {
-            return res.status(429).json({ success: false, message: limitMessage() });
-        }
+        const refund = await reserveRequests(req.userId, 'targeted');
+        if (!refund) return res.status(429).json({ success: false, message: limitMessage() });
 
         const jobId = randomUUID();
         reviewer.targeted = { ...NO_TARGETED, status: 'processing', topics, count: Math.min(count, room), jobId, requestedAt: new Date() };
-        await reviewer.save();
-        await recordRequests(req.userId, 'targeted');
+        await refundingOnError(reviewer.save(), refund);
         startTargeted(reviewer._id, jobId);
 
         res.status(202).json({ success: true, targeted: publicTargeted(reviewer.targeted) });

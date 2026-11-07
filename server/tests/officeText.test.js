@@ -108,9 +108,17 @@ describe('extractDocxText', () => {
         expect(result.chars).toBeGreaterThan(MAX_SOURCE_CHARS);
         expect(result.truncated).toBe(true);
     });
+
+    test('reports what it unpacked, and a lower cap from the caller is kept', () => {
+        const file = docx(paragraph('<w:t>Some words.</w:t>'));
+        const { unpacked } = extractDocxText(file);
+        expect(unpacked).toBe(Buffer.byteLength(wordXml(paragraph('<w:t>Some words.</w:t>'))));
+        expect(extractDocxText(file, { maxBytes: unpacked }).text).toBe('Some words.');
+        expect(errorCode(() => extractDocxText(file, { maxBytes: unpacked - 1 }))).toBe('too_big');
+    });
 });
 
-const P = 'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+const P ='xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
 const shape = (...lines) => `<p:sp><p:txBody>${lines.map((line) => `<a:p><a:r><a:t>${line}</a:t></a:r></a:p>`).join('')}</p:txBody></p:sp>`;
 const slideXml = (lines, { hidden = false } = {}) => `<?xml version="1.0"?><p:sld ${P}${hidden ? ' show="0"' : ''}><p:cSld><p:spTree>${shape(...lines)}</p:spTree></p:cSld></p:sld>`;
 const notesXml = (text) => `<p:notes ${P}><p:cSld><p:spTree>${shape(text)}${shape('7')}</p:spTree></p:cSld></p:notes>`;
