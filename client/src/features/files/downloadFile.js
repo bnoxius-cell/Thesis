@@ -1,9 +1,9 @@
 import { ensureLink } from "@/shared/lib/fileLinks";
-import { blobFetchBroken, cachedFileBlob, loadFileBlob } from "@/shared/lib/fileBlobs";
-import { isPhoto } from "./fileRules";
+import { cachedFileBlob, loadFileBlob, needsNewTab } from "@/shared/lib/fileBlobs";
 
 // Revoking a download's object URL at once cancels the save in Firefox and Safari.
 const REVOKE_MS = 60_000;
+const BLOCKED = "Your browser blocked the new tab. Allow pop-ups for StressCare, then try again.";
 
 function save(blob, name) {
   const url = URL.createObjectURL(blob);
@@ -17,14 +17,14 @@ function save(blob, name) {
   setTimeout(() => URL.revokeObjectURL(url), REVOKE_MS);
 }
 
-// The photo opens in a new tab: the storage serves a photo inline, so the browser shows it there and
-// the photo is saved from that tab. The tab is opened before the wait for a link, while the click
+// The file opens in a new tab: the storage shows a photo there and sends anything else as an
+// attachment, which the browser saves. The tab is opened before the wait for a link, while the click
 // still counts, or a popup blocker would stop it. With no tab (a blocked popup) the student is asked
-// to allow it: sending the app itself to the photo would end any upload still running and leave the
-// signed link in the address bar.
-async function openPhotoInTab(file) {
+// to allow it: the app itself is never sent to the link, which would end any upload still running,
+// leave the signed link in the address bar and, on a storage error, replace the app with its page.
+async function openInTab(file) {
   const tab = window.open("", "_blank");
-  if (!tab) return { error: "Your browser blocked the new tab. Allow pop-ups for StressCare, then try again." };
+  if (!tab) return { error: BLOCKED };
   tab.opener = null;
   const { url, error } = await ensureLink(file.id, "file");
   if (error) {
@@ -35,35 +35,24 @@ async function openPhotoInTab(file) {
   return {};
 }
 
-// Anything else goes to its link: the storage sends documents as an attachment, so the page stays.
-// The link goes straight to `location.assign` and is never kept.
-async function navigateToLink(file) {
-  const { url, error } = await ensureLink(file.id, "file");
-  if (error) return { error };
-  window.location.assign(url);
-  return {};
-}
-
-const legacyDownload = (file) => (isPhoto(file.ext) ? openPhotoInTab(file) : navigateToLink(file));
-
 // Saves a file without leaving the page: from the bytes already in memory, or fetched once (plan 23,
-// 4.1). When this tab can't fetch from the storage it falls back to the plain download above. Call it
-// straight from the click: when the fetch is already known to be broken, a photo's tab has to open
-// before anything waits. Answers {} or { error } with a message to show.
+// 4.1). A file this tab couldn't fetch or can't show opens in a new tab instead. Call it
+// straight from the click, so a tab opened before anything waits isn't blocked. Answers {} or
+// { error } with a message to show.
 export async function downloadFile(file) {
   const cached = cachedFileBlob(file.id);
   if (cached) {
     save(cached, file.name);
     return {};
   }
-  if (blobFetchBroken()) return legacyDownload(file);
+  if (needsNewTab(file.id)) return openInTab(file);
 
   const result = await loadFileBlob(file);
   if (result.blob) {
     save(result.blob, file.name);
     return {};
   }
-  if (result.fallback) return legacyDownload(file);
   if (result.aborted) return {};
+  if (result.fallback) return openInTab(file);
   return { error: result.error };
 }

@@ -9,10 +9,13 @@ import LibraryFileList from "./LibraryFileList";
 import LibraryStatus from "./LibraryStatus";
 import UploadButton from "./UploadButton";
 import { GENERAL, filesIn } from "./places";
+import useFileViewer from "./useFileViewer";
 
 function FolderBody({ library, block, canUpload, phone, uploadStatus, openUpload, openFolderDialog }) {
   const { folderId } = useParams(); // absent on /study/files/general
   const folder = folderId ? library.locations.folders.find(({ id }) => id === folderId) : { name: "General" };
+  const files = folder ? filesIn(library.files, folderId ? `folder:${folderId}` : GENERAL) : [];
+  const viewer = useFileViewer(library, files); // only this place's files open here
 
   if (!folder) {
     return (
@@ -22,7 +25,6 @@ function FolderBody({ library, block, canUpload, phone, uploadStatus, openUpload
     );
   }
 
-  const files = filesIn(library.files, folderId ? `folder:${folderId}` : GENERAL);
   const total = files.reduce((sum, file) => sum + file.size, 0);
 
   return (
@@ -51,19 +53,22 @@ function FolderBody({ library, block, canUpload, phone, uploadStatus, openUpload
         </p>
       </header>
       <FilesDrop onFiles={openUpload} disabled={!canUpload}>
-        {files.length > 0 ? (
-          <LibraryFileList library={library} files={files} />
-        ) : (
-          <div className="files-empty">
-            <EmptyState
-              icon={File}
-              title={folderId ? "This folder is empty" : "General is empty"}
-              actions={<UploadButton disabled={!canUpload} onClick={() => openUpload()}>{`Upload to ${folder.name}`}</UploadButton>}
-            >
-              {folderId ? "Upload here, or use Move\u00a0to... on a file in another place." : `Files you upload here stay in ${folder.name}.`}
-            </EmptyState>
-          </div>
-        )}
+        <LibraryFileList
+          library={library}
+          viewer={viewer}
+          files={files}
+          empty={
+            <div className="files-empty">
+              <EmptyState
+                icon={File}
+                title={folderId ? "This folder is empty" : "General is empty"}
+                actions={<UploadButton disabled={!canUpload} onClick={() => openUpload()}>{`Upload to ${folder.name}`}</UploadButton>}
+              >
+                {folderId ? "Upload here, or use Move\u00a0to... on a file in another place." : `Files you upload here stay in ${folder.name}.`}
+              </EmptyState>
+            </div>
+          }
+        />
       </FilesDrop>
       {phone && files.length > 0 && <UploadButton floating status={uploadStatus} disabled={!canUpload} onClick={() => openUpload()} />}
     </>

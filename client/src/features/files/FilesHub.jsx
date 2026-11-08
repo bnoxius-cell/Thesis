@@ -11,6 +11,7 @@ import PlaceTiles from "./PlaceTiles";
 import StorageMeter from "./StorageMeter";
 import UploadButton from "./UploadButton";
 import { countByPlace, matchName, placeName } from "./places";
+import useFileViewer from "./useFileViewer";
 
 const RECENT = 8; // the newest uploads
 
@@ -23,6 +24,7 @@ function HubBody({ library, block, canUpload, phone, uploadStatus, openUpload, o
   const searching = query.trim() !== "";
   const results = matchName(files, query);
   const where = (file) => placeName(file.location, locations);
+  const viewer = useFileViewer(library, files); // the hub searches every file, so any of them opens here
 
   return (
     <>
@@ -31,25 +33,29 @@ function HubBody({ library, block, canUpload, phone, uploadStatus, openUpload, o
       {files.length > 0 && <FileSearch value={query} onChange={setQuery} />}
       <div key={searching ? "results" : "browse"} className="files-content files-fade">
         {searching ? (
-          results.length > 0 ? (
-            <section className="files-section">
-              <h2 className="files-eyebrow">{resultsText(results.length)}</h2>
-              <LibraryFileList library={library} files={results} placeName={where} />
-            </section>
-          ) : (
-            <EmptyState
-              className="files-noresult"
-              icon={Layers}
-              title={
-                <>
-                  No files match<span className="files-noresult__query">{` "${query.trim()}"`}</span>
-                </>
+          <section className="files-section">
+            {results.length > 0 && <h2 className="files-eyebrow">{resultsText(results.length)}</h2>}
+            <LibraryFileList
+              library={library}
+              viewer={viewer}
+              files={results}
+              placeName={where}
+              empty={
+                <EmptyState
+                  className="files-noresult"
+                  icon={Layers}
+                  title={
+                    <>
+                      No files match<span className="files-noresult__query">{` "${query.trim()}"`}</span>
+                    </>
+                  }
+                  actions={<Button variant="secondary" onClick={() => setQuery("")}>Clear search</Button>}
+                >
+                  Check the spelling, or try part of the file name.
+                </EmptyState>
               }
-              actions={<Button variant="secondary" onClick={() => setQuery("")}>Clear search</Button>}
-            >
-              Check the spelling, or try part of the file name.
-            </EmptyState>
-          )
+            />
+          </section>
         ) : (
           <>
             <section className="files-section">
@@ -59,19 +65,24 @@ function HubBody({ library, block, canUpload, phone, uploadStatus, openUpload, o
             <section className="files-section">
               <h2 className="files-eyebrow">Recent</h2>
               <FilesDrop onFiles={openUpload} disabled={!canUpload}>
-                {files.length > 0 ? (
-                  <LibraryFileList library={library} files={files.slice(0, RECENT)} placeName={where} />
-                ) : (
-                  <div className="files-empty">
-                    <EmptyState
-                      icon={File}
-                      title="No files yet"
-                      actions={<UploadButton disabled={!canUpload} onClick={() => openUpload()}>Upload a file</UploadButton>}
-                    >
-                      Upload notes, handouts or photos and keep them with the subject they belong to.
-                    </EmptyState>
-                  </div>
-                )}
+                <LibraryFileList
+                  library={library}
+                  viewer={viewer}
+                  files={files.slice(0, RECENT)}
+                  placeName={where}
+                  empty={
+                    <div className="files-empty">
+                      <EmptyState
+                        icon={File}
+                        title="No files yet"
+                        actions={<UploadButton disabled={!canUpload} onClick={() => openUpload()}>Upload a file</UploadButton>}
+                      >
+                        Upload notes, handouts or photos and keep them with the subject they belong to.
+                      </EmptyState>
+                    </div>
+                  }
+                />
+
               </FilesDrop>
             </section>
           </>

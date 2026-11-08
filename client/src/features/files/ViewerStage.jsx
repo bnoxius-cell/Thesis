@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Download, FileWarning } from "lucide-react";
 import { BusySpinner, Button } from "@/shared/ui";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
-import { previewText, viewKindOf } from "@/utils/fileView";
+import { UNSHOWABLE, previewText, viewKindOf } from "@/utils/fileView";
 import { fileKind } from "./fileKinds";
 import PhotoStage from "./PhotoStage";
 import useFileBlob from "./useFileBlob";
@@ -95,9 +95,9 @@ function TextSheet({ blob, name }) {
 }
 
 function BlobStage({ file, kind, download, downloading }) {
-  const { blob, loading, error, fallback, retry } = useFileBlob(file);
+  const { blob, loading, error, code, retry } = useFileBlob(file);
   if (loading) return <Loading name={file.name} />;
-  if (fallback) {
+  if (code === UNSHOWABLE) {
     return (
       <ViewerCard Icon={FileWarning} title="Couldn't show this file here." action={<DownloadButton download={download} downloading={downloading} />} alert>
         Download it instead.
