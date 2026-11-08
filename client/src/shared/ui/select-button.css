@@ -29,6 +29,13 @@
   .ui-select--block {
     width: 100%;
   }
+  .ui-select__leading {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+  }
   .ui-select__value {
     flex: 1 1 auto;
     min-width: 0;

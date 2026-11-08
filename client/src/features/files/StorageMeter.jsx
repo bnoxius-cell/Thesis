@@ -1,6 +1,5 @@
 import { ProgressBar } from "@/shared/ui";
-import { formatSize } from "@/shared/lib/formatSize";
-import { NEAR_FULL } from "./fileNotice";
+import { NEAR_FULL, usageText } from "./fileNotice";
 
 // "Your storage · 82 MB of 100 MB" with a bar. Accent until 80% and in the watch tone from there,
 // full included: red is only for errors and delete. The bar eases to a new value when usage changes.
@@ -9,7 +8,7 @@ import { NEAR_FULL } from "./fileNotice";
 // bar beside it on a desktop.
 export default function StorageMeter({ usage, fileCount }) {
   const share = usage.usedBytes / usage.limitBytes;
-  const text = `${formatSize(usage.usedBytes)} of ${formatSize(usage.limitBytes)}`;
+  const text = usageText(usage);
   const page = fileCount !== undefined;
   return (
     <div className={`files-meter${page ? " files-meter--page" : ""}`}>

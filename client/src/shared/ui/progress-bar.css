@@ -26,6 +26,9 @@
   .ui-progress--watch .ui-progress__fill {
     background: var(--watch);
   }
+  .ui-progress--danger .ui-progress__fill {
+    background: var(--danger);
+  }
   .ui-progress--steady .ui-progress__fill {
     transition: transform var(--dur-2) linear;
   }
