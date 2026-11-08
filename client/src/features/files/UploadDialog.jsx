@@ -5,6 +5,7 @@ import useFileDrop from "@/shared/hooks/useFileDrop";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import { formatSize } from "@/shared/lib/formatSize";
 import FilesNotice from "./FilesNotice";
+import FolderDialog from "./FolderDialog";
 import PlaceMark from "./PlaceMark";
 import UploadRow from "./UploadRow";
 import { filesText } from "./fileKinds";
@@ -14,6 +15,7 @@ import { placeOptions, placesText } from "./places";
 import { isBusy } from "./useUploads";
 import "./upload-dialog.css";
 
+const NEW_FOLDER = "new-folder"; // the last "Save to" row: opens the folder dialog, is never a chosen value
 const NOTHING_PICKED = { rows: [], leftOut: false };
 let nextPickId = 0;
 
@@ -57,18 +59,32 @@ function useKeepFilesOut() {
 //           the dialog doesn't stop them.
 // `place` is where the student is, the default for "Save to"; `initialFiles` were dropped on the page.
 // `block` is why uploading is off right now ({ icon, message }) or null. On a phone it is a bottom sheet.
-export default function UploadDialog({ uploads, place, initialFiles, locations, usage, block, onClose }) {
+// "New folder" in the Save to list opens the folder dialog over this one; `onFolderCreated` is the page's
+// chance to fetch the library again, and the new folder becomes the place the files go to.
+export default function UploadDialog({ uploads, place, initialFiles, locations, usage, block, onFolderCreated, onClose }) {
   const { items } = uploads;
   const queue = items.length > 0;
   const phone = useMediaQuery("(max-width: 719.98px)");
   const [picked, setPicked] = useState(() => pickMore(NOTHING_PICKED, initialFiles));
   const [to, setTo] = useState(place);
+  const [naming, setNaming] = useState(false); // the New folder dialog is open
   const inputRef = useRef(null);
   const focusRef = useRef(null); // the view's main control: Modal focuses it on opening
   const options = useMemo(
     () => placeOptions(locations).map((option) => ({ ...option, leading: <PlaceMark place={option.value} color={option.color} /> })),
     [locations],
   );
+  const saveToOptions = useMemo(
+    () => [...options, { value: NEW_FOLDER, label: "New folder...", leading: <Plus size={20} aria-hidden="true" /> }],
+    [options],
+  );
+  const choosePlace = (value) => (value === NEW_FOLDER ? setNaming(true) : setTo(value));
+  // The folder list comes back from the server before the new folder is picked, so the select never shows a place it doesn't know.
+  const folderCreated = async (folder) => {
+    setNaming(false);
+    await onFolderCreated();
+    setTo(`folder:${folder.id}`);
+  };
   const valid = picked.rows.filter((row) => !row.problem);
   const choosing = !queue && picked.rows.length === 0;
 
@@ -106,111 +122,114 @@ export default function UploadDialog({ uploads, place, initialFiles, locations, 
   );
 
   return (
-    <Modal
-      sheet
-      className="upload-dialog"
-      title={queue ? queueTitle(items) : "Upload files"}
-      subtitle={queue ? queueSubtitle(items, options) : "Add notes, handouts and photos. You can move them later."}
-      initialFocusRef={focusRef}
-      onClose={onClose}
-      actions={
-        queue ? (
+    <>
+      <Modal
+        sheet
+        className="upload-dialog"
+        title={queue ? queueTitle(items) : "Upload files"}
+        subtitle={queue ? queueSubtitle(items, options) : "Add notes, handouts and photos. You can move them later."}
+        initialFocusRef={focusRef}
+        onClose={onClose}
+        actions={
+          queue ? (
+            <>
+              <p className="upload-dialog__note">You can close this. Uploads keep going.</p>
+              <Button ref={focusRef} onClick={onClose}>Close</Button>
+            </>
+          ) : (
+            <>
+              <Button variant={phone ? "ghost" : "secondary"} onClick={onClose}>Cancel</Button>
+              <Button ref={choosing ? undefined : focusRef} disabled={valid.length === 0 || Boolean(block)} onClick={send}>
+                {valid.length > 0 ? `Upload ${filesText(valid.length)}` : "Upload"}
+              </Button>
+            </>
+          )
+        }
+        {...dropProps}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          hidden
+          accept={FILE_ACCEPT}
+          onChange={(event) => {
+            addFiles([...event.target.files]);
+            event.target.value = "";
+          }}
+        />
+        {block && <FilesNotice icon={block.icon}>{block.message}</FilesNotice>}
+
+        {queue ? (
           <>
-            <p className="upload-dialog__note">You can close this. Uploads keep going.</p>
-            <Button ref={focusRef} onClick={onClose}>Close</Button>
+            <ul className="upload-list">
+              {items.map((item) => (
+                <UploadRow
+                  key={item.key}
+                  name={item.name}
+                  ext={item.ext}
+                  size={item.size}
+                  status={item.status}
+                  progress={item.progress}
+                  error={item.error}
+                  retryable={item.retryable}
+                  onRemove={() => uploads.dismiss(item.key)}
+                  onRetry={() => uploads.retry(item.key)}
+                />
+              ))}
+            </ul>
+            {addMore}
+            <p className="sr-only" role="status">
+              {items.filter((item) => item.status === "done").length} of {items.length} uploaded
+            </p>
           </>
         ) : (
           <>
-            <Button variant={phone ? "ghost" : "secondary"} onClick={onClose}>Cancel</Button>
-            <Button ref={choosing ? undefined : focusRef} disabled={valid.length === 0 || Boolean(block)} onClick={send}>
-              {valid.length > 0 ? `Upload ${filesText(valid.length)}` : "Upload"}
-            </Button>
-          </>
-        )
-      }
-      {...dropProps}
-    >
-      <input
-        ref={inputRef}
-        type="file"
-        multiple
-        hidden
-        accept={FILE_ACCEPT}
-        onChange={(event) => {
-          addFiles([...event.target.files]);
-          event.target.value = "";
-        }}
-      />
-      {block && <FilesNotice icon={block.icon}>{block.message}</FilesNotice>}
-
-      {queue ? (
-        <>
-          <ul className="upload-list">
-            {items.map((item) => (
-              <UploadRow
-                key={item.key}
-                name={item.name}
-                ext={item.ext}
-                size={item.size}
-                status={item.status}
-                progress={item.progress}
-                error={item.error}
-                retryable={item.retryable}
-                onRemove={() => uploads.dismiss(item.key)}
-                onRetry={() => uploads.retry(item.key)}
-              />
-            ))}
-          </ul>
-          {addMore}
-          <p className="sr-only" role="status">
-            {items.filter((item) => item.status === "done").length} of {items.length} uploaded
-          </p>
-        </>
-      ) : (
-        <>
-          {choosing ? (
-            <div className={`upload-zone${over ? " is-over" : ""}`}>
-              <span className="upload-zone__icon">
-                <Upload size={28} aria-hidden="true" />
-              </span>
-              <p className="upload-zone__title upload-drag-only">Drag files here</p>
-              <p className="upload-zone__or upload-drag-only">or</p>
-              <Button ref={focusRef} disabled={Boolean(block)} onClick={browse}>Browse files</Button>
-              <p className="upload-zone__hint">
-                PDF, Word, PowerPoint, Excel, text or photos. Up to {formatSize(MAX_FILE_BYTES)} each.
-              </p>
-            </div>
-          ) : (
-            <>
-              <ul className="upload-list">
-                {picked.rows.map(({ id, file, problem }) => (
-                  <UploadRow
-                    key={id}
-                    name={file.name}
-                    ext={extensionOf(file.name)}
-                    size={file.size}
-                    status={problem ? "problem" : "picked"}
-                    error={problem}
-                    onRemove={() => removePicked(id)}
-                  />
-                ))}
-              </ul>
-              {picked.leftOut && (
-                <p className="upload-dialog__left">{`Only the first ${MAX_PICK} were added. You can upload ${MAX_PICK} at a time.`}</p>
-              )}
-              {addMore}
-            </>
-          )}
-          <Field label="Save to" className="upload-where">
-            {(wiring) => (
-              <div className="upload-where__row">
-                <SelectButton options={options} value={to} onChange={setTo} {...wiring} />
-                {usage && <p className="upload-where__usage">{usageText(usage)} used</p>}
+            {choosing ? (
+              <div className={`upload-zone${over ? " is-over" : ""}`}>
+                <span className="upload-zone__icon">
+                  <Upload size={28} aria-hidden="true" />
+                </span>
+                <p className="upload-zone__title upload-drag-only">Drag files here</p>
+                <p className="upload-zone__or upload-drag-only">or</p>
+                <Button ref={focusRef} disabled={Boolean(block)} onClick={browse}>Browse files</Button>
+                <p className="upload-zone__hint">
+                  PDF, Word, PowerPoint, Excel, text or photos. Up to {formatSize(MAX_FILE_BYTES)} each.
+                </p>
               </div>
+            ) : (
+              <>
+                <ul className="upload-list">
+                  {picked.rows.map(({ id, file, problem }) => (
+                    <UploadRow
+                      key={id}
+                      name={file.name}
+                      ext={extensionOf(file.name)}
+                      size={file.size}
+                      status={problem ? "problem" : "picked"}
+                      error={problem}
+                      onRemove={() => removePicked(id)}
+                    />
+                  ))}
+                </ul>
+                {picked.leftOut && (
+                  <p className="upload-dialog__left">{`Only the first ${MAX_PICK} were added. You can upload ${MAX_PICK} at a time.`}</p>
+                )}
+                {addMore}
+              </>
             )}
-          </Field>
-        </>
-      )}
-    </Modal>
+            <Field label="Save to" className="upload-where">
+              {(wiring) => (
+                <div className="upload-where__row">
+                  <SelectButton options={saveToOptions} value={to} onChange={choosePlace} {...wiring} />
+                  {usage && <p className="upload-where__usage">{usageText(usage)} used</p>}
+                </div>
+              )}
+            </Field>
+          </>
+        )}
+      </Modal>
+      {naming && <FolderDialog onClose={() => setNaming(false)} onSaved={folderCreated} />}
+    </>
   );
 }

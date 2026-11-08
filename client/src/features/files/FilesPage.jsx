@@ -66,6 +66,7 @@ export default function FilesPage() {
           locations={library.locations}
           usage={library.usage}
           block={block}
+          onFolderCreated={library.refresh}
           onClose={upload.close}
         />
       )}
