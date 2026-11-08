@@ -16,7 +16,7 @@ const RECENT = 8; // the newest uploads
 
 const resultsText = (n) => `${n} ${n === 1 ? "result" : "results"}`;
 
-function HubBody({ library, block, canUpload, phone, pickFiles, openFolderDialog }) {
+function HubBody({ library, block, canUpload, phone, uploadStatus, openUpload, openFolderDialog }) {
   const [query, setQuery] = useState("");
   const { files, locations, usage } = library;
   const counts = useMemo(() => countByPlace(files), [files]);
@@ -58,7 +58,7 @@ function HubBody({ library, block, canUpload, phone, pickFiles, openFolderDialog
             </section>
             <section className="files-section">
               <h2 className="files-eyebrow">Recent</h2>
-              <FilesDrop onFiles={pickFiles} disabled={!canUpload}>
+              <FilesDrop onFiles={openUpload} disabled={!canUpload}>
                 {files.length > 0 ? (
                   <LibraryFileList library={library} files={files.slice(0, RECENT)} placeName={where} />
                 ) : (
@@ -66,7 +66,7 @@ function HubBody({ library, block, canUpload, phone, pickFiles, openFolderDialog
                     <EmptyState
                       icon={File}
                       title="No files yet"
-                      actions={<UploadButton disabled={!canUpload} onFiles={pickFiles}>Upload a file</UploadButton>}
+                      actions={<UploadButton disabled={!canUpload} onClick={() => openUpload()}>Upload a file</UploadButton>}
                     >
                       Upload notes, handouts or photos and keep them with the subject they belong to.
                     </EmptyState>
@@ -77,7 +77,7 @@ function HubBody({ library, block, canUpload, phone, pickFiles, openFolderDialog
           </>
         )}
       </div>
-      {phone && files.length > 0 && <UploadButton floating disabled={!canUpload} onFiles={pickFiles} />}
+      {phone && files.length > 0 && <UploadButton floating status={uploadStatus} disabled={!canUpload} onClick={() => openUpload()} />}
       <p className="sr-only" role="status">{searching ? resultsText(results.length) : ""}</p>
     </>
   );
@@ -88,13 +88,13 @@ function HubBody({ library, block, canUpload, phone, pickFiles, openFolderDialog
 // subjects, folders, New folder) and the newest uploads. Searching swaps the places and recent files
 // for the matches, each with the place it is in; on a phone the meter steps aside too. The search
 // runs in the browser over the loaded list. `library`, `block`, `canUpload`, `phone`,
-// `pickFiles` and `openFolderDialog` come from FilesPage.
+// `openUpload` and `openFolderDialog` come from FilesPage.
 export default function FilesHub(props) {
-  const { library, canUpload, phone, pickFiles } = props;
+  const { library, canUpload, phone, uploadStatus, openUpload } = props;
   return (
     <div className="files-page">
       <FilesTabsRow library={library}>
-        {!phone && <UploadButton disabled={!canUpload} onFiles={pickFiles} />}
+        {!phone && <UploadButton status={uploadStatus} disabled={!canUpload} onClick={() => openUpload()} />}
       </FilesTabsRow>
       <div role="tabpanel" id="study-panel" aria-labelledby="study-tab-files" className="files-content">
         <LibraryStatus library={library} />

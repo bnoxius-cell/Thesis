@@ -11,6 +11,9 @@ const STOPS = new Set(["files_off", "files_paused", "storage_full", "quota_full"
 // A 404 on an upload means its subject or folder is gone (deleted, or archived, maybe in another tab).
 const PLACE_GONE = "The place this file was going to is gone. Retry saves it to General.";
 
+// Still to be sent or being sent (a failed or finished row isn't).
+export const isBusy = (item) => item.status === "queued" || item.status === "uploading";
+
 let nextKey = 0;
 
 // The uploads of one place, sent one after another (the server has two upload slots for everyone).
@@ -18,13 +21,14 @@ let nextKey = 0;
 //               or "folder:<id>"
 //   onUploaded  gets each stored file (the list puts it first)
 //   onSettled   runs once the queue is empty, to fetch the list again with the true usage
-// `items` are the rows of the upload tray: { key, name, status, progress, error, retryable } with
-// status "queued" | "uploading" | "done" | "failed". Cancelling a running upload aborts its request
-// and takes its row away. Leaving the page cancels what is running and what is queued. The files themselves
-// and their places stay in refs, not in state. `add(files, place)` sends that batch to `place`, so a
+// `items` are the rows of the upload dialog: { key, name, ext, size, place, status, progress, error,
+// retryable } with status "queued" | "uploading" | "done" | "failed". Cancelling a running upload aborts
+// its request and takes its row away. Leaving the page cancels what is running and what is queued. The
+// files themselves stay in a ref, not in state. `add(files, place)` sends that batch to `place`, so a
 // batch keeps its place when the student moves to another folder view before it is sent.
 // `rehome(place)` sends every file still waiting for `place` (queued, running or failed) to General
 // instead: the page calls it when it deletes that folder, and a 404 does the same.
+// Done rows stay in the list until `clearDone()` drops them (the dialog does when it closes).
 export default function useUploads({ to, onUploaded, onSettled }) {
   const [items, setItems] = useState([]);
   const itemsRef = useRef(items);
@@ -54,10 +58,11 @@ export default function useUploads({ to, onUploaded, onSettled }) {
   }, [update]);
 
   const rehome = useCallback((place) => {
-    places.current.forEach((to, key) => {
-      if (to === place) places.current.set(key, GENERAL);
+    places.current.forEach((target, key) => {
+      if (target === place) places.current.set(key, GENERAL);
     });
-  }, []);
+    update((list) => list.map((item) => (item.place === place && places.current.has(item.key) ? { ...item, place: GENERAL } : item)));
+  }, [update]);
 
   const send = useCallback(async (item) => {
     const file = files.current.get(item.key);
@@ -110,14 +115,25 @@ export default function useUploads({ to, onUploaded, onSettled }) {
 
   const add = useCallback((picked, place) => {
     if (picked.length > MAX_PICK) toast.error(`You can add up to ${MAX_PICK} files at a time.`);
+    const target = place ?? latest.current.to ?? GENERAL;
     const added = picked.slice(0, MAX_PICK).map((file) => {
       const key = `upload-${nextKey++}`;
       const problem = fileProblem(file);
       if (!problem) {
         files.current.set(key, file);
-        places.current.set(key, place ?? latest.current.to ?? GENERAL);
+        places.current.set(key, target);
       }
-      return { key, name: file.name, ext: extensionOf(file.name), status: problem ? "failed" : "queued", progress: 0, error: problem, retryable: false };
+      return {
+        key,
+        name: file.name,
+        ext: extensionOf(file.name),
+        size: file.size,
+        place: target,
+        status: problem ? "failed" : "queued",
+        progress: 0,
+        error: problem,
+        retryable: false,
+      };
     });
     update((list) => [...list, ...added]);
     pump();
@@ -133,13 +149,11 @@ export default function useUploads({ to, onUploaded, onSettled }) {
     drop(key);
   }, [drop]);
 
-  // A finished batch clears itself a moment after its last file lands; failures stay until dismissed.
-  const settled = items.length > 0 && items.every((item) => item.status === "done");
-  useEffect(() => {
-    if (!settled) return undefined;
-    const timer = setTimeout(() => update(() => []), 3000);
-    return () => clearTimeout(timer);
-  }, [settled, update]);
+  // Returns the same list when nothing is done, so a caller can run it in an effect without looping.
+  const clearDone = useCallback(
+    () => update((list) => (list.some((item) => item.status === "done") ? list.filter((item) => item.status !== "done") : list)),
+    [update],
+  );
 
   // Leaving the page (or this subject) stops the running upload and sends nothing still queued.
   useEffect(() => {
@@ -151,5 +165,5 @@ export default function useUploads({ to, onUploaded, onSettled }) {
     };
   }, []);
 
-  return { items, add, retry, dismiss, rehome };
+  return { items, add, retry, dismiss, rehome, clearDone };
 }

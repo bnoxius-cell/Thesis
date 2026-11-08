@@ -1,9 +1,9 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, Folder, FolderPlus, Layers, Search } from "lucide-react";
+import { Check, FolderPlus, Search } from "lucide-react";
 import { Modal } from "@/shared/ui";
 import { computePlacement } from "@/shared/ui/menuPosition";
-import { subjectTone } from "@/shared/lib/subjectTone";
+import PlaceMark from "./PlaceMark";
 import { GENERAL, placeOf } from "./places";
 import "./files-hub.css";
 import "./move-picker.css";
@@ -20,14 +20,14 @@ function buildOptions(locations, query) {
     .map(({ id, name, color }) => ({
       value: `subject:${id}`,
       label: name,
-      leading: <span className={`files-dot files-dot--${subjectTone(color)}`} aria-hidden="true" />,
+      leading: <PlaceMark place={`subject:${id}`} color={color} />,
     }));
   const folders = locations.folders
     .filter(({ name }) => fits(name))
-    .map(({ id, name }) => ({ value: `folder:${id}`, label: name, leading: <Folder size={20} aria-hidden="true" /> }));
+    .map(({ id, name }) => ({ value: `folder:${id}`, label: name, leading: <PlaceMark place={`folder:${id}`} /> }));
   return [
     { value: NEW_FOLDER, label: "New folder", leading: <FolderPlus size={20} aria-hidden="true" /> },
-    ...(fits("General") ? [{ value: GENERAL, label: "General", leading: <Layers size={20} aria-hidden="true" /> }] : []),
+    ...(fits("General") ? [{ value: GENERAL, label: "General", leading: <PlaceMark place={GENERAL} /> }] : []),
     ...subjects.map((option) => ({ ...option, group: "Subjects" })),
     ...folders.map((option) => ({ ...option, group: "Folders" })),
   ];

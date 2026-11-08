@@ -10,7 +10,7 @@ import LibraryStatus from "./LibraryStatus";
 import UploadButton from "./UploadButton";
 import { GENERAL, filesIn } from "./places";
 
-function FolderBody({ library, block, canUpload, phone, pickFiles, openFolderDialog }) {
+function FolderBody({ library, block, canUpload, phone, uploadStatus, openUpload, openFolderDialog }) {
   const { folderId } = useParams(); // absent on /study/files/general
   const folder = folderId ? library.locations.folders.find(({ id }) => id === folderId) : { name: "General" };
 
@@ -45,12 +45,12 @@ function FolderBody({ library, block, canUpload, phone, pickFiles, openFolderDia
             <MenuItem icon={Trash2} tone="danger" onSelect={() => openFolderDialog("delete", folder)}>Delete</MenuItem>
           </Menu>
         )}
-        {!phone && <UploadButton disabled={!canUpload} onFiles={pickFiles} />}
+        {!phone && <UploadButton status={uploadStatus} disabled={!canUpload} onClick={() => openUpload()} />}
         <p className="files-folder-head__meta">
           {files.length} {files.length === 1 ? "file" : "files"} · {formatSize(total)}
         </p>
       </header>
-      <FilesDrop onFiles={pickFiles} disabled={!canUpload}>
+      <FilesDrop onFiles={openUpload} disabled={!canUpload}>
         {files.length > 0 ? (
           <LibraryFileList library={library} files={files} />
         ) : (
@@ -58,14 +58,14 @@ function FolderBody({ library, block, canUpload, phone, pickFiles, openFolderDia
             <EmptyState
               icon={File}
               title={folderId ? "This folder is empty" : "General is empty"}
-              actions={<UploadButton disabled={!canUpload} onFiles={pickFiles}>{`Upload to ${folder.name}`}</UploadButton>}
+              actions={<UploadButton disabled={!canUpload} onClick={() => openUpload()}>{`Upload to ${folder.name}`}</UploadButton>}
             >
               {folderId ? "Upload here, or use Move\u00a0to... on a file in another place." : `Files you upload here stay in ${folder.name}.`}
             </EmptyState>
           </div>
         )}
       </FilesDrop>
-      {phone && files.length > 0 && <UploadButton floating disabled={!canUpload} onFiles={pickFiles} />}
+      {phone && files.length > 0 && <UploadButton floating status={uploadStatus} disabled={!canUpload} onClick={() => openUpload()} />}
     </>
   );
 }

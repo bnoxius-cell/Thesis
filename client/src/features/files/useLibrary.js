@@ -14,7 +14,7 @@ const INITIAL = { status: "loading", error: "", files: [], locations: null, usag
 //   uploads   { on, code?, message?, resumesAt? }: whether uploading is open right now
 //   freshIds  files added in this visit; their rows ease in
 //   leavingIds files being deleted; their rows collapse, then `remove` takes them out
-//   add       puts a file that has just been uploaded first
+//   add       puts a file that has just been uploaded first (only if it was saved to this list's place)
 //   retire    starts a file's exit (the server has already deleted or moved it)
 //   relocate  puts a moved file in its new place
 //   remove    takes a file out of the list
@@ -52,14 +52,22 @@ export default function useLibrary(where) {
     load();
   }, [load]);
 
-  const add = useCallback((file) => {
-    setState((prev) => ({
-      ...prev,
-      files: [file, ...prev.files.filter((f) => f.id !== file.id)],
-      freshIds: [...prev.freshIds, file.id],
-      usage: prev.usage && { ...prev.usage, usedBytes: prev.usage.usedBytes + file.size },
-    }));
-  }, []);
+  // A file saved to another place than this list's still uses the student's space, but isn't listed here.
+  const add = useCallback(
+    (file) => {
+      setState((prev) => {
+        const usage = prev.usage && { ...prev.usage, usedBytes: prev.usage.usedBytes + file.size };
+        if (where && placeOf(file.location) !== where) return { ...prev, usage };
+        return {
+          ...prev,
+          files: [file, ...prev.files.filter((f) => f.id !== file.id)],
+          freshIds: [...prev.freshIds, file.id],
+          usage,
+        };
+      });
+    },
+    [where],
+  );
 
   const retire = useCallback((id) => {
     setState((prev) => ({ ...prev, leavingIds: [...prev.leavingIds, id] }));

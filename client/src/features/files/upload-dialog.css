@@ -1,0 +1,266 @@
+/* The Upload dialog (Figma 189:3749 choose, 189:4052 uploading). The shell, fields and buttons come
+   from Modal, Field, SelectButton and Button; a phone gets the Modal bottom sheet. Phone rules sit
+   next to the desktop ones. Motion: rows ease in (.is-entering), the done badge settles
+   (tasks-check-pop), the drop zone's icon lifts 2px while files are dragged over it. Nothing else
+   moves, and base.css stills all of it for reduced motion. */
+@layer pages {
+  @media (min-width: 720px) {
+    .ui-modal.upload-dialog {
+      max-width: 640px;
+    }
+  }
+  .upload-dialog .ui-modal__subtitle {
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+
+  /* ---- The drop zone ---- */
+  .upload-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    padding: 40px var(--space-5);
+    border: 1.5px dashed var(--accent);
+    border-radius: var(--radius-xl);
+    background: var(--accent-soft);
+    text-align: center;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out);
+  }
+  .upload-zone p {
+    margin: 0;
+  }
+  .upload-zone__icon {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    color: var(--accent);
+    transition: transform var(--dur-2) var(--ease-out);
+  }
+  .upload-zone__title {
+    color: var(--text-primary);
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+  }
+  .upload-zone__or {
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .upload-zone__hint {
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .upload-zone.is-over {
+    border-style: solid;
+  }
+  .upload-zone.is-over .upload-zone__icon {
+    transform: translateY(-2px);
+  }
+
+  /* ---- The "Add more files" bar ---- */
+  .upload-more {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 52px;
+    margin: 0;
+    padding: var(--space-2) var(--space-4);
+    border: 1px dashed var(--border-input);
+    border-radius: var(--radius-lg);
+    background: transparent;
+    box-shadow: none;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    cursor: pointer;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  .upload-more strong {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .upload-more svg {
+    flex: none;
+    color: var(--accent);
+  }
+  .upload-more:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  .upload-more:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .upload-more:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .upload-more.is-over {
+    border-style: solid;
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .upload-more:hover:not(:disabled) {
+      border-color: var(--accent);
+    }
+  }
+
+  /* ---- One file ---- */
+  .upload-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .upload-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    padding: var(--space-3) var(--space-2) var(--space-3) 14px;
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+  }
+  .upload-row__tile {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    color: var(--accent);
+  }
+  .upload-row__info {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .upload-row__top {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+  }
+  .upload-row__name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .upload-row__percent {
+    flex: none;
+    color: var(--accent);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    font-variant-numeric: tabular-nums;
+  }
+  .upload-row__meta {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .upload-row__meta.is-error {
+    color: var(--danger);
+  }
+  .upload-row .upload-row__bar {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--surface);
+  }
+  .upload-row .upload-row__bar .ui-progress__fill {
+    border-radius: 3px;
+  }
+  .upload-row__side {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-1);
+  }
+  .upload-row__done {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    margin: 0 var(--space-2);
+    border-radius: var(--radius-pill);
+    background: var(--good-soft);
+    color: var(--good);
+    animation: tasks-check-pop var(--dur-2) var(--ease-spring) backwards;
+  }
+
+  /* ---- Save to ---- */
+  .upload-where__row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .upload-where .ui-select {
+    flex: none;
+    width: 300px;
+    min-height: 50px;
+  }
+  .upload-where__usage {
+    min-width: 0;
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+
+  .upload-dialog__left {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .upload-dialog__note {
+    margin: 0 auto 0 0;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+
+  /* ---- Phone: the sheet's body is narrower, and the select takes the full width ---- */
+  @media (max-width: 719.98px) {
+    .upload-zone {
+      padding: var(--space-5) var(--space-4);
+    }
+    .upload-where__row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-2);
+    }
+    .upload-where .ui-select {
+      width: 100%;
+    }
+    .upload-dialog__note {
+      margin: 0;
+      text-align: center;
+    }
+  }
+  /* A touch screen has nothing to drag files from, so only the buttons are offered. */
+  @media (hover: none) and (pointer: coarse) {
+    .upload-drag-only {
+      display: none;
+    }
+  }
+}

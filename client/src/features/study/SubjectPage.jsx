@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import { FileQuestion } from "lucide-react";
 import { Button, Chip, EmptyState, Skeleton, Tabs } from "@/shared/ui";
 import Page from "@/app/shell/Page";
-import UploadTray from "@/features/files/UploadTray";
+import UploadDialog from "@/features/files/UploadDialog";
 import NewTaskDialog from "@/features/tasks/NewTaskDialog";
 import useTaskDone from "@/features/tasks/useTaskDone";
 import useNow from "@/shared/hooks/useNow";
@@ -180,7 +180,7 @@ function SubjectView({ subjectId }) {
             />
           )}
           {tab === "reviewers" && <SubjectReviewers reviewers={reviewers} onNew={() => setAdding("reviewer")} />}
-          {tab === "files" && <SubjectFiles subject={subject} library={files.library} uploads={files.uploads} />}
+          {tab === "files" && <SubjectFiles subject={subject} library={files.library} block={files.block} uploadStatus={files.dialog.status} openUpload={files.openUpload} />}
         </div>
       </div>
       {adding === "task" && (
@@ -201,7 +201,17 @@ function SubjectView({ subjectId }) {
         />
       )}
       <SubjectDialogs dialog={dialog} onClose={() => setDialog(null)} onChanged={changed} />
-      <UploadTray items={files.uploads.items} onRetry={files.uploads.retry} onDismiss={files.uploads.dismiss} />
+      {files.dialog.isOpen && library.status === "ready" && (
+        <UploadDialog
+          uploads={files.uploads}
+          place={files.dialog.place}
+          initialFiles={files.dialog.initialFiles}
+          locations={library.locations}
+          usage={library.usage}
+          block={files.block}
+          onClose={files.dialog.close}
+        />
+      )}
     </Page>
   );
 }

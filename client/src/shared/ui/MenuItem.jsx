@@ -5,8 +5,9 @@ import { MenuContext } from "./menuContext";
 
 // A row in a Menu: a button (`onSelect`) or a router link (`to`). `selected` marks the current
 // choice with a check: in a listbox every row is an option, in a menu a row with `selected`
-// becomes a radio item. tone="danger" is for deleting things. `icon` is a leading lucide icon.
-export default function MenuItem({ icon: Icon, selected, tone, to, onSelect, disabled = false, className = "", children, ...rest }) {
+// becomes a radio item. tone="danger" is for deleting things. `icon` is a leading lucide icon;
+// `leading` is any other mark (a colour dot) in the same 20px slot.
+export default function MenuItem({ icon: Icon, leading, selected, tone, to, onSelect, disabled = false, className = "", children, ...rest }) {
   const { role, close } = useContext(MenuContext);
   const isChoice = selected !== undefined;
   const itemRole = role === "menuitem" && isChoice ? "menuitemradio" : role;
@@ -20,6 +21,7 @@ export default function MenuItem({ icon: Icon, selected, tone, to, onSelect, dis
   const content = (
     <>
       {Icon && <Icon size={18} aria-hidden="true" />}
+      {leading && <span className="ui-menu__leading">{leading}</span>}
       <span className="ui-menu__label">{children}</span>
       {selected && <Check size={16} className="ui-menu__check" aria-hidden="true" />}
     </>

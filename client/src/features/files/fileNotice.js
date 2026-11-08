@@ -1,4 +1,5 @@
 import { Info, Pause } from "lucide-react";
+import { formatSize } from "@/shared/lib/formatSize";
 import { MAX_LIBRARY_FILES } from "./fileRules";
 
 // "December 1", the way the server words it (Philippine time).
@@ -6,6 +7,9 @@ const monthDay = (iso) =>
   new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: "Asia/Manila" }).format(new Date(iso));
 
 export const NEAR_FULL = 0.8;
+
+// "46 MB of 100 MB": how much of the student's space is used.
+export const usageText = ({ usedBytes, limitBytes }) => `${formatSize(usedBytes)} of ${formatSize(limitBytes)}`;
 
 // Why the student can't upload right now, or null when they can. `uploads` is what the list said
 // about the server's side ({ on, code, message, resumesAt }), `usage` the student's own space.
