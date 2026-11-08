@@ -63,6 +63,7 @@ export default function AppRoutes() {
           <Route path="/study/subjects/:subjectId" element={<SubjectPage />} />
           <Route path="/study/practice" element={<StudyPage />} />
           <Route path="/study/files/*" element={<FilesPage />} />
+          <Route path="/files" element={<RedirectTo to="/study/files" />} />
           <Route path="/study/reviewers" element={<RedirectTo to="/study/practice" />} />
           <Route path="/study/flashcards" element={<RedirectTo to="/study/practice" set={{ show: "flashcards" }} />} />
           <Route path="/study/reviewers/:reviewerId" element={<ReviewerPage />} />
@@ -72,6 +73,7 @@ export default function AppRoutes() {
           <Route path="/people/friends" element={<PeoplePage tab="friends" />} />
           <Route path="/people/:userId" element={<ProfilePage />} />
           <Route path="/me" element={placeholder("Profile and settings")} />
+          <Route path="/me/help" element={placeholder("Help")} />
           <Route path="/me/:section" element={placeholder("Profile and settings")} />
           <Route path="/notifications" element={placeholder("Notifications")} />
         </Route>
