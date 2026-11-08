@@ -209,6 +209,7 @@ function SubjectView({ subjectId }) {
           locations={library.locations}
           usage={library.usage}
           block={files.block}
+          onFolderCreated={library.refresh}
           onClose={files.dialog.close}
         />
       )}
