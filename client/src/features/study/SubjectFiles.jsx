@@ -4,6 +4,7 @@ import FilesDrop from "@/features/files/FilesDrop";
 import FilesNotice from "@/features/files/FilesNotice";
 import LibraryFileList from "@/features/files/LibraryFileList";
 import LibraryStatus from "@/features/files/LibraryStatus";
+import useFileViewer from "@/features/files/useFileViewer";
 import StorageMeter from "@/features/files/StorageMeter";
 import UploadButton from "@/features/files/UploadButton";
 import { formatSize } from "@/shared/lib/formatSize";
@@ -19,12 +20,12 @@ import "@/features/files/files.css";
 export default function SubjectFiles({ subject, library, block, uploadStatus, openUpload }) {
   const archived = Boolean(subject.archivedAt);
   const phone = useMediaQuery("(max-width: 1023px)"); // where the bottom bar is and Upload floats above it
+  const files = archived ? library.files.filter((file) => file.location.id === subject._id) : library.files;
+  const viewer = useFileViewer(library, files); // only this subject's files open here
 
   if (library.status !== "ready") return <LibraryStatus library={library} />;
 
   const canUpload = !block;
-
-  const files = archived ? library.files.filter((file) => file.location.id === subject._id) : library.files;
   const total = files.reduce((sum, file) => sum + file.size, 0);
   const nearFull = library.usage && library.usage.usedBytes / library.usage.limitBytes >= NEAR_FULL;
 
@@ -41,25 +42,29 @@ export default function SubjectFiles({ subject, library, block, uploadStatus, op
         </div>
       )}
       <FilesDrop onFiles={openUpload} disabled={!canUpload}>
-        {files.length > 0 ? (
-          <LibraryFileList library={library} files={files} />
-        ) : (
-          <div className="files-empty">
-            <EmptyState
-              icon={FileText}
-              title="No files yet"
-              actions={
-                !archived && (
-                  <UploadButton disabled={!canUpload} onClick={() => openUpload()}>
-                    Upload a file
-                  </UploadButton>
-                )
-              }
-            >
-              {archived ? "Nothing was uploaded to this subject." : "Upload notes, handouts or photos for this subject."}
-            </EmptyState>
-          </div>
-        )}
+        <LibraryFileList
+          library={library}
+          viewer={viewer}
+          files={files}
+          empty={
+            <div className="files-empty">
+              <EmptyState
+                icon={FileText}
+                title="No files yet"
+                actions={
+                  !archived && (
+                    <UploadButton disabled={!canUpload} onClick={() => openUpload()}>
+                      Upload a file
+                    </UploadButton>
+                  )
+                }
+              >
+                {archived ? "Nothing was uploaded to this subject." : "Upload notes, handouts or photos for this subject."}
+              </EmptyState>
+            </div>
+          }
+        />
+
       </FilesDrop>
     </div>
   );

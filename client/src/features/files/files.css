@@ -403,6 +403,87 @@
     margin: 0;
     font: 400 var(--text-sm) / 20px var(--font-ui);
   }
+  /* A PDF and a text file sit on a sheet that fills the stage's height. The stage's one grid cell is
+     sized by the row (minmax 0), so a frame or a long text can't push the dialog taller than the screen. */
+  .files-preview__stage--sheet {
+    grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  }
+  .files-preview__sheet {
+    justify-self: center;
+    width: 100%;
+    min-height: 0;
+    border-radius: var(--radius-lg);
+    animation: ui-fade-in var(--dur-2) var(--ease-out);
+  }
+  .files-preview__sheet:focus-visible {
+    outline: 2px solid var(--on-accent); /* the usual ring is too faint on the dark scrim */
+    outline-offset: 2px;
+  }
+  .files-preview__sheet--pdf {
+    max-width: 960px;
+    height: 100%;
+    border: 0;
+    background: var(--surface);
+  }
+  .files-preview__sheet--text {
+    align-self: center;
+    box-sizing: border-box;
+    max-width: 72ch;
+    max-height: 100%;
+    padding: var(--space-4) var(--space-5);
+    overflow: auto;
+    overscroll-behavior: contain;
+    background: var(--surface);
+    color: var(--text-primary);
+  }
+  .files-preview__sheet--text pre,
+  .files-preview__sheet--text p {
+    margin: 0;
+    font: 400 var(--text-sm) / 1.5 var(--font-ui);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .files-preview__sheet--text .files-preview__cut {
+    margin-bottom: var(--space-3);
+    color: var(--text-secondary);
+  }
+  /* A notice in place of the file: not available here, a phone's PDF, or a load that failed. */
+  .files-preview__card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    width: min(36ch, 100%);
+    padding: var(--space-5);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    color: var(--text-primary);
+    text-align: center;
+    animation: ui-fade-in var(--dur-2) var(--ease-out);
+  }
+  .files-preview__card svg {
+    color: var(--text-secondary);
+  }
+  .files-preview__card h3 {
+    margin: 0;
+    font: 600 var(--text-md) / 24px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .files-preview__card p {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .files-preview__placeholder--loading {
+    grid-auto-flow: row;
+    align-content: center;
+    justify-items: center;
+    gap: var(--space-3);
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
   /* F11 phone (162:3972): the bar starts 48px down (44 of it the status bar, so a notch inset only
      adds to it), Close sits 4px from the edge and 8px before the name, the photo hangs 98px under the
      bar (343 x 300 at 375), and the buttons end 60px above the bottom, or more over a home bar. */
@@ -428,7 +509,7 @@
     .files-preview__close {
       margin-left: -12px; /* its 44px box starts 4px from the screen edge */
     }
-    .files-preview__stage {
+    .files-preview__stage--photo {
       place-items: start center;
       padding-top: 86px; /* with the 12px row gap, 98px under the bar */
     }
@@ -440,7 +521,7 @@
     }
     .files-preview__actions {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 }

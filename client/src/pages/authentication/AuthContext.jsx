@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { clearFileLinks } from "@/shared/lib/fileLinks";
+import { clearFileBlobs } from "@/shared/lib/fileBlobs";
 import { detachPush } from "../../utils/pushClient";
 
 export const AppContext = createContext();
@@ -9,6 +10,12 @@ export const AppContext = createContext();
 // In production, use Vercel's same-origin /api rewrite so the session cookie
 // stays first-party. Local development still talks directly to Express.
 axios.defaults.withCredentials = true;
+
+// A student's file links and file bytes never outlive their session.
+function forgetStudentFiles() {
+  clearFileLinks();
+  clearFileBlobs();
+}
 
 export const AppContextProvider = (props) => {
   const backendUrl = import.meta.env.DEV ? (import.meta.env.VITE_BACKEND_URL || "http://localhost:5000") : "";
@@ -22,7 +29,7 @@ export const AppContextProvider = (props) => {
     try {
       const { data } = await axios.get(backendUrl + '/api/user/data');
       if (data.success) {
-        if (signedInId.current && signedInId.current !== data.userData._id) clearFileLinks();
+        if (signedInId.current && signedInId.current !== data.userData._id) forgetStudentFiles();
         signedInId.current = data.userData._id;
         setUserData(data.userData);
         return data.userData;
@@ -51,7 +58,7 @@ export const AppContextProvider = (props) => {
           setIsLoggedin(false);
         }
       } else {
-        clearFileLinks(); // the session ended without a sign-out, maybe in another tab
+        forgetStudentFiles(); // the session ended without a sign-out, maybe in another tab
         signedInId.current = null;
         setIsLoggedin(false);
         setUserData(null);
@@ -130,7 +137,7 @@ export const AppContextProvider = (props) => {
       await detachPush(backendUrl);
       const { data } = await axios.post(backendUrl + '/api/auth/logout');
       if (data.success) {
-        clearFileLinks();
+        forgetStudentFiles();
         signedInId.current = null;
         setIsLoggedin(false);
         setUserData(null);
