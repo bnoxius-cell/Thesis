@@ -43,3 +43,10 @@ export function placeOptions(locations) {
     ...locations.folders.map(({ id, name }) => ({ value: `folder:${id}`, label: name })),
   ];
 }
+
+// Where a set of uploads goes, for a sentence: the place's name, or "2 places" when they differ.
+export function placesText(items, options) {
+  const places = new Set(items.map((item) => item.place));
+  if (places.size > 1) return `${places.size} places`;
+  return options.find(({ value }) => value === items[0]?.place)?.label ?? "another place";
+}

@@ -10,7 +10,7 @@ import LibraryStatus from "./LibraryStatus";
 import UploadButton from "./UploadButton";
 import { GENERAL, filesIn } from "./places";
 
-function FolderBody({ library, block, canUpload, phone, openUpload, openFolderDialog }) {
+function FolderBody({ library, block, canUpload, phone, uploadStatus, openUpload, openFolderDialog }) {
   const { folderId } = useParams(); // absent on /study/files/general
   const folder = folderId ? library.locations.folders.find(({ id }) => id === folderId) : { name: "General" };
 
@@ -45,7 +45,7 @@ function FolderBody({ library, block, canUpload, phone, openUpload, openFolderDi
             <MenuItem icon={Trash2} tone="danger" onSelect={() => openFolderDialog("delete", folder)}>Delete</MenuItem>
           </Menu>
         )}
-        {!phone && <UploadButton disabled={!canUpload} onClick={() => openUpload()} />}
+        {!phone && <UploadButton status={uploadStatus} disabled={!canUpload} onClick={() => openUpload()} />}
         <p className="files-folder-head__meta">
           {files.length} {files.length === 1 ? "file" : "files"} · {formatSize(total)}
         </p>
@@ -65,7 +65,7 @@ function FolderBody({ library, block, canUpload, phone, openUpload, openFolderDi
           </div>
         )}
       </FilesDrop>
-      {phone && files.length > 0 && <UploadButton floating disabled={!canUpload} onClick={() => openUpload()} />}
+      {phone && files.length > 0 && <UploadButton floating status={uploadStatus} disabled={!canUpload} onClick={() => openUpload()} />}
     </>
   );
 }

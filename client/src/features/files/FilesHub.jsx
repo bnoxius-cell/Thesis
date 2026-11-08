@@ -16,7 +16,7 @@ const RECENT = 8; // the newest uploads
 
 const resultsText = (n) => `${n} ${n === 1 ? "result" : "results"}`;
 
-function HubBody({ library, block, canUpload, phone, openUpload, openFolderDialog }) {
+function HubBody({ library, block, canUpload, phone, uploadStatus, openUpload, openFolderDialog }) {
   const [query, setQuery] = useState("");
   const { files, locations, usage } = library;
   const counts = useMemo(() => countByPlace(files), [files]);
@@ -77,7 +77,7 @@ function HubBody({ library, block, canUpload, phone, openUpload, openFolderDialo
           </>
         )}
       </div>
-      {phone && files.length > 0 && <UploadButton floating disabled={!canUpload} onClick={() => openUpload()} />}
+      {phone && files.length > 0 && <UploadButton floating status={uploadStatus} disabled={!canUpload} onClick={() => openUpload()} />}
       <p className="sr-only" role="status">{searching ? resultsText(results.length) : ""}</p>
     </>
   );
@@ -90,11 +90,11 @@ function HubBody({ library, block, canUpload, phone, openUpload, openFolderDialo
 // runs in the browser over the loaded list. `library`, `block`, `canUpload`, `phone`,
 // `openUpload` and `openFolderDialog` come from FilesPage.
 export default function FilesHub(props) {
-  const { library, canUpload, phone, openUpload } = props;
+  const { library, canUpload, phone, uploadStatus, openUpload } = props;
   return (
     <div className="files-page">
       <FilesTabsRow library={library}>
-        {!phone && <UploadButton disabled={!canUpload} onClick={() => openUpload()} />}
+        {!phone && <UploadButton status={uploadStatus} disabled={!canUpload} onClick={() => openUpload()} />}
       </FilesTabsRow>
       <div role="tabpanel" id="study-panel" aria-labelledby="study-tab-files" className="files-content">
         <LibraryStatus library={library} />

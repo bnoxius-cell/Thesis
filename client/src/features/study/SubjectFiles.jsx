@@ -15,8 +15,8 @@ import "@/features/files/files.css";
 // files; an empty tab says so and offers the same upload. Upload and a drop open the Upload dialog,
 // which starts on this subject. Uploading is off, with the reason above the list, when the subject is
 // archived, uploads are paused or the student's space is full. The storage meter appears only once
-// space runs low. `library`, `block` and `openUpload` come from useSubjectFiles; the page shows the dialog.
-export default function SubjectFiles({ subject, library, block, openUpload }) {
+// space runs low. `library`, `block`, `uploadStatus` and `openUpload` come from useSubjectFiles; the page shows the dialog.
+export default function SubjectFiles({ subject, library, block, uploadStatus, openUpload }) {
   const archived = Boolean(subject.archivedAt);
   const phone = useMediaQuery("(max-width: 1023px)"); // where the bottom bar is and Upload floats above it
 
@@ -37,7 +37,7 @@ export default function SubjectFiles({ subject, library, block, openUpload }) {
           <p className="files-head__count">
             {files.length} {files.length === 1 ? "file" : "files"} · {formatSize(total)}
           </p>
-          {!archived && <UploadButton floating={phone} disabled={!canUpload} onClick={() => openUpload()} />}
+          {!archived && <UploadButton floating={phone} status={uploadStatus} disabled={!canUpload} onClick={() => openUpload()} />}
         </div>
       )}
       <FilesDrop onFiles={openUpload} disabled={!canUpload}>

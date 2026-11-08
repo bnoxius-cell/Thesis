@@ -18,7 +18,7 @@ export default function useSubjectFiles(subjectId, archived) {
   const place = `subject:${subjectId}`;
   const library = useLibrary(archived ? undefined : place);
   const uploads = useUploads({ to: place, onUploaded: library.add, onSettled: library.refresh });
-  const dialog = useUploadDialog(uploads);
+  const dialog = useUploadDialog(uploads, library.locations);
   const block = archived ? ARCHIVED : library.status === "ready" ? uploadBlock(library) : null;
   const openUpload = (files = []) => dialog.open(place, files);
   return { library, uploads, dialog, block, openUpload };

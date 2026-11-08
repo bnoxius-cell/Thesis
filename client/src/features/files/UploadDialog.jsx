@@ -10,7 +10,7 @@ import UploadRow from "./UploadRow";
 import { filesText } from "./fileKinds";
 import { usageText } from "./fileNotice";
 import { FILE_ACCEPT, MAX_FILE_BYTES, MAX_PICK, extensionOf, fileProblem } from "./fileRules";
-import { placeOptions } from "./places";
+import { placeOptions, placesText } from "./places";
 import { isBusy } from "./useUploads";
 import "./upload-dialog.css";
 
@@ -31,10 +31,8 @@ function queueTitle(items) {
 
 // "Saving to DBMS 101", "Saved to General" once every file is in, "Saving to 2 places" if they differ.
 function queueSubtitle(items, options) {
-  const places = new Set(items.map((item) => item.place));
   const verb = items.every((item) => item.status === "done") ? "Saved to" : "Saving to";
-  if (places.size > 1) return `${verb} ${places.size} places`;
-  return `${verb} ${options.find(({ value }) => value === items[0].place)?.label ?? "another place"}`;
+  return `${verb} ${placesText(items, options)}`;
 }
 
 // While the dialog is open, a file dropped outside its card (on the dimmed page) must not open in the tab.

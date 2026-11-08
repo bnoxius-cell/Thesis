@@ -180,7 +180,7 @@ function SubjectView({ subjectId }) {
             />
           )}
           {tab === "reviewers" && <SubjectReviewers reviewers={reviewers} onNew={() => setAdding("reviewer")} />}
-          {tab === "files" && <SubjectFiles subject={subject} library={files.library} block={files.block} openUpload={files.openUpload} />}
+          {tab === "files" && <SubjectFiles subject={subject} library={files.library} block={files.block} uploadStatus={files.dialog.status} openUpload={files.openUpload} />}
         </div>
       </div>
       {adding === "task" && (

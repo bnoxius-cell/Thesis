@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Check, X } from "lucide-react";
 import { Button, IconButton, ProgressBar } from "@/shared/ui";
 import { formatSize } from "@/shared/lib/formatSize";
@@ -34,6 +35,20 @@ export default function UploadRow({ name, ext, size, status, progress = 0, error
   const cancellable = status === "queued" || sending;
   const removable = unsent || failed || cancellable; // not a finished row, nor one that is just saving
 
+  // Retry unmounts when the row is queued again; keep keyboard focus in the dialog, on the row's cancel button.
+  const removeRef = useRef(null);
+  const retried = useRef(false);
+  useEffect(() => {
+    if (retried.current && !failed) {
+      retried.current = false;
+      removeRef.current?.focus({ preventScroll: true });
+    }
+  }, [failed]);
+  const retry = () => {
+    retried.current = true;
+    onRetry();
+  };
+
   return (
     <li className="upload-row is-entering">
       <span className="upload-row__tile">
@@ -62,9 +77,9 @@ export default function UploadRow({ name, ext, size, status, progress = 0, error
       </div>
       <div className="upload-row__side">
         {failed && retryable && (
-          <Button variant="secondary" size="sm" onClick={onRetry} aria-label={`Retry ${name}`}>Retry</Button>
+          <Button variant="secondary" size="sm" onClick={retry} aria-label={`Retry ${name}`}>Retry</Button>
         )}
-        {removable && <IconButton plain icon={X} label={`${cancellable ? "Cancel upload of" : "Remove"} ${name}`} onClick={onRemove} />}
+        {removable && <IconButton ref={removeRef} plain icon={X} label={`${cancellable ? "Cancel upload of" : "Remove"} ${name}`} onClick={onRemove} />}
         {status === "done" && (
           <span className="upload-row__done" role="img" aria-label="Uploaded">
             <Check size={16} aria-hidden="true" />

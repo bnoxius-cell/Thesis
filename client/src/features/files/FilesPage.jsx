@@ -28,7 +28,7 @@ export default function FilesPage() {
   const uploads = useUploads({ onUploaded: library.add, onSettled: library.refresh });
   const phone = useMediaQuery("(max-width: 1023px)"); // where the bottom bar is and Upload floats above it
   const openFolder = useMatch("/study/files/folders/:folderId")?.params.folderId;
-  const upload = useUploadDialog(uploads);
+  const upload = useUploadDialog(uploads, library.locations);
   const [folderDialog, setFolderDialog] = useState(null); // { type: "new" | "rename" | "delete", folder? }
 
   const ready = library.status === "ready";
@@ -45,12 +45,12 @@ export default function FilesPage() {
   const openFolderDialog = (type, folder) => setFolderDialog({ type, folder });
   const closeFolderDialog = () => setFolderDialog(null);
 
-  const shared = { library, block, canUpload, phone, openUpload, openFolderDialog };
+  const shared = { library, block, canUpload, phone, uploadStatus: upload.status, openUpload, openFolderDialog };
 
   return (
     <Page
       title="Study"
-      action={ready && <UploadButton round disabled={!canUpload} onClick={() => openUpload()}>Upload</UploadButton>}
+      action={ready && <UploadButton round status={upload.status} disabled={!canUpload} onClick={() => openUpload()}>Upload</UploadButton>}
     >
       <Routes>
         <Route index element={<FilesHub {...shared} />} />
