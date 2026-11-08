@@ -7,17 +7,18 @@ import useNow from "@/shared/hooks/useNow";
 import DeleteFileDialog from "./DeleteFileDialog";
 import { downloadFile } from "./downloadFile";
 import FileList from "./FileList";
-import FilePreviewDialog from "./FilePreviewDialog";
+import FileViewer from "./FileViewer";
 import FolderDialog from "./FolderDialog";
 import MovePicker from "./MovePicker";
-import useOpenFile from "./useOpenFile";
+import useFileViewer from "./useFileViewer";
 
 const FLASH_MS = 600; // the moved chip's flash in files.css
 
-// A list of the student's files with what a row can do: open one (a photo in the preview dialog, a
-// document as a download), download one without leaving the page, move one (Move to..., which can
-// also make a new folder first) and delete one after asking. `library` is useLibrary's answer; a
-// deleted row collapses, then leaves the list and the usage is fetched again. `placeName` adds the place chip: a list with chips mixes places, so
+// A list of the student's files with what a row can do: open one in the viewer (?file=<id>, so Back
+// closes it and a pasted link reopens it), download one without leaving the page, move one (Move
+// to..., which can also make a new folder first) and delete one after asking, from a row or from the
+// viewer. `library` is useLibrary's answer; a deleted row collapses, then leaves the list and the
+// usage is fetched again. `placeName` adds the place chip: a list with chips mixes places, so
 // a moved file stays and its chip flashes; a list of one place lets the moved row collapse away.
 // A polite live region says where a file went. A failed move leaves the file where it was.
 export default function LibraryFileList({ library, files, placeName }) {
@@ -29,7 +30,7 @@ export default function LibraryFileList({ library, files, placeName }) {
     const { error } = await downloadFile(file);
     if (error) toast.error(error);
   };
-  const { previewing, open, closePreview } = useOpenFile(download);
+  const viewer = useFileViewer(library);
   const [deleting, setDeleting] = useState(null);
   const [moving, setMoving] = useState(null); // { file, anchor }: the picker is open
   const [folderFor, setFolderFor] = useState(null); // the file to move into a folder being made
@@ -94,7 +95,7 @@ export default function LibraryFileList({ library, files, placeName }) {
         now={now}
         placeName={placeName}
         listRef={listRef}
-        onOpen={open}
+        onOpen={viewer.open}
         onDownload={download}
         onMove={(file, anchor) => setMoving({ file, anchor })}
         onDelete={setDeleting}
@@ -138,18 +139,7 @@ export default function LibraryFileList({ library, files, placeName }) {
           }}
         />
       )}
-      {previewing && (
-        <FilePreviewDialog
-          file={previewing}
-          now={now}
-          onClose={closePreview}
-          onDownload={download}
-          onDelete={(file) => {
-            closePreview();
-            setDeleting(file);
-          }}
-        />
-      )}
+      {viewer.file && <FileViewer file={viewer.file} now={now} onClose={viewer.close} onDownload={download} onDelete={setDeleting} />}
       {deleting && (
         <DeleteFileDialog
           file={deleting}
@@ -157,7 +147,13 @@ export default function LibraryFileList({ library, files, placeName }) {
           onDeleted={(file) => {
             setDeleting(null);
             dropFileBlob(file.id);
-            library.retire(file.id);
+            if (viewer.file?.id === file.id) viewer.close();
+            if (files.some((row) => row.id === file.id)) {
+              library.retire(file.id);
+            } else {
+              library.remove(file.id); // opened by a link: no row here to finish the collapse
+              library.refresh();
+            }
           }}
         />
       )}
