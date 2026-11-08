@@ -344,6 +344,20 @@ describe('Learning Mode', () => {
         expect((await alice.get(`/api/reviewers/${id}`)).body.openSession).toBeNull();
     });
 
+    test('the list says which reviewers have an open session', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const id = await makeReady(alice);
+        expect((await alice.get('/api/reviewers')).body.reviewers[0].hasOpenSession).toBe(false);
+
+        const { session } = (await alice.post(`/api/reviewers/${id}/sessions`).send({})).body;
+        const base = `/api/reviewers/${id}/sessions/${session._id}`;
+        await alice.post(`${base}/answer`).send({ questionId: session.questions[0]._id, choice: 0 });
+        expect((await alice.get('/api/reviewers')).body.reviewers[0]).toMatchObject({ hasOpenSession: true, sessions: 0 });
+
+        await alice.post(`${base}/finish`).send({});
+        expect((await alice.get('/api/reviewers')).body.reviewers[0]).toMatchObject({ hasOpenSession: false, sessions: 1 });
+    });
+
     test('a session with no answers is dropped', async () => {
         const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
         const id = await makeReady(alice);

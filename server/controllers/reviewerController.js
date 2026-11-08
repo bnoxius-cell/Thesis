@@ -540,6 +540,20 @@ export const getReviewers = async (req, res) => {
         ]);
         const byReviewer = new Map(sessions.map((s) => [`${s._id.reviewer}:${s._id.version}`, s]));
 
+        // Reviewers with an unfinished, not yet fully answered session (same rule as getReviewer).
+        const openSessions = await reviewerAttemptModel.aggregate([
+            {
+                $match: {
+                    user: owner,
+                    finishedAt: null,
+                    createdAt: { $gt: new Date(Date.now() - OPEN_SESSION_MS) },
+                    $expr: { $lt: [{ $size: '$answers' }, { $size: '$questions' }] },
+                },
+            },
+            { $group: { _id: { reviewer: '$reviewer', version: '$version' } } },
+        ]);
+        const hasOpen = new Set(openSessions.map((s) => `${s._id.reviewer}:${s._id.version}`));
+
         res.json({
             success: true,
             dailyLimit: DAILY_GENERATION_LIMIT,
@@ -548,7 +562,7 @@ export const getReviewers = async (req, res) => {
             enabled: isGeminiConfigured(),
             reviewers: reviewers.map((r) => {
                 const s = byReviewer.get(`${r._id}:${r.version}`);
-                return { ...listItem(r), lastScore: s?.lastScore ?? null, lastStudiedAt: s?.lastAt ?? null, sessions: s?.sessions ?? 0 };
+                return { ...listItem(r), lastScore: s?.lastScore ?? null, lastStudiedAt: s?.lastAt ?? null, sessions: s?.sessions ?? 0, hasOpenSession: hasOpen.has(`${r._id}:${r.version}`) };
             }),
         });
     } catch (error) {

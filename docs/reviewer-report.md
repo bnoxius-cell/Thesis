@@ -88,7 +88,8 @@ VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 VAPID_SUBJECT=
 GEMINI_API_KEY=        # server only
-GEMINI_MODEL=          # optional, default gemini-3.8-flash; set it to switch models if one is overloaded
+GEMINI_MODEL=          # optional, default gemini-3.8-flash; production uses gemini-3.5-flash-lite (about 6 s vs 93 s for 10 questions, measured 2026-11-08)
+FILES_ENABLED=         # true to allow reviewers from stored files (needs the R2 variables)
 ```
 
 Frontend (`client/.env` locally, Vercel in production):
@@ -207,3 +208,9 @@ cd server
 npm test                                                    # all 375 tests, no real Gemini, no Atlas
 npm run smoke:gemini -- tests/fixtures/stress-handout.pdf 10   # real Gemini, uses about 2 requests
 ```
+
+## Update, 2026-11-08: file types, limits and model
+- Reviewers accept PDF, DOCX, PPTX, PNG, JPG and WebP, uploaded or chosen from the student's stored files. Photos are read by Gemini; DOCX and PPTX text is unpacked on the server (60 MB unpack cap).
+- Question counts are 10, 15, 20, 30, 50 and 100. A 50-question reviewer counts as 2 of the daily generations and a 100-question one as 3.
+- Upload abuse rules: one reading slot per student plus one small slotless read; the body deadline is the smaller of 120 s and 10 s plus its length at 32 KB/s; a stalled body costs half the burst allowance; the count is reserved first and refunded if saving fails part way. Error codes: `busy_you` (409), `slow_upload` (400), `too_big_inside_together`, `busy` (503).
+- Model: the default `gemini-3.8-flash` took about 93 s for 10 questions and sometimes answered 503 "high demand". `gemini-3.5-flash-lite` took about 6 to 7 s (30 questions in about 12 s), so production uses it. Question quality on real PDFs was not yet rated by a person; this should be stated as a limitation until it is.

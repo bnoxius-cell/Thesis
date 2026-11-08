@@ -13,6 +13,7 @@ import scheduleRouter from './routes/scheduleRoutes.js';
 import reviewerRouter from './routes/reviewerRoutes.js';
 import subjectRouter from './routes/subjectRoutes.js';
 import fileRouter from './routes/fileRoutes.js';
+import healthRouter from './routes/healthRoutes.js';
 
 // Express app wiring only — no DB connection, no app.listen(). Kept separate from
 // server.js so tests can import the app directly (via supertest) without booting
@@ -55,6 +56,7 @@ app.use(cookieParser());
 // no other unauthenticated GET route, so without this they'd see a 404.
 app.get('/', (req, res) => res.send('OK'));
 
+app.use('/api/health', healthRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
 app.use('/api/surveys', surveyRouter);
