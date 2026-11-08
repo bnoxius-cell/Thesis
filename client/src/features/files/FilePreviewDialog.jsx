@@ -1,38 +1,15 @@
 import { useId, useState } from "react";
-import { toast } from "react-toastify";
 import { Image as ImageIcon, ImageOff, X } from "lucide-react";
 import { Button, IconButton, ModalShell } from "@/shared/ui";
-import { ensureLink } from "@/shared/lib/fileLinks";
 import { formatSize } from "@/shared/lib/formatSize";
 import { addedText } from "./fileKinds";
 import useFileImage from "./useFileImage";
 
-// Download opens the photo in a new tab: the storage serves a photo inline, so the browser shows it
-// there and the photo is saved from that tab. The dialog may have been open longer than its link
-// lives, so the link is fetched again on the click. The tab is opened before that wait, while the
-// click still counts, or a popup blocker would stop it.
-// With no tab (a blocked popup) the student is asked to allow it: sending the app itself to the photo
-// would end any upload still running and leave the signed link in the address bar.
-async function download(file) {
-  const tab = window.open("", "_blank");
-  if (!tab) {
-    toast.error("Your browser blocked the new tab. Allow pop-ups for StressCare, then try again.");
-    return;
-  }
-  tab.opener = null;
-  const { url, error } = await ensureLink(file.id, "file");
-  if (error) {
-    tab.close();
-    toast.error(error);
-  } else {
-    tab.location.replace(url);
-  }
-}
-
 // A photo at full size (Figma 162:3776, 162:3972) on a dark scrim: name and size top left, Download,
 // Delete and Close top right. On a phone Close sits beside the name and the two buttons are a row at
-// the bottom. The picture comes from a fresh link and fades in.
-export default function FilePreviewDialog({ file, now, onClose, onDelete }) {
+// the bottom. The picture comes from a fresh link and fades in. `onDownload` answers when the save
+// has started (see downloadFile).
+export default function FilePreviewDialog({ file, now, onClose, onDownload, onDelete }) {
   const titleId = useId();
   const [loaded, setLoaded] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -52,7 +29,7 @@ export default function FilePreviewDialog({ file, now, onClose, onDelete }) {
           disabled={downloading}
           onClick={async () => {
             setDownloading(true);
-            await download(file);
+            await onDownload(file);
             setDownloading(false);
           }}
         >

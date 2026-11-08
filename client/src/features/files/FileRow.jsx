@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { ExternalLink, FolderInput, MoreHorizontal, Trash2 } from "lucide-react";
+import { Download, ExternalLink, FolderInput, MoreHorizontal, Trash2 } from "lucide-react";
 import { Chip, IconButton, Menu, MenuItem } from "@/shared/ui";
 import FileThumb from "./FileThumb";
 import { formatSize } from "@/shared/lib/formatSize";
@@ -36,12 +36,12 @@ function useLeave(id, leaving, onGone) {
 }
 
 // One file (Figma 151:2210, 157:1747): its icon or, for a photo, a small preview; name; "PDF · 2.1 MB ·
-// added 2 days ago"; and a More menu (Open, Move to..., Delete). The name area opens the file. `place`
+// added 2 days ago"; and a More menu (Open, Download, Move to..., Delete). The name area opens the file. `place`
 // is an optional chip with the name of the place it lives in; `moved` flashes it after a move.
 // `entering` eases a row in after an upload; `leaving` collapses it after a delete or a move out of
 // the list and calls `onGone` once when it has gone. `onMove` gets the file and the More button;
 // `moving` (a move on its way to the server) turns Move to... off until it answers.
-export default function FileRow({ file, now, place, moved, moving, entering, leaving, onOpen, onMove, onDelete, onGone }) {
+export default function FileRow({ file, now, place, moved, moving, entering, leaving, onOpen, onDownload, onMove, onDelete, onGone }) {
   const { Icon, label } = fileKind(file.ext);
   const gone = useLeave(file.id, leaving, onGone);
   const moreRef = useRef(null);
@@ -89,6 +89,7 @@ export default function FileRow({ file, now, place, moved, moving, entering, lea
             )}
           >
             <MenuItem icon={ExternalLink} onSelect={() => onOpen(file)}>Open</MenuItem>
+            <MenuItem icon={Download} onSelect={() => onDownload(file)}>Download</MenuItem>
             {onMove && (
               <MenuItem icon={FolderInput} disabled={moving} onSelect={() => onMove(file, moreRef.current)}>
                 Move to...

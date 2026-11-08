@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { moveFile } from "@/shared/api/files";
+import { cachedFileBlob, dropFileBlob } from "@/shared/lib/fileBlobs";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import useNow from "@/shared/hooks/useNow";
 import DeleteFileDialog from "./DeleteFileDialog";
+import { downloadFile } from "./downloadFile";
 import FileList from "./FileList";
 import FilePreviewDialog from "./FilePreviewDialog";
 import FolderDialog from "./FolderDialog";
@@ -13,15 +15,21 @@ import useOpenFile from "./useOpenFile";
 const FLASH_MS = 600; // the moved chip's flash in files.css
 
 // A list of the student's files with what a row can do: open one (a photo in the preview dialog, a
-// document as a download), move one (Move to..., which can also make a new folder first) and delete
-// one after asking. `library` is useLibrary's answer; a deleted row collapses, then leaves the list
-// and the usage is fetched again. `placeName` adds the place chip: a list with chips mixes places, so
+// document as a download), download one without leaving the page, move one (Move to..., which can
+// also make a new folder first) and delete one after asking. `library` is useLibrary's answer; a
+// deleted row collapses, then leaves the list and the usage is fetched again. `placeName` adds the place chip: a list with chips mixes places, so
 // a moved file stays and its chip flashes; a list of one place lets the moved row collapse away.
 // A polite live region says where a file went. A failed move leaves the file where it was.
 export default function LibraryFileList({ library, files, placeName }) {
   const now = useNow();
   const phone = useMediaQuery("(max-width: 719.98px)"); // where Move to... is a bottom sheet
-  const { previewing, open, closePreview } = useOpenFile();
+  // Runs straight from the click, before anything waits (see downloadFile).
+  const download = async (file) => {
+    if (!cachedFileBlob(file.id)) toast.info(`Downloading ${file.name}...`, { autoClose: 2000 });
+    const { error } = await downloadFile(file);
+    if (error) toast.error(error);
+  };
+  const { previewing, open, closePreview } = useOpenFile(download);
   const [deleting, setDeleting] = useState(null);
   const [moving, setMoving] = useState(null); // { file, anchor }: the picker is open
   const [folderFor, setFolderFor] = useState(null); // the file to move into a folder being made
@@ -87,6 +95,7 @@ export default function LibraryFileList({ library, files, placeName }) {
         placeName={placeName}
         listRef={listRef}
         onOpen={open}
+        onDownload={download}
         onMove={(file, anchor) => setMoving({ file, anchor })}
         onDelete={setDeleting}
         onGone={(id) => {
@@ -134,6 +143,7 @@ export default function LibraryFileList({ library, files, placeName }) {
           file={previewing}
           now={now}
           onClose={closePreview}
+          onDownload={download}
           onDelete={(file) => {
             closePreview();
             setDeleting(file);
@@ -146,6 +156,7 @@ export default function LibraryFileList({ library, files, placeName }) {
           onClose={() => setDeleting(null)}
           onDeleted={(file) => {
             setDeleting(null);
+            dropFileBlob(file.id);
             library.retire(file.id);
           }}
         />
