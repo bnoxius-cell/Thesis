@@ -53,6 +53,8 @@ export async function downloadFile(file) {
     return {};
   }
   if (result.aborted) return {};
-  if (result.fallback) return openInTab(file);
+  // The click's activation has likely expired after the await, so a tab opened now may be blocked;
+  // the next press opens it straight from the click (needsNewTab is set by then).
+  if (result.fallback) return { error: "Press Download again to open it in a new tab." };
   return { error: result.error };
 }

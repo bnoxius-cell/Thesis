@@ -52,7 +52,8 @@ export const bytesFit = ({ ext, size }, bytes) =>
   bytes.length === size && (viewKindOf(ext) !== "pdf" || looksLikePdf(bytes));
 
 // What to do with a storage answer's HTTP status: "read" the body, "retry" once with a fresh link (a
-// 403 is a link that ran out on the way), or "fail".
+// 403 is a link that ran out on the way; only seen if the storage ever sends CORS on error answers,
+// otherwise fetch throws first), or "fail".
 export function statusStep(status, retried) {
   if (status >= 200 && status < 300) return "read";
   return status === 403 && !retried ? "retry" : "fail";

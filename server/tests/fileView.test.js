@@ -111,7 +111,7 @@ describe('statusStep', () => {
         expect(statusStep(200, true)).toBe('read');
     });
 
-    test('a 403 is tried once more with a fresh link, then fails', () => {
+    test('a 403 is tried once more with a fresh link, then fails (only if the storage sends CORS on errors)', () => {
         expect(statusStep(403, false)).toBe('retry');
         expect(statusStep(403, true)).toBe('fail');
     });

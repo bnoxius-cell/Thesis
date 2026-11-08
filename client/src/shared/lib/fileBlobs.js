@@ -118,6 +118,7 @@ export function loadFileBlob(file, { signal } = {}) {
   const cached = blobs.get(file.id);
   if (cached) return Promise.resolve({ blob: cached });
   if (signal?.aborted) return Promise.resolve(ABORTED);
+  if (unshowable.has(file.id)) return Promise.resolve(failed(CANT_SHOW, { code: UNSHOWABLE, fallback: true }));
   return waitFor(jobs.get(file.id) ?? startJob(file), signal);
 }
 
