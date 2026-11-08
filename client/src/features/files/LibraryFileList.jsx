@@ -10,6 +10,7 @@ import FileList from "./FileList";
 import FileViewer from "./FileViewer";
 import FolderDialog from "./FolderDialog";
 import MovePicker from "./MovePicker";
+import { placeName as nameOfPlace } from "./places";
 import useFileViewer from "./useFileViewer";
 
 const FLASH_MS = 600; // the moved chip's flash in files.css
@@ -62,6 +63,7 @@ export default function LibraryFileList({ library, files, placeName }) {
       return;
     }
     setSaid(`Moved to ${name}`);
+    if (viewer.file?.id === file.id) viewer.keep(data.file); // the viewer stays, wherever the file went
     if (placeName) {
       library.relocate(data.file);
       setMovedId(file.id);
@@ -139,7 +141,18 @@ export default function LibraryFileList({ library, files, placeName }) {
           }}
         />
       )}
-      {viewer.file && <FileViewer file={viewer.file} now={now} onClose={viewer.close} onDownload={download} onDelete={setDeleting} />}
+      {viewer.file && (
+        <FileViewer
+          file={viewer.file}
+          place={nameOfPlace(viewer.file.location, library.locations)}
+          moving={movingIds.includes(viewer.file.id)}
+          now={now}
+          onClose={viewer.close}
+          onDownload={download}
+          onMove={(file, anchor) => setMoving({ file, anchor })}
+          onDelete={setDeleting}
+        />
+      )}
       {deleting && (
         <DeleteFileDialog
           file={deleting}

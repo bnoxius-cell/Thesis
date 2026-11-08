@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -16,7 +16,9 @@ const withoutFile = (params) => {
 // the viewer pushed that entry and otherwise (a pasted link) drops the param in place. Reload and
 // pasted links reopen it once the list has loaded. A file that isn't in this page's library gets a
 // toast and the param is dropped. `library` is useLibrary's answer.
-//   file   the library row being viewed, or null
+//   file   the library row being viewed, or null. After keep(file) it is that copy, so the viewer
+//          stays on a file that moved out of this page's library
+//   keep   (file) => holds the viewed file's newest copy (a move's answer)
 //   open   (file) => opens it
 //   close  () => closes it
 export default function useFileViewer(library) {
@@ -24,13 +26,15 @@ export default function useFileViewer(library) {
   const location = useLocation();
   const navigate = useNavigate();
   const closing = useRef(null); // the id just closed, so a delete that removes its row doesn't toast
+  const [kept, setKept] = useState(null); // the newest copy of the viewed file, once it has moved
   const id = params.get(PARAM);
-  const file = id ? (library.files.find((row) => row.id === id) ?? null) : null;
+  const file = kept?.id === id ? kept : id ? (library.files.find((row) => row.id === id) ?? null) : null;
   const pushed = Boolean(location.state?.fileViewer);
 
   const open = useCallback(
     (row) => {
       closing.current = null;
+      setKept(null);
       setParams(
         (prev) => {
           const next = new URLSearchParams(prev);
@@ -45,6 +49,7 @@ export default function useFileViewer(library) {
 
   const close = useCallback(() => {
     closing.current = id;
+    setKept(null);
     if (pushed) navigate(-1);
     else setParams(withoutFile, { replace: true });
   }, [id, pushed, navigate, setParams]);
@@ -56,5 +61,5 @@ export default function useFileViewer(library) {
     setParams(withoutFile, { replace: true });
   }, [missing, id, setParams]);
 
-  return { file, open, close };
+  return { file, open, close, keep: setKept };
 }
