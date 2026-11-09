@@ -7,8 +7,9 @@ export function DetailRows({ children }) {
 }
 
 // `muted` greys the value (for "No subject"). `split` puts a trailing control (the Join button) at the right.
-export function DetailRow({ icon: Icon, label, muted = false, split = false, children }) {
+export function DetailRow({ icon, label, muted = false, split = false, children }) {
   if (children == null || children === false || children === "") return null;
+  const Icon = icon;
   return (
     <div className={`detail-row${split ? " detail-row--split" : ""}`}>
       <dt className="detail-row__term">

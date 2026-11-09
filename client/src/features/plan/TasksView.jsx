@@ -1,5 +1,5 @@
 import "./tasks-view.css";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCheck } from "lucide-react";
 import { toast } from "react-toastify";
 import { EmptyState } from "@/shared/ui";
@@ -18,12 +18,16 @@ const TODAY_NOTE = { weekday: "short", month: "short", day: "numeric" };
 // moves it to Done (useTaskDone shows the Undo). Only the five most recently finished tasks are
 // listed under Done; the count is all of them. A row's title opens the task's details window (`onOpen`).
 // `foundTaskId` is the task a link landed on (`?task=`): its row is scrolled into view, marked for a
-// moment and given focus (a done one beyond the five is listed too), then `onFound` drops the id from the
-// address. An id that isn't on the list says so once.
+// moment and given focus, then `onFound` drops the id from the address. A done task beyond the five stays
+// listed for as long as this view is open, so its focus and place hold. An id that isn't on the list says
+// so once.
 export default function TasksView({ tasks, subjectsById, now, onToggle, onOpen, foundTaskId, onFound }) {
   const root = useRef(null);
   const handled = useRef(null);
   const [flashed, flash] = useFlash();
+  // The task a link pointed at, remembered while the view is open (the address forgets it).
+  const [linkedId, setLinkedId] = useState(null);
+  if (foundTaskId && foundTaskId !== linkedId) setLinkedId(foundTaskId);
 
   useEffect(() => {
     if (!foundTaskId) {
@@ -45,8 +49,7 @@ export default function TasksView({ tasks, subjectsById, now, onToggle, onOpen, 
 
   const groups = groupTasks(tasks, now);
   const subjects = [...subjectsById.values()];
-  // A done task a link points at stays listed even past the five most recent.
-  const shownDone = groups.done.filter((task, i) => i < DONE_SHOWN || task._id === foundTaskId || task._id === flashed);
+  const shownDone = groups.done.filter((task, i) => i < DONE_SHOWN || task._id === linkedId);
   const rows = (list) => list.map((task) => (
     <TaskRow
       key={task._id}
