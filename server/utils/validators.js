@@ -4,12 +4,6 @@ export const validateEmail = (email) => {
     return re.test(email.trim().toLowerCase());
 };
 
-// Fatima student address. Only Google sign-in requires this.
-export const validateSchoolEmail = (email) => {
-    const re = /^[^\s@]+@student\.fatima\.edu\.ph$/i;
-    return re.test(email.trim().toLowerCase());
-};
-
 export const validateRegisterFields = (name, email, password) => {
     if (!name || !email || !password) {
         return { isValid: false, message: "All fields must be filled." };

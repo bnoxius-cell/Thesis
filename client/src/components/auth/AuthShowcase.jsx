@@ -83,7 +83,7 @@ export default function AuthShowcase() {
   return (
     <div className="auth-showcase">
       <div className="auth-showcase-text">
-        <span className="auth-showcase-eyebrow">For OLFU IT students</span>
+        <span className="auth-showcase-eyebrow">For students</span>
         <h1>Your classes, your load, your notes. One calm place.</h1>
         <p>
           See your timetable and deadlines in one week, watch how heavy each day gets, and turn your
