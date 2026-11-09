@@ -8,7 +8,7 @@ export default function ReviewerList({ reviewers, onNew }) {
   if (reviewers.length === 0) {
     return (
       <EmptyState icon={FileText} title="No reviewers yet" actions={<Button onClick={onNew}>Upload a reviewer</Button>}>
-        Upload a PDF of your notes and get practice questions from it.
+        Add your notes, slides or photos and get practice questions from them.
       </EmptyState>
     );
   }

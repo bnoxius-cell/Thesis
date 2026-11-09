@@ -1,4 +1,18 @@
 import { daysAgoText } from "@/shared/lib/dates";
+import { filesText } from "@/features/files/fileKinds";
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+// What a reviewer was made from, in a few words: "PDF · 14 pages", "Word", "PowerPoint · 20 slides",
+// "Photo" or "3 files". A reviewer made before there were several kinds has no type and is a PDF.
+export function sourceLabel(reviewer) {
+  const { type = "pdf", count = 1, pages = 0, slides = 0 } = reviewer.source ?? {};
+  if (count > 1) return filesText(count);
+  if (type === "docx") return "Word";
+  if (type === "image") return "Photo";
+  if (type === "pptx") return ["PowerPoint", slides && plural(slides, "slide")].filter(Boolean).join(" · ");
+  return ["PDF", pages && plural(pages, "page")].filter(Boolean).join(" · ");
+}
 
 // What a reviewer row says about itself, from one list item. The list carries the last finished
 // Learning Mode score (lastScore), how many sessions are done and whether a session is open
@@ -20,16 +34,13 @@ export function reviewerProgress(reviewer) {
   return reviewer.sessions ? `Learning Mode ${Math.round(reviewer.lastScore)}%` : "Not started";
 }
 
-// "PDF · 14 pages · added 2 days ago". A failed reviewer shows the reason instead.
+// "PDF · 14 pages · added 2 days ago" (see sourceLabel). A failed reviewer shows the reason instead.
 export function reviewerMeta(reviewer) {
   if (reviewer.status === "failed" && reviewer.error) return reviewer.error;
-  const pages = reviewer.source?.pages;
-  const added = `added ${daysAgoText(reviewer.createdAt).toLowerCase()}`;
-  return ["PDF", pages ? `${pages} page${pages === 1 ? "" : "s"}` : "", added].filter(Boolean).join(" · ");
+  return [sourceLabel(reviewer), `added ${daysAgoText(reviewer.createdAt).toLowerCase()}`].join(" · ");
 }
 
 // "PDF · 14 pages · Databases": what the reviewer was made from (Figma 76:1270).
 export function reviewerSourceLine(reviewer) {
-  const pages = reviewer.source?.pages;
-  return ["PDF", pages ? `${pages} page${pages === 1 ? "" : "s"}` : "", reviewer.course].filter(Boolean).join(" · ");
+  return [sourceLabel(reviewer), reviewer.course].filter(Boolean).join(" · ");
 }

@@ -3,12 +3,13 @@ import { del, get, post } from "./http";
 // Every call answers { data } or { error } (see http.js).
 
 // The student's reviewers, newest first: { reviewers, dailyLimit, usedToday, enabled }. Each row carries
-// title, course, subject, status ("processing" | "ready" | "failed"), source (file name, pages), counts
+// title, course, subject, status ("processing" | "ready" | "failed"), source (type, file count, pages or slides), counts
 // and the last session score.
 export const fetchReviewers = () => get("/api/reviewers");
 
-// Sends the PDF as multipart: `form` is a FormData with pdf, title, subject and questionCount. The
-// answer is { reviewer } still "processing"; the server writes it in the background.
+// Sends the source as multipart: `form` is a FormData with title, subject, questionCount and either
+// repeated `files` (PDF, Word, PowerPoint or photos, up to 10) or one `fileIds` field (stored files,
+// comma-separated). The answer is { reviewer } still "processing"; the server writes it in the background.
 export const createReviewer = (form) => post("/api/reviewers", form);
 
 // Just { status, error, version, targeted }, cheap enough to poll while a reviewer is being made.
