@@ -52,7 +52,7 @@ export default function SourceDropZone({ entries, onAdd, onRemove, disabled = fa
         {input}
         <label htmlFor={inputId} className="study-drop__prompt">
           <strong>Drop files here or choose files</strong>
-          <span>PDF, Word, PowerPoint or photos. Up to {MAX_SOURCES} files, {formatSize(MAX_SOURCES_BYTES)} in all.</span>
+          <span>PDF, Word, PowerPoint or photos. Up to {formatSize(MAX_SOURCES_BYTES)}.</span>
         </label>
       </div>
     );
