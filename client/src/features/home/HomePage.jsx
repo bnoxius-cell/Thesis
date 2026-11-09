@@ -10,6 +10,7 @@ import useMoveSuggestions from "@/features/tasks/useMoveSuggestions";
 import { finishedRecently } from "@/features/tasks/finishedRecently";
 import AddTaskButton from "@/features/tasks/AddTaskButton";
 import useItemDetail from "@/features/details/useItemDetail";
+import useTaskEdit from "@/features/tasks/useTaskEdit";
 import TodayHero from "./TodayHero";
 import ThisWeekCard from "./ThisWeekCard";
 import NextStepCard from "./NextStepCard";
@@ -42,7 +43,14 @@ export default function HomePage() {
   const work = useWorkload({ tasks: data.tasks, overview: data.overview, userData, now });
   const setDone = useTaskDone(data.setTasks);
   const subjects = useMemo(() => [...data.subjectsById.values()], [data.subjectsById]);
-  const detail = useItemDetail({ subjects, onToggle: setDone, context: "home" });
+  const edit = useTaskEdit({ subjects, setTasks: data.setTasks });
+  const detail = useItemDetail({
+    subjects,
+    onToggle: setDone,
+    context: "home",
+    onEditTask: edit.onEditTask,
+    onDeleteTask: edit.onDeleteTask,
+  });
   const { prompt, later } = useCheckInPrompt(userData, now);
   const moves = useMoveSuggestions({
     userId: userData?._id,
@@ -102,6 +110,7 @@ export default function HomePage() {
         </div>
       )}
       {detail.dialog}
+      {edit.dialog}
     </Page>
   );
 }

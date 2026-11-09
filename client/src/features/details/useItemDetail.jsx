@@ -2,6 +2,9 @@ import { useCallback, useState } from "react";
 import TaskDetails from "./TaskDetails";
 import EntryDetails from "./EntryDetails";
 
+// Only a task saved in the database (a 24-character id) can be edited or deleted.
+const isStoredTask = (task) => /^[a-f\d]{24}$/i.test(String(task._id));
+
 // A study task the timetable made up ("Prepare for Midterm") is not a stored task, so it has no details.
 const isPrepTask = (task) => task.isExam || String(task._id).startsWith("exam:");
 
@@ -11,7 +14,8 @@ const isPrepTask = (task) => task.isExam || String(task._id).startsWith("exam:")
 // `subjects` are the student's own. `onToggle(task, done)` ticks a task off or back on. `context` says where
 // the window is open, so it can leave out a link to the page it's on: "home", "plan-week", "plan-tasks" or
 // "subject:<id>". `onEditTask`, `onDeleteTask`, `onEditEntry` and `onDeleteEntry` are optional; each one is
-// called with the item and `{ close }`, and without it the window draws no such button.
+// called with the item and `{ close, reopen }` (close this window; reopen it on an item), and without it the
+// window draws no such button. Edit and Delete are drawn only for a task with a real id.
 // openEntry(entry, iso) takes the entry as it is on day `iso` (YYYY-MM-DD).
 export default function useItemDetail({
   subjects,
@@ -29,6 +33,9 @@ export default function useItemDetail({
   }, []);
   const openEntry = useCallback((entry, iso) => setItem({ entry, iso }), []);
 
+  const replacing = (handler) => handler && ((target, { close: closeWindow }) => handler(target, { close: closeWindow, reopen: openTask }));
+  const canChange = item?.task && isStoredTask(item.task);
+
   let dialog = null;
   if (item?.task) {
     dialog = (
@@ -38,8 +45,8 @@ export default function useItemDetail({
         context={context}
         onClose={close}
         onToggle={onToggle}
-        onEdit={onEditTask}
-        onDelete={onDeleteTask}
+        onEdit={canChange ? replacing(onEditTask) : undefined}
+        onDelete={canChange ? replacing(onDeleteTask) : undefined}
       />
     );
   } else if (item?.entry) {
