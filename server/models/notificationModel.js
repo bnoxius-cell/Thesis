@@ -7,12 +7,16 @@ export const NOTIFICATION_TYPES = [
     'group_message',
     'group_task',
     'group_schedule',
+    'group_share',
     'group_member',
     'task_reminder',
     'schedule_share',
     'schedule_change',
     'system',
 ];
+
+// What a group's chat sends: opening the chat marks these read, and they count toward its unread badge.
+export const GROUP_CHAT_TYPES = ['group_message', 'group_task', 'group_schedule', 'group_share'];
 
 const notificationSchema = new mongoose.Schema({
     recipient: {

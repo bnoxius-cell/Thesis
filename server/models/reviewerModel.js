@@ -97,8 +97,12 @@ const reviewerSchema = new mongoose.Schema({
         requestedAt: { type: Date, default: null },
         error: { type: String, default: '' },
     },
+    // `message:<id>` for a copy saved from a group chat, '' otherwise.
+    copiedFrom: { type: String, default: '' },
 }, { timestamps: true });
 
 reviewerSchema.index({ owner: 1, createdAt: -1 });
+// One saved copy per student per shared message, even when two saves arrive at once.
+reviewerSchema.index({ owner: 1, copiedFrom: 1 }, { unique: true, partialFilterExpression: { copiedFrom: { $gt: '' } } });
 
 export default mongoose.models.reviewer || mongoose.model('reviewer', reviewerSchema);
