@@ -4,12 +4,13 @@ import HolidayNote from "./HolidayNote";
 import TaskChip from "./TaskChip";
 
 // What is on for the chosen day (Figma 40:387): overdue tasks first, then the day off if there is
-// one, the classes in time order, then the rest of the day's tasks.
-export default function DayAgenda({ day, now, onToggle }) {
+// one, the classes in time order, then the rest of the day's tasks. Rows open their details window through
+// `onOpenEntry(entry, iso)` and `onOpenTask(task)`.
+export default function DayAgenda({ day, now, onToggle, onOpenEntry, onOpenTask }) {
   const overdue = day.tasks.filter((item) => item.overdue);
   const dueToday = day.tasks.filter((item) => !item.overdue);
   const empty = !day.holiday && day.entries.length === 0 && day.tasks.length === 0;
-  const task = (item) => <TaskChip key={item.task._id} item={item} now={now} onToggle={onToggle} roomy />;
+  const task = (item) => <TaskChip key={item.task._id} item={item} now={now} onToggle={onToggle} onOpen={onOpenTask} roomy />;
 
   return (
     <section id="plan-agenda" role="tabpanel" aria-labelledby={`plan-tab-${day.key}`} className="plan-agenda">
@@ -23,7 +24,7 @@ export default function DayAgenda({ day, now, onToggle }) {
         <ul className="plan-agenda__list">
           {overdue.map(task)}
           {day.holiday && <HolidayNote name={day.holiday} />}
-          {day.entries.map((entry) => <EntryBlock key={entry.id} entry={entry} />)}
+          {day.entries.map((entry) => <EntryBlock key={entry.id} entry={entry} iso={day.key} onOpen={onOpenEntry} />)}
           {dueToday.map(task)}
         </ul>
       )}

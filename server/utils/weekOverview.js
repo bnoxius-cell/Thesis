@@ -60,6 +60,14 @@ const originOf = (schedule, entry) => ({
     notes: entry.notes || '',
 });
 
+// What the details window says about an entry on a given day: which weekdays a class repeats on, its
+// one-off date, and an exam's prep hours ("Every Tue and Thu", "6 hours to prepare").
+const scheduleOf = (entry) => ({
+    days: entry.days || [],
+    date: entry.date || '',
+    prepHours: entry.prepHours ?? 0,
+});
+
 // schedules: plain objects with entries, holidayOverrides and holidays (a date -> name map
 // already resolved, Philippine public holidays), plus `role` (owner, editor or viewer) when known.
 // The first schedule to hold an entry wins a duplicate, so pass the ones the student owns first.
@@ -89,6 +97,7 @@ export const buildWeekOverview = (schedules, startIso, dayCount = 7) => {
                     endTime: entry.endTime,
                     location: entry.location || '',
                     meetingUrl: entry.meetingUrl || '',
+                    ...scheduleOf(entry),
                     ...originOf(schedule, entry),
                 });
             }

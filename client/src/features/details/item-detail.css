@@ -75,6 +75,14 @@
     transform: none;
   }
 
+  /* ---- A row or day a link landed on (?task=, ?day=) ----
+     A ring for as long as the class stays on (2.4s, set from the page), and a tint that fades out while it
+     does. Under reduced motion or Animations Off the fade is cut (base.css) and the ring alone shows. */
+  .is-found {
+    box-shadow: 0 0 0 2px var(--accent);
+    animation: found-fade 2.4s var(--ease-out);
+  }
+
   /* ---- The window ---- */
   /* The frames: 480px wide, 24px between the head, the chip, the rows and the buttons (20px on a phone),
      and a 20px title on both. */
