@@ -47,6 +47,8 @@ const roleOf = (schedule, userId) => {
     return member ? (member.role === 'editor' ? 'editor' : 'viewer') : null;
 };
 
+const ROLE_ORDER = ['owner', 'editor', 'viewer'];
+
 const CAN = {
     view: ['owner', 'editor', 'viewer'],
     // Editors change the entries and days off. Name, theme, main and deleting stay with the owner.
@@ -773,7 +775,12 @@ export const getWeekOverview = async (req, res) => {
                 }
             }));
         }
-        schedules.forEach((s) => { s.publicByDate = publicByDate; });
+        schedules.forEach((s) => {
+            s.publicByDate = publicByDate;
+            s.role = roleOf(s, req.userId);
+        });
+        // Owned first, so a class copied into two timetables keeps the copy the student can edit.
+        schedules.sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role));
 
         res.json({
             success: true,

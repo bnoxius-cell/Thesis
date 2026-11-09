@@ -50,8 +50,19 @@ const unionMinutes = (ranges) => {
 
 const round1 = (n) => Math.round(n * 10) / 10;
 
+// What the client needs to open, edit or delete an entry: where it lives and whether the
+// student may change it. A schedule with no role (other callers, tests) is read-only.
+const originOf = (schedule, entry) => ({
+    entryId: String(entry._id),
+    scheduleId: String(schedule._id),
+    scheduleTitle: schedule.title,
+    canEdit: schedule.role === 'owner' || schedule.role === 'editor',
+    notes: entry.notes || '',
+});
+
 // schedules: plain objects with entries, holidayOverrides and holidays (a date -> name map
-// already resolved, Philippine public holidays).
+// already resolved, Philippine public holidays), plus `role` (owner, editor or viewer) when known.
+// The first schedule to hold an entry wins a duplicate, so pass the ones the student owns first.
 export const buildWeekOverview = (schedules, startIso, dayCount = 7) => {
     const days = [];
     for (let i = 0; i < dayCount; i += 1) {
@@ -78,6 +89,7 @@ export const buildWeekOverview = (schedules, startIso, dayCount = 7) => {
                     endTime: entry.endTime,
                     location: entry.location || '',
                     meetingUrl: entry.meetingUrl || '',
+                    ...originOf(schedule, entry),
                 });
             }
         }
@@ -117,6 +129,8 @@ export const findUpcomingExams = (schedules, startIso, dayCount) => {
                 endTime: entry.endTime,
                 location: entry.location || '',
                 prepHours: entry.prepHours ?? 0,
+                meetingUrl: entry.meetingUrl || '',
+                ...originOf(schedule, entry),
             });
         }
     }

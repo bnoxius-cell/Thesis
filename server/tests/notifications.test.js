@@ -9,7 +9,7 @@ import { runTaskReminders } from '../utils/reminders.js';
 import { sendPushToUser } from '../utils/push.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
-import { friendsLink, groupLink } from '../utils/appLinks.js';
+import { friendsLink, groupLink, taskLink } from '../utils/appLinks.js';
 
 vi.mock('../utils/emailService.js', () => ({
     sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
@@ -354,7 +354,7 @@ describe('task reminders', () => {
 
     test('a task due inside the window gets one reminder, however often the job runs', async () => {
         const alice = await signUp('Alice');
-        await makeTask(alice.id);
+        const task = await makeTask(alice.id);
 
         await run();
         await run();
@@ -364,6 +364,7 @@ describe('task reminders', () => {
         expect(notifications[0].type).toBe('task_reminder');
         expect(notifications[0].message).toContain('Capstone report');
         expect(notifications[0].message).toContain('24 hours');
+        expect(notifications[0].link).toBe(taskLink(task._id));
     });
 
     test('ignores far-off, finished and already-late tasks', async () => {

@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { homeLink, peopleLink, friendsLink, groupLink, timetableLink } from '../utils/appLinks.js';
+import { homeLink, peopleLink, friendsLink, groupLink, timetableLink, taskLink } from '../utils/appLinks.js';
 
 describe('appLinks', () => {
     test('fixed pages point at the new client paths', () => {
@@ -11,5 +11,6 @@ describe('appLinks', () => {
     test('ids are put into the group and timetable links', () => {
         expect(groupLink('abc123')).toBe('/people/groups/abc123');
         expect(timetableLink('abc123')).toBe('/plan?timetable=abc123');
+        expect(taskLink('abc123')).toBe('/plan?view=tasks&task=abc123');
     });
 });

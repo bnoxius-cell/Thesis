@@ -214,6 +214,70 @@ describe('exams and events', () => {
     });
 });
 
+describe('the week overview says where each entry lives and whether it can be changed', () => {
+    const everyDay = [0, 1, 2, 3, 4, 5, 6];
+    const share = (owner, schedule, userId, role) => owner.post(`/api/schedules/${schedule._id}/share`).send({ userId, role });
+    const countIt = (member, schedule) => member.put(`/api/schedules/${schedule._id}/membership`).send({ countInWorkload: true });
+    const weekOf = async (agent) => (await agent.get(`/api/schedules/week?start=${todayIso()}`)).body;
+
+    test('entries carry their ids, timetable, notes and edit right', async () => {
+        const { alice } = await setup();
+        const main = await create(alice, 'My 1st Sem');
+        const added = await alice.post(`/api/schedules/${main._id}/entries`).send(cls({ notes: 'Bring the lab manual.', days: everyDay }));
+        const saved = added.body.schedule.entries[0];
+
+        const entry = (await weekOf(alice)).days[0].entries[0];
+        expect(entry).toMatchObject({
+            entryId: saved._id, scheduleId: main._id, scheduleTitle: 'My 1st Sem', canEdit: true, notes: 'Bring the lab manual.',
+        });
+        expect(entry).not.toHaveProperty('role');
+    });
+
+    test('upcoming exams carry the same fields plus the meeting link', async () => {
+        const { alice } = await setup();
+        const main = await create(alice, 'Main');
+        const added = await alice.post(`/api/schedules/${main._id}/entries`).send({
+            title: 'Midterm', kind: 'exam', date: isoIn(1), startTime: '09:00', endTime: '10:00', meetingUrl: 'https://meet.example.com/abc',
+        });
+
+        const [exam] = (await weekOf(alice)).upcomingExams;
+        expect(exam).toMatchObject({
+            entryId: added.body.schedule.entries[0]._id, scheduleId: main._id, scheduleTitle: 'Main', canEdit: true,
+            meetingUrl: 'https://meet.example.com/abc', notes: '',
+        });
+    });
+
+    test('a viewer cannot edit what they counted and an editor can', async () => {
+        const { alice, bob, bobId } = await setup();
+        const orgs = await create(alice, 'Org officers');
+        const group = await create(alice, 'Study group');
+        await alice.post(`/api/schedules/${orgs._id}/entries`).send(cls({ title: 'Officers meeting', days: everyDay }));
+        await alice.post(`/api/schedules/${group._id}/entries`).send(cls({ title: 'Group study', days: everyDay, startTime: '14:00', endTime: '16:00' }));
+        await share(alice, orgs, bobId, 'viewer');
+        await share(alice, group, bobId, 'editor');
+        await countIt(bob, orgs);
+        await countIt(bob, group);
+
+        const entries = (await weekOf(bob)).days[0].entries;
+        expect(entries.find((e) => e.title === 'Officers meeting')).toMatchObject({ canEdit: false, scheduleTitle: 'Org officers' });
+        expect(entries.find((e) => e.title === 'Group study')).toMatchObject({ canEdit: true, scheduleTitle: 'Study group' });
+    });
+
+    test('your own copy of a class wins over a shared copy with the same title and times', async () => {
+        const { alice, bob, bobId } = await setup();
+        const shared = await create(alice, 'Section A');
+        await alice.post(`/api/schedules/${shared._id}/entries`).send(cls({ days: everyDay }));
+        await share(alice, shared, bobId, 'viewer');
+        await countIt(bob, shared);
+        const own = await create(bob, 'Bob main');
+        await bob.post(`/api/schedules/${own._id}/entries`).send(cls({ days: everyDay }));
+
+        const { days } = await weekOf(bob);
+        expect(days[0].entries).toHaveLength(1);
+        expect(days[0].entries[0]).toMatchObject({ scheduleId: own._id, canEdit: true });
+    });
+});
+
 describe('sharing a schedule with a friend', () => {
     test('the friend is told, sees it as view-only, and nothing is added to theirs until they choose', async () => {
         const { alice, bob, aliceId, bobId } = await setup();
