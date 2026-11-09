@@ -27,3 +27,23 @@ export const fetchMainTimetable = () => request("get", "/api/schedules/main");
 // { added, schedule }. `entryIds` are the _ids of the entries inside that message's snapshot.
 export const importSharedTimetable = (groupId, messageId, entryIds) =>
   request("post", "/api/schedules/import", { groupId, messageId, selections: entryIds.map((id) => ({ id })) });
+
+const timetablePath = (id) => `/api/schedules/${encodeURIComponent(id)}`;
+const entryPath = (scheduleId, entryId) => `${timetablePath(scheduleId)}/entries/${encodeURIComponent(entryId)}`;
+
+// Entry writes answer { schedule }: the whole timetable after the change. `entry` is the full entry
+// ({ title, kind, days or date, startTime, endTime, location, meetingUrl, notes, prepHours, ... }), and an
+// edit replaces the stored entry, so send every field you want to keep.
+// Adds to the student's main timetable and creates it ("My timetable") when they have none.
+export const addMyEntry = (entry) => request("post", "/api/schedules/main/entries", entry);
+// Add and edit need the owner or an editor of that timetable (403 otherwise).
+export const addEntry = (scheduleId, entry) => request("post", `${timetablePath(scheduleId)}/entries`, entry);
+export const updateEntry = (scheduleId, entryId, entry) => request("put", entryPath(scheduleId, entryId), entry);
+export const deleteEntry = (scheduleId, entryId) => request("delete", entryPath(scheduleId, entryId));
+
+// Owner only. `fields` is any of { title, theme, countInWorkload, isMain, editorsCanShare }.
+export const updateTimetable = (id, fields) => request("put", timetablePath(id), fields);
+// Owner only. The main timetable can't be deleted while the student has extra ones.
+export const deleteTimetable = (id) => request("delete", timetablePath(id));
+// A member removes themselves from a timetable shared with them.
+export const leaveTimetable = (id, userId) => request("delete", `${timetablePath(id)}/share/${encodeURIComponent(userId)}`);

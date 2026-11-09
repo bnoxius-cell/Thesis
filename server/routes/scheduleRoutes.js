@@ -2,7 +2,7 @@ import express from 'express';
 import userAuth from '../middleware/userAuth.js';
 import {
     createSchedule, getSchedules, getMainSchedule, getSchedule, updateSchedule, deleteSchedule,
-    addEntry, updateEntry, deleteEntry,
+    addEntry, addMainEntry, updateEntry, deleteEntry,
     getHolidays, getWeekOverview, previewImport, importSchedule, setHolidayOverride,
     shareWithFriend, removeCollaborator, updateMembership, updateShareCode, joinByCode, duplicateSchedule,
     makePrivate, getScheduleStamp,
@@ -14,6 +14,7 @@ scheduleRouter.post('/', userAuth, createSchedule);
 scheduleRouter.get('/', userAuth, getSchedules);
 // Fixed paths go before the /:scheduleId routes so they aren't read as an id.
 scheduleRouter.get('/main', userAuth, getMainSchedule);
+scheduleRouter.post('/main/entries', userAuth, addMainEntry);
 scheduleRouter.get('/holidays', userAuth, getHolidays);
 scheduleRouter.get('/week', userAuth, getWeekOverview);
 scheduleRouter.post('/join', userAuth, joinByCode);

@@ -3,7 +3,7 @@ import request from 'supertest';
 import app from '../app.js';
 import userModel from '../models/userModel.js';
 import Friend from '../models/Friend.js';
-import scheduleModel from '../models/scheduleModel.js';
+import scheduleModel, { MAX_ENTRIES } from '../models/scheduleModel.js';
 import notificationModel from '../models/notificationModel.js';
 import { fetchPublicHolidays } from '../utils/holidays.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
@@ -275,6 +275,91 @@ describe('the week overview says where each entry lives and whether it can be ch
         const { days } = await weekOf(bob);
         expect(days[0].entries).toHaveLength(1);
         expect(days[0].entries[0]).toMatchObject({ scheduleId: own._id, canEdit: true });
+    });
+});
+
+describe('adding to my timetable in one call', () => {
+    const everyDay = [0, 1, 2, 3, 4, 5, 6];
+    const addMine = (agent, body) => agent.post('/api/schedules/main/entries').send(body);
+    const timetables = async (agent) => (await agent.get('/api/schedules')).body.schedules;
+
+    test('a student with no timetable gets "My timetable" with the class in it', async () => {
+        const { alice } = await setup();
+        const res = await addMine(alice, cls({ days: everyDay }));
+        expect(res.status).toBe(201);
+        expect(res.body.schedule).toMatchObject({ title: 'My timetable', isMain: true, role: 'owner' });
+        expect(res.body.schedule.entries).toHaveLength(1);
+
+        const list = await timetables(alice);
+        expect(list).toHaveLength(1);
+        expect(list[0]).toMatchObject({ title: 'My timetable', isMain: true });
+        const week = await alice.get(`/api/schedules/week?start=${todayIso()}`);
+        expect(week.body.days[0].entries[0]).toMatchObject({ title: 'Data Structures', scheduleId: res.body.schedule._id, canEdit: true });
+    });
+
+    test('with a main timetable the class lands in it and no new timetable appears', async () => {
+        const { alice } = await setup();
+        const main = await create(alice, 'My 1st Sem');
+        await create(alice, 'Gym');
+        const res = await addMine(alice, cls());
+        expect(res.status).toBe(201);
+        expect(res.body.schedule._id).toBe(main._id);
+        expect(res.body.schedule.entries).toHaveLength(1);
+        expect(await timetables(alice)).toHaveLength(2);
+    });
+
+    test('a bad entry is refused with the usual message and creates no timetable', async () => {
+        const { alice } = await setup();
+        const res = await addMine(alice, { title: 'Finals', kind: 'exam', days: [1], startTime: '09:00', endTime: '11:00' });
+        expect(res.status).toBe(400);
+        expect(res.body.message).toBeTruthy();
+        expect(await timetables(alice)).toHaveLength(0);
+    });
+
+    test('a full main timetable refuses the entry', async () => {
+        const { alice, aliceId } = await setup();
+        const full = Array.from({ length: MAX_ENTRIES }, (_, i) => ({ ...cls({ title: `Class ${i}` }) }));
+        await scheduleModel.create({ title: 'Full', owner: aliceId, isMain: true, entries: full });
+        const res = await addMine(alice, cls());
+        expect(res.status).toBe(400);
+        expect(res.body.message).toContain(String(MAX_ENTRIES));
+    });
+
+    test('you have to be signed in', async () => {
+        // userAuth answers a signed-out call with { success: false, message: 'Unauthorized' }.
+        const res = await request(app).post('/api/schedules/main/entries').send(cls());
+        expect(res.body).toEqual({ success: false, message: 'Unauthorized' });
+        expect(await scheduleModel.countDocuments()).toBe(0);
+    });
+
+    test('two quick posts from a student with no timetable end with exactly one main', async () => {
+        const { alice } = await setup();
+        const results = await Promise.all([
+            addMine(alice, cls({ title: 'First' })),
+            addMine(alice, cls({ title: 'Second' })),
+        ]);
+        expect(results.map((r) => r.status)).toEqual([201, 201]);
+
+        const list = await timetables(alice);
+        expect(list.filter((s) => s.isMain)).toHaveLength(1);
+        expect(list.reduce((n, s) => n + s.entryCount, 0)).toBe(2);
+    });
+});
+
+describe('server errors', () => {
+    test('a database failure answers a plain message and never the thrown text', async () => {
+        const { alice } = await setup();
+        const main = await create(alice, 'Main');
+        const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const lookup = vi.spyOn(scheduleModel, 'findById').mockRejectedValueOnce(new Error('E11000 duplicate key secret-collection'));
+
+        const res = await alice.get(`/api/schedules/${main._id}`);
+        expect(res.status).toBe(500);
+        expect(res.body.success).toBe(false);
+        expect(res.body.message).not.toContain('E11000');
+        expect(res.body.message).toBe('Something went wrong on our side. Try again in a moment.');
+        expect(log).toHaveBeenCalled();
+        vi.restoreAllMocks();
     });
 });
 
