@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Button, Skeleton } from "@/shared/ui";
 import Page from "@/app/shell/Page";
 import { useAuth } from "@/pages/authentication/AuthContext";
@@ -8,6 +9,7 @@ import useTaskDone from "@/features/tasks/useTaskDone";
 import useMoveSuggestions from "@/features/tasks/useMoveSuggestions";
 import { finishedRecently } from "@/features/tasks/finishedRecently";
 import AddTaskButton from "@/features/tasks/AddTaskButton";
+import useItemDetail from "@/features/details/useItemDetail";
 import TodayHero from "./TodayHero";
 import ThisWeekCard from "./ThisWeekCard";
 import NextStepCard from "./NextStepCard";
@@ -39,6 +41,8 @@ export default function HomePage() {
   const data = useWeekData();
   const work = useWorkload({ tasks: data.tasks, overview: data.overview, userData, now });
   const setDone = useTaskDone(data.setTasks);
+  const subjects = useMemo(() => [...data.subjectsById.values()], [data.subjectsById]);
+  const detail = useItemDetail({ subjects, onToggle: setDone, context: "home" });
   const { prompt, later } = useCheckInPrompt(userData, now);
   const moves = useMoveSuggestions({
     userId: userData?._id,
@@ -57,7 +61,7 @@ export default function HomePage() {
 
   const addTask = data.status === "ready" && (
     <AddTaskButton
-      subjects={[...data.subjectsById.values()]}
+      subjects={subjects}
       onAdded={(task) => data.setTasks((prev) => [...prev, task])}
     />
   );
@@ -81,13 +85,23 @@ export default function HomePage() {
             now={now}
             isNewUser={work.insights.isNewUser}
             onToggle={setDone}
+            onOpenEntry={detail.openEntry}
+            onOpenTask={detail.openTask}
           />
           <ThisWeekCard work={work} tasks={data.tasks} now={now} />
           <NextStepCard prompt={prompt} onLater={later} moves={moves} work={work} now={now} />
-          <PlanForYou tasks={work.enrichedTasks} exam={work.nextExam} subjectsById={data.subjectsById} now={now} />
+          <PlanForYou
+            tasks={work.enrichedTasks}
+            exam={work.nextExam}
+            subjectsById={data.subjectsById}
+            now={now}
+            onOpenTask={detail.openTask}
+            onOpenEntry={detail.openEntry}
+          />
           <QuietLine finished={finishedRecently(data.tasks, now)} />
         </div>
       )}
+      {detail.dialog}
     </Page>
   );
 }

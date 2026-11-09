@@ -1,0 +1,300 @@
+/* The details window (Figma D1 204:604, D2 206:1273; phone 205:944, 206:1448) and the rows that open it.
+   Plain CSS on the shared tokens. Motion: the dialog and sheet entrances come from modal.css; here a
+   row gets a hover ring and a small press, both off under reduced motion or Animations Off. */
+@layer pages {
+  /* ---- A row whose title opens the details window ----
+     The title button's ::after stretches over the whole row, so the row is the target. The done box and
+     Join sit above it and keep their own clicks. */
+  .item-row {
+    position: relative;
+    --item-radius: var(--radius-lg);
+  }
+  .ui-card.item-row {
+    --item-radius: var(--radius-xl);
+  }
+  .item-row:not(.ui-card) {
+    transition: transform var(--dur-1) var(--ease-out);
+  }
+  .item-row .tasks-check,
+  .item-row .ui-btn {
+    position: relative;
+    z-index: 1;
+  }
+
+  .item-open {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    overflow-wrap: inherit;
+    text-align: start;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .item-open::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--item-radius);
+    transition: box-shadow var(--dur-2) var(--ease-out);
+  }
+  .item-open:focus-visible {
+    outline: none;
+  }
+  .item-open:focus-visible::after {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  /* A hover ring for a mouse only (touch fires false hovers). */
+  @media (hover: hover) and (pointer: fine) {
+    .item-open:hover::after {
+      box-shadow: inset 0 0 0 1px var(--border-input);
+    }
+  }
+  .item-row:has(.item-open:active) {
+    transform: scale(0.99);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .ui-card--interactive.item-row:has(.item-open:active) {
+      transform: translateY(-2px) scale(0.99);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html:not([data-motion="on"]) .item-row:has(.item-open:active) {
+      transform: none;
+    }
+  }
+  html[data-motion="off"] .item-row:has(.item-open:active) {
+    transform: none;
+  }
+
+  /* ---- The window ---- */
+  .item-detail .ui-modal__body {
+    gap: var(--space-4);
+  }
+  /* A sheet with a button row normally drops its close button; this window keeps it (the frames draw it). */
+  @media (max-width: 719.98px) {
+    .item-detail.ui-modal--sheet:has(> .ui-modal__actions) .ui-modal__head .ui-icon-btn {
+      display: inline-flex;
+    }
+  }
+  .item-chip {
+    align-self: flex-start;
+  }
+
+  /* "Mark as done" and, once it is done, the "Done on" line with Reopen. */
+  .item-done {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 48px;
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    text-align: start;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  .item-done svg {
+    flex: none;
+    color: var(--text-muted);
+  }
+  .item-done:active {
+    transform: scale(0.98);
+  }
+  .item-done:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .item-done:hover {
+      border-color: var(--accent);
+      background: var(--surface-2);
+    }
+  }
+  .item-done--complete {
+    padding-block: 6px;
+    padding-inline-end: var(--space-2);
+    border-color: transparent;
+    background: var(--good-soft);
+    cursor: default;
+  }
+  .item-done--complete:active {
+    transform: none;
+  }
+  .item-done--complete svg {
+    color: var(--good);
+  }
+  .item-done--complete span {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html:not([data-motion="on"]) .item-done:active {
+      transform: none;
+    }
+  }
+  html[data-motion="off"] .item-done:active {
+    transform: none;
+  }
+
+  /* ---- Detail rows (Figma DetailRow 203:6) ---- */
+  .detail-rows {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+  }
+  .detail-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-top: 1px solid var(--border);
+  }
+  .detail-row__term {
+    display: flex;
+    flex: none;
+    gap: var(--space-3);
+    width: 124px; /* the 20px icon, the gap and the 92px label */
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .detail-row__term svg {
+    flex: none;
+  }
+  .detail-row__term span {
+    flex: 1;
+    min-width: 0;
+  }
+  .detail-row__value {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .detail-row__value.is-muted {
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+  .detail-notes {
+    display: block;
+    font-weight: 400;
+    white-space: pre-wrap;
+  }
+  /* The meeting link keeps its Join button at the right and gives up width first. */
+  .detail-row--split {
+    align-items: center;
+    padding-block: 6px;
+  }
+  .detail-row--split .detail-row__value {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .detail-link {
+    display: inline-block;
+    /* The row's 12px padding makes this a 44px target without moving anything. */
+    padding-block: var(--space-3);
+    margin-block: calc(-1 * var(--space-3));
+    color: var(--accent);
+    font-weight: 500;
+    text-decoration: none;
+    touch-action: manipulation;
+  }
+  .detail-row--split .detail-link {
+    padding-block: 0;
+    margin-block: 0;
+  }
+  .detail-link--clip {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .detail-link:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .detail-link:hover {
+      text-decoration: underline;
+    }
+  }
+
+  /* ---- Footer: Delete at the left, then Edit, then the go-to button (plan 25 R3) ---- */
+  .item-footer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    width: 100%;
+  }
+  .item-footer__delete {
+    margin-inline-end: auto;
+    color: var(--danger);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .item-footer__delete:hover:not(:disabled) {
+      background: var(--danger-soft);
+    }
+  }
+  .item-footer__note {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    margin-inline-end: auto;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .item-footer__note svg {
+    flex: none;
+  }
+  /* Phones: the go-to button on top at full width, Delete and Edit as two halves under it, a read-only
+     line above the button. */
+  @media (max-width: 719.98px) {
+    .item-footer {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .item-footer__note {
+      order: -2;
+      grid-column: 1 / -1;
+    }
+    .item-footer__go {
+      order: -1;
+      grid-column: 1 / -1;
+    }
+    .item-footer__edit:first-child {
+      grid-column: 1 / -1;
+    }
+  }
+}
