@@ -12,7 +12,6 @@ import BusySpinner from "@/shared/ui/BusySpinner";
 import AuthShowcase, { AuthBackdrop } from "../../components/auth/AuthShowcase";
 import Logo from '../../assets/logo.png';
 
-const SCHOOL_EMAIL_DOMAIN = "student.fatima.edu.ph";
 const RESEND_COOLDOWN_SECONDS = 180;
 const OTP_LENGTH = 6;
 
@@ -332,8 +331,8 @@ const AuthPage = () => {
   // "6-digit" never breaks at its hyphen.
   const sixDigit = <span className="auth-nowrap">6-digit</span>;
   const header = {
-    login: ['Welcome back', 'Sign in', 'Sign in with your email, or continue with a Fatima Google account.'],
-    register: ['Create profile', 'Student signup', 'Sign up with any email. Google sign-up is for Fatima student accounts only.'],
+    login: ['Welcome back', 'Sign in', 'Sign in with your email, or continue with Google.'],
+    register: ['Create profile', 'Student signup', 'Sign up with any email, or continue with Google.'],
     verify: ['Verify account', 'Check your email', <>Enter the {sixDigit} code we emailed to {userData?.email || 'your email'}. It's valid for 20 minutes.</>],
     forgot: ['Forgot password', 'Reset your password', <>Enter the email you signed up with and we'll send you a {sixDigit} code. If you signed up with Google, use the Google button on the sign-in page instead.</>],
     reset: ['Reset password', 'Choose a new password', `Enter the code we emailed to ${email.trim() || 'your email'} and pick a new password. The code is valid for 20 minutes.`],
@@ -486,7 +485,6 @@ const AuthPage = () => {
                     onError={() => toast.error('Google Login Failed')}
                     text={authMode === 'login' ? 'signin_with' : 'signup_with'}
                     shape="rectangular"
-                    hosted_domain={SCHOOL_EMAIL_DOMAIN}
                     theme={theme === 'dark' ? 'filled_black' : 'outline'}
                     containerProps={{ className: 'auth-google-button' }}
                   />

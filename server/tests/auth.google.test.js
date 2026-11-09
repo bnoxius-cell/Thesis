@@ -58,13 +58,14 @@ describe('POST /api/auth/google', () => {
         expect(res.body.message).toMatch(/not verified/i);
     });
 
-    test('rejects a verified Google email outside the Fatima student domain', async () => {
+    test('accepts a verified Google email from any domain', async () => {
         verifyGoogleIdToken.mockResolvedValue(mockGooglePayload({ email: 'test.student@gmail.com' }));
 
         const res = await request(app).post('/api/auth/google').send({ token: 'valid-token' });
 
-        expect(res.body.success).toBe(false);
-        expect(res.body.message).toMatch(/fatima student email/i);
+        expect(res.body.success).toBe(true);
+        const user = await userModel.findOne({ email: 'test.student@gmail.com' });
+        expect(user).not.toBeNull();
     });
 
     test('creates a new verified user on first-time Google login', async () => {

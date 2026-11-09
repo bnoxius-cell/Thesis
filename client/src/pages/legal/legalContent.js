@@ -3,7 +3,7 @@
 // should re-accept, bump LEGAL_VERSION in server/utils/legal.js as well, so everyone
 // sees the consent prompt again.
 
-export const LEGAL_UPDATED = "November 7, 2026";
+export const LEGAL_UPDATED = "November 9, 2026";
 export const SUPPORT_EMAILS = [
   "tkishore1434val@student.fatima.edu.ph",
   "amreniva0131val@student.fatima.edu.ph",
@@ -41,7 +41,6 @@ export const TERMS = {
           "Give us accurate information, and keep it up to date.",
           "Keep your password to yourself. What happens under your account is on you, so tell us quickly if you think someone else got in.",
           "One person, one account. Please don't sign up on behalf of somebody else.",
-          "Signing in with Google is limited to Fatima student accounts (@student.fatima.edu.ph).",
         ] },
       ],
     },
