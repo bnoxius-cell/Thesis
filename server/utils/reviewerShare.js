@@ -15,6 +15,8 @@ const clip = (text, max) => {
 export const shareBlocker = (reviewer) => {
     if (reviewer.status !== 'ready' || !reviewer.questions.length) return 'Wait until this reviewer is ready to share it.';
     if (reviewer.targeted?.status === 'processing') return 'Wait for the extra questions to finish first.';
+    // An unnamed reviewer still carries the uploaded file's name, which isn't ours to hand out.
+    if (reviewer.autoTitle) return 'Give this reviewer a name before you share it.';
     return '';
 };
 
@@ -61,7 +63,7 @@ export const reviewerTexts = ({ reviewer, reviewerContent: content }) => [
     ...content.keyPoints,
     ...content.keyTerms.flatMap((t) => [t.term, t.definition]),
     ...content.topics.flatMap((t) => [t.name, t.summary]),
-    ...content.questions.flatMap((q) => [q.prompt, ...q.options, q.explanation]),
+    ...content.questions.flatMap((q) => [q.topic, q.prompt, ...q.options, q.explanation]),
 ];
 
 // The fields of a groupmate's own, ready copy. With no sourceText it can be studied but not

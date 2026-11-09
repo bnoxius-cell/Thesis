@@ -136,6 +136,12 @@ describe('sharing a reviewer', () => {
         const extending = await makeReviewer(alice, { targeted: { status: 'processing', topics: ['Routing'], count: 5 } });
         expect((await share(alice, group, extending)).status).toBe(409);
 
+        // Still named after the uploaded file: that name isn't ours to share.
+        const unnamed = await makeReviewer(alice, { autoTitle: true, title: SECRET_FILE });
+        const refused = await share(alice, group, unnamed);
+        expect(refused.status).toBe(409);
+        expect(refused.body.message).toMatch(/name/i);
+
         expect(await groupMessageModel.countDocuments()).toBe(0);
     });
 
