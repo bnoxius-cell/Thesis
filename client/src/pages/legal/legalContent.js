@@ -85,7 +85,7 @@ export const TERMS = {
       blocks: [
         { ul: [
           "When you share a schedule you choose what each person can do. Viewers can see it and every change you make. Editors can also change it, and everyone on it is told what changed. Anyone you share with can make their own copy, and changing a copy never changes yours.",
-          "Tasks you post in a group can be added to your groupmates' own task lists.",
+          "Tasks and reviewers you post in a group can be added by your groupmates to their own.",
           "Anyone who has a schedule's share code or link can open that schedule as a viewer or an editor, whichever you picked. Turn the code off, make a new one, or make the schedule private if it ends up somewhere it shouldn't.",
           "Your friends can see your name, email, avatar and profile tag.",
         ] },
@@ -153,7 +153,7 @@ export const PRIVACY = {
           "Your tasks: titles, courses, descriptions, due dates, estimated hours, difficulty and importance, and the time you mark a task as done.",
           "Your schedules: classes and activities with times, places, online class links and notes, any pictures you attach, days you mark off, who you share each one with, and a short log of recent changes on shared schedules.",
           "The subjects you add (name, code, term and colour) and which of your tasks and reviewers belong to them.",
-          "Social features: friend connections, groups you belong to, group messages, reactions and tasks shared in groups.",
+          "Social features: friend connections, groups you belong to, group messages, reactions and tasks shared in groups, and reviewers you share in a group, including their questions and answers, so groupmates can save a copy.",
           "Files and pictures you upload to a chat or to your Study files, kept until you or the group delete them.",
           "Reviewers: the text taken from the files, photos or notes you give us (we don't keep the file or photo you upload for a reviewer, only files you save in your Study files), the reviewer and questions made from it, and your Learning Mode answers and scores.",
           "Notifications: your inbox and your notification preferences. If you turn on phone or computer alerts, we keep the address your browser gives us for sending them.",

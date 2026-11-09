@@ -13,9 +13,13 @@ const PREF_BY_TYPE = {
     group_message: 'groupMessages',
     group_task: 'groupTasks',
     group_schedule: 'groupTasks',
+    group_share: 'groupTasks',
     group_member: 'groupMembers',
     group_invite: 'groupMembers',
 };
+
+// What a group set to "tasks only" still hears about: things shared in it, not chat.
+const SHARE_TYPES = new Set(['group_task', 'group_schedule', 'group_share']);
 
 // Should a user with these prefs hear about this? Missing values count as "on".
 export const allowsNotification = (prefs, type, groupId) => {
@@ -25,7 +29,7 @@ export const allowsNotification = (prefs, type, groupId) => {
     if (groupId) {
         const override = prefs?.groupOverrides?.find((o) => o.group.toString() === groupId.toString());
         if (override?.level === 'muted') return false;
-        if (override?.level === 'tasks' && type !== 'group_task' && type !== 'group_schedule') return false;
+        if (override?.level === 'tasks' && !SHARE_TYPES.has(type)) return false;
     }
     return true;
 };

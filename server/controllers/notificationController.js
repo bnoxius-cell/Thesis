@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import notificationModel from '../models/notificationModel.js';
+import notificationModel, { GROUP_CHAT_TYPES } from '../models/notificationModel.js';
 import pushSubscriptionModel from '../models/pushSubscriptionModel.js';
 import userModel from '../models/userModel.js';
 import Friend from '../models/Friend.js';
@@ -7,8 +7,6 @@ import { getPublicKey } from '../utils/push.js';
 import { serverError } from '../utils/httpErrors.js';
 
 const LIST_LIMIT = 100;
-// Chat-like notifications fold into one entry per group while unread.
-const GROUP_NOTIFICATION_TYPES = ['group_message', 'group_task', 'group_schedule'];
 const GROUP_LEVELS = ['all', 'tasks', 'muted'];
 const LEAD_HOURS = [3, 24, 48];
 const BOOLEAN_PREFS = ['taskReminders', 'friendActivity', 'scheduleShares', 'groupMessages', 'groupTasks', 'groupMembers'];
@@ -54,7 +52,7 @@ export const getUnreadSummary = async (req, res) => {
             notificationModel.countDocuments({ recipient, isRead: false }),
             Friend.countDocuments({ friend: req.userId, status: 'pending' }),
             notificationModel.aggregate([
-                { $match: { recipient, isRead: false, type: { $in: GROUP_NOTIFICATION_TYPES }, group: { $ne: null } } },
+                { $match: { recipient, isRead: false, type: { $in: GROUP_CHAT_TYPES }, group: { $ne: null } } },
                 { $group: { _id: '$group', count: { $sum: { $ifNull: ['$count', 1] } } } },
                 { $project: { _id: 0, group: '$_id', count: 1 } },
             ]),

@@ -4,8 +4,9 @@ import groupModel from '../models/groupMode.js';
 import groupMessageModel from '../models/groupMessageModel.js';
 import taskModel from '../models/taskModel.js';
 import scheduleModel from '../models/scheduleModel.js';
+import reviewerModel from '../models/reviewerModel.js';
 import userModel from '../models/userModel.js';
-import notificationModel from '../models/notificationModel.js';
+import notificationModel, { GROUP_CHAT_TYPES } from '../models/notificationModel.js';
 import { notify } from '../utils/notify.js';
 import { ensureShareTemplateForTask } from './taskController.js';
 import { containsProfanity } from '../utils/familyFilter.js';
@@ -14,6 +15,8 @@ import { isValidPicture } from '../utils/images.js';
 import { isSingleEmoji } from '../utils/emoji.js';
 import { hit } from '../utils/rateLimit.js';
 import { groupLink, peopleLink } from '../utils/appLinks.js';
+import { resolveItemSubject, subjectLabel } from '../utils/subjectMatch.js';
+import { shareBlocker, reviewerSnapshot, reviewerTexts, reviewerCopyFields } from '../utils/reviewerShare.js';
 
 const MAX_MESSAGE_LENGTH = 1000;
 const INITIAL_MESSAGE_LIMIT = 50;
@@ -66,6 +69,7 @@ const textsToCheck = (messageData) => {
         texts.push(messageData.schedule.title);
         (messageData.schedule.entries || []).forEach((e) => texts.push(e.title, e.location));
     }
+    if (messageData.reviewer) texts.push(...reviewerTexts(messageData));
     return texts;
 };
 
@@ -108,7 +112,7 @@ const serializeChange = (message, userId) => {
     };
 };
 
-// Adds `addedByMe` to task and schedule messages so the chat can show "In your schedule"
+// Adds `addedByMe` to task, schedule and reviewer messages so the chat can show "In your schedule"
 // instead of offering them again, turns reactions into an ordered list, and shrinks
 // deleted messages to a tombstone.
 const serializeMessages = async (messages, userId) => {
@@ -125,8 +129,16 @@ const serializeMessages = async (messages, userId) => {
         copies.forEach((c) => c.importedFrom.forEach((t) => addedTokens.add(t)));
     }
 
+    const reviewerTokens = messages.filter((m) => m.type === 'reviewer').map((m) => `message:${m._id}`);
+    if (reviewerTokens.length) {
+        const saved = await reviewerModel.find({ owner: userId, copiedFrom: { $in: reviewerTokens } }).select('copiedFrom').lean();
+        saved.forEach((r) => addedTokens.add(r.copiedFrom));
+    }
+
     return messages.map((message) => {
         const plain = message.toObject({ flattenMaps: true });
+        // Only set on a message just created; the answers in it never go to a client.
+        delete plain.reviewerContent;
         if (plain.type === 'deleted') {
             return {
                 _id: plain._id,
@@ -139,7 +151,7 @@ const serializeMessages = async (messages, userId) => {
         }
         plain.reactions = serializeReactions(plain.reactions, userId);
         if (plain.type === 'task') plain.addedByMe = ownedTags.has(plain.task.shareTag);
-        if (plain.type === 'schedule') plain.addedByMe = addedTokens.has(`message:${plain._id}`);
+        if (plain.type === 'schedule' || plain.type === 'reviewer') plain.addedByMe = addedTokens.has(`message:${plain._id}`);
         return plain;
     });
 };
@@ -488,7 +500,7 @@ export const getMessages = async (req, res) => {
                     {
                         recipient: req.userId,
                         group: group._id,
-                        type: { $in: ['group_message', 'group_task', 'group_schedule'] },
+                        type: { $in: GROUP_CHAT_TYPES },
                         isRead: false,
                     },
                     { isRead: true }
@@ -523,8 +535,15 @@ export const getMessages = async (req, res) => {
     }
 };
 
+// The notification for each kind of shared item. Plain chat messages have none.
+const SHARE_NOTICES = {
+    task: (m) => ({ type: 'group_task', what: 'a task', title: m.task.title }),
+    schedule: (m) => ({ type: 'group_schedule', what: 'a schedule', title: m.schedule.title }),
+    reviewer: (m) => ({ type: 'group_share', what: 'a reviewer', title: m.reviewer.title }),
+};
+
 // POST /:groupId/messages  body: { text } for chat, { taskId } to share one of your tasks,
-// or { scheduleId } to share one of your schedules
+// { scheduleId } to share one of your schedules, or { reviewerId } to share a ready reviewer
 export const sendMessage = async (req, res) => {
     try {
         const group = await loadGroupForMember(req, res);
@@ -574,6 +593,15 @@ export const sendMessage = async (req, res) => {
                 // Pictures stay out of chat: they are the heavy part and not needed to copy a week.
                 entries: schedule.entries.map((e) => ({ ...e.toObject(), _id: undefined, image: '' })),
             };
+        } else if (req.body.reviewerId) {
+            const reviewer = isId(req.body.reviewerId)
+                ? await reviewerModel.findOne({ _id: req.body.reviewerId, owner: req.userId })
+                : null;
+            if (!reviewer) return res.status(404).json({ success: false, message: 'Reviewer not found' });
+            const blocker = shareBlocker(reviewer);
+            if (blocker) return res.status(409).json({ success: false, message: blocker });
+            messageData.type = 'reviewer';
+            Object.assign(messageData, reviewerSnapshot(reviewer));
         } else if (!text) {
             return res.status(400).json({ success: false, message: "Message can't be empty." });
         }
@@ -591,23 +619,18 @@ export const sendMessage = async (req, res) => {
         const [serialized] = await serializeMessages([message], req.userId);
 
         const senderName = message.sender?.name || 'Someone';
-        const isTask = message.type === 'task';
-        const isSchedule = message.type === 'schedule';
+        const share = SHARE_NOTICES[message.type]?.(message);
         const preview = text.length > 90 ? `${text.slice(0, 90)}...` : text;
         await notify({
             recipients: group.members,
             sender: req.userId,
-            type: isSchedule ? 'group_schedule' : isTask ? 'group_task' : 'group_message',
+            type: share ? share.type : 'group_message',
             title: group.name,
-            message: isSchedule
-                ? `${senderName} shared a schedule: ${message.schedule.title}`
-                : isTask
-                    ? `${senderName} shared a task: ${message.task.title}`
-                    : `${senderName}: ${preview}`,
+            message: share ? `${senderName} shared ${share.what}: ${share.title}` : `${senderName}: ${preview}`,
             link: groupLink(group._id),
             group: group._id,
-            // Chat folds into one unread entry per group. A shared task always stands alone.
-            collapse: !isTask && !isSchedule,
+            // Chat folds into one unread entry per group. A shared item always stands alone.
+            collapse: !share,
         });
 
         res.json({ success: true, message: serialized });
@@ -688,7 +711,7 @@ export const deleteMessage = async (req, res) => {
                 { _id: message._id, deletedAt: null },
                 {
                     $set: { type: 'deleted', text: '', reactions: {}, deletedAt: new Date(), deletedByAdmin: !isSender },
-                    $unset: { task: '', schedule: '' },
+                    $unset: { task: '', schedule: '', reviewer: '', reviewerContent: '' },
                 },
                 { returnDocument: 'after' }
             ) || await groupMessageModel.findById(message._id); // deleted a moment ago by someone else
@@ -696,5 +719,53 @@ export const deleteMessage = async (req, res) => {
         res.json({ success: true, message: (await serializeMessages([tombstone], req.userId))[0] });
     } catch (error) {
         serverError(res, 'deleteMessage error', error);
+    }
+};
+
+const ALREADY_SAVED = { success: false, alreadyAdded: true, message: "It's already in your Study." };
+
+// Saves the caller's own copy of a shared reviewer. Returns what was saved, or null when they
+// already have one from this message.
+const saveReviewer = async (message, userId) => {
+    if (await reviewerModel.exists({ owner: userId, copiedFrom: `message:${message._id}` })) return null;
+    const { subject } = await resolveItemSubject(userId, { course: message.reviewer.course });
+    try {
+        const copy = await reviewerModel.create(reviewerCopyFields({
+            message,
+            owner: userId,
+            course: subject ? subjectLabel(subject) : message.reviewer.course,
+            subject: subject?._id ?? null,
+        }));
+        return { type: 'reviewer', _id: copy._id, title: copy.title };
+    } catch (error) {
+        // The unique index on (owner, copiedFrom): a save that arrived at the same moment won.
+        if (error.code === 11000) return null;
+        throw error;
+    }
+};
+
+// The card types a groupmate can save from here. Tasks and schedules have their own import routes.
+const SAVERS = { reviewer: saveReviewer };
+
+// POST /:groupId/messages/:messageId/save  Members only. Adds a shared card to the caller's own data.
+export const saveFromMessage = async (req, res) => {
+    try {
+        const group = await loadGroupForMember(req, res);
+        if (!group) return;
+
+        const { messageId } = req.params;
+        const message = isId(messageId)
+            ? await groupMessageModel.findOne({ _id: messageId, group: group._id, deletedAt: null }).select('+reviewerContent').lean()
+            : null;
+        if (!message) return res.status(404).json({ success: false, message: 'Message not found' });
+
+        const save = SAVERS[message.type];
+        if (!save) return res.status(400).json({ success: false, message: "This message can't be saved." });
+
+        const saved = await save(message, req.userId);
+        if (!saved) return res.status(409).json(ALREADY_SAVED);
+        res.status(201).json({ success: true, saved });
+    } catch (error) {
+        serverError(res, 'saveFromMessage error', error);
     }
 };
