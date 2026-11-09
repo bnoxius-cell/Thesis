@@ -10,6 +10,7 @@ import { profileFromUser } from "@/features/workload/useWorkload";
 import useTaskDone from "@/features/tasks/useTaskDone";
 import AddTaskButton from "@/features/tasks/AddTaskButton";
 import useItemDetail from "@/features/details/useItemDetail";
+import useTaskEdit from "@/features/tasks/useTaskEdit";
 import MonthGrid from "./MonthGrid";
 import PhoneWeek from "./PhoneWeek";
 import PlanControls from "./PlanControls";
@@ -55,7 +56,14 @@ export default function PlanPage() {
   const monthData = useMonthData(month, view === "month");
   const setDone = useTaskDone(data.setTasks);
   const subjects = useMemo(() => [...data.subjectsById.values()], [data.subjectsById]);
-  const detail = useItemDetail({ subjects, onToggle: setDone, context: view === "tasks" ? "plan-tasks" : "plan-week" });
+  const edit = useTaskEdit({ subjects, setTasks: data.setTasks });
+  const detail = useItemDetail({
+    subjects,
+    onToggle: setDone,
+    context: view === "tasks" ? "plan-tasks" : "plan-week",
+    onEditTask: edit.onEditTask,
+    onDeleteTask: edit.onDeleteTask,
+  });
   // Which way the week was last stepped, so the new one slides in from that side.
   const [direction, setDirection] = useState("none");
   // The day the phone agenda shows; until one is tapped it follows today (or Monday in another week).
@@ -210,6 +218,7 @@ export default function PlanPage() {
         </>
       )}
       {detail.dialog}
+      {edit.dialog}
     </Page>
   );
 }

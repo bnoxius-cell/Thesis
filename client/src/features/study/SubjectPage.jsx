@@ -5,7 +5,7 @@ import { FileQuestion } from "lucide-react";
 import { Button, Chip, EmptyState, Skeleton, Tabs } from "@/shared/ui";
 import Page from "@/app/shell/Page";
 import UploadDialog from "@/features/files/UploadDialog";
-import NewTaskDialog from "@/features/tasks/NewTaskDialog";
+import TaskFormDialog from "@/features/tasks/TaskFormDialog";
 import useTaskDone from "@/features/tasks/useTaskDone";
 import useNow from "@/shared/hooks/useNow";
 import useSelectedTabInView from "@/shared/hooks/useSelectedTabInView";
@@ -184,7 +184,7 @@ function SubjectView({ subjectId }) {
         </div>
       </div>
       {adding === "task" && (
-        <NewTaskDialog
+        <TaskFormDialog
           subjects={[subject]}
           defaultSubject={subject._id}
           onClose={() => setAdding(null)}
