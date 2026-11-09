@@ -11,6 +11,7 @@ import { buildWeekOverview, addDaysIso, findUpcomingExams } from '../utils/weekO
 import groupModel from '../models/groupMode.js';
 import groupMessageModel from '../models/groupMessageModel.js';
 import { timetableLink } from '../utils/appLinks.js';
+import { serverError } from '../utils/httpErrors.js';
 
 // How far ahead the dashboard looks for exams to plan study time around.
 const EXAM_LOOKAHEAD_DAYS = 30;
@@ -46,6 +47,8 @@ const roleOf = (schedule, userId) => {
     const member = schedule.collaborators.find((c) => (c.user._id ?? c.user).toString() === userId);
     return member ? (member.role === 'editor' ? 'editor' : 'viewer') : null;
 };
+
+const ROLE_ORDER = ['owner', 'editor', 'viewer'];
 
 const CAN = {
     view: ['owner', 'editor', 'viewer'],
@@ -124,7 +127,7 @@ const loadSchedule = async (req, res, need) => {
 // Everyone with schedules has exactly one main. Accounts from before that rule may have several
 // and none marked, so the oldest one is promoted the first time it matters.
 const ensureMainSchedule = async (userId) => {
-    const owned = await scheduleModel.find({ owner: userId }).select('isMain createdAt').sort({ createdAt: 1 });
+    const owned = await scheduleModel.find({ owner: userId }).select('isMain createdAt').sort({ createdAt: 1, _id: 1 });
     if (!owned.length) return null;
     const mains = owned.filter((s) => s.isMain);
     if (mains.length === 1) return mains[0]._id;
@@ -300,7 +303,7 @@ export const createSchedule = async (req, res) => {
         });
         res.status(201).json({ success: true, schedule: await serialize(schedule, 'owner') });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'createSchedule error', error);
     }
 };
 
@@ -316,7 +319,7 @@ export const getSchedules = async (req, res) => {
             schedules: schedules.map((s) => summarize(s, roleOf(s, req.userId), req.userId)),
         });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'getSchedules error', error);
     }
 };
 
@@ -329,7 +332,7 @@ export const getMainSchedule = async (req, res) => {
         const schedule = await scheduleModel.findById(id);
         res.json({ success: true, schedule: await serialize(schedule, 'owner') });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'getMainSchedule error', error);
     }
 };
 
@@ -339,7 +342,7 @@ export const getSchedule = async (req, res) => {
         if (!loaded) return;
         res.json({ success: true, schedule: await serialize(loaded.schedule, loaded.role, req.userId) });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'getSchedule error', error);
     }
 };
 
@@ -372,7 +375,7 @@ export const updateSchedule = async (req, res) => {
         await schedule.save();
         res.json({ success: true, schedule: await serialize(schedule, role) });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'updateSchedule error', error);
     }
 };
 
@@ -397,28 +400,60 @@ export const deleteSchedule = async (req, res) => {
         }
         res.json({ success: true, message: 'Schedule deleted' });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'deleteSchedule error', error);
     }
+};
+
+// Adds an already cleaned entry to a schedule the caller may edit and answers with the schedule.
+const appendEntry = async (req, res, schedule, role, entry) => {
+    if (schedule.entries.length >= MAX_ENTRIES) {
+        return fail(res, 400, `A schedule can hold up to ${MAX_ENTRIES} entries.`);
+    }
+    schedule.entries.push(entry);
+    const announce = await recordChange(schedule, req.userId, `added ${describeEntry(entry)}`);
+    await schedule.save();
+    await announce();
+    res.status(201).json({ success: true, schedule: await serialize(schedule, role, req.userId) });
 };
 
 export const addEntry = async (req, res) => {
     try {
         const loaded = await loadSchedule(req, res, 'edit');
         if (!loaded) return;
-        const { schedule, role } = loaded;
 
         const { entry, error } = cleanEntry(req.body);
         if (error) return fail(res, 400, error);
-        if (schedule.entries.length >= MAX_ENTRIES) {
-            return fail(res, 400, `A schedule can hold up to ${MAX_ENTRIES} entries.`);
-        }
-        schedule.entries.push(entry);
-        const announce = await recordChange(schedule, req.userId, `added ${describeEntry(entry)}`);
-        await schedule.save();
-        await announce();
-        res.status(201).json({ success: true, schedule: await serialize(schedule, role, req.userId) });
+        await appendEntry(req, res, loaded.schedule, loaded.role, entry);
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'addEntry error', error);
+    }
+};
+
+const MAIN_SCHEDULE_TITLE = 'My timetable';
+
+// The caller's main timetable, created when they have none yet.
+const mainScheduleOrNew = async (userId) => {
+    const existingId = await ensureMainSchedule(userId);
+    if (existingId) return scheduleModel.findById(existingId);
+
+    const created = await scheduleModel.create({ title: MAIN_SCHEDULE_TITLE, owner: userId, isMain: true });
+    // Two quick requests can each create one. The oldest stays main and the other one goes.
+    const mainId = await ensureMainSchedule(userId);
+    if (String(mainId) === String(created._id)) return created;
+    // Only while it is still empty, so another request's entry is never deleted with it.
+    const removed = await scheduleModel.deleteOne({ _id: created._id, entries: { $size: 0 } });
+    return removed.deletedCount ? scheduleModel.findById(mainId) : created;
+};
+
+// POST /api/schedules/main/entries: adds a class, exam or event to the caller's main timetable in
+// one request, creating the timetable first when they have none.
+export const addMainEntry = async (req, res) => {
+    try {
+        const { entry, error } = cleanEntry(req.body);
+        if (error) return fail(res, 400, error);
+        await appendEntry(req, res, await mainScheduleOrNew(req.userId), 'owner', entry);
+    } catch (error) {
+        serverError(res, 'addMainEntry error', error);
     }
 };
 
@@ -440,7 +475,7 @@ export const updateEntry = async (req, res) => {
         await announce();
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'updateEntry error', error);
     }
 };
 
@@ -459,7 +494,7 @@ export const deleteEntry = async (req, res) => {
         await announce();
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'deleteEntry error', error);
     }
 };
 
@@ -534,7 +569,7 @@ export const setHolidayOverride = async (req, res) => {
         await announce();
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'setHolidayOverride error', error);
     }
 };
 
@@ -665,7 +700,7 @@ export const previewImport = async (req, res) => {
             schedules: owned.map((s) => ({ _id: s._id, title: s.title, isMain: Boolean(s.isMain), entryCount: s.entries.length })),
         });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'previewImport error', error);
     }
 };
 
@@ -734,7 +769,7 @@ export const importSchedule = async (req, res) => {
 
         res.status(201).json({ success: true, added: cleaned.length, schedule: await serialize(schedule, 'owner') });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'importSchedule error', error);
     }
 };
 
@@ -773,7 +808,12 @@ export const getWeekOverview = async (req, res) => {
                 }
             }));
         }
-        schedules.forEach((s) => { s.publicByDate = publicByDate; });
+        schedules.forEach((s) => {
+            s.publicByDate = publicByDate;
+            s.role = roleOf(s, req.userId);
+        });
+        // Owned first, so a class copied into two timetables keeps the copy the student can edit.
+        schedules.sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role));
 
         res.json({
             success: true,
@@ -784,7 +824,7 @@ export const getWeekOverview = async (req, res) => {
             upcomingExams: findUpcomingExams(schedules, start, EXAM_LOOKAHEAD_DAYS),
         });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'getWeekOverview error', error);
     }
 };
 
@@ -858,7 +898,7 @@ export const shareWithFriend = async (req, res) => {
         if (announcement) await notify(announcement);
         res.json({ success: true, schedule: await serialize(schedule, actorRole, req.userId) });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'shareWithFriend error', error);
     }
 };
 
@@ -896,7 +936,7 @@ export const removeCollaborator = async (req, res) => {
             ...(!leaving && { schedule: await serialize(schedule, role, req.userId) }),
         });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'removeCollaborator error', error);
     }
 };
 
@@ -920,7 +960,7 @@ export const updateShareCode = async (req, res) => {
         await schedule.save();
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'updateShareCode error', error);
     }
 };
 
@@ -946,7 +986,7 @@ export const makePrivate = async (req, res) => {
         }
         res.json({ success: true, removed: removed.length, schedule: await serialize(schedule, 'owner') });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'makePrivate error', error);
     }
 };
 
@@ -963,7 +1003,7 @@ export const getScheduleStamp = async (req, res) => {
         if (!role) return fail(res, 403, 'You do not have access to this schedule');
         res.json({ success: true, updatedAt: schedule.updatedAt, role });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'getScheduleStamp error', error);
     }
 };
 
@@ -980,7 +1020,7 @@ export const updateMembership = async (req, res) => {
         await schedule.save();
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'updateMembership error', error);
     }
 };
 
@@ -1013,7 +1053,7 @@ export const joinByCode = async (req, res) => {
         }
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'joinByCode error', error);
     }
 };
 
@@ -1045,6 +1085,6 @@ export const duplicateSchedule = async (req, res) => {
         });
         res.status(201).json({ success: true, schedule: await serialize(copy, 'owner') });
     } catch (error) {
-        fail(res, 500, error.message);
+        serverError(res, 'duplicateSchedule error', error);
     }
 };

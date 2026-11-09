@@ -66,32 +66,38 @@ const day = (offset) => {
     return d.toISOString().slice(0, 10);
 };
 
+// Subjects first, so tasks whose course text matches one are linked to it.
+for (const name of ['Capstone Project', 'Information Assurance', 'Web Systems']) {
+    await api('/api/subjects', 'POST', { name });
+}
+
 const { schedule } = await api('/api/schedules', 'POST', { title: 'My 1st Sem', theme: 'classic' });
 const classes = [
     ['Capstone Project', [1, 3], '07:30', '09:00', 'Room 402'],
     ['Information Assurance', [2, 4], '09:30', '11:00', 'Room 305'],
     ['Systems Integration', [1, 3], '13:00', '14:30', 'Lab 2'],
-    ['Web Systems', [2, 4], '13:00', '15:00', 'Lab 1'],
+    ['Web Systems', [2, 4], '13:00', '15:00', 'Lab 1', { meetingUrl: 'https://meet.google.com/abc-defg-hij', notes: 'Bring the lab manual.' }],
     ['Social Issues', [5], '08:00', '10:00', 'Room 210'],
     ['Network Admin', [5], '10:30', '12:00', 'Lab 3'],
 ];
-for (const [title, days, startTime, endTime, location] of classes) {
-    await api(`/api/schedules/${schedule._id}/entries`, 'POST', { title, kind: 'class', days, startTime, endTime, location });
+for (const [title, days, startTime, endTime, location, extra] of classes) {
+    await api(`/api/schedules/${schedule._id}/entries`, 'POST', { title, kind: 'class', days, startTime, endTime, location, ...extra });
 }
 await api(`/api/schedules/${schedule._id}/entries`, 'POST', { title: 'Midterm: Information Assurance', kind: 'exam', date: day(3), startTime: '09:30', endTime: '11:00', prepHours: 6 });
 await api(`/api/schedules/${schedule._id}/entries`, 'POST', { title: 'Midterm: Web Systems', kind: 'exam', date: day(6), startTime: '13:00', endTime: '15:00', prepHours: 5 });
 await api(`/api/schedules/${schedule._id}/entries`, 'POST', { title: 'Org meeting', kind: 'event', date: day(2), startTime: '16:00', endTime: '17:00' });
 
 const tasks = [
-    ['Chapter 3 draft', 'Capstone Project', day(2), 5, 4, 5],
+    ['Chapter 3 draft', 'Capstone Project', day(2), 5, 4, 5, 'Methodology section, at least five sources.'],
     ['Risk assessment report', 'Information Assurance', day(3), 4, 4, 4],
     ['REST API activity', 'Web Systems', day(1), 3, 3, 3],
     ['Reflection essay', 'Social Issues', day(5), 2, 2, 2],
     ['Network diagram', 'Network Admin', day(-1), 2, 3, 3],
     ['Integration quiz review', 'Systems Integration', day(7), 3, 3, 4],
+    ['Buy lab gown', undefined, day(4), 1],
 ];
-for (const [title, course, dueDate, hours, difficulty, importance] of tasks) {
-    await api('/api/tasks', 'POST', { title, course, dueDate, hours, difficulty, importance });
+for (const [title, course, dueDate, hours, difficulty, importance, description] of tasks) {
+    await api('/api/tasks', 'POST', { title, course, dueDate, hours, difficulty, importance, description });
 }
 
 await api('/api/friends/request', 'POST', { userId: String(jose._id) });
@@ -100,6 +106,17 @@ void pending;
 const friendList = await joseApi('/api/friends/pending');
 if (friendList.requests?.[0]) await joseApi(`/api/friends/accept/${friendList.requests[0]._id}`, 'PUT');
 await liaApi('/api/friends/request', 'POST', { userId: String(maria._id) });
+
+// Two timetables Jose shares with Maria, one she can only read and one she can edit. Maria counts
+// both in her week so they show up in My week.
+const shareWithMaria = async (title, entry, role) => {
+    const { schedule: shared } = await joseApi('/api/schedules', 'POST', { title });
+    await joseApi(`/api/schedules/${shared._id}/entries`, 'POST', entry);
+    await joseApi(`/api/schedules/${shared._id}/share`, 'POST', { userId: String(maria._id), role });
+    await api(`/api/schedules/${shared._id}/membership`, 'PUT', { countInWorkload: true });
+};
+await shareWithMaria('Org officers', { title: 'Officers meeting', kind: 'event', days: [3], startTime: '17:00', endTime: '18:00' }, 'viewer');
+await shareWithMaria('Study group', { title: 'Group study', kind: 'activity', days: [6], startTime: '14:00', endTime: '16:00' }, 'editor');
 
 for (const name of ['Capstone Team 4', 'Study Buddies']) {
     const made = await api('/api/groups', 'POST', { name, description: `${name} group chat` });

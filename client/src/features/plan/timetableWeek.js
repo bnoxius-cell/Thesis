@@ -1,5 +1,8 @@
 import { addDays, entryOccursOn, resolveHoliday, toISODate } from "@/utils/scheduleUtils";
 
+// Who may change a timetable's entries (the server's CAN.edit).
+const EDITOR_ROLES = ["owner", "editor"];
+
 const minutes = (hhmm) => {
   const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;
@@ -36,6 +39,11 @@ export function timetableWeek(schedule, weekStart, publicByDate) {
         endTime: entry.endTime,
         location: entry.location || "",
         meetingUrl: entry.meetingUrl || "",
+        notes: entry.notes || "",
+        entryId: entry._id,
+        scheduleId: schedule._id,
+        scheduleTitle: schedule.title,
+        canEdit: EDITOR_ROLES.includes(schedule.role),
       }))
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
     return { date, holiday, busyHours: busyHours(entries), entries };
