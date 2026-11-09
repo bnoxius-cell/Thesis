@@ -5,12 +5,14 @@ import TaskChip from "./TaskChip";
 
 // The week as seven columns, Monday to Sunday (Figma 38:3): the day, its load dot, then the day's
 // classes and tasks. Today's column is tinted. `direction` ("next", "prev" or "none") is which way
-// the week was stepped, so the new week slides in from that side.
-export default function WeekGrid({ days, now, onToggle, direction }) {
+// the week was stepped, so the new week slides in from that side. Entries and tasks open their details
+// window through `onOpenEntry(entry, iso)` and `onOpenTask(task)`; `foundDay` is the day a link landed on
+// (`?day=`), whose column flashes.
+export default function WeekGrid({ days, now, onToggle, onOpenEntry, onOpenTask, foundDay, direction }) {
   return (
     <ol className="plan-grid plan-slide" data-direction={direction} aria-label="This week by day">
       {days.map((day) => (
-        <li key={day.key} className={`plan-col${day.isToday ? " is-today" : ""}`} aria-label={day.label} aria-current={day.isToday ? "date" : undefined}>
+        <li key={day.key} className={`plan-col${day.isToday ? " is-today" : ""}${day.key === foundDay ? " is-found" : ""}`} aria-label={day.label} aria-current={day.isToday ? "date" : undefined}>
           <header className="plan-col__head">
             <div>
               <p className="plan-col__name">{day.weekday}</p>
@@ -21,8 +23,8 @@ export default function WeekGrid({ days, now, onToggle, direction }) {
           </header>
           <ul className="plan-col__items">
             {day.holiday && <HolidayNote name={day.holiday} />}
-            {day.entries.map((entry) => <EntryBlock key={entry.id} entry={entry} />)}
-            {day.tasks.map((item) => <TaskChip key={item.task._id} item={item} now={now} onToggle={onToggle} />)}
+            {day.entries.map((entry) => <EntryBlock key={entry.id} entry={entry} iso={day.key} onOpen={onOpenEntry} />)}
+            {day.tasks.map((item) => <TaskChip key={item.task._id} item={item} now={now} onToggle={onToggle} onOpen={onOpenTask} />)}
           </ul>
         </li>
       ))}

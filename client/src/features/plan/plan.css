@@ -508,4 +508,22 @@
   .plan-task.is-roomy .plan-task__title {
     font-weight: 500;
   }
+
+  /* ---- Rows that open the details window (details/item-detail.css) ---- */
+  /* The stretched title button follows each row's own corners. */
+  .plan-entry.item-row,
+  .plan-task.item-row {
+    --item-radius: var(--radius-md);
+  }
+  .plan-agenda .item-row {
+    --item-radius: var(--radius-lg);
+  }
+  /* A class block clips its own corners, so its focus ring sits inside the edge. */
+  .plan-entry .item-open:focus-visible::after {
+    outline-offset: -2px;
+  }
+  /* The flashed week column rings inside the grid, which clips at its edge. */
+  .plan-col.is-found {
+    box-shadow: inset 0 0 0 2px var(--accent);
+  }
 }

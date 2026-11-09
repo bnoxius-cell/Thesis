@@ -33,6 +33,14 @@ describe('buildWeekOverview', () => {
         expect(monday.entries[0].notes).toBe('');
     });
 
+    test('a class carries its weekdays and an exam its date and prep hours', () => {
+        const [monday] = buildWeekOverview([schedule('owner', [lesson])], START, 1);
+        expect(monday.entries[0]).toMatchObject({ days: [1], date: '', prepHours: 0 });
+
+        const thursday = buildWeekOverview([schedule('owner', [{ ...exam, prepHours: 6 }])], '2026-10-08', 1)[0];
+        expect(thursday.entries[0]).toMatchObject({ days: [], date: '2026-10-08', prepHours: 6 });
+    });
+
     test('the first schedule listed keeps a duplicated class', () => {
         const mine = schedule('owner', [lesson], { _id: 'mine' });
         const theirs = schedule('viewer', [{ ...lesson, _id: 'copy' }], { _id: 'theirs' });

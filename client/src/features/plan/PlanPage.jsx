@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { Button, Skeleton } from "@/shared/ui";
 import Page from "@/app/shell/Page";
@@ -9,6 +9,7 @@ import { monthOfWeek, toISODate } from "@/utils/scheduleUtils";
 import { profileFromUser } from "@/features/workload/useWorkload";
 import useTaskDone from "@/features/tasks/useTaskDone";
 import AddTaskButton from "@/features/tasks/AddTaskButton";
+import useItemDetail from "@/features/details/useItemDetail";
 import MonthGrid from "./MonthGrid";
 import PhoneWeek from "./PhoneWeek";
 import PlanControls from "./PlanControls";
@@ -20,6 +21,7 @@ import TimetableSwitcher from "./TimetableSwitcher";
 import { usePlanParams } from "./planParams";
 import usePlanData from "./usePlanData";
 import useMonthData from "./useMonthData";
+import useFlash from "./useFlash";
 import useTimetables from "./useTimetables";
 import "./plan.css";
 
@@ -32,7 +34,9 @@ const MONTH_LABEL = { month: "long", year: "numeric" };
 // Plan (Figma 38:3 desktop, 40:387 phone): the week's classes and tasks, as seven columns from 1024px
 // and a day strip with one day's agenda below that. Month (38:234) is the month grid and Tasks
 // (38:276) is every task in groups. The view, the week and the timetable live in the
-// URL (planParams.js), so a reload or a shared link lands on the same screen.
+// URL (planParams.js), so a reload or a shared link lands on the same screen. A class, exam or task
+// opens its details window from the week, the agenda and the Tasks view; a link with `?day=` or `?task=`
+// lands on that day or task and marks it for a moment.
 export default function PlanPage() {
   const { userData } = useAuth();
   const now = useNow();
@@ -50,11 +54,23 @@ export default function PlanPage() {
   const month = monthOfWeek(params.weekStart);
   const monthData = useMonthData(month, view === "month");
   const setDone = useTaskDone(data.setTasks);
+  const subjects = useMemo(() => [...data.subjectsById.values()], [data.subjectsById]);
+  const detail = useItemDetail({ subjects, onToggle: setDone, context: view === "tasks" ? "plan-tasks" : "plan-week" });
   // Which way the week was last stepped, so the new one slides in from that side.
   const [direction, setDirection] = useState("none");
   // The day the phone agenda shows; until one is tapped it follows today (or Monday in another week).
   const [pickedKey, setPickedKey] = useState(null);
   const sevenColumns = useMediaQuery("(min-width: 1024px)");
+
+  // A link to a day (`?day=`) picks it on the phone agenda and flashes its column from 1024px. The picked
+  // day is set while rendering (once per link) so the first paint is already on it.
+  const { day: linkedDay, clearFound } = params;
+  const [landedDay, setLandedDay] = useState(null);
+  if (linkedDay !== landedDay && (linkedDay || landedDay)) {
+    setLandedDay(linkedDay);
+    if (linkedDay) setPickedKey(linkedDay);
+  }
+  const [foundDay, flashDay] = useFlash();
 
   const profile = useMemo(() => profileFromUser(userData), [userData]);
   const days = useMemo(
@@ -89,6 +105,11 @@ export default function PlanPage() {
   const failed = data.status === "failed" || (view === "month" && monthData.status === "failed");
   const loading = !failed && (data.status === "loading" || (view === "month" && monthData.status === "loading"));
   const ready = !loading && !failed;
+  useEffect(() => {
+    if (!ready || !linkedDay) return;
+    if (sevenColumns) flashDay(linkedDay);
+    clearFound();
+  }, [ready, linkedDay, sevenColumns, flashDay, clearFound]);
   const retry = () => {
     if (data.status === "failed") data.reload();
     if (view === "month" && monthData.status === "failed") monthData.reload();
@@ -102,7 +123,7 @@ export default function PlanPage() {
   // A timetable shared by someone else has no tasks of the student's own, so the "+" waits for My week.
   const addTask = ready && !(view === "week" && params.timetable) && (
     <AddTaskButton
-      subjects={[...data.subjectsById.values()]}
+      subjects={subjects}
       onAdded={(task) => data.setTasks((prev) => [...prev, task])}
     />
   );
@@ -148,12 +169,29 @@ export default function PlanPage() {
         />
       )}
       {ready && view === "tasks" && (
-        <TasksView tasks={data.tasks} subjectsById={data.subjectsById} now={now} onToggle={setDone} />
+        <TasksView
+          tasks={data.tasks}
+          subjectsById={data.subjectsById}
+          now={now}
+          onToggle={setDone}
+          onOpen={detail.openTask}
+          foundTaskId={params.task}
+          onFound={clearFound}
+        />
       )}
       {ready && view === "week" && (
         <>
           {sevenColumns ? (
-            <WeekGrid key={weekKey} days={days} now={now} onToggle={setDone} direction={direction} />
+            <WeekGrid
+              key={weekKey}
+              days={days}
+              now={now}
+              onToggle={setDone}
+              onOpenEntry={detail.openEntry}
+              onOpenTask={detail.openTask}
+              foundDay={foundDay}
+              direction={direction}
+            />
           ) : (
             <PhoneWeek
               key={weekKey}
@@ -162,6 +200,8 @@ export default function PlanPage() {
               onSelect={setPickedKey}
               now={now}
               onToggle={setDone}
+              onOpenEntry={detail.openEntry}
+              onOpenTask={detail.openTask}
               direction={direction}
             />
           )}
@@ -169,6 +209,7 @@ export default function PlanPage() {
           {nothingPlanned && <p className="plan-quiet">Nothing is planned for this week yet.</p>}
         </>
       )}
+      {detail.dialog}
     </Page>
   );
 }

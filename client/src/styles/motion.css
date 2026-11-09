@@ -54,6 +54,13 @@
       opacity: 1;
     }
   }
+  /* A row or day a link landed on starts on the accent tint and settles into its own background (plan
+     rows and week columns, `.is-found`). The ring is static and comes from the rule itself. */
+  @keyframes found-fade {
+    from {
+      background-color: var(--accent-soft);
+    }
+  }
   /* Shell badges (sidebar rows, the bell) pop in when a count first appears. */
   @keyframes shell-badge-in {
     from {

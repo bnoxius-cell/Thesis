@@ -230,6 +230,7 @@ describe('the week overview says where each entry lives and whether it can be ch
         expect(entry).toMatchObject({
             entryId: saved._id, scheduleId: main._id, scheduleTitle: 'My 1st Sem', canEdit: true, notes: 'Bring the lab manual.',
         });
+        expect(entry.days).toEqual(everyDay);
         expect(entry).not.toHaveProperty('role');
     });
 

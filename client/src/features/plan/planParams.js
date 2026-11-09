@@ -13,15 +13,29 @@ function weekFromParam(value) {
   return toISODate(date) === value ? startOfWeek(date) : null;
 }
 
+// True when `value` is a real YYYY-MM-DD date that falls in the Monday-to-Sunday week at `weekStart`.
+function dayInWeek(value, weekStart) {
+  if (!ISO_DAY.test(value ?? "")) return false;
+  const date = fromISODate(value);
+  return toISODate(date) === value && toISODate(startOfWeek(date)) === toISODate(weekStart);
+}
+
 // What the address says the Plan page should show: `view` (default week), `week` (the Monday shown,
 // default this week) and `timetable` (a timetable id, default null for "My week"). Anything unknown
-// falls back to the default, so a hand-edited link never breaks the page.
+// falls back to the default, so a hand-edited link never breaks the page. Two more values say what a
+// link landed on, and are read only where they apply: `day` (a date inside the shown week, in Week
+// view) and `task` (a task id, in Tasks view). Both are null otherwise.
 export function readPlanParams(searchParams, today = new Date()) {
-  const view = searchParams.get("view");
+  const requested = searchParams.get("view");
+  const view = PLAN_VIEWS.includes(requested) ? requested : "week";
+  const weekStart = weekFromParam(searchParams.get("week")) ?? startOfWeek(today);
+  const day = searchParams.get("day");
   return {
-    view: PLAN_VIEWS.includes(view) ? view : "week",
-    weekStart: weekFromParam(searchParams.get("week")) ?? startOfWeek(today),
+    view,
+    weekStart,
     timetable: searchParams.get("timetable") || null,
+    day: view === "week" && dayInWeek(day, weekStart) ? day : null,
+    task: view === "tasks" ? searchParams.get("task") || null : null,
   };
 }
 
@@ -77,5 +91,10 @@ export function usePlanParams() {
     setSearchParams((prev) => withParam(prev, "timetable", id), { replace: true });
   }, [setSearchParams]);
 
-  return { ...params, setView, shiftWeek, shiftMonth, openWeek, goToday, setTimetable };
+  // Drops `day` and `task` once the page has landed on them, so a reload doesn't land (and flash) again.
+  const clearFound = useCallback(() => {
+    setSearchParams((prev) => withParam(withParam(prev, "day", null), "task", null), { replace: true });
+  }, [setSearchParams]);
+
+  return { ...params, setView, shiftWeek, shiftMonth, openWeek, goToday, setTimetable, clearFound };
 }
