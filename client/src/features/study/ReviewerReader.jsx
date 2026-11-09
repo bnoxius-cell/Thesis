@@ -13,7 +13,7 @@ function Section({ title, empty, children }) {
   );
 }
 
-// The notes the AI wrote from the PDF (Figma 76:1280): what it covers, key points, key terms and
+// The notes the AI wrote from the files (Figma 76:1280): what it covers, key points, key terms and
 // how it breaks down by topic. Long text wraps instead of stretching the card.
 export default function ReviewerReader({ reviewer }) {
   const summary = paragraphs(reviewer.summary);

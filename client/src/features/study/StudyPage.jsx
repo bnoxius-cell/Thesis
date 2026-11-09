@@ -131,6 +131,7 @@ function Study() {
           limits={limits}
           onClose={() => setUploading(false)}
           onCreated={uploaded}
+          onSubjectCreated={data.refresh}
         />
       )}
       <SubjectDialogs dialog={dialog} onClose={() => setDialog(null)} onChanged={data.refresh} />

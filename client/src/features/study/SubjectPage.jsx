@@ -195,6 +195,7 @@ function SubjectView({ subjectId }) {
         <NewReviewerDialog
           subjects={[subject]}
           defaultSubject={subject._id}
+          allowNewSubject={false}
           limits={limits}
           onClose={() => setAdding(null)}
           onCreated={reviewerAdded}

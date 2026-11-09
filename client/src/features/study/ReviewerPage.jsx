@@ -84,9 +84,10 @@ export default function ReviewerPage() {
               <ReviewerReader reviewer={reviewer} />
               {reviewer.source?.truncated && (
                 <p className="reviewer-note">
-                  Your PDF was long, so only the first part was used. For the rest, split it and upload the second half.
+                  Your files were long, so only the first part was used. For the rest, split them and make another reviewer.
                 </p>
               )}
+              {reviewer.note && <p className="reviewer-note">{reviewer.note}</p>}
             </div>
             <ReviewerSidePanel
               reviewer={reviewer}
@@ -96,7 +97,7 @@ export default function ReviewerPage() {
             />
           </div>
         ) : (
-          <ReviewerWaiting reviewer={reviewer} />
+          <ReviewerWaiting reviewer={reviewer} making={data.making} />
         )}
       </div>
     </Page>

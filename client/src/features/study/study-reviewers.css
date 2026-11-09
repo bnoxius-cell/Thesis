@@ -213,30 +213,6 @@
     color: var(--text-primary);
     font-weight: 600;
   }
-  .study-drop__file {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    width: 100%;
-    color: var(--text-primary);
-    text-align: left;
-  }
-  .study-drop__name {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    min-width: 0;
-    font: 400 var(--text-sm) / 20px var(--font-ui);
-  }
-  .study-drop__name strong {
-    font-weight: 600;
-    overflow-wrap: anywhere;
-  }
-  .study-drop__name small {
-    color: var(--text-muted);
-    font-size: var(--text-xs);
-  }
-
   /* The empty Study page's two buttons. */
   .study-empty__buttons {
     display: flex;
