@@ -119,5 +119,8 @@ describe('detail text', () => {
         expect(entryChip(cls, '2025-10-28', now, false)).toBeNull();
         expect(entrySubtitle(cls, '2025-10-29', 'Every Tue and Thu')).toBe('Class · Every Tue and Thu');
         expect(entrySubtitle({ kind: 'exam' }, '2025-11-01', '')).toBe('Exam · Sat, Nov 1');
+        const exam = { kind: 'exam', startTime: '09:00', endTime: '11:00' };
+        expect(entryChip(exam, '2025-10-30', now, false)).toEqual({ label: 'Tomorrow', tone: 'watch' });
+        expect(entryChip(exam, '2025-11-01', now, false)).toEqual({ label: 'Sat, Nov 1', tone: 'neutral' });
     });
 });

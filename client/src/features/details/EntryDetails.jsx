@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { CalendarDays, ClipboardCheck, Clock, FileText, MapPin, Shapes, Video } from "lucide-react";
+import { CalendarDays, Clock, FileText, MapPin, Shapes, Timer, Video } from "lucide-react";
 import { Button, Chip } from "@/shared/ui";
 import useNow from "@/shared/hooks/useNow";
 import { isWebLink, meetingProvider } from "@/utils/scheduleUtils";
@@ -66,7 +66,6 @@ export default function EntryDetails({ entry, iso, subjects, context, onClose, o
               </a>
               <Button
                 variant="secondary"
-                size="sm"
                 href={entry.meetingUrl}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -77,7 +76,7 @@ export default function EntryDetails({ entry, iso, subjects, context, onClose, o
             </>
           )}
         </DetailRow>
-        <DetailRow icon={ClipboardCheck} label="Prep">{entry.kind === "exam" ? prepText(entry.prepHours) : ""}</DetailRow>
+        <DetailRow icon={Timer} label="Prep">{entry.kind === "exam" ? prepText(entry.prepHours) : ""}</DetailRow>
         <DetailRow icon={Shapes} label="Subject">
           {subject && !inThisSubject && (
             <Link className="detail-link" to={subjectHref(subject._id)} onClick={onClose}>{subject.name}</Link>

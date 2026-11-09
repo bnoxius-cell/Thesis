@@ -76,8 +76,25 @@
   }
 
   /* ---- The window ---- */
+  /* The frames: 480px wide, 24px between the head, the chip, the rows and the buttons (20px on a phone),
+     and a 20px title on both. */
   .item-detail .ui-modal__body {
-    gap: var(--space-4);
+    gap: var(--space-5);
+    padding-top: var(--space-5);
+  }
+  .item-detail .ui-modal__title {
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+  }
+  @media (min-width: 720px) {
+    .item-detail {
+      max-width: 480px;
+    }
+  }
+  @media (max-width: 719.98px) {
+    .item-detail .ui-modal__body {
+      gap: 20px;
+      padding-top: 20px;
+    }
   }
   /* A sheet with a button row normally drops its close button; this window keeps it (the frames draw it). */
   @media (max-width: 719.98px) {
