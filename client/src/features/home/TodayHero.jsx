@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { CalendarDays } from "lucide-react";
 import { Card } from "@/shared/ui";
+import { toISODate } from "@/utils/scheduleUtils";
 import { todayEmptyText, todayHeadline } from "./todayHeadline";
 import { EntryRow, TaskRow } from "./TodayRows";
 
@@ -10,8 +11,8 @@ const MIN_TASK_SEATS = 2;
 
 // The Today hero (Figma 16:46): what is on now or next, then up to four rows of classes and the tasks
 // due today. `tasks` are open tasks due today or overdue, most urgent first. It carries the page's one
-// ambient layer.
-export default function TodayHero({ focus, today, tasks, subjectsById, now, isNewUser, onToggle }) {
+// ambient layer. A row's title opens its details window: `onOpenEntry(entry, iso)` and `onOpenTask(task)`.
+export default function TodayHero({ focus, today, tasks, subjectsById, now, isNewUser, onToggle, onOpenEntry, onOpenTask }) {
   const entries = [...focus.happeningNow, ...focus.laterToday];
   const taskSeats = Math.min(tasks.length, Math.max(MIN_TASK_SEATS, MAX_ROWS - entries.length));
   const shownEntries = entries.slice(0, MAX_ROWS - taskSeats);
@@ -39,10 +40,22 @@ export default function TodayHero({ focus, today, tasks, subjectsById, now, isNe
       {shownEntries.length + shownTasks.length > 0 && (
         <ul className="home-rows stagger" aria-label="Classes and tasks for today">
           {shownEntries.map((entry, i) => (
-            <EntryRow key={`${entry.title}-${entry.startTime}-${i}`} entry={entry} live={focus.happeningNow.includes(entry)} />
+            <EntryRow
+              key={`${entry.title}-${entry.startTime}-${i}`}
+              entry={entry}
+              live={focus.happeningNow.includes(entry)}
+              onOpen={(opened) => onOpenEntry(opened, toISODate(now))}
+            />
           ))}
           {shownTasks.map((task) => (
-            <TaskRow key={task._id} task={task} subject={subjectsById.get(task.subject)} now={now} onToggle={onToggle} />
+            <TaskRow
+              key={task._id}
+              task={task}
+              subject={subjectsById.get(task.subject)}
+              now={now}
+              onToggle={onToggle}
+              onOpen={onOpenTask}
+            />
           ))}
         </ul>
       )}

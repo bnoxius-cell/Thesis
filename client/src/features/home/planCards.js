@@ -19,6 +19,7 @@ export function planCards({ tasks, exam, subjectsById, now }) {
       title: task.title,
       when: dueChip(task.dueDate, now).label,
       size: effortLabel(task.hours),
+      task,
     }));
 
   if (exam && exam.daysLeft >= 1) {
@@ -30,6 +31,7 @@ export function planCards({ tasks, exam, subjectsById, now }) {
       title: exam.title,
       when: dueChip(exam.date, now).label,
       size: null,
+      exam,
     });
   }
 
