@@ -1,4 +1,4 @@
-import { describe, test, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, test, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import request from 'supertest';
 import app from '../app.js';
 import userModel from '../models/userModel.js';
@@ -333,25 +333,29 @@ describe('adding to my timetable in one call', () => {
     });
 
     test('two quick posts from a student with no timetable end with exactly one main', async () => {
-        const { alice } = await setup();
+        const { alice, aliceId } = await setup();
         const results = await Promise.all([
             addMine(alice, cls({ title: 'First' })),
             addMine(alice, cls({ title: 'Second' })),
         ]);
         expect(results.map((r) => r.status)).toEqual([201, 201]);
 
-        const list = await timetables(alice);
-        expect(list.filter((s) => s.isMain)).toHaveLength(1);
-        expect(list.reduce((n, s) => n + s.entryCount, 0)).toBe(2);
+        // Straight from the database: listing timetables would repair a second main on its own.
+        const stored = await scheduleModel.find({ owner: aliceId });
+        expect(stored).toHaveLength(1);
+        expect(stored[0].isMain).toBe(true);
+        expect(stored[0].entries).toHaveLength(2);
     });
 });
 
 describe('server errors', () => {
+    afterEach(() => vi.restoreAllMocks());
+
     test('a database failure answers a plain message and never the thrown text', async () => {
         const { alice } = await setup();
         const main = await create(alice, 'Main');
         const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-        const lookup = vi.spyOn(scheduleModel, 'findById').mockRejectedValueOnce(new Error('E11000 duplicate key secret-collection'));
+        vi.spyOn(scheduleModel, 'findById').mockRejectedValueOnce(new Error('E11000 duplicate key secret-collection'));
 
         const res = await alice.get(`/api/schedules/${main._id}`);
         expect(res.status).toBe(500);
@@ -359,7 +363,6 @@ describe('server errors', () => {
         expect(res.body.message).not.toContain('E11000');
         expect(res.body.message).toBe('Something went wrong on our side. Try again in a moment.');
         expect(log).toHaveBeenCalled();
-        vi.restoreAllMocks();
     });
 });
 

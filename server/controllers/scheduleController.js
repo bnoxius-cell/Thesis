@@ -127,7 +127,7 @@ const loadSchedule = async (req, res, need) => {
 // Everyone with schedules has exactly one main. Accounts from before that rule may have several
 // and none marked, so the oldest one is promoted the first time it matters.
 const ensureMainSchedule = async (userId) => {
-    const owned = await scheduleModel.find({ owner: userId }).select('isMain createdAt').sort({ createdAt: 1 });
+    const owned = await scheduleModel.find({ owner: userId }).select('isMain createdAt').sort({ createdAt: 1, _id: 1 });
     if (!owned.length) return null;
     const mains = owned.filter((s) => s.isMain);
     if (mains.length === 1) return mains[0]._id;
@@ -440,8 +440,9 @@ const mainScheduleOrNew = async (userId) => {
     // Two quick requests can each create one. The oldest stays main and the other one goes.
     const mainId = await ensureMainSchedule(userId);
     if (String(mainId) === String(created._id)) return created;
-    await scheduleModel.deleteOne({ _id: created._id });
-    return scheduleModel.findById(mainId);
+    // Only while it is still empty, so another request's entry is never deleted with it.
+    const removed = await scheduleModel.deleteOne({ _id: created._id, entries: { $size: 0 } });
+    return removed.deletedCount ? scheduleModel.findById(mainId) : created;
 };
 
 // POST /api/schedules/main/entries: adds a class, exam or event to the caller's main timetable in
