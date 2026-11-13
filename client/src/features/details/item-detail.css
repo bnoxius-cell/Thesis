@@ -142,8 +142,8 @@
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     transition:
-      background-color var(--dur-2) var(--ease-out),
-      border-color var(--dur-2) var(--ease-out),
+      background-color var(--hover-dur) var(--hover-ease),
+      border-color var(--hover-dur) var(--hover-ease),
       transform var(--dur-1) var(--ease-out);
   }
   .item-done svg {
@@ -298,6 +298,11 @@
   .item-footer__delete {
     margin-inline-end: auto;
     color: var(--danger);
+    transition:
+      background-color var(--hover-dur) var(--hover-ease),
+      border-color var(--dur-2) var(--ease-out),
+      color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
   }
   @media (hover: hover) and (pointer: fine) {
     .item-footer__delete:hover:not(:disabled) {

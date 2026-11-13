@@ -97,7 +97,7 @@
     background: var(--surface);
     color: inherit;
     text-decoration: none;
-    transition: background-color var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out);
+    transition: background-color var(--hover-dur) var(--hover-ease), transform var(--dur-2) var(--ease-out);
   }
   .study-reviewer:focus-visible {
     outline: 2px solid var(--accent);

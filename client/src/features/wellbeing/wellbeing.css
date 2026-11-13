@@ -211,6 +211,7 @@
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    transition: color var(--hover-dur) var(--hover-ease);
   }
   .wellbeing-why__toggle svg {
     transition: transform var(--dur-2) var(--ease-out);

@@ -96,7 +96,7 @@
     cursor: pointer;
     transition:
       color var(--dur-2) var(--ease-out),
-      background-color var(--dur-2) var(--ease-out),
+      background-color var(--hover-dur) var(--hover-ease),
       transform var(--dur-1) var(--ease-out);
   }
   .shell-nav__link[aria-current="page"] {

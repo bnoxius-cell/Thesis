@@ -41,7 +41,7 @@
     cursor: pointer;
     transition:
       background-color var(--dur-2) var(--ease-out),
-      color var(--dur-2) var(--ease-out),
+      color var(--hover-dur) var(--hover-ease),
       transform var(--dur-1) var(--ease-out);
   }
   .ui-tabs--block .ui-tab {

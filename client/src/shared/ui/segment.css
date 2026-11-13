@@ -53,7 +53,7 @@
     text-align: center;
     cursor: pointer;
     transition:
-      color var(--dur-2) var(--ease-out),
+      color var(--hover-dur) var(--hover-ease),
       transform var(--dur-1) var(--ease-out);
   }
   /* The track's 4px padding on top and bottom joins the hit area: 44px tall. */

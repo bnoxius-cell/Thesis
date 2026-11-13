@@ -47,6 +47,9 @@
     height: 44px;
     border-color: var(--border);
     background: var(--surface);
+    transition:
+      background-color var(--hover-dur) var(--hover-ease),
+      transform var(--dur-1) var(--ease-out);
   }
   @media (min-width: 1024px) {
     .plan-step__btn .ui-icon-btn__face {
@@ -441,7 +444,9 @@
     -webkit-user-select: none;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    transition: transform var(--dur-1) var(--ease-out);
+    transition:
+      background-color var(--hover-dur) var(--hover-ease),
+      transform var(--dur-1) var(--ease-out);
   }
   .plan-strip__day:active {
     transform: scale(0.97);
