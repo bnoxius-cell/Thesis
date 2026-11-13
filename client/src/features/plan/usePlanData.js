@@ -10,7 +10,7 @@ const NO_TASKS = [];
 // overview plus the student's tasks. One timetable is that timetable's own entries and holidays,
 // with no tasks (they belong to the student's week, not to a timetable).
 // Returns usePlanWeek's shape (`status`, `error`, `overview`, `tasks`, `setTasks`, `subjectsById`,
-// `reload`) plus `holidayError`, a plain message when public holidays couldn't load for a timetable.
+// `reload`) plus `schedule` (the picked timetable with its entries, null until loaded) and `holidayError`, a plain message when public holidays couldn't load for a timetable.
 // `onTimetableGone` runs once when the open timetable was deleted or is no longer shared.
 export default function usePlanData(weekStart, timetableId, onTimetableGone, withOverview = true) {
   const myWeek = !timetableId;
@@ -32,6 +32,7 @@ export default function usePlanData(weekStart, timetableId, onTimetableGone, wit
     status: failed ? "failed" : ready ? "ready" : "loading",
     error: timetable.error || week.error,
     overview,
+    schedule: timetable.schedule,
     tasks: NO_TASKS,
     holidayError: holidays.error,
     reload: () => {
