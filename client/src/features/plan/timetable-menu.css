@@ -1,0 +1,31 @@
+/* The timetable More menu and its dialogs (Figma D10). The popover, Modal and ConfirmDialog are shared. */
+@layer pages {
+  /* The switcher and its More button share the row: the switcher stretches on phones, and from 1024px
+     the pair sits at the end of the controls row as the switcher did alone. */
+  .plan-tt-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .plan-tt-group .plan-tt {
+    flex: 1;
+    min-width: 0;
+    margin-left: 0;
+  }
+  @media (min-width: 1024px) {
+    .plan-tt-group {
+      margin-left: auto;
+    }
+    .plan-tt-group .plan-tt {
+      flex: none;
+    }
+  }
+  .timetable-menu {
+    flex: none;
+  }
+  .timetable-menu__error {
+    margin: 0;
+    color: var(--danger);
+    font-weight: 500;
+  }
+}
