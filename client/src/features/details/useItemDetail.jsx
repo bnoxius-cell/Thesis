@@ -23,8 +23,8 @@ const isPrepTask = (task) => task.isExam || String(task._id).startsWith("exam:")
 // openEntry(entry, iso) takes the entry as it is on day `iso` (YYYY-MM-DD).
 // openDay(day, { onOpenWeek }) opens the day window (Figma D9) on a day from buildDay (features/plan/planDays.js).
 // A row in it opens that item's window in its place, with a back arrow to the day; Escape and the X close both.
-// The day's "Open this week" calls `onOpenWeek` when given; else, outside Plan's week view (`context` is not
-// "plan-week"), it is a link into Plan. Edit and Delete leave the day behind, as they close the window.
+// The day's "Open this week" calls `onOpenWeek` when given (Plan shows that week itself); else it is a link into
+// Plan. Edit and Delete leave the day behind, as they close the window.
 export default function useItemDetail({
   subjects,
   onToggle,
@@ -110,7 +110,6 @@ export default function useItemDetail({
         subjects={subjects}
         onClose={close}
         onOpenWeek={day.onOpenWeek}
-        weekLink={context !== "plan-week"}
         still={day.returned}
         returnFocusRef={row}
         onOpenEntry={showEntry}

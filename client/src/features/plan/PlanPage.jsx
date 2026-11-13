@@ -110,6 +110,9 @@ export default function PlanPage() {
     setPickedKey(toISODate(date));
     params.openWeek(date);
   };
+  // A day header (desktop) or the phone's date title opens the day window; "Open this week" shows that day's
+  // week, so it picks the day on the phone agenda and moves to the week when it is another one.
+  const openWeekDay = (day) => detail.openDay(day, { onOpenWeek: () => openWeekOf(day.date) });
   // A Month cell opens its day window, which links on to that week. The day comes from the month's weeks.
   const openMonthDay = (date) => {
     const iso = toISODate(date);
@@ -218,7 +221,7 @@ export default function PlanPage() {
               onToggle={setDone}
               onOpenEntry={detail.openEntry}
               onOpenTask={detail.openTask}
-              onOpenDay={detail.openDay}
+              onOpenDay={openWeekDay}
               foundDay={foundDay}
               direction={direction}
             />
@@ -232,7 +235,7 @@ export default function PlanPage() {
               onToggle={setDone}
               onOpenEntry={detail.openEntry}
               onOpenTask={detail.openTask}
-              onOpenDay={detail.openDay}
+              onOpenDay={openWeekDay}
               direction={direction}
             />
           )}

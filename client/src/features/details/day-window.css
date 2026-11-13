@@ -54,9 +54,27 @@
     padding: 0;
     list-style: none;
   }
-  /* The frame's empty state sits on the white of the window, with no card around it. */
+  /* The frame's empty state sits on the white of the window: a small plain icon, a small heading, one line. */
   .day-window__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
     padding: var(--space-4) 0;
+    text-align: center;
+    color: var(--text-secondary);
+  }
+  .day-window__empty-title,
+  .day-window__empty-text {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .day-window__empty-title {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+  }
+  .day-window__empty-text {
+    font: 400 var(--text-xs) / 18px var(--font-ui);
   }
 
   .day-row {
@@ -99,6 +117,10 @@
   .day-row__chip,
   .day-row__go {
     flex: none;
+  }
+  /* A due-day chip that isn't urgent would melt into the row; give it the white of the window. */
+  .day-row__chip--due {
+    background: var(--surface);
   }
   .day-row__go {
     color: var(--text-muted);

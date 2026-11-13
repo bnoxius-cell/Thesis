@@ -1,5 +1,5 @@
 import { CalendarDays, ChevronRight, Circle, Sun } from "lucide-react";
-import { Button, Chip, EmptyState, Modal } from "@/shared/ui";
+import { Button, Chip, Modal } from "@/shared/ui";
 import { cheerLine } from "@/utils/cheerLine";
 import { KIND_LABELS } from "@/utils/scheduleUtils";
 import { dueWords } from "@/shared/lib/dueChip";
@@ -24,7 +24,7 @@ function entryMeta(entry) {
   return [entry.location, when].filter(Boolean).join(" · ");
 }
 
-function DayRow({ lead, title, meta, chip, onOpen }) {
+function DayRow({ lead, title, meta, chip, chipClass, onOpen }) {
   return (
     <li className="day-row item-row">
       <span className="day-row__lead">{lead}</span>
@@ -34,7 +34,7 @@ function DayRow({ lead, title, meta, chip, onOpen }) {
         </p>
         <p className="day-row__meta">{meta}</p>
       </div>
-      {chip && <Chip tone={chip.tone} className="day-row__chip">{chip.label}</Chip>}
+      {chip && <Chip tone={chip.tone} className={`day-row__chip${chipClass ? ` ${chipClass}` : ""}`}>{chip.label}</Chip>}
       <ChevronRight size={20} aria-hidden="true" className="day-row__go" />
     </li>
   );
@@ -43,14 +43,13 @@ function DayRow({ lead, title, meta, chip, onOpen }) {
 // The day window (Figma D9): one day in full. The date and how full it is, a day-off note, one cheer line,
 // then the classes, exams and events ("Schedule") and the tasks due. A row opens that item's details window
 // in its place, with a back arrow to here. `day` is a day from buildDay (features/plan/planDays.js).
-// "Open this week" comes from `onOpenWeek` (when the page can show that week itself, like Plan's Month) or,
-// with `weekLink`, a link into Plan; Plan's own week view passes neither, as it is already there. `still`
-// keeps the scrim from fading in again when the window comes back from an item.
-export default function DayWindow({ day, now, subjects, onClose, onOpenWeek, weekLink, still, returnFocusRef, onOpenEntry, onOpenTask }) {
+// "Open this week" is `onOpenWeek` when the page can show that week itself (Plan), else a link into Plan.
+// `still` keeps the scrim from fading in again when the window comes back from an item.
+export default function DayWindow({ day, now, subjects, onClose, onOpenWeek, still, returnFocusRef, onOpenEntry, onOpenTask }) {
   const empty = !day.holiday && day.entries.length === 0 && day.tasks.length === 0;
   const openWeek = onOpenWeek ? (
     <Button variant="secondary" onClick={() => { onClose(); onOpenWeek(); }}>Open this week</Button>
-  ) : weekLink && (
+  ) : (
     <Button variant="secondary" to={planDayHref(day.key, now)} onClick={onClose}>Open this week</Button>
   );
 
@@ -62,7 +61,7 @@ export default function DayWindow({ day, now, subjects, onClose, onOpenWeek, wee
       sheet
       className="item-detail day-window"
       overlayClassName={still ? "item-detail-swap" : undefined}
-      actions={openWeek || undefined}
+      actions={openWeek}
       returnFocusRef={returnFocusRef}
     >
       {day.holiday && (
@@ -76,9 +75,11 @@ export default function DayWindow({ day, now, subjects, onClose, onOpenWeek, wee
         {cheerLine(day)}
       </p>
       {empty && (
-        <EmptyState icon={CalendarDays} title="Nothing on this day" titleAs="h3" className="day-window__empty">
-          No classes, exams or tasks fall on it.
-        </EmptyState>
+        <div className="day-window__empty">
+          <CalendarDays size={20} aria-hidden="true" />
+          <h3 className="day-window__empty-title">Nothing on this day</h3>
+          <p className="day-window__empty-text">No classes, exams or tasks fall on it.</p>
+        </div>
       )}
       {day.entries.length > 0 && (
         <section className="day-window__section" aria-labelledby="day-window-schedule">
@@ -108,6 +109,7 @@ export default function DayWindow({ day, now, subjects, onClose, onOpenWeek, wee
                 title={task.title}
                 meta={[taskSubject(task, subjects)?.name || task.course, lowerFirst(dueWords(task.dueDate, now))].filter(Boolean).join(" · ")}
                 chip={taskChip(task, now)}
+                chipClass="day-row__chip--due"
                 onOpen={() => onOpenTask(task)}
               />
             ))}
