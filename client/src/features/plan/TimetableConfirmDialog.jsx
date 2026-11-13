@@ -1,16 +1,19 @@
 import { useState } from "react";
+import { Users } from "lucide-react";
 import { ConfirmDialog } from "@/shared/ui";
 import { deleteTimetable, leaveTimetable } from "@/shared/api/schedules";
 import "./timetable-menu.css";
 
-const people = (n) => `${n} ${n === 1 ? "person uses" : "people use"}`;
+const usedBy = (n, title) => `${n} ${n === 1 ? "person uses" : "people use"} ${title}. They lose it too.`;
 
-// Delete (owner) or Leave (member), Figma D10. Both are real: the server removes the timetable or the
+// Delete (owner, red) or Leave (member, primary), Figma D10. Both are real: the server removes the timetable or the
 // membership, and a failure keeps the dialog open with the server's message.
 export default function TimetableConfirmDialog({ mode, timetable, userId, onClose, onDone }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const deleting = mode === "delete";
+  const count = timetable.collaboratorCount;
+  const note = deleting ? (count > 0 ? usedBy(count, timetable.title) : "") : `Everyone else keeps ${timetable.title}.`;
 
   const confirm = async () => {
     setBusy(true);
@@ -25,22 +28,25 @@ export default function TimetableConfirmDialog({ mode, timetable, userId, onClos
     <ConfirmDialog
       open
       sheet
-      tone="danger"
+      tone={deleting ? "danger" : "default"}
       title={`${deleting ? "Delete" : "Leave"} "${timetable.title}"?`}
       confirmLabel={deleting ? "Delete timetable" : "Leave timetable"}
       busy={busy}
       onConfirm={confirm}
       onCancel={onClose}
     >
-      {deleting ? (
-        <>
-          The timetable and everything on it are removed for good.
-          {timetable.collaboratorCount > 0 && ` ${people(timetable.collaboratorCount)} it. They lose it too.`}
-        </>
-      ) : (
-        <>You stop seeing it on your plan. Your own tasks and notes stay with you. Everyone else keeps it.</>
+      <p className="timetable-menu__text">
+        {deleting
+          ? "This removes the timetable and everything on it for everyone who uses it. This can't be undone."
+          : "You stop seeing it on your plan. Your own tasks and notes stay with you."}
+      </p>
+      {note && (
+        <p className="timetable-menu__note">
+          <Users size={16} aria-hidden="true" />
+          {note}
+        </p>
       )}
-      {error && <span className="timetable-menu__error" role="alert"> {error}</span>}
+      {error && <p className="timetable-menu__error" role="alert">{error}</p>}
     </ConfirmDialog>
   );
 }
