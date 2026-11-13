@@ -86,4 +86,8 @@ const scheduleSchema = new mongoose.Schema({
     importedFrom: { type: [String], default: [] },
 }, { timestamps: true });
 
+// One main per owner, enforced by the database so two requests creating a first timetable at once
+// can't both end up with one.
+scheduleSchema.index({ owner: 1 }, { unique: true, partialFilterExpression: { isMain: true } });
+
 export default mongoose.models.schedule || mongoose.model('schedule', scheduleSchema);

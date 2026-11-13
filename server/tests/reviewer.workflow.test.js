@@ -675,7 +675,8 @@ describe('up to 100 questions', () => {
 
     // Two new reviewers of one student never reserve at once (the second waits on the student's
     // upload slot), so the race is a new reviewer against a regenerate. Each reservation waits here
-    // until the other is written too, so both counts see both.
+    // until the other is written too, and each refund waits until the other has counted, so both
+    // counts see both (a refund that lands before the other count would let that one fit).
     test('a new reviewer and a regenerate that reserve at the same moment are both refused and both given back', async () => {
         const alice = await signUp();
         const id = await makeReady(alice);
@@ -692,6 +693,16 @@ describe('up to 100 questions', () => {
             await together;
             return rows;
         });
+        const deleteMany = aiRequestModel.deleteMany.bind(aiRequestModel);
+        let refunding = 0;
+        let bothCounted;
+        const counted = new Promise((resolve) => { bothCounted = resolve; });
+        const refundSpy = vi.spyOn(aiRequestModel, 'deleteMany').mockImplementation(async (...args) => {
+            refunding += 1;
+            if (refunding === 2) bothCounted();
+            await counted;
+            return deleteMany(...args);
+        });
         try {
             const results = await Promise.all([
                 upload(alice, { file: makePdf([...STUDY_LINES, 'Another line.']), fields: { questionCount: '100' } }),
@@ -700,6 +711,7 @@ describe('up to 100 questions', () => {
             expect(results.map((res) => res.status)).toEqual([429, 429]);
         } finally {
             spy.mockRestore();
+            refundSpy.mockRestore();
         }
         expect(await aiRequestModel.countDocuments()).toBe(7);
         expect(await reviewerModel.countDocuments()).toBe(1);

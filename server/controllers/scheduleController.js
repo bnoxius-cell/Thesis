@@ -436,13 +436,13 @@ const mainScheduleOrNew = async (userId) => {
     const existingId = await ensureMainSchedule(userId);
     if (existingId) return scheduleModel.findById(existingId);
 
-    const created = await scheduleModel.create({ title: MAIN_SCHEDULE_TITLE, owner: userId, isMain: true });
-    // Two quick requests can each create one. The oldest stays main and the other one goes.
-    const mainId = await ensureMainSchedule(userId);
-    if (String(mainId) === String(created._id)) return created;
-    // Only while it is still empty, so another request's entry is never deleted with it.
-    const removed = await scheduleModel.deleteOne({ _id: created._id, entries: { $size: 0 } });
-    return removed.deletedCount ? scheduleModel.findById(mainId) : created;
+    try {
+        return await scheduleModel.create({ title: MAIN_SCHEDULE_TITLE, owner: userId, isMain: true });
+    } catch (error) {
+        // Another request made the first timetable at the same moment: use that one.
+        if (error.code !== 11000) throw error;
+        return scheduleModel.findById(await ensureMainSchedule(userId));
+    }
 };
 
 // POST /api/schedules/main/entries: adds a class, exam or event to the caller's main timetable in
