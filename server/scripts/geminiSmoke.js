@@ -5,9 +5,11 @@
 // GEMINI_API_KEY (and GEMINI_MODEL if set) from server/.env. Nothing is saved. Makes 2 or more
 // requests: one per photo or scanned PDF, then 2 to 4 (a few more for 50 or 100 questions).
 //
-//   npm run smoke:gemini -- [--count 100] path/to/notes.pdf [more files...]
+//   npm run smoke:gemini -- [--count 100] [--type mixed] path/to/notes.pdf [more files...]
 //
 // --count is the number of questions: 10, 15, 20, 30, 50 or 100 (default 10).
+// --type is the kind of question: mixed, multiple_choice, true_false, identification, fill_blank,
+// enumeration or essay (default multiple_choice).
 import 'dotenv/config';
 import { readFile } from 'fs/promises';
 import { basename } from 'path';
@@ -17,17 +19,19 @@ import { withRetries, friendlyError, describeError } from '../utils/aiErrors.js'
 import { combineSources, readSources, sourceTypeOf } from '../utils/reviewerSource.js';
 import { transcribeSources, unreadableError } from '../utils/reviewerPictures.js';
 import {
-    FIRST_ROUND_MAX, QUESTION_COUNTS, REVIEWER_SCHEMA, REVIEWER_SYSTEM, TARGETED_SCHEMA, buildReviewerPrompt, buildTargetedPrompt,
-    planParts, normalizeReviewer, normalizeTargeted, textForTopics,
+    FIRST_ROUND_MAX, QUESTION_COUNTS, QUESTION_TYPES, DEFAULT_QUESTION_TYPE, REVIEWER_SCHEMA, REVIEWER_SYSTEM, TARGETED_SCHEMA,
+    allowedTypes, buildReviewerPrompt, buildTargetedPrompt, planParts, normalizeReviewer, normalizeTargeted, textForTopics,
 } from '../utils/reviewerContent.js';
 import { WAVES_STOP_AFTER_MS, writeMoreQuestions } from '../utils/reviewerMoreQuestions.js';
 
 const args = process.argv.slice(2);
 const countAt = args.indexOf('--count');
 const countArg = countAt === -1 ? '' : args.splice(countAt, 2)[1];
+const typeAt = args.indexOf('--type');
+const questionType = typeAt === -1 ? DEFAULT_QUESTION_TYPE : args.splice(typeAt, 2)[1];
 const paths = args;
-if (!paths.length || (countArg && !QUESTION_COUNTS.includes(Number(countArg)))) {
-    console.error(`Usage: npm run smoke:gemini -- [--count ${QUESTION_COUNTS.join('|')}] path/to/notes.pdf [more files...]`);
+if (!paths.length || (countArg && !QUESTION_COUNTS.includes(Number(countArg))) || !QUESTION_TYPES.includes(questionType)) {
+    console.error(`Usage: npm run smoke:gemini -- [--count ${QUESTION_COUNTS.join('|')}] [--type ${QUESTION_TYPES.join('|')}] path/to/notes.pdf [more files...]`);
     process.exit(1);
 }
 if (!isGeminiConfigured()) {
@@ -43,11 +47,17 @@ const retry = (request) => withRetries(request, RETRY_DELAYS_MS, (error, wait) =
 const ask = (request) => retry(() => generateJson(request));
 
 const seconds = (since) => `${((Date.now() - since) / 1000).toFixed(1)}s`;
+const allowed = allowedTypes(questionType);
 const printQuestion = (q) => {
-    console.log(`  [${q.topic}, ${q.difficulty}] ${q.prompt}`);
+    console.log(`  [${q.type}, ${q.topic}, ${q.difficulty}] ${q.prompt}`);
     q.options.forEach((o, i) => console.log(`    ${'ABCD'[i]}. ${o}${i === q.correctIndex ? '  <- answer' : ''}`));
+    if (q.answer) console.log(`    Answer: ${q.answer}${q.accepted.length ? ` (also: ${q.accepted.join(', ')})` : ''}`);
+    if (q.items.length) console.log(`    Items: ${q.items.map((item) => item.answer).join(', ')}`);
+    if (q.points.length) console.log(`    Key points: ${q.points.join(' | ')}`);
     console.log(`    Why: ${q.explanation}`);
 };
+const countKinds = (questions) => allowed
+    .map((kind) => `${questions.filter((q) => q.type === kind).length} ${kind}`).join(', ');
 
 const questionCount = Number(countArg) || 10;
 const firstRound = Math.min(questionCount, FIRST_ROUND_MAX);
@@ -87,10 +97,10 @@ try {
     started = Date.now();
     const answers = await Promise.all(parts.map((text, i) => ask({
         system: REVIEWER_SYSTEM,
-        prompt: buildReviewerPrompt({ title: file, course: '', text, part: plan[i] }),
+        prompt: buildReviewerPrompt({ title: file, course: '', text, questionType, part: plan[i] }),
         schema: REVIEWER_SCHEMA,
     })));
-    const reviewer = normalizeReviewer(answers.map((a) => a.data), { questionCount: firstRound, shares: plan.map((p) => p.questions) });
+    const reviewer = normalizeReviewer(answers.map((a) => a.data), { questionCount: firstRound, shares: plan.map((p) => p.questions), allowed });
     const written = answers.reduce((sum, a) => sum + (a.data.questions?.length ?? 0), 0);
     console.log(`Answered by ${answers[0].model} in ${seconds(started)}`);
     if (questionCount > firstRound) {
@@ -102,6 +112,7 @@ try {
             parts,
             topics: reviewer.topics.map((t) => t.name),
             questions: reviewer.questions,
+            questionType,
             target: questionCount,
             retry,
             deadline: Date.now() + WAVES_STOP_AFTER_MS,
@@ -114,8 +125,12 @@ try {
     console.log(`Topics: ${reviewer.topics.map((t) => t.name).join(', ')}`);
     console.log(`Key points: ${reviewer.keyPoints.length}, key terms: ${reviewer.keyTerms.length}, questions kept: ${reviewer.questions.length}${questionCount > firstRound ? '' : ` of ${written}`}`);
     console.log(`Difficulty: ${['easy', 'medium', 'hard'].map((d) => `${reviewer.questions.filter((q) => q.difficulty === d).length} ${d}`).join(', ')}`);
-    console.log('\nSample:');
-    printQuestion(reviewer.questions[0]);
+    console.log(`Kinds: ${countKinds(reviewer.questions)}`);
+    console.log('\nSample (one of each kind):');
+    for (const kind of allowed) {
+        const sample = reviewer.questions.find((q) => q.type === kind);
+        if (sample) printQuestion(sample);
+    }
 
     const topics = [reviewer.topics[0].name];
     const existing = reviewer.questions.filter((q) => topics.includes(q.topic)).map((q) => q.prompt);
@@ -129,11 +144,12 @@ try {
             text: textForTopics(parts, reviewer.topics, topics, PART_CHARS),
             topics,
             questionCount: 5,
+            questionType,
             existing,
         }),
         schema: TARGETED_SCHEMA,
     });
-    const extra = normalizeTargeted(data, { topics, existing, questionCount: 5 });
+    const extra = normalizeTargeted(data, { topics, existing, questionCount: 5, allowed });
     console.log(`Answered in ${seconds(started)}. Kept ${extra.length} of ${data.questions?.length ?? 0}.`);
     printQuestion(extra[0]);
 } catch (error) {

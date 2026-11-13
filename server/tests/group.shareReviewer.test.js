@@ -333,7 +333,7 @@ describe('reviewerSnapshot and reviewerTexts', () => {
         source: { type: 'notes', count: 1, pages: 0, slides: 0, chars: 900, truncated: false },
         keyPoints: ['kp'], keyTerms: [{ term: 'term', definition: 'def' }],
         topics: Array.from({ length: 10 }, (_, i) => ({ name: `${'n'.repeat(90)}${i}`, summary: `ts${i}` })),
-        questions: [{ topic: 'q-topic', prompt: 'prompt', options: ['o1', 'o2', 'o3', 'o4'], correctIndex: 1, explanation: 'why', difficulty: 'easy' }],
+        questions: [{ topic: 'q-topic', type: 'mc', prompt: 'prompt', options: ['o1', 'o2', 'o3', 'o4'], correctIndex: 1, answer: '', accepted: [], items: [], points: [], explanation: 'why', difficulty: 'easy' }],
         ...overrides,
     });
 

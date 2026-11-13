@@ -19,9 +19,14 @@ const reviewerContentSchema = new mongoose.Schema({
     questions: [{
         _id: false,
         topic: String,
+        type: { type: String },
         prompt: String,
         options: [String],
         correctIndex: Number,
+        answer: String,
+        accepted: [String],
+        items: [{ _id: false, answer: String, accepted: [String] }],
+        points: [String],
         explanation: String,
         difficulty: String,
     }],
@@ -58,6 +63,7 @@ const groupMessageSchema = new mongoose.Schema({
         title: String,
         course: String,
         questionCount: Number,
+        questionType: String,
         // No default, so other messages don't carry an empty reviewer.
         topicNames: { type: [String], default: undefined },
         summary: String,
