@@ -293,6 +293,35 @@ describe('sharing and permissions', () => {
         const res = await bob.delete(`/api/schedules/${schedule._id}/share/${aliceId}`);
         expect(res.status).toBe(403);
     });
+
+    test('leaving needs membership: a stranger cannot leave, and the owner cannot "leave" their own', async () => {
+        const { alice, carol, aliceId, bobId, schedule } = await setup();
+        const share = `/api/schedules/${schedule._id}/share`;
+        await alice.post(share).send({ userId: bobId });
+
+        const carolId = await idOf('carol@student.fatima.edu.ph');
+        expect((await carol.delete(`${share}/${carolId}`)).status).toBe(403);
+        expect((await carol.delete(`${share}/${bobId}`)).status).toBe(403);
+        expect((await alice.delete(`${share}/${aliceId}`)).status).toBe(404);
+
+        const stored = await scheduleModel.findById(schedule._id);
+        expect(stored.collaborators).toHaveLength(1);
+    });
+
+    test('leaving does not touch the timetable or the other members', async () => {
+        const { alice, bob, bobId, aliceId, schedule } = await setup();
+        const share = `/api/schedules/${schedule._id}/share`;
+        const carolId = await idOf('carol@student.fatima.edu.ph');
+        await Friend.create({ user: aliceId, friend: carolId, status: 'accepted' });
+        await alice.post(share).send({ userId: bobId });
+        await alice.post(share).send({ userId: carolId });
+
+        expect((await bob.delete(`${share}/${bobId}`)).body.success).toBe(true);
+
+        const stored = await scheduleModel.findById(schedule._id);
+        expect(stored.collaborators.map((c) => c.user.toString())).toEqual([carolId]);
+        expect(stored.title).toBe('Fall term');
+    });
 });
 
 describe('share codes', () => {

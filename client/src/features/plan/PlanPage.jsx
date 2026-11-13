@@ -20,6 +20,7 @@ import WeekGrid from "./WeekGrid";
 import { buildMonthRows } from "./monthDays";
 import { buildDay, buildPlanDays, findOverviewDay } from "./planDays";
 import TasksView from "./TasksView";
+import TimetableMenu from "./TimetableMenu";
 import TimetableSwitcher from "./TimetableSwitcher";
 import { usePlanParams } from "./planParams";
 import usePlanData from "./usePlanData";
@@ -27,6 +28,7 @@ import useMonthData from "./useMonthData";
 import useFlash from "./useFlash";
 import useTimetables from "./useTimetables";
 import "./plan.css";
+import "./timetable-menu.css";
 
 const DATE_FORMAT = { weekday: "long", month: "short", day: "numeric" };
 
@@ -157,6 +159,18 @@ export default function PlanPage() {
     timetable: editable,
     onAdded: (kind, task) => (kind === "task" ? data.setTasks((prev) => [...prev, task]) : entryAdded()),
   });
+  // The More menu needs the picked timetable's role and member count, which the list already carries.
+  const menuTimetable = view === "week" && params.timetable
+    ? timetables.timetables.find((t) => t._id === params.timetable) ?? null
+    : null;
+  const timetableRenamed = () => {
+    timetables.reload();
+    data.reload();
+  };
+  const timetableGone = () => {
+    setTimetable(null);
+    timetables.reload();
+  };
   const emptyWeek = view === "week" && !params.timetable && nothingPlanned
     && timetables.status === "ready" && timetables.timetables.length === 0;
 
@@ -171,13 +185,24 @@ export default function PlanPage() {
         onToday={goToday}
       >
         {view === "week" && (
-          <TimetableSwitcher
-            timetableId={params.timetable}
-            timetables={timetables.timetables}
-            status={timetables.status}
-            onReload={timetables.reload}
-            onPick={setTimetable}
-          />
+          <div className="plan-tt-group">
+            <TimetableSwitcher
+              timetableId={params.timetable}
+              timetables={timetables.timetables}
+              status={timetables.status}
+              onReload={timetables.reload}
+              onPick={setTimetable}
+            />
+            {menuTimetable && (
+              <TimetableMenu
+                key={menuTimetable._id}
+                timetable={menuTimetable}
+                userId={userData?._id}
+                onChanged={timetableRenamed}
+                onGone={timetableGone}
+              />
+            )}
+          </div>
         )}
       </PlanControls>
       {loading && (

@@ -1,0 +1,63 @@
+/* The timetable More menu and its dialogs (Figma D10). The popover, Modal and ConfirmDialog are shared. */
+@layer pages {
+  /* The switcher and its More button share the row: the switcher stretches on phones, and from 1024px
+     the pair sits at the end of the controls row as the switcher did alone. */
+  .plan-tt-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .plan-tt-group .plan-tt {
+    flex: 1;
+    min-width: 0;
+    margin-left: 0;
+  }
+  @media (min-width: 1024px) {
+    .plan-tt-group {
+      margin-left: auto;
+    }
+    .plan-tt-group .plan-tt {
+      flex: none;
+    }
+  }
+  .timetable-menu {
+    flex: none;
+  }
+  /* The popover (Figma 239:4833): the Add menu's rows in a 264px card with 52px rows. */
+  .ui-menu.timetable-menu__popover {
+    width: 264px;
+    max-width: calc(100vw - 2 * var(--space-4));
+    padding: var(--space-2);
+    gap: 2px;
+    animation: add-pop-in 140ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .ui-menu.timetable-menu__popover[data-opened-by="keyboard"] {
+    animation: none;
+  }
+  .timetable-menu__popover .global-add__item {
+    min-height: 52px;
+  }
+  .ui-menu__item--danger .global-add__title {
+    color: var(--danger);
+  }
+  .timetable-menu__text {
+    margin: 0;
+  }
+  .timetable-menu__note {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-4) 0 0;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    line-height: 18px;
+  }
+  .timetable-menu__note svg {
+    flex: none;
+  }
+  .timetable-menu__error {
+    margin: var(--space-3) 0 0;
+    color: var(--danger);
+    font-weight: 500;
+  }
+}
