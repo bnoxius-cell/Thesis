@@ -1,3 +1,5 @@
+> ORDER CHANGE 2026-11-13 (owner): plan 33 first, then plan 34 (C5 onward), then plan 35. See handout.md.
+
 # Roadmap
 
 The only list of open work, in order (rewritten 2026-11-13; supersedes plan 27 section 0). Owner priority #1: quality of life of what is built. Priority #2: spread load over free accounts (plan 26). New features live in `to-build-after-thesis-defense.md`, not here. State and rules: `handout.md`. Team feedback: `docs/KNOWN_ISSUES.md`. Older versions: `.claude/docs/archive/2026-11-13/roadmap.md` (holds the long small-items lists J, E, U, L for item 24).
