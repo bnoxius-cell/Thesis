@@ -12,7 +12,7 @@ import { subjectHref, taskHref, taskSubject } from "./itemLinks";
 // once it's done), then the subject, due day, size and notes. `onEdit` and `onDelete` are passed only when
 // the student can use them, and a missing one draws no button. `focus` ("edit" or "delete") puts focus on
 // that button when the window comes back from its dialog.
-export default function TaskDetails({ task, subjects, context, onClose, returnFocusRef, focus, onToggle, onEdit, onDelete }) {
+export default function TaskDetails({ task, subjects, context, onClose, onBack, returnFocusRef, focus, onToggle, onEdit, onDelete }) {
   const editRef = useRef(null);
   const deleteRef = useRef(null);
   const now = useNow();
@@ -58,6 +58,7 @@ export default function TaskDetails({ task, subjects, context, onClose, returnFo
       title={task.title}
       subtitle={`Task · ${subject?.name || task.course || "No subject"}`}
       onClose={onClose}
+      onBack={onBack}
       returnFocusRef={returnFocusRef}
       initialFocusRef={focus === "delete" ? deleteRef : focus === "edit" ? editRef : undefined}
       footer={footer}

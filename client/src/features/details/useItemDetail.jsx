@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState } from "react";
+import useNow from "@/shared/hooks/useNow";
 import TaskDetails from "./TaskDetails";
 import EntryDetails from "./EntryDetails";
+import DayWindow from "./DayWindow";
 
 // Only a task saved in the database (a 24-character id) can be edited or deleted.
 const isStoredTask = (task) => /^[a-f\d]{24}$/i.test(String(task._id));
@@ -19,6 +21,10 @@ const isPrepTask = (task) => task.isExam || String(task._id).startsWith("exam:")
 // its "edit" or "delete" button), and without it the
 // window draws no such button. Edit and Delete are drawn only for a task with a real id.
 // openEntry(entry, iso) takes the entry as it is on day `iso` (YYYY-MM-DD).
+// openDay(day, { onOpenWeek }) opens the day window (Figma D9) on a day from buildDay (features/plan/planDays.js).
+// A row in it opens that item's window in its place, with a back arrow to the day; Escape and the X close both.
+// The day's "Open this week" calls `onOpenWeek` when given; else, outside Plan's week view (`context` is not
+// "plan-week"), it is a link into Plan. Edit and Delete leave the day behind, as they close the window.
 export default function useItemDetail({
   subjects,
   onToggle,
@@ -28,19 +34,40 @@ export default function useItemDetail({
   onEditEntry,
   onDeleteEntry,
 }) {
+  const now = useNow();
   const [item, setItem] = useState(null);
-  const close = useCallback(() => setItem(null), []);
-  const row = useRef(null); // the element that opened the window, where focus goes back on close
-  const openTask = useCallback((task) => {
-    if (isPrepTask(task)) return;
-    row.current = document.activeElement;
-    setItem({ task });
+  // The open day, if any: { day, onOpenWeek, returned }. `returned` is true once an item went back to it.
+  const [day, setDay] = useState(null);
+  const close = useCallback(() => {
+    setItem(null);
+    setDay(null);
   }, []);
+  const backToDay = useCallback(() => {
+    setItem(null);
+    setDay((prev) => ({ ...prev, returned: true }));
+  }, []);
+  const row = useRef(null); // the element that opened the window, where focus goes back on close
+  const openDay = useCallback((openedDay, { onOpenWeek } = {}) => {
+    row.current = document.activeElement;
+    setDay({ day: openedDay, onOpenWeek, returned: false });
+  }, []);
+  // The day window's rows swap in an item without touching `row`, which stays on what opened the day.
+  const showTask = useCallback((task) => {
+    if (!isPrepTask(task)) setItem({ task });
+  }, []);
+  const showEntry = useCallback((entry, iso) => setItem({ entry, iso }), []);
+  const openTask = useCallback((task) => {
+    row.current = document.activeElement;
+    showTask(task);
+  }, [showTask]);
   const openEntry = useCallback((entry, iso) => {
     row.current = document.activeElement;
-    setItem({ entry, iso });
+    showEntry(entry, iso);
+  }, [showEntry]);
+  const reopenTask = useCallback((task, focus) => {
+    setDay(null);
+    setItem({ task, focus });
   }, []);
-  const reopenTask = useCallback((task, focus) => setItem({ task, focus }), []);
 
   const replacing = (handler) => handler && ((target, { close: closeWindow }) => handler(target, { close: closeWindow, reopen: reopenTask }));
   const canChange = item?.task && isStoredTask(item.task);
@@ -53,6 +80,7 @@ export default function useItemDetail({
         subjects={subjects}
         context={context}
         onClose={close}
+        onBack={day ? backToDay : undefined}
         returnFocusRef={row}
         focus={item.focus}
         onToggle={onToggle}
@@ -68,12 +96,28 @@ export default function useItemDetail({
         subjects={subjects}
         context={context}
         onClose={close}
+        onBack={day ? backToDay : undefined}
         returnFocusRef={row}
         onEdit={onEditEntry}
         onDelete={onDeleteEntry}
       />
     );
+  } else if (day) {
+    dialog = (
+      <DayWindow
+        day={day.day}
+        now={now}
+        subjects={subjects}
+        onClose={close}
+        onOpenWeek={day.onOpenWeek}
+        weekLink={context !== "plan-week"}
+        still={day.returned}
+        returnFocusRef={row}
+        onOpenEntry={showEntry}
+        onOpenTask={showTask}
+      />
+    );
   }
 
-  return { openTask, openEntry, dialog };
+  return { openTask, openEntry, openDay, dialog };
 }

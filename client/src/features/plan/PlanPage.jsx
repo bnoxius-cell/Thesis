@@ -18,7 +18,7 @@ import PlanEmpty from "./PlanEmpty";
 import PlanControls from "./PlanControls";
 import WeekGrid from "./WeekGrid";
 import { buildMonthRows } from "./monthDays";
-import { buildPlanDays } from "./planDays";
+import { buildDay, buildPlanDays, findOverviewDay } from "./planDays";
 import TasksView from "./TasksView";
 import TimetableSwitcher from "./TimetableSwitcher";
 import { usePlanParams } from "./planParams";
@@ -106,9 +106,16 @@ export default function PlanPage() {
     if (view === "month") params.shiftMonth(steps);
     else params.shiftWeek(steps);
   };
-  const openDay = (date) => {
+  const openWeekOf = (date) => {
     setPickedKey(toISODate(date));
     params.openWeek(date);
+  };
+  // A Month cell opens its day window, which links on to that week. The day comes from the month's weeks.
+  const openMonthDay = (date) => {
+    const iso = toISODate(date);
+    const overviewDay = findOverviewDay([...monthData.overviews.values()], iso);
+    const day = buildDay({ iso, overviewDay, tasks: data.tasks, subjects, profile, todayIso: toISODate(now) });
+    detail.openDay(day, { onOpenWeek: () => openWeekOf(date) });
   };
 
   // The page waits for what the open view reads: tasks and subjects always, the month's weeks in Month.
@@ -186,7 +193,7 @@ export default function PlanPage() {
           key={month.getTime()}
           rows={monthRows}
           label={month.toLocaleDateString("en-US", MONTH_LABEL)}
-          onOpen={openDay}
+          onOpen={openMonthDay}
           direction={direction}
         />
       )}
@@ -211,6 +218,7 @@ export default function PlanPage() {
               onToggle={setDone}
               onOpenEntry={detail.openEntry}
               onOpenTask={detail.openTask}
+              onOpenDay={detail.openDay}
               foundDay={foundDay}
               direction={direction}
             />
@@ -224,6 +232,7 @@ export default function PlanPage() {
               onToggle={setDone}
               onOpenEntry={detail.openEntry}
               onOpenTask={detail.openTask}
+              onOpenDay={detail.openDay}
               direction={direction}
             />
           )}

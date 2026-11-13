@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import ModalShell from "./ModalShell";
 import ConfirmDialog from "./ConfirmDialog";
 import IconButton from "./IconButton";
@@ -15,6 +15,7 @@ import IconButton from "./IconButton";
 // through `leavePrompt`). Without a `title`, pass `labelledBy` for the id of your own heading.
 // `sheet` makes it a bottom sheet on phones, the "Leave?" prompt too (see ModalShell). `actions` may be a
 // function that gets `close`, so a Cancel button goes through the same "Leave?" check as the X.
+// `onBack` draws a back arrow before the title (named by `backLabel`) for a dialog opened from another one.
 export default function Modal({
   title,
   subtitle,
@@ -22,6 +23,8 @@ export default function Modal({
   onClose,
   confirmClose,
   leavePrompt,
+  onBack,
+  backLabel = "Back",
   busy = false,
   sheet = false,
   labelledBy,
@@ -49,6 +52,7 @@ export default function Modal({
       <ModalShell onClose={close} busy={busy} sheet={sheet} labelledBy={title ? titleId : labelledBy} {...rest}>
         {title && (
           <div className="ui-modal__head">
+            {onBack && <IconButton plain label={backLabel} icon={ArrowLeft} className="ui-modal__back" onClick={onBack} disabled={busy} />}
             <div className="ui-modal__titles">
               <h2 id={titleId} className="ui-modal__title">
                 {title}

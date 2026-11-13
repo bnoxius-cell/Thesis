@@ -12,7 +12,7 @@ import { entryIsLive, entrySubject, planDayHref, repeatText, subjectHref } from 
 // carry the timetable they come from and whether the student may change them (`scheduleTitle`, `canEdit`);
 // when `canEdit` is false the window says so instead of drawing Edit and Delete. `onEdit` and `onDelete`
 // are passed only when the student can use them, and a missing one draws no button.
-export default function EntryDetails({ entry, iso, subjects, context, onClose, returnFocusRef, onEdit, onDelete }) {
+export default function EntryDetails({ entry, iso, subjects, context, onClose, onBack, returnFocusRef, onEdit, onDelete }) {
   const now = useNow();
   const subject = entrySubject(entry, subjects);
   const live = entryIsLive(entry, iso, now);
@@ -52,6 +52,7 @@ export default function EntryDetails({ entry, iso, subjects, context, onClose, r
       title={entry.title}
       subtitle={entrySubtitle(entry, iso, repeatText(entry.days))}
       onClose={onClose}
+      onBack={onBack}
       returnFocusRef={returnFocusRef}
       footer={footer}
     >

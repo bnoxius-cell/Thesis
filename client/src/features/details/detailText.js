@@ -18,7 +18,7 @@ const minutes = (hhmm) => {
 };
 
 // "9:00 am" from "09:00".
-function clock(hhmm) {
+export function clock(hhmm) {
   const [h, m] = hhmm.split(":").map(Number);
   return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "pm" : "am"}`;
 }
@@ -106,3 +106,21 @@ export function prepText(hours) {
 
 // "meet.google.com/abc-defg-hij": the link without its scheme or a trailing slash.
 export const linkLabel = (url) => url.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+
+// ---- A day ------------------------------------------------------------------
+
+const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const KIND_COUNTS = [["class", "class", "classes"], ["exam", "exam", "exams"], ["event", "event", "events"], ["activity", "activity", "activities"]];
+
+// The line under the day window's title: how heavy the day is, then what is on it.
+// "Busy day · 3 classes, 1 exam, 2 tasks due", "Day off · 1 task due", "Free day". `day` is from buildDay,
+// whose `load` is "heavy" or "light".
+export function daySummary(day) {
+  const parts = KIND_COUNTS
+    .map(([kind, one, many]) => [day.entries.filter((entry) => entry.kind === kind).length, one, many])
+    .filter(([n]) => n > 0)
+    .map(([n, one, many]) => count(n, one, many));
+  if (day.tasks.length > 0) parts.push(`${count(day.tasks.length, "task", "tasks")} due`);
+  const lead = day.holiday ? "Day off" : parts.length === 0 ? "Free day" : day.load === "heavy" ? "Busy day" : "Light day";
+  return [lead, parts.join(", ")].filter(Boolean).join(" · ");
+}

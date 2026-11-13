@@ -13,6 +13,21 @@
     align-items: center;
     gap: var(--space-1);
   }
+  /* With onOpenDay the columns are buttons: reset them and give a visible focus ring. */
+  button.workload-bars__col {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button.workload-bars__col:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+    border-radius: var(--radius-sm);
+  }
   .workload-bars__track {
     display: flex;
     align-items: flex-end;

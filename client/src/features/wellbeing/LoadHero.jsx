@@ -8,8 +8,8 @@ import WhyPanel from "./WhyPanel";
 
 // This week's load (Figma 51:2, 52:117): the band, which day is heaviest, the seven bars with their key
 // and the workload note, with a Why disclosure underneath. A new account sees the empty body (53:459).
-// It carries the page's one ambient layer. `work` comes from useWorkload.
-export default function LoadHero({ work, moves }) {
+// It carries the page's one ambient layer. `work` comes from useWorkload; a bar opens its day through `onOpenDay(dayKey)`.
+export default function LoadHero({ work, moves, onOpenDay }) {
   const { reading, week, heaviest, insights, enrichedTasks } = work;
   const heaviestDay = heaviest && week.find((day) => day.key === heaviest.key);
 
@@ -33,7 +33,7 @@ export default function LoadHero({ work, moves }) {
               )}
             </div>
             <div className="wellbeing-hero__chart">
-              <WeekBars days={week} heaviestKey={heaviest?.key ?? null} size="lg" legend />
+              <WeekBars days={week} heaviestKey={heaviest?.key ?? null} size="lg" legend onOpenDay={onOpenDay} />
             </div>
             <p className="wellbeing-hero__note">{reading.note}</p>
           </div>

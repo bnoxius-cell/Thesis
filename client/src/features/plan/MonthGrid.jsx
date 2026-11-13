@@ -20,7 +20,7 @@ function DayCell({ day, onOpen }) {
     <button
       type="button"
       className={`plan-day${day.isToday ? " is-today" : ""}${day.inMonth ? "" : " is-outside"}`}
-      aria-label={`${spoken(day)}. Open this week`}
+      aria-label={`${spoken(day)}. Open this day`}
       aria-current={day.isToday ? "date" : undefined}
       onClick={() => onOpen(day.date)}
     >
@@ -43,7 +43,7 @@ function DayCell({ day, onOpen }) {
 
 // The month as a grid of days, Monday first (Figma 38:234): the date, a dot for each class and a
 // short label for each holiday, exam, event, activity or task due. Phones draw the dots and a small bar instead of
-// the labels. Clicking a day opens that week. `direction` is which way the month was stepped, so the
+// the labels. Clicking a day opens its day window, which links on to that week. `direction` is which way the month was stepped, so the
 // new one slides in from that side.
 export default function MonthGrid({ rows, label, onOpen, direction }) {
   return (

@@ -27,40 +27,52 @@ function dayForTask(dueIso, todayIso, isos) {
   return dueIso;
 }
 
+// The open tasks that sit on day `iso`, overdue ones first: those due that day, plus every overdue task
+// when `iso` is today (see dayForTask). Done tasks leave (ticking one removes it, and Undo brings it back).
+function tasksOnDay(tasks, iso, todayIso) {
+  return tasks
+    .filter((task) => !task.isCompleted)
+    .map((task) => ({ task, dueIso: taskDueIso(task.dueDate), overdue: taskDueIso(task.dueDate) < todayIso }))
+    .filter((item) => dayForTask(item.dueIso, todayIso, [iso]) === iso)
+    .sort((a, b) => Number(b.overdue) - Number(a.overdue) || a.dueIso.localeCompare(b.dueIso));
+}
+
+// One day ready to draw, in the week columns and in the day window. `overviewDay` is that day's entry in
+// the server's week overview ({ date, holiday, busyHours, entries }) or undefined; `subjects` is a list.
+//   tasks    every task; `task` in each day item is the original, so mutations keep their identity
+//   profile  profileFromUser (useWorkload.js), for the load dot
+export function buildDay({ iso, overviewDay, tasks, subjects, profile, todayIso }) {
+  const date = fromISODate(iso);
+  const dayTasks = tasksOnDay(tasks, iso, todayIso);
+  return {
+    key: iso,
+    date,
+    weekday: date.toLocaleDateString("en-US", { weekday: "short" }),
+    dayNumber: date.getDate(),
+    label: date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
+    isToday: iso === todayIso,
+    holiday: overviewDay?.holiday ?? null,
+    entries: (overviewDay?.entries ?? []).map((entry) => withLook(entry, subjects)),
+    tasks: dayTasks,
+    load: dayLoad({ busyHours: overviewDay?.busyHours ?? 0, tasks: dayTasks.map((item) => item.task), profile }),
+  };
+}
+
+// The overview entry for day `iso` in a list of week overviews (nulls allowed), or undefined when none covers it.
+export function findOverviewDay(overviews, iso) {
+  return overviews.flatMap((overview) => overview?.days ?? []).find((day) => day.date === iso);
+}
+
 // The seven days of one Monday-to-Sunday week, ready to draw. `overview` is the server's week
 // overview ({ days: [{ date, holiday, busyHours, entries }] }) or null; a single timetable can pass
-// the same shape. Open tasks sit under their due day. Done tasks leave (ticking one removes it, and
-// Undo brings it back).
-//   tasks         every task; `task` in each day item is the original, so mutations keep their identity
+// the same shape. Open tasks sit under their due day (buildDay).
+//   weekStart, overview, tasks, profile as in buildDay
 //   subjectsById  Map of subject id to subject, for entry tones
-//   profile       profileFromUser (useWorkload.js), for the load dot
 export function buildPlanDays({ weekStart, overview, tasks, subjectsById, profile, now }) {
   const todayIso = toISODate(now);
-  const isos = Array.from({ length: 7 }, (_, i) => toISODate(addDays(weekStart, i)));
   const byDate = new Map((overview?.days ?? []).map((day) => [day.date, day]));
   const subjects = [...subjectsById.values()];
-
-  const tasksByDay = new Map(isos.map((iso) => [iso, []]));
-  tasks.filter((task) => !task.isCompleted).forEach((task) => {
-    const dueIso = taskDueIso(task.dueDate);
-    tasksByDay.get(dayForTask(dueIso, todayIso, isos))?.push({ task, dueIso, overdue: dueIso < todayIso });
-  });
-
-  return isos.map((iso) => {
-    const date = fromISODate(iso);
-    const overviewDay = byDate.get(iso);
-    const dayTasks = tasksByDay.get(iso).sort((a, b) => Number(b.overdue) - Number(a.overdue) || a.dueIso.localeCompare(b.dueIso));
-    return {
-      key: iso,
-      date,
-      weekday: date.toLocaleDateString("en-US", { weekday: "short" }),
-      dayNumber: date.getDate(),
-      label: date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
-      isToday: iso === todayIso,
-      holiday: overviewDay?.holiday ?? null,
-      entries: (overviewDay?.entries ?? []).map((entry) => withLook(entry, subjects)),
-      tasks: dayTasks,
-      load: dayLoad({ busyHours: overviewDay?.busyHours ?? 0, tasks: dayTasks.map((item) => item.task), profile }),
-    };
-  });
+  return Array.from({ length: 7 }, (_, i) => toISODate(addDays(weekStart, i))).map((iso) =>
+    buildDay({ iso, overviewDay: byDate.get(iso), tasks, subjects, profile, todayIso }),
+  );
 }

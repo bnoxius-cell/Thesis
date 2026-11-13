@@ -74,6 +74,9 @@
   .ui-modal__head .ui-icon-btn {
     margin: -4px -4px 0 0;
   }
+  .ui-modal__head .ui-modal__back {
+    margin: -4px 0 0 -4px;
+  }
 
   .ui-modal__body {
     display: flex;

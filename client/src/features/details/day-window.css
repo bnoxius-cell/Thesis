@@ -1,0 +1,113 @@
+/* The day window (Figma D9 238:3685 full day, 238:4318 day off, 238:4879 empty, 238:5420 item opened; phone
+   238:4097, 238:4689, 238:5239, 238:5749). It shares the 480px card, the sheet and the spacing of the
+   details window (item-detail.css); this file is what is only on a day. */
+@layer pages {
+  /* The scrim and the card don't animate in again while the day window and an item swap places. */
+  .item-detail-swap,
+  .item-detail-swap .ui-modal {
+    animation: none;
+  }
+
+  .day-window__off,
+  .day-window__cheer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    border-radius: var(--radius-lg);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .day-window__off {
+    padding: var(--space-2) var(--space-4);
+    background: var(--good-soft);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .day-window__cheer {
+    gap: 10px;
+    padding: var(--space-3) var(--space-4);
+    background: var(--accent-soft);
+    font: 400 var(--text-md) / 24px var(--font-ui);
+  }
+  .day-window__off svg,
+  .day-window__cheer svg {
+    flex: none;
+  }
+
+  .day-window__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .day-window__eyebrow {
+    margin: 0;
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .day-window__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  /* The frame's empty state sits on the white of the window, with no card around it. */
+  .day-window__empty {
+    padding: var(--space-4) 0;
+  }
+
+  .day-row {
+    --item-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 44px;
+    padding: 10px var(--space-2) 10px var(--space-3);
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+  }
+  .day-row__lead {
+    flex: none;
+    display: flex;
+    width: 60px;
+    color: var(--text-secondary);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+  .day-row__text {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .day-row__title,
+  .day-row__meta {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .day-row__title {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+  }
+  .day-row__meta {
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .day-row__chip,
+  .day-row__go {
+    flex: none;
+  }
+  .day-row__go {
+    color: var(--text-muted);
+  }
+
+  /* Phones leave the chip out (the frame does); the meta line says the same. */
+  @media (max-width: 719.98px) {
+    .day-row__chip {
+      display: none;
+    }
+  }
+}

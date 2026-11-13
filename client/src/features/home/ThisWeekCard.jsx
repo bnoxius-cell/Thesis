@@ -6,8 +6,9 @@ import { BAND_TONE } from "@/features/workload/bandTone";
 import { weekProgress } from "@/features/workload/weekProgress";
 
 // This week (Figma 16:89): the band, seven bars, one sentence, how many tasks due this week are done,
-// the workload note and a way into the details. A new account sees one line instead.
-export default function ThisWeekCard({ work, tasks, now }) {
+// the workload note and a way into the details. A new account sees one line instead. A bar opens that
+// day through `onOpenDay(dayKey)`.
+export default function ThisWeekCard({ work, tasks, now, onOpenDay }) {
   const { reading, week, heaviest, insights } = work;
   const progress = weekProgress(tasks, now);
 
@@ -24,7 +25,7 @@ export default function ThisWeekCard({ work, tasks, now }) {
       ) : (
         <>
           <div className="home-week__chart">
-            <WeekBars days={week} heaviestKey={heaviest?.key ?? null} legend />
+            <WeekBars days={week} heaviestKey={heaviest?.key ?? null} legend onOpenDay={onOpenDay} />
           </div>
           <p className="home-week__sentence">{heaviest ? `${heaviest.name} looks heaviest.` : reading.headline}</p>
           {progress.total > 0 && (
