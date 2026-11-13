@@ -1,183 +1,93 @@
 # Roadmap
 
-This file is the only place for open work. Tick items here and do not copy them into other files. State, rules and gotchas live in `handout.md`. Plan files hold the detail for a batch; this file holds the order and the status.
+The only list of open work, in order (rewritten 2026-11-13; supersedes plan 27 section 0). Owner priority #1: quality of life of what is built. Priority #2: spread load over free accounts (plan 26). New features live in `to-build-after-thesis-defense.md`, not here. State and rules: `handout.md`. Team feedback: `docs/KNOWN_ISSUES.md`. Older versions: `.claude/docs/archive/2026-11-13/roadmap.md` (holds the long small-items lists J, E, U, L for item 24).
 
-Plans: `.claude/docs/revamp/15-parity-first-plan.md` (parity, account and trust, new features), `16-chat-attachments-reactions-plan.md` (chat extras), `17-navigation-and-feedback-plan.md` (navigation and feedback), `.claude/docs/priority-2-redesign-backlog.md` (older leftovers). Team feedback list: `docs/KNOWN_ISSUES.md` (shared, tick boxes there as fixes merge).
+Every batch: branch off `main`, builder runs `npm test` in `server/` and `npm run build` in `client/`, tester after, merge. "Start" is the builder to start with; step up to the ceiling only after a failed test. "Figma" means the frame must be drawn (design skills loaded) and approved by the owner before the builder starts.
 
-## E. Storage (TOP PRIORITY, owner 2026-11-01: ship storage asap, free only)
-Status: planned, plan finalized 2026-11-06 (Revision 3, O1 to O11 answered, under 5 users, no paid tier before the thesis). Plan: `.claude/docs/plans/18-free-file-storage-plan.md` (Revision 3 block at the top; replaces the FS0 spec in plan 16). FS1 to FS3 are merged to `main` (off until configured; env flag `FILES_DEV_MEMORY=true` for local dev only). Next: owner steps, then TW-8b. See `next-prompt.md`. Decision: stay on Render free + Cloudflare R2 free, no paying, no Hetzner for now (Hetzner VPS in Singapore is the upgrade path if Render's limits bite). Uploads go through our server; downloads use 60 s presigned R2 links; every R2 call is reserved against caps in Mongo. Letters stay as they are so references like "needs E" still work.
-Owner steps (no Claude usage):
-- [x] Cloudflare account with R2 added (free tier, no charge unless over limits)
-- [x] Private R2 bucket `stresscare-files` (exists, private, checked 2026-11-06)
-- [~] Both tokens created 2026-11-06 (`stresscare-files-rw`, `stresscare-analytics-read`, expire 2027-11-06, 1 year, not 06-30). Secrets were never saved: if the Cloudflare tabs were closed, roll both tokens and make new ones. Still to do: $1 budget alert, 2FA. Original item: R2 API token: Object Read and Write, that one bucket only; second read-only Account Analytics token for the reconciliation job; expiry 2027-06-30; $1 budget alert; 2FA (click path in plan 18 section 5)
-- [x] 2026-11-06: both tokens rolled, R2 vars and `FILES_ENABLED=true` saved by the owner on production Render srv-dbeai2jrjlhs73f25dqg, `production` released at a062b5e (FS1 to FS3 live, deploy up, no startup errors). `FILES_RESUME_KEY` left unset on purpose (optional).
-- [ ] Live check of file storage at first use: confirm the 10-minute Cloudflare analytics reconcile ran without a `[files]` pause or alert email, then one real upload and read in the app
-- [x] `stresscare-api-staging` suspended 2026-11-06 (Render shows Suspended 1). Still the owner's: pause the staging monitor in UptimeRobot (not signed in on Claude's Chrome); production pinged 24/7 uses 744 of the 750 free instance hours
-- [ ] Answer plan 18 questions O1 to O11 (defaults apply until answered), and check the Render Billing page weekly
-Build order (efficiency order agreed 2026-11-01; one builder at a time, `/clear` after each batch, builders run only build and `npm test`):
-- [ ] REPLACED 2026-11-06 by plan 19 (`.claude/docs/plans/19-study-subject-files-plan.md`, O1 to O10 accepted): Study hub, Subject tabs (Overview, Tasks, Reviewers, Files), general Files page with folders, Practice page (Reviewers | Flashcards). SF0, SF1, SF2 DONE and merged to main 5eb48de; SF3 DONE and merged to main 89834ed (tester-passed 2026-11-06, not released). Order: SF0 tag and branch, SF1 then SF2 (server, no frames needed), SF3 (Subject tabs, code only), draw Figma F1 to F12 (owner approves), then SP1, SF4, SF5, SF6. Don't release to production before SF4. Replaces plan 18's TW-8b batch.
-- [~] Figma frames F1 to F12 (plan 19; 2026-11-06: owner APPROVED F12 and F1 to F3 desktop; F1 to F3 phone, F4 to F11 desktop+phone, footer and flashcards study screens all DRAWN, OWNER APPROVED ALL 2026-11-06, build now (SP1, SF4 to SF6, footer), node ids in design.md "Storage / Files"): Files page, subject Files tab, move picker, upload with progress and Cancel, paused state, empty states, Practice page; phone and desktop, light only; owner approves before SP1, SF4, SF5, SF6
-- [x] BW1 `fix/api-bandwidth` (merged to main, live) (builder-sonnet medium): small unread-count endpoint, gzip, slower chat polling, group lists every 60 s (do first; can run beside the Figma work)
-- [x] (done 2026-11-06, merged to main, tester + code-reviewer passed, 872 tests; files stay off until the owner steps) FS0a content checks (builder-sonnet high), FS0b config, kill switch, signing (builder-sonnet high), FS0c call counter and cleanup (builder-opus high), FS0d upload and download helpers plus usage page (builder-sonnet high), FS0e Cloudflare reconciliation job (builder-opus medium); all on `feature/file-store-foundation` after tag `pre-chat-files`
-- [~] Storage UI from the approved frames: SP1 DONE and merged (db750da), SF4 DONE and merged (685bc21, tester + code-reviewer passed). SF5 DONE and merged (4fccca2, tester + code-reviewer passed). SF6 DONE and merged (44735d9). Then footer, flashcards study screen, release (owner says when)
-- [x] One code-reviewer and security-review pass on the whole branch, then merge (merged; release to production not done, harmless while files are off)
-- [ ] Then CH4 chat uploads, TW-9 source picker
-- [ ] TW-9 scope (owner 2026-11-07): New reviewer is not just "upload". Add a source choice: Upload a PDF, or Choose from my files (the picker lists the student's PDFs from Files, any place). Reviewers stay separate from files; no merge. Server reads the stored file's text, so no re-upload. Picker rules (owner idea 2026-11-07, shaped by Claude): from a Subject page it opens scoped to that subject as a removable chip ("In CSTH411 x"), with a "Not here? Show all files" line under the results; PDFs only; search always covers all files; if the subject has no PDFs open on all files with a note; from the main Practice page there is no subject, so it opens on all files, recent first. Optional later: "Make a reviewer" on a PDF row in Files, and a source-file chip on reviewer rows. Needs a dialog frame or a note that it follows the New reviewer frame 78:1272 OWNER DECISION 2026-11-07: reviewers accept PDF, DOCX, PPTX, PNG, JPG, WebP (not Excel, not Google Forms), both for upload and for the file picker; chip reads "Study files". Server work: reviewerRoutes (ONLY_PDF), text extraction for docx and pptx, images read by Gemini, size and page limits per type, tests. Frames A to D in Figma updated to this copy; owner still to pick A/B/C and D1 to D4. Plan 21 (server batches R1 to R4, L1, C1) written: .claude/docs/plans/21-reviewer-file-types-plan.md. PICKER CHOSEN 2026-11-07: Figma row G (G1 184:3705, G2 184:3920, G3 184:4136), phone frames still to draw.
-Right after the storage items:
-- [~] Site footer: drawn and APPROVED 2026-11-06 (Terms, Privacy, About, Help; desktop 164:3243, phone 164:3376), ready to build
+## Open work, in order
 
-## A. Wrap up what is built
-Status: Pe3 to Pe5 are merged and live. Production is efffd91 (Pe5, plus the bandwidth fix). `fix/tasks-empty-main` is still unmerged.
-- [x] Browser check `fix/tasks-empty-main` at 375 and 1280 (empty Tasks view, no logout toast): tester passed 3 of 3 on main fb22f97, 2026-11-06. Its two commits (26c5063, 1287134) were already in `main`
-- [~] Tag `pre-nav-feedback` (plan 17, B0): the tag already exists but sits at 010a540 (the roadmap docs commit), not the current tip. Move it to `main` only if the owner wants
-- [x] Spawn the tester on Pe3 (`feature/people-friends`): two accounts, accept, decline, cancel and remove, badges clear in the sidebar, People tab and bottom bar, `?add=1` focus, 375 and 1280, profile states
-- [x] Fix what the tester finds, merge `feature/people-friends` into `main`
-- [x] Release: `git branch -f production main && git push origin production` (tester pass first; never merge `staging`)
-- [ ] Reconcile the two handout copies (done by the roadmap commit: handout.md is now the slim state file)
-- [ ] Delete `next-prompt.md` once the owner confirms (its task is covered by sections A, C and D)
+**TOAST MOVED TO THE END (owner 2026-11-13): item 6 (site toast, plan 29 T1) is last in line, after item 26. Global Add (item 7) starts now and keeps today's toast look; it only adds the small `showActionToast` helper for the View button.** 
+**OWNER ORDER (2026-11-13, overrides the grouping below): work the "Blocked on the owner" group first (item 7 now; item 6 moved to the end, see above; frames approved), then the "Needs Figma" group (items 8 to 14), then "Ready now" (items 1 to 5), then everything after item 14.** Item numbers stay as listed. Plan first, then build one batch at a time.
 
-## L. Animation pass (owner notes 2026-11-06)
-Status: not started. Owner: the sidebar's animation is good now, keep that level everywhere. Use the animate skill and `.claude/docs/motion.md`; subtle, behind `prefers-reduced-motion`.
-- [ ] Study page: switching Subjects and Reviewers tabs makes the body jump, because the Subjects tab has the "pick up where you left off" card. Animate it so the change is smooth (no layout jump)
-- [ ] Add more animation across the whole system, matching the sidebar's level (planner or `find-animation-opportunities` first to pick the places)
+**OWNER ORDER 2026-11-13 (latest, overrides the line above for what comes next): C9, C10, then C5, C6, RV1, RV5 (RV1 and RV5 are two separate items, not a range), then REVIEWER QUESTION TYPES and FLASHCARDS (one block, plans 27 RV6/RV7 and 20, new plan first). Question types: multiple choice (exists), identification, mixed, true or false, enumeration / fill in the blank, essay (AI grades it, needs a plan and a daily cap decision), more if the planner finds good ones. Frames for all of it are drawn alongside the builds, so no Figma wait after RV5. After that block: a read-only "document" reviewer (just read, no interaction), idea only, see `to-build-after-thesis-defense.md`.**
 
-## B. Navigation and feedback (plan 17)
-Status: planned, nothing built. One builder at a time, tester after each, then release.
-Owner decisions to confirm (defaults in brackets; the plan uses them until answered):
-- [x] O1 (owner 2026-11-06: "maybe yes") Draw the detail and feedback dialogs in Figma first: lean yes, draw them with the F-frames; ask again if it blocks NV1
-- [x] O2 (default) Build NV4 right after NV3: yes
-- [x] O3 Feedback email: idevadrian@gmail.com. Owner step: set `FEEDBACK_EMAIL` on production Render srv-dbeai2jrjlhs73f25dqg when FB1 ships (Claude may not paste env values into Render)
-- [x] O4 (owner: "yes") Keep feedback after account deletion. FB1 must then store it without a link to the account (drop the user id on deletion) and the Privacy text must say so; confirm with the owner when FB1 is briefed
-- [x] O5 (owner: "now") Bump the legal version in FB2
-- [x] O6 (owner: "no") No rating question
-- [x] O7 (owner: "now") Widen the exam-to-subject title match now (add it to NV3, planner to say how loose)
-Batches:
-- [ ] NV0 server notes and links: `notes` in the week overview, `taskLink()` for reminders (builder-haiku)
-- [ ] NV1 shared `ItemDetailDialog` in `features/details/` plus Home rows (builder-sonnet high)
-- [ ] NV2 Plan Week blocks, phone agenda and Tasks rows, with `?task=` and `?day=` scroll and flash (builder-sonnet high)
-- [ ] NV3 Subject "Next up" rows and search results (builder-sonnet medium)
-- [ ] NV4 edit and delete a task in the dialog, Notes field in the task form (builder-sonnet high; optional, see O2)
-- [ ] FB1 `POST /api/feedback`, `feedbacks` collection, limits, `USER_DATA` entry, code-reviewer (builder-sonnet medium)
-- [ ] FB2 feedback dialog from the avatar menu, Privacy lines, `LEGAL_VERSION` and `LEGAL_UPDATED` bump (builder-sonnet medium)
-- [ ] Tester after each batch, then release (workflow in handout.md)
-- [ ] L1 to L4 later items listed in plan 17
+**Ready now (no owner input needed)**
+1. C5 edit and delete classes, exams, events, activities (plan 25 C5). `feature/plan-edit-entry`. Start builder-sonnet medium, ceiling high. Frames approved (D2, D4, D5).
+2. C6 Study subject rows, "Add class" from a subject (plan 25 C6). `feature/subject-rows`. Start builder-sonnet medium, ceiling high. After 1.
+3. Release to `production` after 2. First a read-only Atlas check for owners with more than one main timetable (the new unique index fails to build on them): `db.schedules.aggregate([{ $match: { isMain: true } }, { $group: { _id: "$owner", n: { $sum: 1 } } }, { $match: { n: { $gt: 1 } } }])`. Empty: release. Rows: owner OKs a one-off repair with the same rule as `ensureMainSchedule` (keep one main, demote the rest), then release; if the index still failed at boot, restart the Render service once so it builds. Tester does a live pass after.
+4. RV1 reviewer source line "N files · M pages" (`fix/reviewer-source-line`, start builder-haiku medium) and RV5 heaviest-day bar ring (`fix/heaviest-today-bar`, start builder-haiku low). Plan 27. No Figma. Tag `pre-plan-27` first. Filler while the owner reviews 3b.
+5. UX consistency audit, planner only (was 3a). One pass over the built pages for the four goals (clarity, consistency, navigation, friendliness) that also folds in the panel feedback in `docs/KNOWN_ISSUES.md` (less on screen, Today first look, workload explanation, check-in result wording). Known cases: Study tabs jump (tab 1 has a big card, tabs 2 and 3 don't); Month shows events, activities, holidays and uncoloured tasks as the same grey chip (give event and activity a prefix or icon); the empty "current task" area in notes.md; empty states; nav labels; same spot for primary actions. Output: one plan file, fixes ordered by impact, Figma flagged per fix. Can run alongside 1 to 4. Plan: `.claude/docs/plans/31-ux-consistency-audit-plan.md` (brief for the live pass + 12 findings verified from code; live pass still to run).
 
-## C. Finish People
-Status: Pe1 to Pe5 done, tested and live (2026-11-06).
-- [x] Pe4 Group Info dialog, Edit name, Pin a note (frame 64:910, builder-sonnet medium)
-- [x] Pe5 New group and Join a group dialogs; wire `onNewGroup` and `onJoinGroup` into `PeopleAddMenu` and `GroupsEmpty`, remove the "hidden until Pe5" gap and the empty-Groups copy that points at missing buttons
+**Blocked on the owner**
+6. One site toast (was 3d). `feature/site-toast`. Start builder-sonnet medium. Blocked on approving the 3b toast frames (Toast/Added 221:4875, 221:4876 desktop, 223:715 phone). Bottom centre on desktop, above the tab bar on phones, polite announcement, about 5 s, pauses on hover or focus, never covers the bottom nav or a Save button. Tip for the brief: 29 files call `toast.*` and `App.jsx:15` sets the container top-right, so restyle and move react-toastify's container and add the View action before writing a new component. Plan: `.claude/docs/plans/29-site-toast-and-global-add-plan.md` batch T1.
+7. A1, A2 and A3 DONE 2026-11-13 (A1/A2 merged c3457e6; A3 People and Files merged a03abd0; frames D9, D10, hover H-F1..H-F5 and A3 approved by the owner). One global "+ Add" (was 3b). `feature/global-add-menu`. Start builder-sonnet medium. Frames drawn (page "Global add (3b)", node 223-1198), awaiting approval and three answers (Needs owner decision). Replaces Home's AddTaskButton, Plan's AddToPlanMenu, Study's add subject. After 6. Plan: plan 29 batches A1, A2 (A3 People and Files only if its O2 is yes).
+8. Figma, Plan round 2: D9 day window (owner's day popup: a day's classes, deadlines and tasks, each opens its details window inside, plus a cheer line), hover states for everything clickable (owner's notes: keep today's hover style, add highlights, colour changes and smooth motion; highlight the day when hovering a task or the day itself; Home and Wellbeing bars clickable), D10 timetable menu. Drawn while 6 and 7 build. Needs plan 25 Q6, Q7. Hover frames H-F1 to H-F5: `.claude/docs/plans/30-hover-polish-plan.md` section 3.
+9. C9 day window (plan 25 C9). `feature/day-window`. Start builder-sonnet medium, ceiling high. After 8.
+10. C10 timetable menu: rename, delete, leave (plan 25 C10; owner note "a schedule is just there forever"). `feature/timetable-menu`. Start builder-sonnet low, ceiling medium. After 8.
+11. Hover polish (from 8). `feature/hover-polish`. Start builder-sonnet low, ceiling medium. After 9 (both touch Week and Month). Plan 30: H1 (`chore/hover-motion`, start builder-haiku medium, no Figma, can run any time) then H2.
+12. UX fix batches from the plan in 5, in its order. Figma per fix where the plan says so. First cut: plan 31 Part C, UX1 to UX6.
+13. Figma, Study round, one sitting: plan 28 covers frames SC-F1 to SC-F4 (and SC-F6 if CV1 = A) plus round 27 F27-1 to F27-5 (F27-2 is plan 25 D7; plan 25 D8 is replaced by the cover dialog). Needs O7 and CV1 to CV4.
+14. Subject covers phase 1 (was 3e; plan 28 SC1 to SC3, includes plan 25 C8). `feature/subject-covers`. SC1 start builder-haiku medium, SC2 and SC3 start builder-sonnet low, ceiling medium. After 13.
+15. RV3 edit, delete and retry reviewers (= plan 25 C7). `feature/reviewer-edit`. Start builder-sonnet low. After 13.
+16. RV2 subject tag everywhere (eight real colours). `feature/subject-tag`. Start builder-sonnet medium. After 13; O5.
+17. RV4 larger files and smaller photos; measure the Vercel body limit first. `feature/upload-limits`. Start builder-sonnet medium. O3, O6.
+18. RV6 question types, server (`feature/question-types-server`, start builder-sonnet high), then RV7 client (`feature/question-types-ui`, start builder-sonnet medium). O2, F27-3.
+19. RV8 sleep plan explainer. `feature/sleep-explainer`. Start builder-sonnet medium. F27-4 and the owner's OK on wording.
+20. RV9 "Making your reviewer" screen. `redesign/reviewer-waiting`. Start builder-sonnet medium. F27-5.
+21. Placeholder pages: Notifications drawer, Me (Profile, Settings, Privacy, Help), About. Figma first. Old sections D and F.
+- BEFORE THE DEFENSE (owner 2026-11-13, WQ1 answered). Concept planned, Figma first, build after the Figma round: "What's new" patch notes window plus a permanent list in Settings (plan 32). `feature/patch-notes`. Figma WN-F1 to WN-F5 first. Start builder-haiku (WN1) and builder-sonnet low (WN2).
+22. Account and trust: forgot password, auth hardening, account deletion. `feature/` per item. Start builder-sonnet high, code-reviewer before merge.
+23. Feedback dialog FB1, FB2 (plan 17). Start builder-sonnet medium. O1.
+24. Small fixes and polish (A3 tester 2026-11-13 adds: the "Uploaded N files" toast is unreliable on Files when the upload dialog is closed early, see `features/files/useUploadDialog.js:35-44`, pre-existing; a toast after a failed host-dialog upload can't be followed; Study still shows a second "+ New subject" beside the global Add, check against the frame): Segment buttons 44px (`shared/ui/segment.css`), Pe/Plan/Study/Wellbeing smells, upload dialog and file viewer leftovers, animation pass. Source: archived sections J, E, U, L.
+25. Plan 26 "do now" slice: N1 Render dashboard audit (owner, any time), N2 cold standby (O8), N3 env hash script (`chore/env-hash`, start builder-haiku low).
+26. Subject covers phase 2, own photo (plan 28 SC4, SC5, code-reviewer). `feature/subject-cover-photo`. Only if CV5 says before the defense; otherwise it moves to `to-build-after-thesis-defense.md`.
 
-## D. Figma frames (FG1)
-Status: not drawn. Ask the owner quick-answer design questions first, record node ids and answers in `.claude/docs/design.md`, owner approves before anything is built. Use figma-use and figma-generate-design, light only, name frames `<Page> / <size> / light / <state>`, reuse the Components page.
-- [ ] Notifications: desktop drawer and phone sheet
-- [ ] Me: Profile, Settings, Privacy and Help, desktop and phone
-- [ ] About
-- [ ] Delete my account dialog (in Me Privacy)
-- [ ] Owner approval of the Friends sub-tab frames (Friends 66:452, Requests 115:922, Pending 115:1091, phone 67:1017, 116:1105, 116:1234) and empty Friends 66:1130; no phone empty-Friends frame exists
-- [ ] Frames for chat extras (section H) and Canvas (section I)
+## Owner decisions
+ALL ANSWERED 2026-11-13. G1 to G3 as drawn (frames approved). Plan 25 Q3, Q6, Q7 yes. Plan 27: O1 keep, O2 Mixed, O3 200 MiB, O4 yes after defense, O5 reviewer row, O6 over 4 MB only, O7 draw all five. Plan 26 O8: standby on the owner's Gmail account (not the recommended teammate's). Plan 28: CV1 one Covers/Colours switch, CV3 guess symbol from name, CV4 no picker in New subject, CV5 own photos after the defense (item 26 moves to `to-build-after-thesis-defense.md`), CV6 cover photos do NOT count toward storage. CV2 ANSWERED 2026-11-13: soft tint plus top band, no stripe. Plans 29 to 31 (answered 2026-11-13, all as recommended): Add menu O1 Plan first on other pages, O2 move People's + and Files' Upload into the global menu after a Figma touch-up, O3 keep the random done lines; hover HQ1 whole day column soft, HQ2 desktop bar tooltip, HQ3 not asked, default no (leave old App.css hover rules); audit UQ1 titles stay the section name and fix the sidebar in the Figma frames, UQ2 Month exam as icon plus title, UQ3 Pick up moves inside the Subjects panel. Toast closes after 6 s (Figma), not 5. The list below keeps the original wording.
+Global add (3b frames, blocks 6 and 7):
+- G1. Button left of Search (drawn) or far right after the avatar? Recommend as drawn.
+- G2. Home counts as the Plan group (drawn) or no group first on Home? Recommend as drawn.
+- G3. Phone button in the top bar (drawn) or floating above the tab bar? Recommend top bar (same spot everywhere).
+Plan 25 (blocks 1, 8, 9):
+- Q3. Shared timetables: owner and editors edit entries, viewers only see details? Recommend yes (the server's roles).
+- Q6. Clicking a Month day opens the day window instead of jumping to the week? Recommend yes, with "Open this week".
+- Q7. Day window cheer line: about six fixed short lines picked by how full the day is, never about scores? Recommend yes.
+Plan 27:
+- O1. Keep the feedback dialog (item 23) or defer? Recommend keep.
+- O2. Default question type in New reviewer. Recommend Mixed.
+- O3. Study storage per student 100 or 200 MiB when files may be 20 MiB. Recommend 200.
+- O4. Strip pictures from PowerPoint and Word in the browser (adds `fflate`). Recommend yes, after the defense.
+- O5. Which screen showed the "OPS411" card? Recommend treating it as the reviewer row.
+- O6. Shrink photos in Study uploads too? Recommend only photos over 4 MB.
+- O7. Draw all five round 27 frames or waive some? Recommend draw all five (item 13).
+Plan 26:
+- O8. Whose account holds the standby API? Recommend a teammate's.
+Plan 28 (subject covers, blocks 13 and 14):
+- CV1. Plain colour look: one Covers/Colours switch for the whole list, or a "Plain" choice per subject? Recommend one switch.
+- CV2. Plain look as top band, left stripe or soft tint? Recommend top band.
+- CV3. Default symbol guessed from the subject name, or a book for all? Recommend guessed.
+- CV4. Pick the cover in the New subject dialog too? Recommend no.
+- CV5. Own photos before or after the defense? Recommend after.
+- CV6. Cover photos count toward Study storage? Recommend yes, 300 KiB each.
 
-## F. Build the drawn pages
-Status: waits on D (and E for anything with files).
-- [ ] N1 Notifications drawer and phone sheet (inbox, preferences, push UI)
-- [ ] M1, M2, M3 Me: Profile, Settings, Privacy and Help (M3 adds a second feedback entry point)
-- [ ] AB1 About (team names are an owner placeholder, see K)
+## Owner and thesis tasks (Claude cannot do these)
+- Delete the test account sctestjmon93gs@fldubai.com, the 3 leftover test files, group `tester-chat` and the "(sample)" data in Atlas.
+- Fill `client/src/utils/helpContacts.js` and the About team names (never invent them).
+- Real phone check on stresscare.xyz and the vercel.app link.
+- Confirm VAPID keys on Render (srv-dbeai2jrjlhs73f25dqg) and test a real push.
+- Point UptimeRobot at `/api/health`; remove dead monitors (`jarvis-bot-qcza`, `tomewisp`).
+- Publish the consent form (placeholders: investigator, adviser, duration, contacts). Thesis core waits on experts: W2, W3, re-evaluation.
+- Manual reviewer tests at the end of `docs/reviewer-report.md`.
+- Re-link `client/.vercel/project.json` to `stresscare` before any manual CLI deploy.
+- Delete `wellbeingController.js` and `wellbeingRoutes.js` (owner said yes 2026-10-13; a chore batch can do it).
+- Remove `Co-Authored-By` from 13c81c3 with a force-push? Default: leave it.
+- Release command: `! git branch -f production main && git push origin production`.
 
-## G. Account and trust
-Status: not started. Plan 15 Phase 2.
-- [ ] W1a auth hardening (sameSite still none/strict, no verified check in `userAuth`; new 401/403 answers can break client `data.success` checks)
-- [ ] A1a account deletion, server (must call `pullUserReactions`; touches other students' shared data)
-- [ ] A1b account deletion, UI and legal text
-- [ ] Legal bump: once if A1b lands the same week as FB2
-- [ ] Admin accounts and admin view (scope undecided: ask what admins can do and how they sign in; Figma first; code-reviewer pass)
-- [ ] "Talk to someone" line in Help (owner decision; verify the hotline number before use)
-- [ ] Other short validated check-ins (sleep, burnout) beside PSS-10 and WHO-5
-- [ ] Terms accept prompt and legal pages scrolling to `#section`, if still missing in the new shell
-- [ ] System-review Batch 1 (forgot password, neutral wording on reset only) and the rest of `system-review.md` server and security items
+## Done (short)
+- Storage and Study: foundation, Study hub, Subject tabs, Practice, Files with folders and Move to..., upload dialog, file viewer. Live since 2026-11-06.
+- New reviewer sources (PDF, Word, PowerPoint, photos, Create new subject, Subject files): released c1b68c7.
+- People (Pe1 to Pe5), footer, security headers, `/api/health`, Practice "In progress" status.
+- Plan 25 S1, S2, C1, C2, C3 live (f25aef0). Sign-in open to all users and CH3 reviewer share cards (server), released f25aef0.
+- 2026-11-13: sign-up email fixed (Brevo IP block off) and live checks done; C3 fix round merged 110932e; C4 add class, exam, event, activity merged 68de136; Month shows everything Week shows merged da16a3b; flaky race tests fixed with a unique main-timetable index merged f2a4b2a. Not yet released (item 3).
 
-## H. Chat extras (plan 16)
-Status: CH1 done. Server batches may run before the UI.
-- [ ] CH2 share timetable entry and subject card (builder-sonnet medium)
-- [ ] CH3 reviewer card (builder-sonnet high)
-- [ ] FS0 file store (builder-opus high, code-reviewer, security-review; needs E)
-- [ ] CH4 uploads (builder-opus high, same reviews)
-- [ ] Figma frames F1 to F10 (list in plan 16 section 5)
-- [ ] CH5, CH6, CH7 chat UI after the frames
-
-## I. New study features (plan 15 Phase 3, then Phase 4)
-Status: none built. Subjects (TW-1) exist.
-- [ ] TW-8a links per subject, TW-8b files per subject (needs E), TW-9 source picker (needs 8b)
-- [ ] TW-14 Canvas connect (blocked on the OLFU token check and the classmate's feed host; fallback is a calendar feed URL; frames still to draw: Add subject hint, renewal chip, phone Home row, Join and "Add meeting link" on class rows; copy Canvas row frame 27:229 into the main file; spec `revamp/13-canvas-connect-card.md`; the class form should expose `meetingUrl`)
-- [ ] TW-15 Canvas courses, announcements, syllabus
-- [ ] TW-2 focus timer, TW-3 notes, TW-4 reviewer as document, editor and export
-- [ ] TW-5 flashcards (sidebar row is a placeholder), TW-6 study blocks, TW-7 weekly digest
-- [ ] TW-10 quiz types, TW-11 calendar upgrades, TW-12 global search and palette, TW-13 archive subjects and term templates
-- [ ] Phase 4 leftovers per plan 15
-- [ ] Phones (720px and under) have no way to reach search; Home date subtitle hidden there
-- [ ] Canvas card on Home: placeholder row or wait (decide with TW-14)
-- [ ] Parked reviewer items: "reviewer ready" notification, exam link, sharing a reviewer to a group
-
-## J. Small open items
-Status: none blocking. Group by page when batching.
-Server and data
-- [ ] `lastMessage` on `GET /api/groups` so group rows show a preview, not "N members" (small server batch)
-- [ ] `deleteGroup`, `leaveGroup`, `joinGroup` answer 200 `success:false` for non-members (should be 404)
-- [ ] Two tabs adding the same timetable duplicate entries (server does not dedupe)
-- [ ] Confirm Render's Node is 20+ (pinned in `server/package.json`)
-People and groups
-- [ ] A left group stays in the list until refresh
-- [ ] Pe3 to Pe5 smells: `people-friends.css` is 320 lines; Info dialog has no family-friendly control (server PATCH supports it); no group icon picker in New group; Info notification option is "Tasks only" not "Mentions only"; Segment stays disabled with no message if preferences fail; two quick Create calls in one tick can make two groups; also `people-friends.css` is 312 lines, `.people-avatar` lives in `people.css`; accepted differences to revisit: row line is "Code XXXXXX", empty Friends keeps the Add a friend card, profile has no phone frame, sent-request profile has no Cancel
-Shell and Home
-- [ ] Avatar menu: shadow Shadow/3 (0 12 32 .12), dividers inset 8px, icons 20px at x+16, item padding 8/10
-- [ ] Header title y30 on Study, Subject, Reviewer vs y26 on Home; desktop "+" y24, subtitle y62, cards from y106
-- [ ] Sidebar: first nav row y66, logo x16 y20, eyebrow block, bottom padding 20; collapsed rail check
-- [ ] Phone header: tools on one 44px row, long greetings max 2 lines (no Home phone frame)
-- [ ] Home hero: Join button 44h px20 with class-time chip; hero Join untested with a class today
-- [ ] Home spacing: 24 gaps, progress track 8px, week bars 24px in a 216px box, heading letter-spacing 0, search 40px
-- [ ] "Plan for you" cards not clickable (covered by NV1); Next step buttons stack at 1280 (card 230 vs frame 272); after Later on PSS the WHO-5 prompt shows at once
-- [ ] Press scale and drag-over lift still instant under reduced motion (`bottombar.css:90`)
-- [ ] Notch: header `top:-16px` leaves 4px of bell hit area in the safe area (`shell.css:25`); bottom bar height 65px duplicated in `bottombar.css` and `layout.css`; inactive tab colour a shade lighter than frame
-- [ ] Legal-prose links ~19px tall on phones; `Modal` always draws X when given a `title` (maybe add `closable`)
-Plan
-- [ ] Day buttons 35 and 43px wide at 320 and 375, Month cells 41px at 320 (7 columns cannot reach 44)
-- [ ] `plan.css` ~511 lines (split); `home/TodayRows.jsx` and `plan/JoinLink.jsx` duplicate the Join anchor
-- [ ] Week grid times read "8:00 – 10:00 am"; task meta has no due time; "My week" select and Filter hidden in Month and Tasks; Month and Tasks read only the student's own plan
-- [ ] A deleted or unshared timetable stays in the switcher until reload; `Menu` and `SelectButton` cannot render rich rows
-Wellbeing and check-ins
-- [ ] `wellbeing.css` 445 lines (split); Why rows share one icon and show up to 4; day labels run from today; note wording "not a measure of your stress" in `weekReading.js`
-- [ ] No Edit on rhythm in the empty hero, no "Add a class" button there; Cancel in the rhythm dialog drops edits without asking; no way to switch off a regular sleep schedule; Enter does not submit
-- [ ] W2: owner OK on result words (Low, Moderate, High stress; Doing okay, Feeling a bit low, A hard stretch), WHO-5 copy and "What this changes" rows; no Exit confirm; "Not now" does not count as Home's Later; no better or worse line; no Move it on on the result
-- [ ] `useCheckInResult.js` imports `sleepSummary` from wellbeing; tips-fallback path untested
-Study
-- [ ] Empty Study step-pill gap 16px (frame says 8, check); reviewer progress bar radius (frame 4px)
-- [ ] Subject Next-up capped at 5 rows (`NextUpList.jsx` MAX_ROWS) so a same-day exam can be cut; rows taller than frame; exam and class match only by title = subject name or code
-- [ ] Practice column jumps up 56px when feedback shows; feedback screen scrolls on phones under 700px tall; focus-screen layout duplicated in `practice.css` and check-in css
-- [ ] Exit uses replace so Back after Exit shows the reviewer twice; "Reviewer not found" Back points at the missing reviewer; sidebar highlight for `/study/reviewers/:id`; delete dialog focuses the destructive button; failed reviewer has no retry
-- [ ] Long unbroken subject name breaks mid-word at 320px (`shell.css`); `study-failed` duplicates `home-failed`; New subject dialog compare with Figma
-- [ ] Hidden controls to build when their backend or frame exists: reviewer Share, Make flashcards, Download PDF, Edit text, Rename, New questions, Targeted, header search pill, paste notes, question types, exam chip, Skip, subject Notes, Materials and Practice tabs, Add meeting link, Active and Archived segment, End this term, Resume row (needs `openSession` on the list)
-Cleanup
-- [ ] Z1 delete the old `App.css` rules and legacy `.task-check`, `check-pop`, `.toast-with-action` in `styles/components.css`; `.app-boot` too
-- [ ] Z2 fixes pass; `useTaskDone.js:21` lint error and `useCheckInPrompt.js` lint warning; `AuthContext.jsx:11` repeats `backendUrl`
-- [ ] 1:1 Figma audits still owed: Wellbeing, Plan, and a numeric re-measure of Shell, Home and Study (tester needs Figma edit access to `rzpRwZFSbM1MjZRUgTY3Ok` or the current file)
-- [ ] Sync Figma sign-in frame 6:2 with the code (icons in fields, note position, hover) after owner approval
-- [ ] Offer a pass over the other 44 success toasts (owner: toasts feel AI-made)
-- [ ] Docs notes to write: server.md (TermsGate path, legal page routes), design.md (shell, 256px sidebar, 1120px content, sidebar from 1024px), notifications.md (shell polling, `markGroupRead`), motion.md (sliding pill, badge pop-in)
-- [ ] Ask the owner what they moved by accident in Figma; whether to install the `break-ui` skill (repo `emilkowalski/skills`)
-
-## K. Owner and thesis tasks
-Status: owner-side items; Claude cannot do these.
-- [ ] Fill `client/src/utils/helpContacts.js` and the About team names (visible placeholders; never invent them)
-- [ ] Real phone check and real Google sign-in on stresscare.xyz and on the vercel.app link; email login sticks on a phone
-- [ ] Check VAPID keys are set on Render (production srv-dbeai2jrjlhs73f25dqg); re-enable web push on the new origin; real OS push test (second account posts in a shared group while the tab is in the background)
-- [ ] Manual reviewer tests at the end of `reviewer-report.md` (live upload, real phone, scanned and password-protected PDFs, several students at once, a subject expert checking answers)
-- [ ] Try a real reviewer upload in production
-- [ ] Publish the consent form (placeholders: investigator, adviser, duration, researcher contacts)
-- [ ] Thesis core waiting on experts: W2, W3, re-evaluation
-- [ ] Delete the "(sample)" data from the owner's Atlas account when done (subjects, 5 timetable entries, 5 tasks)
-- [ ] Paste the Messenger "high school level" feedback into `docs/KNOWN_ISSUES.md`
-- [ ] Re-link `client/.vercel/project.json` to `stresscare` (`vercel link`) before any manual CLI deploy
-- [ ] Delete `wellbeingController.js` and `wellbeingRoutes.js` (owner said yes 2026-10-13)
-- [ ] Add tests for the Task, User and Notification controllers; there are no client tests
-- [ ] If billing is ever linked to the Gemini key, soften the Privacy Policy line about Google using the text (the Google AI Pro subscription does not count)
-- [ ] Staging leftovers: one test sign-up, new `JWT_SECRET` on the staging Render service, decide on a separate Brevo key, optionally rotate secrets pasted in chat
-- [ ] Remove the now-unused production `VITE_BACKEND_URL` (builds ignore it)
-- [ ] Branches are never deleted by Claude; the owner cleans them up
+- Organize tasks: concept only, the last thing in the queue, not planned. See `to-build-after-thesis-defense.md` ("Organize tasks").
