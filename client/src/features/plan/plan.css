@@ -538,12 +538,16 @@
     box-sizing: border-box;
     max-width: 548px;
     margin: var(--space-5) auto 0;
-    padding: var(--space-8) var(--space-6);
+    padding: var(--space-7) var(--space-6);
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
     background: var(--surface);
     box-shadow: var(--shadow-2);
     text-align: center;
+  }
+  /* The empty day grid shrinks to the headers so the card above sits in view, as in the frame. */
+  .plan-grid:has(~ .plan-empty) {
+    min-height: 120px;
   }
   .plan-empty__icon {
     display: inline-flex;
