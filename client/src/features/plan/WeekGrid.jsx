@@ -7,7 +7,7 @@ import TaskChip from "./TaskChip";
 // classes and tasks. Today's column is tinted. `direction` ("next", "prev" or "none") is which way
 // the week was stepped, so the new week slides in from that side. Entries and tasks open their details
 // window through `onOpenEntry(entry, iso)` and `onOpenTask(task)`; `foundDay` is the day a link landed on
-// (`?day=`), whose column flashes. Empty space in a column does too. The day name and number open the day window through `onOpenDay(day)`.
+// (`?day=`), whose column flashes. The day name and number open the day window through `onOpenDay(day)`.
 // A click on empty space in a column opens the day too (mouse only: keyboard and screen readers use the
 // header button). Anything interactive inside, or a row that opens its own window, keeps its own click.
 const OWN_CLICK = "button, a, input, label, select, textarea, .item-row";

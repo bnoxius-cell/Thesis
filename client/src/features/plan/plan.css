@@ -156,18 +156,18 @@
     border-right: 1px solid var(--border);
     transition: background-color var(--dur-2) var(--ease-out);
   }
-  /* The hover tint comes before .is-today so today keeps its own fill. A mouse click on empty space opens the
+  /* Today's column is left out of the hover tint (:not(.is-today)) so it keeps its own fill and number badge. A mouse click on empty space opens the
      day (WeekGrid); the column, its date number and a hovered item all light it up. */
   @media (hover: hover) and (pointer: fine) {
     .plan-col {
       cursor: pointer;
     }
-    .plan-col:hover,
-    .plan-col:has(> .plan-col__items .item-row:hover) {
+    .plan-col:not(.is-today):hover,
+    .plan-col:not(.is-today):has(> .plan-col__items .item-row:hover) {
       background: color-mix(in srgb, var(--surface-2) 70%, transparent);
     }
-    .plan-col:hover .plan-col__num,
-    .plan-col:has(> .plan-col__items .item-row:hover) .plan-col__num {
+    .plan-col:not(.is-today):hover .plan-col__num,
+    .plan-col:not(.is-today):has(> .plan-col__items .item-row:hover) .plan-col__num {
       color: var(--accent);
     }
   }
