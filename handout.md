@@ -2,7 +2,15 @@
 
 Main session: read this first after a `/clear` (state and rules), then `roadmap.md` (the ordered open work) and `next-prompt.md` (the single next task). Subagents skip all three unless the brief says otherwise. Rules are in `CLAUDE.md`, feature notes in `.claude/docs/`. Full history before 2026-11-13: `.claude/docs/archive/2026-11-13/handout.md`.
 
-## Current state (2026-11-13)
+## Current state (2026-11-13, evening)
+- `main` = dcf0009, pushed, NOT released to `production`. C9 day window merged and tested (dcf0009). Global "+ Add" A1 to A3 merged earlier. Server tests: 1363 pass.
+- IN PROGRESS: C10 timetable menu on branch `feature/timetable-menu` (commit 857f047, tested only by unit tests and build). Its fix round was cut off by the 5-hour usage limit (resets 10pm Asia/Manila): the builder must match the five D10 frames exactly (239:4833 owner menu, 239:5205 member, 239:5577 delete, 239:5904 leave, 239:6232 rename: icon-tile menu rows with subtitles, exact Figma copy) and load the design skills. Resume agent a96ce85a2e2d11bf6 with SendMessage, or spawn builder-sonnet low on the same branch with that brief. Then tester, then merge. No server route was added, so no code-reviewer needed.
+- Plan 33 (reviewer question types + flashcards) written. Owner answers: essay NOT before the defense (QT3, QT6 and essay frames dropped), type picker is a dropdown, enumeration is one numbered box per item, everything else as the planner recommended. 45 frames drawn on Figma page "Practice types and flashcards (33)" (node 254:2, ids in `.claude/docs/design.md` "Plan 33 frames"), AWAITING the owner's approval. Still to do: add plan 33 to `.claude/docs/plans/README.md`, mark replaced parts in plans 27 and 20.
+- Owner change request on C9 (2026-11-13): the whole day card must be clickable (empty space in a Week column too, items inside still open themselves), and the same for the other cards. Hover = a subtle tint plus the existing outline on subject and task rows, and a subtle effect on the big day card. Needs a good colour combination with the design skills (impeccable, emil-design-eng, apple-design, animate). Folds into plan 30 H2 (`feature/hover-polish`, HQ1 soft grey day column with accent date number, HQ2 bar tooltip on desktop only); check that H-F1..H-F5 still fit and redraw if the tint changes.
+- C9 cheer line wording (six lines) is a placeholder: owner has not approved it.
+- Order now: finish C10 (fix round, test, merge), whole-card click + hover polish (H1, H2), C5, C6, RV1, RV5, then plan 33 (question types QT1 to QT5, release, flashcards FC1 to FC6, release). Document reviewer (read-only) is an idea after that. Item 3 (Atlas check, then release) still pending.
+
+## Earlier state notes (2026-11-13, partly stale)
 - `main` = `production` = f25aef0 (released 2026-11-09 night without a preview tester pass). Rollback targets: ca8466a, then 0679a39, 46765f5, 55e3321. Live checks of this release are still owed (roadmap item 1).
 - Registration is broken for new users until the owner turns off Brevo IP blocking for API keys (Render's outgoing IP 74.220.52.251 is refused). Keep it off: each backend has its own IP.
 - Plan 25: S1, S2, C1, C2 live. C3 (with fix round) and C4 merged on `main`, not released. Next: C5, C6, then release (roadmap items 1 to 3).
