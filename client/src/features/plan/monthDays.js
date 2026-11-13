@@ -6,7 +6,8 @@ import { withLook } from "./planDays";
 const MAX_DOTS = 4;
 
 // What one day of the month grid carries. Classes become dots (their subject's tone); a holiday, an
-// exam and each open task become short labels. Labels run holiday, exam, overdue tasks, other tasks.
+// exam, each event or activity and each open task become short labels. Labels run holiday, exam,
+// events and activities, then tasks.
 function buildDay({ date, monthIndex, todayIso, overviewDay, tasks, subjects }) {
   const iso = toISODate(date);
   const entries = (overviewDay?.entries ?? []).map((entry) => withLook(entry, subjects));
@@ -14,6 +15,9 @@ function buildDay({ date, monthIndex, todayIso, overviewDay, tasks, subjects }) 
   if (overviewDay?.holiday) labels.push({ id: "holiday", text: overviewDay.holiday, tone: "neutral" });
   entries.filter((entry) => entry.kind === "exam").forEach((entry) => {
     labels.push({ id: `exam-${entry.id}`, text: `Exam: ${entry.title}`, tone: "watch" });
+  });
+  entries.filter((entry) => entry.kind === "event" || entry.kind === "activity").forEach((entry) => {
+    labels.push({ id: `${entry.kind}-${entry.id}`, text: entry.title, tone: "neutral" });
   });
   tasks
     .map((task) => ({ task, overdue: iso < todayIso }))
