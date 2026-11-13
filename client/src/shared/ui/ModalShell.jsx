@@ -13,7 +13,8 @@ import "./modal.css";
 // `busy` blocks every way of closing. `confirmClose` is a function that returns true when
 // closing should ask first; Modal.jsx adds that question.
 // `sheet` makes it a bottom sheet on phones (under 720px, with a grab handle, above the home
-// indicator); wider screens keep the centred card.
+// indicator); wider screens keep the centred card. `returnFocusRef` names a ref whose element takes
+// focus on close when the opener is gone (a window reopened after Edit goes back to its row).
 
 const stack = [];
 let lockCount = 0;
@@ -52,6 +53,7 @@ export default function ModalShell({
   as: Tag = "div",
   role = "dialog",
   initialFocusRef,
+  returnFocusRef,
   sheet = false,
   children,
   ...rest
@@ -107,13 +109,14 @@ export default function ModalShell({
       // "Add task", or a button that left the page when its dialog finished), land on <main> instead
       // of dropping to <body>, but only when nothing else has taken focus: a "Leave?" prompt closes in
       // the same commit as the dialog under it, and must not pull focus off that dialog's own opener.
-      if (opener && opener !== document.body && document.contains(opener)) {
-        opener.focus({ preventScroll: true });
+      const back = [opener, returnFocusRef?.current].find((el) => el && el !== document.body && document.contains(el));
+      if (back) {
+        back.focus({ preventScroll: true });
       } else if (!document.activeElement || document.activeElement === document.body) {
         document.getElementById("main")?.focus({ preventScroll: true });
       }
     };
-  }, [open, requestClose, initialFocusRef, opener]);
+  }, [open, requestClose, initialFocusRef, returnFocusRef, opener]);
 
   if (!open) return null;
 

@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { Circle, CircleCheck, FileText, Flag, RotateCcw, Shapes, Timer } from "lucide-react";
 import { Button, Chip } from "@/shared/ui";
@@ -9,8 +10,11 @@ import { subjectHref, taskHref, taskSubject } from "./itemLinks";
 
 // A task in the details window (Figma D1): the due chip and a "Mark as done" row (or "Done on" and Reopen
 // once it's done), then the subject, due day, size and notes. `onEdit` and `onDelete` are passed only when
-// the student can use them, and a missing one draws no button.
-export default function TaskDetails({ task, subjects, context, onClose, onToggle, onEdit, onDelete }) {
+// the student can use them, and a missing one draws no button. `focus` ("edit" or "delete") puts focus on
+// that button when the window comes back from its dialog.
+export default function TaskDetails({ task, subjects, context, onClose, returnFocusRef, focus, onToggle, onEdit, onDelete }) {
+  const editRef = useRef(null);
+  const deleteRef = useRef(null);
   const now = useNow();
   const subject = taskSubject(task, subjects);
   const chip = taskChip(task, now);
@@ -34,12 +38,12 @@ export default function TaskDetails({ task, subjects, context, onClose, onToggle
   const footer = (
     <DetailFooter
       remove={onDelete && (
-        <Button variant="ghost" className="item-footer__delete" onClick={() => onDelete(task, handlers)}>
+        <Button ref={deleteRef} variant="ghost" className="item-footer__delete" onClick={() => onDelete(task, handlers)}>
           Delete
         </Button>
       )}
       edit={onEdit && (
-        <Button variant="secondary" className="item-footer__edit" onClick={() => onEdit(task, handlers)}>
+        <Button ref={editRef} variant="secondary" className="item-footer__edit" onClick={() => onEdit(task, handlers)}>
           Edit
         </Button>
       )}
@@ -54,6 +58,8 @@ export default function TaskDetails({ task, subjects, context, onClose, onToggle
       title={task.title}
       subtitle={`Task · ${subject?.name || task.course || "No subject"}`}
       onClose={onClose}
+      returnFocusRef={returnFocusRef}
+      initialFocusRef={focus === "delete" ? deleteRef : focus === "edit" ? editRef : undefined}
       footer={footer}
     >
       {chip && <Chip tone={chip.tone} className="item-chip">{chip.label}</Chip>}

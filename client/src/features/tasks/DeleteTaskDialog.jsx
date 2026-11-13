@@ -22,6 +22,7 @@ export default function DeleteTaskDialog({ task, onClose, onDeleted }) {
     <ConfirmDialog
       open
       sheet
+      className="task-delete"
       tone="danger"
       title={`Delete "${task.title}"?`}
       confirmLabel="Delete task"

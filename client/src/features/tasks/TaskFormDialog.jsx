@@ -51,6 +51,7 @@ export default function TaskFormDialog({ subjects, task, defaultSubject = NO_SUB
       as="form"
       onSubmit={submit}
       noValidate
+      sheet
       className="task-dialog"
       title={editing ? "Edit task" : "New task"}
       subtitle={editing ? "Changes show everywhere this task appears." : "It goes on your plan and counts toward your week."}
@@ -58,12 +59,12 @@ export default function TaskFormDialog({ subjects, task, defaultSubject = NO_SUB
       onClose={onClose}
       confirmClose={() => (editing ? Object.keys(taskChanges(start, form)).length > 0 : taskStarted(form))}
       leavePrompt={editing ? { body: "Your changes to this task won't be saved." } : undefined}
-      actions={
+      actions={(close) => (
         <>
-          <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button variant="ghost" onClick={close} disabled={saving}>Cancel</Button>
           <Button type="submit" busy={saving}>{saving ? "Saving" : editing ? "Save changes" : "Add task"}</Button>
         </>
-      }
+      )}
     >
       <Field
         label="Task"
