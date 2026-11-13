@@ -13,6 +13,9 @@ export const MAX_PPTX_PART_BYTES = 5 * MB;
 export const MAX_PPTX_TOTAL_BYTES = 40 * MB;
 
 const DOCUMENT_ENTRY = 'word/document.xml';
+const WORD_APP_ENTRY = 'docProps/app.xml';
+const MAX_APP_XML_BYTES = 64 * 1024;
+const WORD_PAGES_TAG = /<Pages>\s*(\d{1,6})\s*<\/Pages>/;
 const PRESENTATION_ENTRY = 'ppt/presentation.xml';
 const PRESENTATION_RELS_ENTRY = 'ppt/_rels/presentation.xml.rels';
 const SLIDE_ENTRY = /^ppt\/slides\/slide(\d+)\.xml$/;
@@ -187,12 +190,26 @@ const slideBlock = (pkg, slidePart, number) => {
     return [`Slide ${number}`, body, notes && `Notes:\n${notes}`].filter(Boolean).join('\n');
 };
 
-// Same shape as extractPdfText. Word and PowerPoint have no fixed pages, so `pages` is null.
-const sourceText = (full, { slides = null, truncated = false } = {}) => {
+// Word's page count from docProps/app.xml, or null. Word writes it on save, so it can be missing or
+// stale; a part that is absent, oversized or unreadable just means no count, never a failed read.
+const wordPageCount = (pkg) => {
+    let xml;
+    try {
+        xml = pkg.readText(WORD_APP_ENTRY, MAX_APP_XML_BYTES);
+    } catch (error) {
+        if (error instanceof ZipError) return null;
+        throw error;
+    }
+    const pages = Number(WORD_PAGES_TAG.exec(xml ?? '')?.[1] ?? 0);
+    return pages > 0 ? pages : null;
+};
+
+// Same shape as extractPdfText. PowerPoint has no pages, so its `pages` stays null.
+const sourceText = (full, { pages = null, slides = null, truncated = false } = {}) => {
     const cut = full.length > MAX_SOURCE_CHARS;
     return {
         text: cut ? full.slice(0, MAX_SOURCE_CHARS) : full,
-        pages: null,
+        pages,
         slides,
         chars: full.length,
         truncated: cut || truncated,
@@ -208,7 +225,8 @@ export const extractDocxText = (buffer, { maxBytes = MAX_DOCX_XML_BYTES } = {}) 
     const pkg = openPackage(buffer, cap);
     const xml = pkg.readText(DOCUMENT_ENTRY, cap);
     if (xml === null) throw new ZipError('damaged');
-    return { ...sourceText(cleanPageText(partText(xml, WORD))), unpacked: pkg.unpacked() };
+    const pages = wordPageCount(pkg);
+    return { ...sourceText(cleanPageText(partText(xml, WORD)), { pages }), unpacked: pkg.unpacked() };
 };
 
 // Slides in show order with their notes. `slides` counts every slide in the deck; only the first

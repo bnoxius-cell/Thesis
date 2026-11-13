@@ -57,6 +57,34 @@ describe('extractDocxText', () => {
         expect(extractDocxText(docx(body)).text).toBe('Ang mga mag-aaral ay nag-aaral ng Kasaysayan ng Pilipinas.\nÑino, señor at Parañaque.');
     });
 
+    describe('page count from docProps/app.xml', () => {
+        const appXml = (inner) => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties><Application>Word</Application>${inner}</Properties>`;
+        const withApp = (xml) => [{ name: 'docProps/app.xml', data: xml, deflate: true }];
+        const body = paragraph('<w:t>Some text.</w:t>');
+
+        test('Word\'s <Pages> count is the page count', () => {
+            expect(extractDocxText(docx(body, withApp(appXml('<Pages>7</Pages>')))).pages).toBe(7);
+        });
+
+        test('no app.xml gives no page count and no error', () => {
+            expect(extractDocxText(docx(body))).toMatchObject({ pages: null, text: 'Some text.' });
+        });
+
+        test('a count that is missing, zero or not a number gives no page count', () => {
+            for (const inner of ['', '<Pages>0</Pages>', '<Pages>many</Pages>', '<Pages>-3</Pages>', '<Pages>1234567890</Pages>']) {
+                expect(extractDocxText(docx(body, withApp(appXml(inner)))).pages).toBeNull();
+            }
+        });
+
+        test('an app.xml that is not XML, too big or listed twice gives no page count and no error', () => {
+            const oversized = appXml(`<Pages>4</Pages>${'x'.repeat(64 * 1024)}`);
+            const twice = [...withApp(appXml('<Pages>4</Pages>')), ...withApp(appXml('<Pages>9</Pages>'))];
+            for (const entries of [withApp('not xml at all'), withApp(oversized), twice]) {
+                expect(extractDocxText(docx(body, entries))).toMatchObject({ pages: null, text: 'Some text.' });
+            }
+        });
+    });
+
     test('deleted text and field codes are left out', () => {
         const body = '<w:p><w:del><w:r><w:delText>old words</w:delText></w:r></w:del>'
             + '<w:r><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r><w:t>kept words</w:t></w:r></w:p>';

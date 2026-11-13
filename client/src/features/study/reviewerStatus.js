@@ -3,15 +3,29 @@ import { filesText } from "@/features/files/fileKinds";
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-// What a reviewer was made from, in a few words: "PDF · 14 pages", "Word", "PowerPoint · 20 slides",
-// "Photo" or "3 files". A reviewer made before there were several kinds has no type and is a PDF.
+const PAGE_CHARS = 3000;
+
+// Pages in one source item. A reviewer made before there were several kinds has no type and is a PDF.
+// Word and notes have no fixed pages (Word's count is used when the file has one), so they count a page
+// per PAGE_CHARS characters. Skipped files still count: they were uploaded.
+const itemPages = ({ type = "pdf", pages = 0, slides = 0, chars = 0 }) => {
+  if (type === "pdf") return pages;
+  if (type === "pptx") return slides;
+  if (type === "image") return 1;
+  return pages > 0 ? pages : Math.max(1, Math.ceil(chars / PAGE_CHARS));
+};
+
+// Total pages across a reviewer's files. Old reviewers have no items, so their summary is one item.
+export function pageCount(reviewer) {
+  const items = reviewer.source?.items ?? [reviewer.source ?? {}];
+  return items.reduce((total, item) => total + itemPages(item), 0);
+}
+
+// What a reviewer was made from: "1 file · 14 pages", "3 files · 20 pages" or "1 file" when no page count is known.
 export function sourceLabel(reviewer) {
-  const { type = "pdf", count = 1, pages = 0, slides = 0 } = reviewer.source ?? {};
-  if (count > 1) return filesText(count);
-  if (type === "docx") return "Word";
-  if (type === "image") return "Photo";
-  if (type === "pptx") return ["PowerPoint", slides && plural(slides, "slide")].filter(Boolean).join(" · ");
-  return ["PDF", pages && plural(pages, "page")].filter(Boolean).join(" · ");
+  const { count = 1 } = reviewer.source ?? {};
+  const pages = pageCount(reviewer);
+  return [filesText(count), pages > 0 && plural(pages, "page")].filter(Boolean).join(" · ");
 }
 
 // What a reviewer row says about itself, from one list item. The list carries the last finished
@@ -34,13 +48,13 @@ export function reviewerProgress(reviewer) {
   return reviewer.sessions ? `Learning Mode ${Math.round(reviewer.lastScore)}%` : "Not started";
 }
 
-// "PDF · 14 pages · added 2 days ago" (see sourceLabel). A failed reviewer shows the reason instead.
+// "1 file · 14 pages · added 2 days ago" (see sourceLabel). A failed reviewer shows the reason instead.
 export function reviewerMeta(reviewer) {
   if (reviewer.status === "failed" && reviewer.error) return reviewer.error;
   return [sourceLabel(reviewer), `added ${daysAgoText(reviewer.createdAt).toLowerCase()}`].join(" · ");
 }
 
-// "PDF · 14 pages · Databases": what the reviewer was made from (Figma 76:1270).
+// "2 files · 14 pages · Databases": what the reviewer was made from (Figma 76:1270).
 export function reviewerSourceLine(reviewer) {
   return [sourceLabel(reviewer), reviewer.course].filter(Boolean).join(" · ");
 }
