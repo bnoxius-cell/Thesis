@@ -45,12 +45,18 @@
     animation-delay: calc(var(--i) * var(--stagger));
   }
   /* Only today is blue and only the heaviest day is brown; every other day stays a quiet grey.
-     The heaviest rule comes last, so it wins when today is also the heaviest. */
+     When today is also the heaviest it stays blue and gets a brown ring, so both still show.
+     The outline is used, not a box-shadow, because nothing on the track clips it. */
   .workload-bars__bar.is-today {
     background: var(--accent);
   }
   .workload-bars__bar.is-heaviest {
     background: var(--watch);
+  }
+  .workload-bars__bar.is-today.is-heaviest {
+    background: var(--accent);
+    outline: 2px solid var(--watch);
+    outline-offset: 2px;
   }
   .workload-bars__label {
     white-space: nowrap;
@@ -125,6 +131,7 @@
     background: var(--accent);
   }
   .workload-bars__key.is-heaviest {
-    background: var(--watch);
+    background: transparent;
+    box-shadow: inset 0 0 0 2px var(--watch);
   }
 }
