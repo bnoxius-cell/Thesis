@@ -7,17 +7,17 @@ import TaskChip from "./TaskChip";
 // classes and tasks. Today's column is tinted. `direction` ("next", "prev" or "none") is which way
 // the week was stepped, so the new week slides in from that side. Entries and tasks open their details
 // window through `onOpenEntry(entry, iso)` and `onOpenTask(task)`; `foundDay` is the day a link landed on
-// (`?day=`), whose column flashes.
-export default function WeekGrid({ days, now, onToggle, onOpenEntry, onOpenTask, foundDay, direction }) {
+// (`?day=`), whose column flashes. The day name and number open the day window through `onOpenDay(day)`.
+export default function WeekGrid({ days, now, onToggle, onOpenEntry, onOpenTask, onOpenDay, foundDay, direction }) {
   return (
     <ol className="plan-grid plan-slide" data-direction={direction} aria-label="This week by day">
       {days.map((day) => (
         <li key={day.key} className={`plan-col${day.isToday ? " is-today" : ""}${day.key === foundDay ? " is-found" : ""}`} aria-label={day.label} aria-current={day.isToday ? "date" : undefined}>
           <header className="plan-col__head">
-            <div>
-              <p className="plan-col__name">{day.weekday}</p>
+            <button type="button" className="plan-col__open" aria-haspopup="dialog" aria-label={`Open ${day.label}`} onClick={() => onOpenDay(day)}>
+              <span className="plan-col__name">{day.weekday}</span>
               <span className="plan-col__num">{day.dayNumber}</span>
-            </div>
+            </button>
             <LoadDot load={day.load} />
             <span className="sr-only">{day.load === "heavy" ? "Heavy day" : "Light day"}</span>
           </header>

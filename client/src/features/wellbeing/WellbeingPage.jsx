@@ -9,6 +9,10 @@ import { nextDueSurvey } from "@/features/checkin/surveyDue";
 import useWeekData from "@/features/workload/useWeekData";
 import useWorkload from "@/features/workload/useWorkload";
 import useMoveSuggestions from "@/features/tasks/useMoveSuggestions";
+import useTaskDone from "@/features/tasks/useTaskDone";
+import useTaskEdit from "@/features/tasks/useTaskEdit";
+import useItemDetail from "@/features/details/useItemDetail";
+import useOpenWeekDay from "@/features/workload/useOpenWeekDay";
 import CheckInCards from "./CheckInCards";
 import FeelingSection from "./FeelingSection";
 import HowThisWorks from "./HowThisWorks";
@@ -46,6 +50,17 @@ export default function WellbeingPage() {
     strained: work.strained,
     now,
   });
+  const setDone = useTaskDone(data.setTasks);
+  const subjects = useMemo(() => [...data.subjectsById.values()], [data.subjectsById]);
+  const edit = useTaskEdit({ subjects, setTasks: data.setTasks });
+  const detail = useItemDetail({
+    subjects,
+    onToggle: setDone,
+    context: "wellbeing",
+    onEditTask: edit.onEditTask,
+    onDeleteTask: edit.onDeleteTask,
+  });
+  const openWeekDay = useOpenWeekDay({ detail, overview: data.overview, tasks: data.tasks, subjects, profile: work.profile, now });
   const { pathname, search, hash } = useLocation();
   const ready = data.status === "ready";
   useHashScroll(ready);
@@ -72,7 +87,7 @@ export default function WellbeingPage() {
       )}
       {ready && (
         <div className="wellbeing-stack">
-          <LoadHero work={work} moves={moves} />
+          <LoadHero work={work} moves={moves} onOpenDay={openWeekDay} />
           <FeelingSection>
             <CheckInCards user={userData} now={now} />
           </FeelingSection>
@@ -83,6 +98,8 @@ export default function WellbeingPage() {
           <HowThisWorks />
         </div>
       )}
+      {detail.dialog}
+      {edit.dialog}
     </Page>
   );
 }

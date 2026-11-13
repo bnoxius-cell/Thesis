@@ -11,6 +11,7 @@ import useMoveSuggestions from "@/features/tasks/useMoveSuggestions";
 import { finishedRecently } from "@/features/tasks/finishedRecently";
 import useItemDetail from "@/features/details/useItemDetail";
 import useTaskEdit from "@/features/tasks/useTaskEdit";
+import useOpenWeekDay from "@/features/workload/useOpenWeekDay";
 import TodayHero from "./TodayHero";
 import ThisWeekCard from "./ThisWeekCard";
 import NextStepCard from "./NextStepCard";
@@ -51,6 +52,7 @@ export default function HomePage() {
     onEditTask: edit.onEditTask,
     onDeleteTask: edit.onDeleteTask,
   });
+  const openWeekDay = useOpenWeekDay({ detail, overview: data.overview, tasks: data.tasks, subjects, profile: work.profile, now });
   const { prompt, later } = useCheckInPrompt(userData, now);
   const moves = useMoveSuggestions({
     userId: userData?._id,
@@ -94,7 +96,7 @@ export default function HomePage() {
             onOpenEntry={detail.openEntry}
             onOpenTask={detail.openTask}
           />
-          <ThisWeekCard work={work} tasks={data.tasks} now={now} />
+          <ThisWeekCard work={work} tasks={data.tasks} now={now} onOpenDay={openWeekDay} />
           <NextStepCard prompt={prompt} onLater={later} moves={moves} work={work} now={now} />
           <PlanForYou
             tasks={work.enrichedTasks}

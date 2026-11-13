@@ -8,7 +8,8 @@ const hours = (n) => `${Math.round(n * 10) / 10}h`;
 // stressed and the heaviest day takes the watch tone, never red. Bars draw in once on arrival.
 // `days` is the week from buildWeek; `heaviestKey` is the day to flag, or null. `size="lg"` is the
 // Wellbeing chart (taller bars, today as a pill); `legend` adds the Heaviest day and Today key under it.
-export default function WeekBars({ days, heaviestKey = null, size = "md", legend = false }) {
+// With `onOpenDay(dayKey)` every column is a button that opens that day's window.
+export default function WeekBars({ days, heaviestKey = null, size = "md", legend = false, onOpenDay }) {
   const totals = days.map((d) => d.busyHours + d.load);
   const tallest = Math.max(...totals, 1);
   const summary = days
@@ -19,11 +20,23 @@ export default function WeekBars({ days, heaviestKey = null, size = "md", legend
     <>
       <div
         className={`workload-bars${size === "lg" ? " workload-bars--lg" : ""}`}
-        role="img"
+        role={onOpenDay ? "group" : "img"}
         aria-label={`Hours on each of the next seven days: ${summary}`}
       >
-        {days.map((day, i) => (
-          <div key={day.key} className="workload-bars__col" style={{ "--i": Math.min(i, 5) }}>
+        {days.map((day, i) => {
+          const Col = onOpenDay ? "button" : "div";
+          return (
+          <Col
+            key={day.key}
+            className="workload-bars__col"
+            style={{ "--i": Math.min(i, 5) }}
+            {...(onOpenDay && {
+              type: "button",
+              "aria-haspopup": "dialog",
+              "aria-label": `Open ${day.label}, ${hours(totals[i])}${day.key === heaviestKey ? ", heaviest" : ""}`,
+              onClick: () => onOpenDay(day.key),
+            })}
+          >
             <span className="workload-bars__track">
               <span
                 className={`workload-bars__bar${i === 0 ? " is-today" : ""}${day.key === heaviestKey ? " is-heaviest" : ""}`}
@@ -31,8 +44,9 @@ export default function WeekBars({ days, heaviestKey = null, size = "md", legend
               />
             </span>
             <span className={`workload-bars__label${i === 0 ? " is-today" : ""}`}>{day.label}</span>
-          </div>
-        ))}
+          </Col>
+          );
+        })}
       </div>
       {legend && (
         <ul className="workload-bars__legend" aria-hidden="true">
