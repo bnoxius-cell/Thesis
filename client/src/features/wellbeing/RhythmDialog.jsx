@@ -41,12 +41,12 @@ export default function RhythmDialog({ user, onClose }) {
       busy={saving}
       onClose={onClose}
       confirmClose={() => changed}
-      actions={
+      actions={(close) => (
         <>
-          <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button variant="ghost" onClick={close} disabled={saving}>Cancel</Button>
           <Button type="submit" busy={saving}>{saving ? "Saving" : "Save"}</Button>
         </>
-      }
+      )}
     >
       {picker("Study hours a day", "studyHoursPerDay", options.study)}
       {picker("Sleep target", "sleepHours", options.sleep)}

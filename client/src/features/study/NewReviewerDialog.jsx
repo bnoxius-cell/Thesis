@@ -129,14 +129,14 @@ export default function NewReviewerDialog({
       busy={creating}
       onClose={onClose}
       confirmClose={() => Boolean(entries.length || storedIds.length || title.trim() || newName.trim())}
-      actions={
+      actions={(close) => (
         <>
-          <Button variant="ghost" onClick={onClose} disabled={creating}>Cancel</Button>
+          <Button variant="ghost" onClick={close} disabled={creating}>Cancel</Button>
           <Button type="submit" busy={creating} disabled={Boolean(blocked)}>
             {creating ? "Reading your files" : "Create reviewer"}
           </Button>
         </>
-      }
+      )}
     >
       <Field
         label="Title"

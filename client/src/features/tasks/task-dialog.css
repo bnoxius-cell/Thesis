@@ -6,6 +6,18 @@
   .ui-modal.task-delete {
     max-width: 480px;
   }
+  /* Desktop frames: 20px between Edit fields (not 24); Delete's text block is 26px title, 4px, body. */
+  @media (min-width: 720px) {
+    .ui-modal.task-dialog .ui-modal__body {
+      gap: 20px;
+    }
+    .ui-modal.task-delete .ui-modal__title {
+      line-height: 26px;
+    }
+    .ui-modal.task-delete .ui-modal__body {
+      padding-top: var(--space-1);
+    }
+  }
   /* Phone Delete sheet (Figma 211:3007): 32px under the buttons. */
   @media (max-width: 719.98px) {
     .ui-modal--sheet.task-delete .ui-modal__actions {
