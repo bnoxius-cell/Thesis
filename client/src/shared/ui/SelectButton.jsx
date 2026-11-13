@@ -7,8 +7,8 @@ import "./select-button.css";
 const joinClasses = (...parts) => parts.filter(Boolean).join(" ");
 
 // A picker: the trigger shows the chosen label and a chevron (Figma SelectButton 37:6) and opens a
-// listbox Menu. `options` is [{ value, label, leading? }]: `leading` is a small mark shown before the
-// label in the trigger and the list (not in `native`); onChange gets the chosen value. `native` renders a
+// listbox Menu. `options` is [{ value, label, leading?, hint? }]: `leading` is a small mark shown before the
+// label in the trigger and the list (not in `native`); `hint` is a one-line note under the label in the list only; onChange gets the chosen value. `native` renders a
 // styled <select> instead, which is the better choice for a long list on a phone. `block` fills
 // the row. `labelId` is the id of the label that names it (Field passes it). `label` names the
 // list itself for screen readers.
@@ -81,7 +81,14 @@ export default function SelectButton({
     >
       {options.map((option) => (
         <MenuItem key={option.value} leading={option.leading} selected={option.value === value} onSelect={() => onChange?.(option.value)}>
-          {option.label}
+          {option.hint ? (
+            <>
+              {option.label}
+              <span className="ui-select__hint">{option.hint}</span>
+            </>
+          ) : (
+            option.label
+          )}
         </MenuItem>
       ))}
     </Menu>

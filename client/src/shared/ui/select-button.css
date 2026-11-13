@@ -46,6 +46,12 @@
   .ui-select__value--empty {
     color: var(--text-placeholder);
   }
+  /* A menu row's note, under its label (the Question type list, Figma QT-F2). */
+  .ui-select__hint {
+    display: block;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
   .ui-select__chevron {
     flex: none;
     color: var(--text-secondary);

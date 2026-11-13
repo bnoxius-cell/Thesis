@@ -9,6 +9,31 @@ import { extensionOf } from "../files/fileRules.js";
 export const QUESTION_COUNTS = [10, 15, 20, 30, 50, 100];
 export const DEFAULT_QUESTION_COUNT = 15;
 
+// What the Question type picker offers (plan 33, 2.1). `value` is the server's `questionType`.
+// Essay is built on the server but its AI check isn't merged: flip ESSAY_ENABLED when it is.
+export const ESSAY_ENABLED = false;
+export const DEFAULT_QUESTION_TYPE = "mixed";
+const QUESTION_TYPE_OPTIONS = [
+  { value: "mixed", label: "Mixed", hint: "A bit of every kind" },
+  { value: "multiple_choice", label: "Multiple choice", hint: "Pick one of four" },
+  { value: "true_false", label: "True or false", hint: "Decide if a statement is right" },
+  { value: "identification", label: "Identification", hint: "Type the term" },
+  { value: "fill_blank", label: "Fill in the blank", hint: "Complete the sentence" },
+  { value: "enumeration", label: "Enumeration", hint: "List the items" },
+  { value: "essay", label: "Essay", hint: "Explain in your own words. Checked by AI." },
+];
+export const questionTypeOptions = () =>
+  QUESTION_TYPE_OPTIONS.filter((option) => ESSAY_ENABLED || option.value !== "essay");
+
+// Essay sets are 10 or 15 questions only; every other type takes the full list.
+export const ESSAY_COUNTS = [10, 15];
+export const countOptionsFor = (type) => (type === "essay" ? ESSAY_COUNTS : QUESTION_COUNTS);
+// The count to keep when the type changes: a count the new type doesn't allow becomes its largest.
+export const clampCount = (type, count) => {
+  const allowed = countOptionsFor(type);
+  return allowed.includes(count) ? count : allowed[allowed.length - 1];
+};
+
 const MB = 1024 * 1024;
 export const MAX_SOURCES = 10;
 export const MAX_SOURCE_BYTES = 10 * MB;
@@ -94,11 +119,12 @@ export function limitMessage(limits) {
 
 // What is sent. `kind` is the active source: "upload" sends `files` (File objects) as repeated
 // `files` fields, "stored" sends `fileIds` as one comma-separated field. Never both.
-export function reviewerPayload({ kind, files = [], fileIds = [], title, subject, count }) {
+export function reviewerPayload({ kind, files = [], fileIds = [], title, subject, count, questionType = DEFAULT_QUESTION_TYPE }) {
   const form = new FormData();
   form.append("title", title.trim());
   if (subject) form.append("subject", subject);
   form.append("questionCount", String(count));
+  form.append("questionType", questionType);
   if (kind === "stored") form.append("fileIds", fileIds.join(","));
   else files.forEach((file) => form.append("files", file));
   return form;

@@ -1,0 +1,206 @@
+/* The typed answer screens of Practice (Figma QT-F5 to QT-F8): the type chip, true or false key caps,
+   the answer box, the enumeration boxes, the blank in a fill sentence, and the note that shows the
+   right answer. A wrong answer is watch, never red. */
+@layer pages {
+  /* ---- The question block: type chip over the prompt ---- */
+  .practice-ask {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+  .practice-hint {
+    margin: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-muted);
+  }
+
+  /* ---- Fill in the blank: the blank is a line in the sentence ---- */
+  .practice-blank {
+    display: inline-block;
+    min-width: 5ch;
+    margin-inline: 2px;
+    border-bottom: 2px solid var(--text-muted);
+    vertical-align: baseline;
+  }
+  .practice-blank--filled {
+    padding-inline: var(--space-1);
+    border-bottom-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ---- True or false key caps ---- */
+  .practice-answer__key {
+    flex: none;
+    min-width: 24px;
+    box-sizing: border-box;
+    padding: 2px var(--space-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    color: var(--text-secondary);
+    text-align: center;
+  }
+  /* A phone has no T or F key. */
+  @media (hover: none) {
+    .practice-answer__key {
+      display: none;
+    }
+  }
+
+  /* ---- The answer box ---- */
+  .practice-typed {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+  .practice-typed__label {
+    flex-direction: row;
+    width: auto;
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-secondary);
+  }
+  .practice-input {
+    --tone: var(--border-input);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 56px;
+    padding: 0 var(--space-5);
+    border: 1px solid var(--tone);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    transition:
+      border-color var(--dur-2) var(--ease-out),
+      background-color var(--dur-2) var(--ease-out),
+      box-shadow var(--dur-2) var(--ease-out);
+  }
+  .practice-input:focus-within {
+    --tone: var(--accent);
+    border-width: 2px;
+    padding-inline: calc(var(--space-5) - 1px);
+  }
+  .practice-input--good {
+    --tone: var(--good);
+    background: var(--good-soft);
+  }
+  .practice-input--watch {
+    --tone: var(--watch);
+    border-width: 2px;
+    padding-inline: calc(var(--space-5) - 1px);
+    background: var(--watch-soft);
+  }
+  /* The global input rules set width, border and padding; the box owns those, so the field is bare. */
+  .practice-input__control {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    margin: 0;
+    padding: var(--space-3) 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .practice-input__tag {
+    flex: none;
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    color: var(--tone);
+  }
+  .practice-input__check {
+    flex: none;
+    color: var(--tone);
+    animation: checkin-check-pop var(--dur-2) var(--ease-out) backwards;
+  }
+  @media (max-width: 720px) {
+    .practice-input {
+      padding-inline: var(--space-4);
+    }
+    .practice-input:focus-within,
+    .practice-input--watch {
+      padding-inline: calc(var(--space-4) - 1px);
+    }
+  }
+
+  /* ---- The right answer, under a typed answer that missed ---- */
+  .practice-note {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--space-2);
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--good-soft);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    color: var(--good);
+    animation: panel-in var(--dur-2) var(--ease-out) backwards;
+  }
+  .practice-note svg {
+    flex: none;
+  }
+  .practice-note__text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* ---- Enumeration ---- */
+  .practice-score {
+    margin: 0;
+    font: 600 var(--text-md) / 24px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .practice-boxes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .practice-boxes__row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .practice-boxes__number {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-2);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    color: var(--text-secondary);
+  }
+  .practice-boxes__row .practice-input {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+  }
+
+  /* ---- Phones: keep Check answer above the keyboard ---- */
+  @media (max-width: 720px) {
+    .practice-nav--typed {
+      position: sticky;
+      bottom: 0;
+      z-index: 1;
+      padding-block: var(--space-3) max(var(--space-3), env(safe-area-inset-bottom));
+      background: var(--bg-app);
+    }
+    .practice-nav--typed .ui-btn {
+      width: 100%;
+    }
+  }
+}

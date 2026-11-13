@@ -8,16 +8,21 @@ import useCreateReviewer from "./useCreateReviewer";
 import useSubjectSources from "./useSubjectSources";
 import {
   DEFAULT_QUESTION_COUNT,
+  DEFAULT_QUESTION_TYPE,
   NEW_SUBJECT,
-  QUESTION_COUNTS,
+  clampCount,
+  countOptionsFor,
   limitMessage,
   problemsMessage,
+  questionTypeOptions,
   takeSources,
 } from "./reviewerForm";
 import { SUBJECT_LIMITS, subjectNameError } from "./subjectForm";
 import "./study-dialog.css";
 
-const COUNT_OPTIONS = QUESTION_COUNTS.map((n) => ({ value: n, label: String(n) }));
+const countOptions = (type) => countOptionsFor(type).map((n) => ({ value: n, label: String(n) }));
+const TYPE_OPTIONS = questionTypeOptions();
+const ESSAY_HELPER = "Essay sets have 10 or 15 questions. Each answer uses 1 of your 40 checks a day.";
 const SOURCE_TABS = [
   { value: "upload", label: "Upload a file" },
   { value: "stored", label: "Subject files" },
@@ -25,8 +30,9 @@ const SOURCE_TABS = [
 const NEW_SUBJECT_OPTION = { value: NEW_SUBJECT, label: "Create new subject", leading: <Plus size={18} aria-hidden="true" /> };
 
 // New reviewer (Figma 78:1272). Title and Subject can stay as they are: a blank title is named from
-// the files and "No subject" files it nowhere. Pasting notes and question types have no backend, so they
-// aren't offered. The server reads the files and writes the reviewer in the background, so the
+// the files and "No subject" files it nowhere. Pasting notes has no backend, so it isn't offered. Question type
+// is the server's `questionType` (Figma QT-F1 to F4): the hint of the chosen type shows under the
+// control, and essay (when offered) limits the counts to 10 and 15. The server reads the files and writes the reviewer in the background, so the
 // dialog closes as soon as the upload lands (onCreated) and the row shows up as processing.
 // Source is one of two things, never both: files uploaded here (PDF, Word, PowerPoint or photos, up to
 // 10), or, when the chosen subject has usable stored files, some of those ("Subject files").
@@ -51,6 +57,7 @@ export default function NewReviewerDialog({
   const [newName, setNewName] = useState("");
   const [nameError, setNameError] = useState("");
   const [count, setCount] = useState(DEFAULT_QUESTION_COUNT);
+  const [questionType, setQuestionType] = useState(DEFAULT_QUESTION_TYPE);
   const [pickError, setPickError] = useState("");
   const { create, creating, error, clearError } = useCreateReviewer({ onSubjectCreated });
   const phone = useMediaQuery("(max-width: 720px)");
@@ -61,6 +68,7 @@ export default function NewReviewerDialog({
   const storedFiles = useSubjectSources(chosen?._id ?? "", Boolean(chosen?.archivedAt));
   const source = storedFiles.length > 0 && tab === "stored" ? "stored" : "upload";
   const creatingSubject = subject === NEW_SUBJECT;
+  const chosenType = TYPE_OPTIONS.find((option) => option.value === questionType);
 
   const subjectOptions = [
     { value: "", label: "No subject" },
@@ -76,6 +84,11 @@ export default function NewReviewerDialog({
     setNameError("");
     setPickError("");
     clearError();
+  };
+
+  const chooseType = (value) => {
+    setQuestionType(value);
+    setCount((current) => clampCount(value, current));
   };
 
   const addFiles = (picked) => {
@@ -114,6 +127,7 @@ export default function NewReviewerDialog({
       subject: creatingSubject ? "" : subject,
       newSubjectName: creatingSubject ? newName : undefined,
       count,
+      questionType,
     });
     if (made) onCreated();
   };
@@ -193,9 +207,23 @@ export default function NewReviewerDialog({
           )}
         </div>
       </div>
-      <Field label="Questions">
+      <Field label="Question type" hint={chosenType?.hint}>
+        {(wiring) => (
+          <SelectButton
+            {...wiring}
+            block
+            native={phone}
+            options={TYPE_OPTIONS}
+            value={questionType}
+            onChange={chooseType}
+            disabled={creating}
+            label="Question type"
+          />
+        )}
+      </Field>
+      <Field label="Questions" hint={questionType === "essay" ? ESSAY_HELPER : undefined}>
         {({ labelId }) => (
-          <Segment labelId={labelId} options={COUNT_OPTIONS} value={count} onChange={setCount} disabled={creating} />
+          <Segment labelId={labelId} options={countOptions(questionType)} value={count} onChange={setCount} disabled={creating} />
         )}
       </Field>
       {message && <p id="reviewer-note" className="study-dialog__error" role="alert">{message}</p>}

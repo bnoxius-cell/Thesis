@@ -58,3 +58,17 @@ export function reviewerMeta(reviewer) {
 export function reviewerSourceLine(reviewer) {
   return [sourceLabel(reviewer), reviewer.course].filter(Boolean).join(" · ");
 }
+
+const QUESTION_TYPE_LABELS = {
+  mixed: "Mixed questions",
+  multiple_choice: "Multiple choice",
+  true_false: "True or false",
+  identification: "Identification",
+  fill_blank: "Fill in the blank",
+  enumeration: "Enumeration",
+  essay: "Essay questions",
+};
+
+// "Mixed questions", "True or false", ...: what kinds of question a reviewer holds. Reviewers made before
+// types existed have none and are multiple choice.
+export const questionTypeLabel = (questionType) => QUESTION_TYPE_LABELS[questionType] ?? QUESTION_TYPE_LABELS.multiple_choice;

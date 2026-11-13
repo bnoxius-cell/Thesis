@@ -8,7 +8,7 @@ import ReviewerSidePanel from "./ReviewerSidePanel";
 import ReviewerStatusChip from "./ReviewerStatusChip";
 import ReviewerWaiting from "./ReviewerWaiting";
 import { practiceLink } from "./practiceLink";
-import { reviewerSourceLine } from "./reviewerStatus";
+import { questionTypeLabel, reviewerSourceLine } from "./reviewerStatus";
 import useReviewer from "./useReviewer";
 import "./reviewer.css";
 
@@ -74,7 +74,7 @@ export default function ReviewerPage() {
     >
       <div className="reviewer-body">
         <div className="reviewer-meta">
-          <span>{reviewerSourceLine(reviewer)}</span>
+          <span>{[reviewerSourceLine(reviewer), questionTypeLabel(reviewer.questionType)].join(" · ")}</span>
           <ReviewerStatusChip reviewer={withProgress} />
           {ready && <Button className="reviewer-meta__start" {...start}>Start Learning Mode</Button>}
         </div>
