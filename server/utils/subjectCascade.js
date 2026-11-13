@@ -1,10 +1,12 @@
 import taskModel from '../models/taskModel.js';
 import reviewerModel from '../models/reviewerModel.js';
+import flashcardDeckModel from '../models/flashcardDeckModel.js';
 import { matchesLabel, subjectLabel } from './subjectMatch.js';
 
-// Everything that points at a subject today: tasks and reviewers. Later batches (notes, files,
-// flashcards) add their model here so deleting or renaming a subject reaches them too.
-const LINKED_MODELS = [taskModel, reviewerModel];
+// Everything that points at a subject today: tasks, reviewers and flashcard decks. Later batches
+// (notes, files) add their model here so deleting or renaming a subject reaches them too.
+// Decks are only ever linked by an explicit pick, so linkMatchingItems leaves them out.
+const LINKED_MODELS = [taskModel, reviewerModel, flashcardDeckModel];
 
 // Links the owner's unlinked tasks and reviewers whose course text matches the subject.
 // One find per collection, one updateMany by ids. Returns how many of each were linked.

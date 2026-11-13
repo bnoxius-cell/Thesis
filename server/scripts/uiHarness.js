@@ -26,6 +26,7 @@ await mongoose.connect(mongod.getUri());
 const { default: app } = await import('../app.js');
 const { default: userModel } = await import('../models/userModel.js');
 const { default: reviewerModel } = await import('../models/reviewerModel.js');
+const { default: flashcardModel } = await import('../models/flashcardModel.js');
 const { LEGAL_VERSION } = await import('../utils/legal.js');
 
 app.listen(PORT, () => console.log(`UI harness API on ${base}`));
@@ -132,7 +133,7 @@ const typed = (type, topic, prompt, answer, accepted = []) => ({ topic, type, pr
 const enumeration = (topic, prompt, answers) => ({
     topic, type: 'enum', prompt, items: answers.map((answer) => ({ answer, accepted: [] })), explanation: EXPLANATION,
 });
-await reviewerModel.create({
+const networkNotes = await reviewerModel.create({
     owner: maria._id, title: 'Network Security notes', course: 'Information Assurance',
     source: { fileName: 'network-security.pdf', pages: 12, chars: 18000 },
     status: 'ready', version: 1, generatedAt: new Date(), aiModel: 'harness', questionType: 'mixed',
@@ -155,5 +156,24 @@ await reviewerModel.create({
         enumeration('Encryption', 'Give the 3 parts of the CIA triad.', ['Confidentiality', 'Integrity', 'Availability']),
     ],
 });
+
+// Two decks for Maria: one from her reviewer through the real route, and a hand-made one where
+// half the cards were learned and come back in 2 days (so the tab shows due today and due later).
+await api('/api/flashcards/decks/from-reviewer', 'POST', { reviewerId: String(networkNotes._id) });
+const { deck: subnetting } = await api('/api/flashcards/decks', 'POST', { title: 'Subnetting' });
+const subnettingCards = [
+    ['CIDR', 'Classless Inter-Domain Routing: writing a network as an address and a prefix length, like 192.168.1.0/24.'],
+    ['Subnet mask', 'Marks which bits of an IPv4 address name the network and which name the host.'],
+    ['Default gateway', 'The router a device sends traffic to when the destination is outside its own subnet.'],
+    ['Broadcast address', 'The last address in a subnet, used to reach every host on it.'],
+    ['Usable hosts in a /26', '62: 64 addresses, minus the network and broadcast addresses.'],
+    ['Private ranges', '10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16.'],
+];
+for (const [term, answer] of subnettingCards) {
+    await api(`/api/flashcards/decks/${subnetting.id}/cards`, 'POST', { term, answer });
+}
+const inTwoDays = new Date(Date.now() + 2 * 86400000);
+const learned = (await flashcardModel.find({ deck: subnetting.id }).sort({ createdAt: 1 }).limit(3)).map((card) => card._id);
+await flashcardModel.updateMany({ _id: { $in: learned } }, { $set: { box: 4, dueAt: inTwoDays, reviewedAt: new Date(), reviews: 4 } });
 
 console.log('Seeded. Log in as maria@student.fatima.edu.ph / Password123 (or ana@ for an empty account).');

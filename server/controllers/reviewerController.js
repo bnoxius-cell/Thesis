@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import reviewerModel from '../models/reviewerModel.js';
 import reviewerAttemptModel from '../models/reviewerAttemptModel.js';
 import aiRequestModel from '../models/aiRequestModel.js';
+import flashcardDeckModel from '../models/flashcardDeckModel.js';
 import { splitIntoParts, MIN_SOURCE_CHARS, PART_CHARS } from '../utils/pdfText.js';
 import { generateJson, isGeminiConfigured } from '../utils/gemini.js';
 import { withRetries as retrying, friendlyError, describeError } from '../utils/aiErrors.js';
@@ -24,6 +25,7 @@ import { SourceError, combineSources, readSources, sendSourceError, tooLittleTex
 import { checkSourceRequest, loadPickedFiles, notesSource, readSourceRequest } from '../utils/reviewerIntake.js';
 import { WAVES_STOP_AFTER_MS, writeMoreQuestions } from '../utils/reviewerMoreQuestions.js';
 import { PictureError, dropPictures, skippedNote, transcribeSources, unreadableError } from '../utils/reviewerPictures.js';
+import { shuffled } from '../utils/shuffle.js';
 
 // Everyone shares one Gemini key, so each student gets a few generations a day. A big set of
 // questions costs more of them (questionWeight in utils/reviewerContent.js).
@@ -755,6 +757,8 @@ export const deleteReviewer = async (req, res) => {
         const reviewer = await findOwned(req, res);
         if (!reviewer) return;
         await reviewerAttemptModel.deleteMany({ reviewer: reviewer._id });
+        // The deck made from it is a copy of its key terms, so it stays.
+        await flashcardDeckModel.updateMany({ owner: req.userId, reviewer: reviewer._id }, { $set: { reviewer: null } });
         await reviewer.deleteOne();
         res.json({ success: true, message: 'Reviewer deleted.' });
     } catch (error) {
@@ -765,15 +769,6 @@ export const deleteReviewer = async (req, res) => {
 // ---------------------------------------------------------------------------------------------
 // Learning Mode
 // ---------------------------------------------------------------------------------------------
-
-const shuffled = (items) => {
-    const copy = [...items];
-    for (let i = copy.length - 1; i > 0; i -= 1) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
-    }
-    return copy;
-};
 
 const finishedSessions = (reviewer, userId) =>
     reviewerAttemptModel.find({ reviewer: reviewer._id, user: userId, finishedAt: { $ne: null } }).sort({ finishedAt: -1 });

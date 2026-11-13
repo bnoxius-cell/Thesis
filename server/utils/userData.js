@@ -3,6 +3,8 @@ import taskModel from '../models/taskModel.js';
 import taskShareModel from '../models/taskShareModel.js';
 import reviewerModel from '../models/reviewerModel.js';
 import reviewerAttemptModel from '../models/reviewerAttemptModel.js';
+import flashcardDeckModel from '../models/flashcardDeckModel.js';
+import flashcardModel from '../models/flashcardModel.js';
 import aiRequestModel from '../models/aiRequestModel.js';
 import scheduleModel from '../models/scheduleModel.js';
 import groupModel from '../models/groupMode.js';
@@ -32,6 +34,8 @@ export const USER_DATA = [
     { model: taskModel, field: 'owner', how: 'delete' },
     { model: reviewerModel, field: 'owner', how: 'delete' },
     { model: reviewerAttemptModel, field: 'user', how: 'delete' },
+    { model: flashcardDeckModel, field: 'owner', how: 'delete' },
+    { model: flashcardModel, field: 'owner', how: 'delete' },
     { model: aiRequestModel, field: 'user', how: 'delete' },
     { model: PSSResponse, field: 'user', how: 'delete' },
     { model: WHOResponse, field: 'user', how: 'delete' },
