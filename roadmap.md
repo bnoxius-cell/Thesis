@@ -35,7 +35,7 @@ Every batch: branch off `main`, builder runs `npm test` in `server/` and `npm ru
 15. RV3 edit, delete and retry reviewers (= plan 25 C7). `feature/reviewer-edit`. Start builder-sonnet low. After 13.
 16. RV2 subject tag everywhere (eight real colours). `feature/subject-tag`. Start builder-sonnet medium. After 13; O5.
 17. RV4 larger files and smaller photos; measure the Vercel body limit first. `feature/upload-limits`. Start builder-sonnet medium. O3, O6.
-18. RV6 question types, server (`feature/question-types-server`, start builder-sonnet high), then RV7 client (`feature/question-types-ui`, start builder-sonnet medium). O2, F27-3.
+18. (DONE 2026-11-14, merged 5261cc2, release pending; essay deferred; owner open: Skip button, filled blank) RV6 question types, server (`feature/question-types-server`, start builder-sonnet high), then RV7 client (`feature/question-types-ui`, start builder-sonnet medium). O2, F27-3.
 19. RV8 sleep plan explainer. `feature/sleep-explainer`. Start builder-sonnet medium. F27-4 and the owner's OK on wording.
 20. RV9 "Making your reviewer" screen. `redesign/reviewer-waiting`. Start builder-sonnet medium. F27-5.
 21. Placeholder pages: Notifications drawer, Me (Profile, Settings, Privacy, Help), About. Figma first. Old sections D and F.
