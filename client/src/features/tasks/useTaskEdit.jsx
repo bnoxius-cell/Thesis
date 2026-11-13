@@ -7,7 +7,7 @@ import DeleteTaskDialog from "./DeleteTaskDialog";
 //   const edit = useTaskEdit({ subjects, setTasks });
 //   useItemDetail({ ..., onEditTask: edit.onEditTask, onDeleteTask: edit.onDeleteTask }), then {edit.dialog}.
 // Edit and Delete replace the details window. Cancel puts the window back; a save puts it back showing the
-// saved task; a delete drops the task from the list and shows the toast. `reopen` comes from useItemDetail.
+// saved task; a delete drops the task from the list and shows the toast. `reopen` comes from useItemDetail and puts focus back on the Edit or Delete button.
 export default function useTaskEdit({ subjects, setTasks }) {
   const [open, setOpen] = useState(null); // { mode: "edit" | "delete", task, reopen }
 
@@ -20,7 +20,7 @@ export default function useTaskEdit({ subjects, setTasks }) {
 
   const back = (task) => {
     setOpen(null);
-    open.reopen(task);
+    open.reopen(task, open.mode);
   };
 
   const saved = (task) => {

@@ -13,7 +13,8 @@ import IconButton from "./IconButton";
 // way of closing), `className`, `as="form"` to make the card a form (pass onSubmit), and
 // `confirmClose`: a function that returns true when closing should first ask "Leave?" (wording
 // through `leavePrompt`). Without a `title`, pass `labelledBy` for the id of your own heading.
-// `sheet` makes it a bottom sheet on phones (see ModalShell).
+// `sheet` makes it a bottom sheet on phones, the "Leave?" prompt too (see ModalShell). `actions` may be a
+// function that gets `close`, so a Cancel button goes through the same "Leave?" check as the X.
 export default function Modal({
   title,
   subtitle,
@@ -22,6 +23,7 @@ export default function Modal({
   confirmClose,
   leavePrompt,
   busy = false,
+  sheet = false,
   labelledBy,
   children,
   ...rest
@@ -44,7 +46,7 @@ export default function Modal({
 
   return (
     <>
-      <ModalShell onClose={close} busy={busy} labelledBy={title ? titleId : labelledBy} {...rest}>
+      <ModalShell onClose={close} busy={busy} sheet={sheet} labelledBy={title ? titleId : labelledBy} {...rest}>
         {title && (
           <div className="ui-modal__head">
             <div className="ui-modal__titles">
@@ -57,14 +59,14 @@ export default function Modal({
           </div>
         )}
         <div className="ui-modal__body">{children}</div>
-        {actions && <div className="ui-modal__actions">{actions}</div>}
+        {actions && <div className="ui-modal__actions">{typeof actions === "function" ? actions(close) : actions}</div>}
       </ModalShell>
       <ConfirmDialog
         open={asking}
         title={prompt.title}
         confirmLabel={prompt.confirmLabel}
         cancelLabel={prompt.cancelLabel}
-        tone="danger"
+        sheet={sheet}
         onConfirm={() => {
           setAsking(false);
           onClose?.();

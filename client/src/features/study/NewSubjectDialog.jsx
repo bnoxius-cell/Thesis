@@ -38,12 +38,12 @@ export default function NewSubjectDialog({ subject, onClose, onSaved }) {
       busy={saving}
       onClose={onClose}
       confirmClose={() => changed}
-      actions={
+      actions={(close) => (
         <>
-          <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button variant="ghost" onClick={close} disabled={saving}>Cancel</Button>
           <Button type="submit" busy={saving}>{saving ? "Saving" : editing ? "Save" : "Create subject"}</Button>
         </>
-      }
+      )}
     >
       <Field
         label="Name"
