@@ -13,7 +13,16 @@ export default function AddProvider({ children }) {
   const [request, setRequest] = useState(null);
   const current = useRef(null);
 
-  const open = useCallback((kind) => setRequest({ kind, page: current.current }), []);
+  // Two kinds aren't hosted here: Add a friend is a navigation the student asked for, and File goes to the
+  // page's own Upload dialog when the page holds the upload queue (Files, a Subject).
+  const open = useCallback(
+    (kind) => {
+      if (kind === "friend") navigate("/people/friends?add=1");
+      else if (kind === "file" && current.current?.openUpload) current.current.openUpload();
+      else setRequest({ kind, page: current.current });
+    },
+    [navigate],
+  );
   const close = useCallback(() => setRequest(null), []);
   const register = useCallback((context) => {
     current.current = context;

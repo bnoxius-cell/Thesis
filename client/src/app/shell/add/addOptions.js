@@ -12,12 +12,22 @@ export const ADD_OPTIONS = [
   { kind: "activity", title: "Activity", hint: "Org, sports or work you do each week", icon: "shapes", group: "plan" },
   { kind: "subject", title: "Subject", hint: "A course for your tasks and notes", icon: "subjects", group: "study" },
   { kind: "reviewer", title: "Reviewer", hint: "Practice questions from your notes", icon: "reviewers", group: "study" },
+  { kind: "file", title: "File", hint: "Upload a file to your library", icon: "file", group: "study" },
+  { kind: "group", title: "New group", hint: "Start a space for a class or club", icon: "people", group: "people" },
+  { kind: "join", title: "Join a group", hint: "Use a code someone sent you", icon: "link", group: "people" },
+  { kind: "friend", title: "Add a friend", hint: "Find them by email or name", icon: "friends", group: "people" },
 ];
 
-const GROUP_HEADINGS = { plan: "Plan", study: "Study" };
+const GROUP_HEADINGS = { plan: "Plan", study: "Study", people: "People" };
 
-// Study and everything under it lists Study first; every other page lists Plan first (Home counts as Plan).
-export const addGroupFor = (pathname) => (pathname === "/study" || pathname.startsWith("/study/") ? "study" : "plan");
+const under = (pathname, root) => pathname === root || pathname.startsWith(`${root}/`);
+
+// Study and People (and everything under them) list their own group first; every other page lists Plan
+// first (Home counts as Plan).
+export function addGroupFor(pathname) {
+  if (under(pathname, "/study")) return "study";
+  return under(pathname, "/people") ? "people" : "plan";
+}
 
 // The menu's two sections: the page's own group, then everything else.
 export function addSections(pathname) {
@@ -39,10 +49,14 @@ function firstDay(entry, today) {
   return toISODate(today);
 }
 
-// The toast after a save: its message and where "View" goes. `result` is the saved task or subject, `{ entry }`
+const groupHref = (id) => `/people/groups/${id}`;
+
+// The toast after a save: its message and where "View" goes. `result` is the saved task, subject or group, `{ entry }`
 // (the saved entry's date or days) for class, exam, event and activity, and nothing for a reviewer, which the
 // server is still writing.
 export function addedToast(kind, result, today = new Date()) {
+  if (kind === "group") return { message: "Group created. Share its join code with your classmates.", href: groupHref(result._id) };
+  if (kind === "join") return { message: "You joined the group.", href: groupHref(result._id) };
   if (kind === "task") return { message: "Task added to Plan", href: taskHref(result._id) };
   if (kind === "subject") return { message: "Subject added to Study", href: subjectHref(result._id) };
   if (kind === "reviewer") return { message: "Making your reviewer", href: "/study/practice" };

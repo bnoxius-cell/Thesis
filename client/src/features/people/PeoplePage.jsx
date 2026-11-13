@@ -1,12 +1,10 @@
-import { useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import Page from "@/app/shell/Page";
+import { useGlobalAdd } from "@/app/shell/add/addContext";
+import useAddHere from "@/app/shell/add/useAddHere";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import FriendsPane from "./FriendsPane";
 import GroupsPane from "./GroupsPane";
-import JoinGroupDialog from "./JoinGroupDialog";
-import NewGroupDialog from "./NewGroupDialog";
-import PeopleAddMenu from "./PeopleAddMenu";
 import PeopleTabs from "./PeopleTabs";
 import PhoneChat from "./PhoneChat";
 import useGroups from "./useGroups";
@@ -26,24 +24,19 @@ export default function PeoplePage({ tab = "groups" }) {
   const desktop = useMediaQuery(WIDE);
   const groups = useGroups();
   const groupTab = params.get("tab") === "upcoming" ? "upcoming" : "chat";
-  const navigate = useNavigate();
-  const [dialog, setDialog] = useState(null); // "new" | "join" | null
-  const onNewGroup = () => setDialog("new");
-  const onJoinGroup = () => setDialog("join");
+  const { open } = useGlobalAdd();
+  const onNewGroup = () => open("group");
+  const onJoinGroup = () => open("join");
 
-  // A group was just made or joined: bring the list up to date first, so the group is there to open.
-  const openGroup = async (group) => {
-    setDialog(null);
-    await groups.refresh();
-    navigate(`/people/groups/${group._id}`);
-  };
+  // A group was just made or joined from the global Add: bring the list up to date, so the toast's View finds it.
+  useAddHere({ onAdded: (kind) => (kind === "group" || kind === "join") && groups.refresh() });
 
   if (!desktop && tab === "groups" && groupId) {
     return <PhoneChat data={groups} groupId={groupId} tab={groupTab} />;
   }
 
   return (
-    <Page title="People" action={<PeopleAddMenu onNewGroup={onNewGroup} onJoinGroup={onJoinGroup} />}>
+    <Page title="People">
       <div className="people-body">
         <PeopleTabs tab={tab} block={!desktop} />
         <div role="tabpanel" id="people-panel" aria-labelledby={`people-tab-${tab}`}>
@@ -54,8 +47,6 @@ export default function PeoplePage({ tab = "groups" }) {
           )}
         </div>
       </div>
-      {dialog === "new" && <NewGroupDialog onClose={() => setDialog(null)} onDone={openGroup} />}
-      {dialog === "join" && <JoinGroupDialog onClose={() => setDialog(null)} onDone={openGroup} />}
     </Page>
   );
 }

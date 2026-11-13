@@ -70,6 +70,7 @@ function SubjectView({ subjectId }) {
   // The header Add starts a task or a reviewer on this subject; each kind refreshes its own part of the page.
   useAddHere({
     subject,
+    openUpload: () => files.library.status === "ready" && files.openUpload(),
     onAdded: (kind, result) => {
       if (kind === "task") data.setTasks((list) => [...list, result]);
       else if (kind === "reviewer") refreshReviewers();

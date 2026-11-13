@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { toast } from "react-toastify";
 import { Button, Field, Modal } from "@/shared/ui";
 import { createGroup } from "@/shared/api/groups";
 import "./people-new.css";
@@ -7,10 +6,10 @@ import "./people-new.css";
 const NAME_MAX = 60;
 const DESCRIPTION_MAX = 140;
 
-// "New group" (opened by the People "+" and the empty Groups page). A name, an optional description
+// "New group" (opened by the global Add and the empty Groups page, through the add host). A name, an optional description
 // and the family-friendly switch, which the server enforces in chat and admins can change later in
 // Info. The server's own words show under the name and the dialog stays open with what was typed.
-// `onDone(group)` runs once the group exists (the page refreshes the list and opens it).
+// `onDone(group)` runs once the group exists (the host toasts with a View button and the page refreshes its list).
 export default function NewGroupDialog({ onClose, onDone }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -32,7 +31,6 @@ export default function NewGroupDialog({ onClose, onDone }) {
       setError(failure);
       return;
     }
-    toast.success("Group created. Share its join code with your classmates.");
     onDone(data.group);
   };
 

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Navigate, Route, Routes, useMatch, useNavigate } from "react-router-dom";
 import Page from "@/app/shell/Page";
+import useAddHere from "@/app/shell/add/useAddHere";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import DeleteFolderDialog from "./DeleteFolderDialog";
 import FilesHub from "./FilesHub";
 import FolderDialog from "./FolderDialog";
 import FolderPage from "./FolderPage";
-import UploadButton from "./UploadButton";
 import UploadDialog from "./UploadDialog";
 import { uploadBlock } from "./fileNotice";
 import { GENERAL, filesIn, placeOptions } from "./places";
@@ -42,16 +42,15 @@ export default function FilesPage() {
     const known = placeOptions(library.locations).some(({ value }) => value === here);
     upload.open(known ? here : GENERAL, files);
   };
+  // The global Add's File row opens this page's dialog (its queue and progress live here).
+  useAddHere({ openUpload: () => ready && openUpload() });
   const openFolderDialog = (type, folder) => setFolderDialog({ type, folder });
   const closeFolderDialog = () => setFolderDialog(null);
 
   const shared = { library, block, canUpload, phone, uploadStatus: upload.status, openUpload, openFolderDialog };
 
   return (
-    <Page
-      title="Study"
-      action={ready && <UploadButton round status={upload.status} disabled={!canUpload} onClick={() => openUpload()}>Upload</UploadButton>}
-    >
+    <Page title="Study">
       <Routes>
         <Route index element={<FilesHub {...shared} />} />
         <Route path="general" element={<FolderPage {...shared} />} />
