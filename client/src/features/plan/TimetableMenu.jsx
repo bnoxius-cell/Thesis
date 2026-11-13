@@ -45,12 +45,14 @@ export default function TimetableMenu({ timetable, userId, onChanged, onGone }) 
         label={`Actions for ${timetable.title}`}
         className="timetable-menu"
         menuClassName="timetable-menu__popover"
-        trigger={(props) => <IconButton plain icon={MoreHorizontal} label="More for this timetable" {...props} />}
+        trigger={(props) => <IconButton icon={MoreHorizontal} label="More for this timetable" {...props} />}
       >
         {owner ? (
           <>
             <Row icon={Pencil} title="Rename timetable" hint="Change its name" onSelect={() => setDialog("rename")} />
-            <Row icon={Trash2} tone="danger" title="Delete timetable" hint="Removes it for everyone on it" onSelect={() => setDialog("delete")} />
+            {!timetable.isMain && (
+              <Row icon={Trash2} tone="danger" title="Delete timetable" hint="Removes it for everyone on it" onSelect={() => setDialog("delete")} />
+            )}
           </>
         ) : (
           <Row icon={LogOut} title="Leave timetable" hint="You keep your own items" onSelect={() => setDialog("leave")} />
