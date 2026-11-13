@@ -7,7 +7,7 @@
     margin-top: var(--space-6);
   }
   .whats-new__title {
-    margin: 0 0 var(--space-3);
+    margin: var(--space-3) 0 var(--space-3);
     color: var(--text-primary);
     font: 700 var(--text-lg) / 1.4 var(--font-ui);
   }
