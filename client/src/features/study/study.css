@@ -60,11 +60,12 @@
     background: var(--surface);
     color: inherit;
     text-decoration: none;
-    transition: background-color var(--dur-2) var(--ease-out);
+    transition: background-color var(--hover-dur) var(--hover-ease), box-shadow var(--hover-dur) var(--hover-ease);
   }
   @media (hover: hover) and (pointer: fine) {
     .study-row:hover {
-      background: var(--surface-2);
+      background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+      box-shadow: inset 0 0 0 1px var(--text-muted);
     }
   }
   .study-row__icon,

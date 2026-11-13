@@ -16,7 +16,7 @@
     --item-radius: var(--radius-xl);
   }
   .item-row:not(.ui-card) {
-    transition: transform var(--dur-1) var(--ease-out);
+    transition: transform var(--dur-1) var(--ease-out), background-color var(--hover-dur) var(--hover-ease);
   }
   .item-row .tasks-check,
   .item-row .ui-btn {
@@ -60,6 +60,11 @@
   @media (hover: hover) and (pointer: fine) {
     .item-open:hover::after {
       box-shadow: inset 0 0 0 1px var(--text-muted);
+    }
+    /* A faint wash with the ring. Class blocks keep their own tone fill, so only plain rows get it. */
+    .plan-task.item-row:has(.item-open:hover),
+    .plan-row.item-row:has(.item-open:hover) {
+      background: color-mix(in srgb, var(--accent) 6%, var(--surface));
     }
   }
   .item-row:has(.item-open:active) {

@@ -8,7 +8,7 @@ const hours = (n) => `${Math.round(n * 10) / 10}h`;
 // stressed and the heaviest day takes the watch tone, never red. Bars draw in once on arrival.
 // `days` is the week from buildWeek; `heaviestKey` is the day to flag, or null. `size="lg"` is the
 // Wellbeing chart (taller bars, today as a pill); `legend` adds the Heaviest day and Today key under it.
-// With `onOpenDay(dayKey)` every column is a button that opens that day's window.
+// With `onOpenDay(dayKey)` every column is a button that opens that day's window and shows a desktop hover tip.
 export default function WeekBars({ days, heaviestKey = null, size = "md", legend = false, onOpenDay }) {
   const totals = days.map((d) => d.busyHours + d.load);
   const tallest = Math.max(...totals, 1);
@@ -37,6 +37,7 @@ export default function WeekBars({ days, heaviestKey = null, size = "md", legend
               onClick: () => onOpenDay(day.key),
             })}
           >
+            {onOpenDay && <span className="workload-bars__tip" aria-hidden="true">{day.label} · {Math.round(totals[i] * 10) / 10} h</span>}
             <span className="workload-bars__track">
               <span
                 className={`workload-bars__bar${i === 0 ? " is-today" : ""}${day.key === heaviestKey ? " is-heaviest" : ""}`}
