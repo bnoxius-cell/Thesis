@@ -26,6 +26,7 @@ export const reviewerSnapshot = (reviewer) => ({
         title: reviewer.title,
         course: reviewer.course,
         questionCount: reviewer.questions.length,
+        questionType: reviewer.questionType,
         topicNames: reviewer.topics.slice(0, MAX_TOPIC_NAMES).map((t) => clip(t.name, MAX_TOPIC_NAME)),
         summary: clip(reviewer.summary, MAX_SUMMARY),
     },
@@ -44,9 +45,14 @@ export const reviewerSnapshot = (reviewer) => ({
         topics: reviewer.topics.map(({ name, summary }) => ({ name, summary })),
         questions: reviewer.questions.map((q) => ({
             topic: q.topic,
+            type: q.type,
             prompt: q.prompt,
             options: [...q.options],
             correctIndex: q.correctIndex,
+            answer: q.answer,
+            accepted: [...q.accepted],
+            items: q.items.map(({ answer, accepted }) => ({ answer, accepted: [...accepted] })),
+            points: [...q.points],
             explanation: q.explanation,
             difficulty: q.difficulty,
         })),
@@ -63,7 +69,9 @@ export const reviewerTexts = ({ reviewer, reviewerContent: content }) => [
     ...content.keyPoints,
     ...content.keyTerms.flatMap((t) => [t.term, t.definition]),
     ...content.topics.flatMap((t) => [t.name, t.summary]),
-    ...content.questions.flatMap((q) => [q.topic, q.prompt, ...q.options, q.explanation]),
+    ...content.questions.flatMap((q) => [
+        q.topic, q.prompt, ...q.options, q.answer, ...q.accepted, ...q.items.flatMap((i) => [i.answer, ...i.accepted]), ...q.points, q.explanation,
+    ]),
 ];
 
 // The fields of a groupmate's own, ready copy. With no sourceText it can be studied but not
@@ -81,6 +89,7 @@ export const reviewerCopyFields = ({ message, owner, course, subject }) => {
         sources: [],
         sourceText: '',
         questionTarget: content.questions.length,
+        questionType: message.reviewer.questionType,
         status: 'ready',
         requestedAt: now,
         generatedAt: now,

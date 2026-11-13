@@ -6,7 +6,7 @@
 import { generateJson } from './gemini.js';
 import { describeError } from './aiErrors.js';
 import {
-    MORE_PER_CALL, REVIEWER_SYSTEM, TARGETED_SCHEMA, buildMorePrompt, normalizeTargeted, shareOut, withoutRepeats,
+    MORE_PER_CALL, REVIEWER_SYSTEM, TARGETED_SCHEMA, allowedTypes, buildMorePrompt, normalizeTargeted, shareOut, withoutRepeats,
 } from './reviewerContent.js';
 
 const CALLS_PER_WAVE = 2;
@@ -26,7 +26,11 @@ const askForMore = ({ retry, ...request }) => retry(async () => {
         system: REVIEWER_SYSTEM, prompt: buildMorePrompt(request), schema: TARGETED_SCHEMA,
     });
     return normalizeTargeted(data, {
-        topics: request.topics, existing: request.existing, questionCount: request.questionCount, minQuestions: 0,
+        topics: request.topics,
+        existing: request.existing,
+        questionCount: request.questionCount,
+        minQuestions: 0,
+        allowed: allowedTypes(request.questionType),
     });
 });
 
@@ -35,7 +39,7 @@ const askForMore = ({ retry, ...request }) => retry(async () => {
 // being reached. `parts` is the text of the material; calls take them in turn, longest first. `retry`
 // wraps one request in the job's retries, `deadline` is a timestamp, and `onProgress(done, total)` is
 // told after each wave.
-export const writeMoreQuestions = async ({ title, course, parts, topics, questions, target, retry, deadline, onProgress }) => {
+export const writeMoreQuestions = async ({ title, course, parts, topics, questions, questionType, target, retry, deadline, onProgress }) => {
     const turns = [...parts].sort((a, b) => b.length - a.length);
     const made = [...questions];
     let turn = 0;
@@ -49,7 +53,7 @@ export const writeMoreQuestions = async ({ title, course, parts, topics, questio
         const sizes = waveSizes(target - made.length);
         const existing = made.map((q) => q.prompt);
         const settled = await Promise.allSettled(sizes.map((questionCount) => askForMore({
-            retry, title, course, topics, existing, questionCount, text: turns[turn++ % turns.length],
+            retry, title, course, topics, questionType, existing, questionCount, text: turns[turn++ % turns.length],
         })));
 
         const answers = settled.filter((r) => r.status === 'fulfilled').flatMap((r) => r.value);

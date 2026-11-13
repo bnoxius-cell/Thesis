@@ -1,19 +1,46 @@
 import mongoose from 'mongoose';
 import { MAX_SOURCES } from '../utils/reviewerSource.js';
+import { QUESTION_TYPES, DEFAULT_QUESTION_TYPE } from '../utils/reviewerContent.js';
 
 // A reviewer made from one or more files (PDF, Word, PowerPoint) or pasted notes. The files
 // themselves are never stored, only the extracted text (capped, hidden from queries unless asked
 // for) so new questions can be made without uploading again. `version` goes up every time new content is generated, so sessions on an
 // older question set aren't mixed into the current progress. Targeted review adds questions
 // to the current set without bumping it.
+// How many options each kind of question has. Questions made before kinds existed have no `type`
+// and read as multiple choice. Typed answers are graded against `answer` and `accepted` (and
+// `items` for enumeration); `points` is the essay key. None of these reach a browser before the
+// question is answered.
+const OPTION_COUNTS = { mc: 4, tf: 2 };
+const hasOptions = (type) => type in OPTION_COUNTS;
+
 const questionSchema = new mongoose.Schema({
     topic: { type: String, required: true },
+    type: { type: String, enum: ['mc', 'tf', 'id', 'fill', 'enum', 'essay'], default: 'mc' },
     prompt: { type: String, required: true },
     options: {
         type: [String],
-        validate: { validator: (v) => v.length === 4, message: 'A question needs exactly 4 options.' },
+        validate: {
+            // A function, not an arrow: it reads the question's own type.
+            validator(v) { return v.length === (OPTION_COUNTS[this.type ?? 'mc'] ?? 0); },
+            message: 'A question has the wrong number of options for its type.',
+        },
     },
-    correctIndex: { type: Number, required: true, min: 0, max: 3 },
+    correctIndex: {
+        type: Number,
+        min: 0,
+        max: 3,
+        default: null,
+        required: function () { return hasOptions(this.type ?? 'mc'); },
+    },
+    answer: { type: String, default: '', maxlength: 800 },
+    accepted: { type: [String], default: [], validate: { validator: (v) => v.length <= 4, message: 'At most 4 accepted answers.' } },
+    items: {
+        type: [{ _id: false, answer: String, accepted: [String] }],
+        default: [],
+        validate: { validator: (v) => v.length <= 6, message: 'At most 6 items.' },
+    },
+    points: { type: [String], default: [], validate: { validator: (v) => v.length <= 4, message: 'At most 4 key points.' } },
     explanation: { type: String, default: '' },
     difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium' },
     // '' for the questions made with the reviewer, otherwise the targeted batch that added it.
@@ -59,6 +86,7 @@ const reviewerSchema = new mongoose.Schema({
     sources: { type: [sourceItemSchema], default: [], validate: { validator: (v) => v.length <= MAX_SOURCES, message: `At most ${MAX_SOURCES} sources.` } },
     sourceText: { type: String, default: '', select: false },
     questionTarget: { type: Number, default: 15 },
+    questionType: { type: String, enum: QUESTION_TYPES, default: DEFAULT_QUESTION_TYPE },
 
     status: { type: String, enum: ['processing', 'ready', 'failed'], default: 'processing' },
     error: { type: String, default: '' },

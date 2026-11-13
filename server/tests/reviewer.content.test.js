@@ -2,8 +2,10 @@ import { describe, test, expect } from 'vitest';
 import {
     normalizeReviewer, normalizeTargeted, buildReviewerPrompt, buildTargetedPrompt, buildMorePrompt, withoutRepeats, planParts, shareOut,
     textForTopics, clip, MIN_QUESTIONS, QUESTION_COUNTS, DEFAULT_QUESTION_COUNT, MAX_REVIEWER_QUESTIONS, questionWeight,
+    QUESTION_TYPES, QUESTION_KIND, allowedTypes, typeShares, normalizeQuestion,
 } from '../utils/reviewerContent.js';
 import { QUESTION_COUNTS as CLIENT_QUESTION_COUNTS, DEFAULT_QUESTION_COUNT as CLIENT_DEFAULT_COUNT } from '../../client/src/features/study/reviewerForm.js';
+import reviewerModel from '../models/reviewerModel.js';
 import { computeProgress, topicStatsFor, topicLevel, scorePercent } from '../utils/reviewerProgress.js';
 import { extractPdfText, cleanPageText, isPdfBuffer, splitIntoParts } from '../utils/pdfText.js';
 import { makePdf, STUDY_LINES } from './helpers/pdf.js';
@@ -383,5 +385,150 @@ describe('PDF text', () => {
         expect(isPdfBuffer(Buffer.from('%PDF-1.7'))).toBe(true);
         expect(isPdfBuffer(Buffer.from('PK zip file'))).toBe(false);
         expect(isPdfBuffer('not a buffer')).toBe(false);
+    });
+});
+
+describe('question types', () => {
+    const base = { topic: 'Networks', explanation: 'Because the material says so.', difficulty: 'easy' };
+    const mixed = allowedTypes('mixed');
+    const norm = (q, allowed = mixed) => normalizeQuestion(
+        { ...base, options: [], correctIndex: 0, answer: '', accepted: [], items: [], points: [], ...q },
+        { allowed, random: () => 0 },
+    );
+    const layers = [
+        { answer: 'Application', accepted: [] }, { answer: 'Transport', accepted: [] },
+        { answer: 'Internet', accepted: [] }, { answer: 'Link', accepted: [] },
+    ];
+    const valid = {
+        mc: { type: 'multiple_choice', prompt: 'Which layer routes packets?', options: ['Internet', 'Link', 'Transport', 'Application'], correctIndex: 0 },
+        tf: { type: 'true_false', prompt: 'TCP is connectionless.', answer: 'False' },
+        id: { type: 'identification', prompt: 'Which protocol resolves names to addresses?', answer: 'DNS', accepted: ['Domain Name System'] },
+        fill: { type: 'fill_blank', prompt: 'The _____ layer routes packets.', answer: 'Internet', accepted: [] },
+        enum: { type: 'enumeration', prompt: 'Give the 4 layers of the TCP/IP model.', items: layers },
+        essay: { type: 'essay', prompt: 'Why is the layered model useful?', answer: 'Each layer does one job, so parts can change alone.', points: ['One job per layer', 'Parts change independently'] },
+    };
+
+    test('the types and kinds line up', () => {
+        expect(QUESTION_TYPES).toHaveLength(7);
+        expect(Object.keys(QUESTION_KIND)).toEqual(QUESTION_TYPES.filter((t) => t !== 'mixed'));
+        expect(allowedTypes('mixed')).toEqual(['mc', 'tf', 'id', 'fill', 'enum']);
+        expect(allowedTypes('identification')).toEqual(['id']);
+        expect(allowedTypes(undefined)).toEqual(['mc']);
+    });
+
+    test('typeShares splits mixed sets and puts a single type all in one kind', () => {
+        expect(typeShares('mixed', 10)).toEqual({ mc: 4, tf: 2, id: 2, fill: 1, enum: 1 });
+        expect(Object.values(typeShares('mixed', 15)).reduce((a, b) => a + b, 0)).toBe(15);
+        expect(typeShares('mixed', 15)).toEqual({ mc: 6, tf: 3, id: 3, fill: 2, enum: 1 });
+        expect(typeShares('true_false', 10)).toEqual({ tf: 10 });
+        expect(typeShares('mixed', 1)).toEqual({ mc: 1 });
+    });
+
+    test.each(Object.keys(valid))('keeps a valid %s question', (kind) => {
+        const q = norm(valid[kind], [...mixed, 'essay']);
+        expect(q).toMatchObject({ type: kind, prompt: valid[kind].prompt, explanation: base.explanation });
+    });
+
+    test('a question with no type reads as multiple choice', () => {
+        const { type, ...old } = valid.mc;
+        expect(norm(old, ['mc'])).toMatchObject({ type: 'mc' });
+    });
+
+    test('true or false stores True and False itself and never shuffles', () => {
+        const q = norm({ ...valid.tf, prompt: 'True or false: TCP is connectionless.', options: ['a', 'b', 'c', 'd'], correctIndex: 3 });
+        expect(q).toMatchObject({ options: ['True', 'False'], correctIndex: 1, prompt: 'TCP is connectionless.' });
+        expect(norm({ ...valid.tf, answer: ' TRUE ' }).correctIndex).toBe(0);
+    });
+
+    test('non-choice questions store no options and no index', () => {
+        expect(norm(valid.id)).toMatchObject({ options: [], correctIndex: null, answer: 'DNS', accepted: ['Domain Name System'] });
+    });
+
+    test('drops what cannot be graded', () => {
+        const dropped = {
+            'true or false with a maybe': { ...valid.tf, answer: 'maybe' },
+            'identification with no answer': { ...valid.id, answer: '  ' },
+            'identification with a long answer': { ...valid.id, answer: 'one two three four five six seven eight nine' },
+            'fill without a blank': { ...valid.fill, prompt: 'The Internet layer routes packets.' },
+            'fill with two blanks': { ...valid.fill, prompt: 'The _____ layer and the _____ layer.' },
+            'fill that contains its answer': { ...valid.fill, prompt: 'The _____ layer, also called Internet, routes.' },
+            'enumeration with one item': { ...valid.enum, items: layers.slice(0, 1) },
+            'enumeration with two items that match each other': { ...valid.enum, items: [layers[0], { answer: 'application', accepted: [] }] },
+            'essay with one point': { ...valid.essay, points: ['Only one'] },
+            'a type nobody knows': { ...valid.id, type: 'riddle' },
+            'a type from Object.prototype': { ...valid.id, type: 'constructor' },
+        };
+        for (const [name, q] of Object.entries(dropped)) expect([name, norm(q, [...mixed, 'essay'])]).toEqual([name, null]);
+    });
+
+    test('drops a kind the reviewer did not ask for', () => {
+        expect(norm(valid.enum, ['mc', 'tf'])).toBeNull();
+        expect(norm(valid.essay)).toBeNull();
+        expect(norm(valid.mc, ['id'])).toBeNull();
+    });
+
+    test('a fill sentence may hold a word that only looks like the answer', () => {
+        expect(norm({ ...valid.fill, prompt: 'The _____ layer sits above the Interface layer.', answer: 'Face' })).not.toBeNull();
+    });
+
+    test('accepted forms are deduplicated and never repeat the answer', () => {
+        const q = norm({ ...valid.id, accepted: ['dns', 'DNS.', 'Domain Name System', 'domain name system', ''] });
+        expect(q.accepted).toEqual(['Domain Name System']);
+    });
+
+    test('normalizeReviewer and normalizeTargeted take the allowed kinds', () => {
+        const items = [valid.id, valid.tf, { ...valid.fill, prompt: 'The _____ layer routes.' }].map((v) => ({ ...base, ...v }));
+        const out = normalizeReviewer(raw(items), { allowed: ['id', 'tf', 'fill'] });
+        expect(out.questions.map((q) => q.type)).toEqual(['id', 'tf', 'fill']);
+        expect(() => normalizeReviewer(raw(items))).toThrow(/enough usable questions/);
+        const options = { topics: ['Networks'], questionCount: 5, minQuestions: 0, allowed: ['id'] };
+        expect(normalizeTargeted({ questions: items }, options)).toHaveLength(1);
+    });
+
+    test('prompts name the kinds and only list their rules', () => {
+        const single = buildReviewerPrompt({ title: 'Net', text: 'x', questionCount: 10, questionType: 'identification' });
+        expect(single).toContain('exactly 10 identification questions');
+        expect(single).toContain('identification: prompt is');
+        expect(single).not.toContain('fill_blank:');
+        const both = buildReviewerPrompt({ title: 'Net', text: 'x', questionCount: 10, questionType: 'mixed' });
+        expect(both).toContain('exactly 10 questions: 4 multiple-choice, 2 true or false, 2 identification, 1 fill in the blank, 1 enumeration');
+        expect(both).not.toContain('essay:');
+        const more = buildMorePrompt({ title: 'Net', text: 'x', topics: ['A'], questionCount: 5, questionType: 'true_false', existing: ['Q?'] });
+        expect(more).toContain('exactly 5 new true or false questions');
+    });
+});
+
+describe('question model', () => {
+    const base = { owner: '64b000000000000000000001', title: 'Net', source: { type: 'pdf' } };
+    const q = (extra) => ({ topic: 'T', prompt: 'P?', explanation: 'E', ...extra });
+    const errors = (questions) => new reviewerModel({ ...base, questions }).validateSync();
+
+    test('one question of each type validates', () => {
+        expect(errors([
+            q({ type: 'mc', options: ['a', 'b', 'c', 'd'], correctIndex: 1 }),
+            q({ type: 'tf', options: ['True', 'False'], correctIndex: 0 }),
+            q({ type: 'id', answer: 'DNS', accepted: ['Domain Name System'] }),
+            q({ type: 'fill', prompt: 'The _____ layer.', answer: 'Internet' }),
+            q({ type: 'enum', items: [{ answer: 'a', accepted: [] }, { answer: 'b', accepted: ['c'] }] }),
+            q({ type: 'essay', answer: 'Model answer.', points: ['one', 'two'] }),
+        ])).toBeUndefined();
+    });
+
+    test('an identification question with four options fails', () => {
+        expect(errors([q({ type: 'id', answer: 'DNS', options: ['a', 'b', 'c', 'd'] })])).toBeDefined();
+    });
+
+    test('a choice question needs its options and an index', () => {
+        expect(errors([q({ type: 'tf', options: ['True', 'False'] })])).toBeDefined();
+        expect(errors([q({ type: 'mc', options: ['a', 'b'], correctIndex: 0 })])).toBeDefined();
+    });
+
+    test('an old question without a type and with four options validates', () => {
+        expect(errors([q({ options: ['a', 'b', 'c', 'd'], correctIndex: 2 })])).toBeUndefined();
+    });
+
+    test('a reviewer reads as multiple choice until told otherwise', () => {
+        expect(new reviewerModel(base).questionType).toBe('multiple_choice');
+        expect(new reviewerModel({ ...base, questionType: 'riddle' }).validateSync()).toBeDefined();
     });
 });

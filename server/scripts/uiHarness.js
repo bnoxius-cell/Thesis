@@ -125,11 +125,17 @@ for (const name of ['Capstone Team 4', 'Study Buddies']) {
 
 // A ready reviewer for Maria, written straight to the model (no Gemini key here), so the Study page
 // and the open-reviewer view can be checked.
-const question = (topic, prompt, options, correctIndex) => ({ topic, prompt, options, correctIndex, explanation: 'Because it follows from the notes.' });
+const EXPLANATION = 'Because it follows from the notes.';
+const question = (topic, prompt, options, correctIndex) => ({ topic, prompt, options, correctIndex, explanation: EXPLANATION });
+const trueFalse = (topic, prompt, isTrue) => ({ topic, type: 'tf', prompt, options: ['True', 'False'], correctIndex: isTrue ? 0 : 1, explanation: EXPLANATION });
+const typed = (type, topic, prompt, answer, accepted = []) => ({ topic, type, prompt, answer, accepted, explanation: EXPLANATION });
+const enumeration = (topic, prompt, answers) => ({
+    topic, type: 'enum', prompt, items: answers.map((answer) => ({ answer, accepted: [] })), explanation: EXPLANATION,
+});
 await reviewerModel.create({
     owner: maria._id, title: 'Network Security notes', course: 'Information Assurance',
     source: { fileName: 'network-security.pdf', pages: 12, chars: 18000 },
-    status: 'ready', version: 1, generatedAt: new Date(), aiModel: 'harness',
+    status: 'ready', version: 1, generatedAt: new Date(), aiModel: 'harness', questionType: 'mixed',
     summary: 'How networks are protected: firewalls, encryption in transit and the principle of least privilege.',
     keyPoints: ['A firewall filters traffic by rule.', 'TLS protects data in transit.', 'Give each account only the access it needs.'],
     keyTerms: [{ term: 'Firewall', definition: 'A device or software that filters network traffic.' }, { term: 'TLS', definition: 'A protocol that encrypts data between client and server.' }],
@@ -139,6 +145,14 @@ await reviewerModel.create({
         question('Firewalls', 'Where is a network firewall usually placed?', ['At the network edge', 'Inside the printer', 'On the keyboard', 'In the BIOS'], 0),
         question('Encryption', 'What does TLS protect?', ['Data in transit', 'Screen brightness', 'Disk fragmentation', 'Cable length'], 0),
         question('Encryption', 'Least privilege means', ['Only the access that is needed', 'Everyone is admin', 'No passwords', 'Weekly resets'], 0),
+        trueFalse('Firewalls', 'A firewall decides what to let through using rules.', true),
+        trueFalse('Encryption', 'TLS makes data in transit readable to anyone on the network.', false),
+        typed('id', 'Firewalls', 'What do we call a device or software that filters network traffic by rule?', 'Firewall'),
+        typed('id', 'Encryption', 'Which protocol encrypts data between a client and a server?', 'TLS', ['Transport Layer Security']),
+        typed('fill', 'Firewalls', 'A network firewall is usually placed at the network _____.', 'edge'),
+        typed('fill', 'Encryption', 'Data is protected in transit by _____.', 'TLS', ['Transport Layer Security']),
+        enumeration('Firewalls', 'Give the 3 things a firewall rule usually checks.', ['Source', 'Destination', 'Port']),
+        enumeration('Encryption', 'Give the 3 parts of the CIA triad.', ['Confidentiality', 'Integrity', 'Availability']),
     ],
 });
 

@@ -10,8 +10,10 @@ import {
     REVIEWER_SCHEMA, REVIEWER_SYSTEM, TARGETED_SCHEMA, buildReviewerPrompt, buildTargetedPrompt, planParts,
     normalizeReviewer, normalizeTargeted, textForTopics,
     QUESTION_COUNTS, QUESTION_WEIGHTS, DEFAULT_QUESTION_COUNT, FIRST_ROUND_MAX, MIN_QUESTIONS, questionWeight,
+    QUESTION_TYPES, DEFAULT_QUESTION_TYPE, allowedTypes,
     TARGETED_COUNTS, DEFAULT_TARGETED_COUNT, MAX_TARGET_TOPICS, MAX_REVIEWER_QUESTIONS,
 } from '../utils/reviewerContent.js';
+import { gradeTyped, gradeList } from '../utils/reviewerAnswers.js';
 import { resolveItemSubject, applyItemSubject, subjectLabel } from '../utils/subjectMatch.js';
 import { computeProgress, summarizeAttempt, topicStatsFor, scorePercent } from '../utils/reviewerProgress.js';
 import { FileLimitError } from '../utils/fileBudget.js';
@@ -72,6 +74,16 @@ const parseQuestionCount = (value) => {
     return QUESTION_COUNTS.includes(count) ? count : null;
 };
 
+// Essay is built (plan 33, 2.6) but not offered until its AI check ships (QT3 widens this).
+const ENABLED_TYPES = QUESTION_TYPES.filter((type) => type !== 'essay');
+const PICK_A_TYPE = 'Pick a question type.';
+
+// The question type asked for, `fallback` when none was sent, or null when it isn't one we offer.
+const parseQuestionType = (value, fallback) => {
+    if (value === undefined || value === null || value === '') return fallback;
+    return ENABLED_TYPES.includes(value) ? value : null;
+};
+
 // The source as a client sees it. Reviewers made before several sources existed have no type, count
 // or list: they read as one PDF. The fingerprint never goes out.
 const publicSourceItem = (item) => ({
@@ -104,6 +116,7 @@ const listItem = (r) => ({
     error: r.error,
     source: publicSource(r),
     questionTarget: r.questionTarget,
+    questionType: r.questionType ?? DEFAULT_QUESTION_TYPE,
     questionCount: r.questionCount ?? r.questions?.length ?? 0,
     topicCount: r.topicCount ?? r.topics?.length ?? 0,
     version: r.version,
@@ -113,7 +126,19 @@ const listItem = (r) => ({
 });
 
 // Questions go out without their answers. Those only come back once a question is answered.
-const publicQuestion = (q) => ({ _id: q._id, topic: q.topic, prompt: q.prompt, options: q.options, difficulty: q.difficulty });
+// An enumeration only says how many boxes to show. Questions made before types existed are multiple choice.
+const publicQuestion = (q) => {
+    const type = q.type ?? 'mc';
+    return {
+        _id: q._id,
+        topic: q.topic,
+        type,
+        prompt: q.prompt,
+        options: q.options,
+        difficulty: q.difficulty,
+        ...(type === 'enum' && { count: q.items.length }),
+    };
+};
 
 const publicTargeted = (t) => ({
     status: t?.status || 'none',
@@ -279,6 +304,7 @@ const moreQuestions = async (reviewer, jobId, parts, content) => {
         parts,
         topics: content.topics.map((t) => t.name),
         questions: content.questions,
+        questionType: reviewer.questionType,
         target,
         retry: withRetries,
         deadline: reviewer.requestedAt.getTime() + WAVES_STOP_AFTER_MS,
@@ -306,15 +332,16 @@ const generate = async (reviewerId, jobId, pending) => {
         const material = pending ? await readPictures(reviewer, jobId, pending) : { text: reviewer.sourceText, note: '' };
         if (!material) return;
         const parts = splitIntoParts(material.text);
+        const allowed = allowedTypes(reviewer.questionType);
         // Up to 30 questions come with the content, one call per part. More are written after (below).
         const firstRound = Math.min(reviewer.questionTarget, FIRST_ROUND_MAX);
         const plan = planParts(parts.map((p) => p.length), firstRound);
 
         const settled = await Promise.allSettled(parts.map((text, i) => withRetries(async () => {
-            const prompt = buildReviewerPrompt({ title: reviewer.title, course: reviewer.course, text, part: plan[i] });
+            const prompt = buildReviewerPrompt({ title: reviewer.title, course: reviewer.course, text, questionType: reviewer.questionType, part: plan[i] });
             const { data, model } = await generateJson({ system: REVIEWER_SYSTEM, prompt, schema: REVIEWER_SCHEMA });
             // Checked on its own first, so a part with unusable questions is asked again.
-            normalizeReviewer(data, { questionCount: plan[i].questions, minQuestions: Math.min(MIN_QUESTIONS, plan[i].questions) });
+            normalizeReviewer(data, { questionCount: plan[i].questions, minQuestions: Math.min(MIN_QUESTIONS, plan[i].questions), allowed });
             return { data, model };
         })));
         const failed = settled.find((r) => r.status === 'rejected');
@@ -324,6 +351,7 @@ const generate = async (reviewerId, jobId, pending) => {
         const { title, ...content } = normalizeReviewer(answers.map((a) => a.data), {
             questionCount: firstRound,
             shares: plan.map((p) => p.questions),
+            allowed,
         });
         let interrupted = false;
         if (reviewer.questionTarget > firstRound) {
@@ -375,13 +403,14 @@ const generateTargeted = async (reviewerId, jobId) => {
         text: textForTopics(splitIntoParts(reviewer.sourceText), reviewer.topics, topics, PART_CHARS),
         topics,
         questionCount: reviewer.targeted.count,
+        questionType: reviewer.questionType,
         existing,
     });
 
     try {
         const questions = await withRetries(async () => {
             const { data } = await generateJson({ system: REVIEWER_SYSTEM, prompt, schema: TARGETED_SCHEMA });
-            return normalizeTargeted(data, { topics, existing, questionCount: reviewer.targeted.count });
+            return normalizeTargeted(data, { topics, existing, questionCount: reviewer.targeted.count, allowed: allowedTypes(reviewer.questionType) });
         });
         const batch = randomUUID();
         await reviewerModel.updateOne(
@@ -429,10 +458,11 @@ const takeUploadedFiles = (req) => {
     return [...files, ...pdf].map((file) => ({ buffer: file.buffer, name: decodeFileName(file.originalname).slice(0, 200) }));
 };
 
-const findDuplicate = (userId, questionTarget, fingerprint) => reviewerModel.findOne({
+const findDuplicate = (userId, questionTarget, questionType, fingerprint) => reviewerModel.findOne({
     owner: userId,
     status: 'processing',
     questionTarget,
+    questionType,
     'source.fingerprint': fingerprint,
     createdAt: { $gt: new Date(Date.now() - DUPLICATE_UPLOAD_MS) },
 });
@@ -459,6 +489,8 @@ export const createReviewer = async (req, res) => {
         if (!questionTarget) {
             return res.status(400).json({ success: false, message: `Pick ${listOf(QUESTION_COUNTS)} questions.` });
         }
+        const questionType = parseQuestionType(body.questionType, DEFAULT_QUESTION_TYPE);
+        if (!questionType) return res.status(400).json({ success: false, message: PICK_A_TYPE });
 
         const course = cleanLine(body.course, COURSE_MAX);
         const link = await resolveItemSubject(req.userId, { subject: body.subject, course });
@@ -474,7 +506,7 @@ export const createReviewer = async (req, res) => {
         const checked = await checkSourceRequest(request, req.userId);
         // The checked items now hold the only copy of each upload, so readSources can free them one by one.
         request.files = null;
-        const duplicate = await findDuplicate(req.userId, questionTarget, checked.fingerprint);
+        const duplicate = await findDuplicate(req.userId, questionTarget, questionType, checked.fingerprint);
         if (duplicate) {
             await refund?.();
             return res.json({ success: true, reviewer: listItem(duplicate) });
@@ -502,6 +534,7 @@ export const createReviewer = async (req, res) => {
             // With pictures the text is only known once they are read (readPictures saves it).
             sourceText: pictures ? '' : combined.text,
             questionTarget,
+            questionType,
             status: 'processing',
             jobId,
             requestedAt: new Date(),
@@ -651,11 +684,13 @@ export const regenerateReviewer = async (req, res) => {
         if (!questionTarget) {
             return res.status(400).json({ success: false, message: `Pick ${listOf(QUESTION_COUNTS)} questions.` });
         }
+        const questionType = parseQuestionType(req.body.questionType, reviewer.questionType);
+        if (!questionType) return res.status(400).json({ success: false, message: PICK_A_TYPE });
         const refund = await reserveRequests(req.userId, 'reviewer', questionWeight(questionTarget));
         if (!refund) return res.status(429).json({ success: false, message: limitMessage() });
 
         const jobId = randomUUID();
-        Object.assign(reviewer, { status: 'processing', error: '', jobId, requestedAt: new Date(), progressAt: null, note: '', questionTarget });
+        Object.assign(reviewer, { status: 'processing', error: '', jobId, requestedAt: new Date(), progressAt: null, note: '', questionTarget, questionType });
         await refundingOnError(reviewer.save(), refund);
         startGeneration(reviewer._id, jobId);
 
@@ -743,12 +778,33 @@ const shuffled = (items) => {
 const finishedSessions = (reviewer, userId) =>
     reviewerAttemptModel.find({ reviewer: reviewer._id, user: userId, finishedAt: { $ne: null } }).sort({ finishedAt: -1 });
 
+// What the student sees once a question is answered: the key for its type, next to what they gave.
+const typedResult = (question, answer) => {
+    switch (question.type ?? 'mc') {
+        case 'id':
+        case 'fill':
+            return { text: answer.text, answer: question.answer };
+        case 'enum':
+            return {
+                entries: [...answer.entries],
+                got: answer.got,
+                of: answer.of,
+                items: question.items.map((item) => item.answer),
+                matched: gradeList(answer.entries, question.items).matched,
+            };
+        default:
+            return {};
+    }
+};
+
 const answerResult = (question, answer) => ({
     questionId: question._id,
+    type: question.type ?? 'mc',
     choice: answer.choice,
     correct: answer.correct,
     correctIndex: question.correctIndex,
     explanation: question.explanation,
+    ...typedResult(question, answer),
 });
 
 const sessionPayload = (attempt, reviewer) => {
@@ -858,20 +914,50 @@ export const getSession = async (req, res) => {
     }
 };
 
+const MAX_TYPED = 200;
+const TYPE_FIRST = 'Type your answer first.';
+const TYPE_ONE_FIRST = 'Type at least one answer first.';
+
+// Checks what the browser sent against the question's type and grades it. Returns the part of the
+// answer to store (with `correct`), or `{ message }` when the answer is the wrong shape. The browser
+// only ever sends what the student picked or typed; the key and the score stay here.
+const gradeAnswer = (question, { choice, text, entries }) => {
+    const type = question.type ?? 'mc';
+    if (type === 'mc' || type === 'tf') {
+        if (!Number.isInteger(choice) || choice < 0 || choice >= question.options.length) {
+            return { message: type === 'mc' ? 'Pick one of the four answers.' : 'Pick True or False.' };
+        }
+        return { choice, correct: choice === question.correctIndex };
+    }
+    if (type === 'id' || type === 'fill') {
+        const typed = typeof text === 'string' ? text.trim() : '';
+        if (!typed || typed.length > MAX_TYPED) return { message: TYPE_FIRST };
+        return { text: typed, correct: gradeTyped(typed, question) };
+    }
+    if (type === 'enum') {
+        const valid = Array.isArray(entries) && entries.length <= question.items.length
+            && entries.every((entry) => typeof entry === 'string' && entry.length <= MAX_TYPED);
+        const typed = valid ? entries.map((entry) => entry.trim()) : [];
+        if (!typed.some(Boolean)) return { message: TYPE_ONE_FIRST };
+        const { got, of } = gradeList(typed, question.items);
+        return { entries: typed, got, of, correct: got === of };
+    }
+    return { message: "This kind of question can't be answered yet." };
+};
+
 export const answerQuestion = async (req, res) => {
     try {
         const { reviewer, attempt } = await loadSession(req, res);
         if (!attempt) return;
 
-        const { questionId, choice } = req.body;
+        const { questionId } = req.body;
         if (!isId(questionId) || !attempt.questions.some((id) => String(id) === String(questionId))) {
             return res.status(400).json({ success: false, message: "That question isn't part of this session." });
         }
-        if (!Number.isInteger(choice) || choice < 0 || choice > 3) {
-            return res.status(400).json({ success: false, message: 'Pick one of the four answers.' });
-        }
         const question = reviewer.questions.id(questionId);
         if (!question) return res.status(400).json({ success: false, message: "That question isn't part of this session." });
+        const graded = gradeAnswer(question, req.body);
+        if (graded.message) return res.status(400).json({ success: false, message: graded.message });
 
         // The first answer counts. A double click or a retry gets the same result back, even
         // after the last answer closed the session.
@@ -879,7 +965,7 @@ export const answerQuestion = async (req, res) => {
         let current = attempt;
         if (!attempt.answers.some(isThis)) {
             if (attempt.finishedAt) return res.status(409).json({ success: false, message: 'This session is already over.' });
-            const answer = { question: question._id, choice, correct: choice === question.correctIndex, answeredAt: new Date() };
+            const answer = { question: question._id, ...graded, answeredAt: new Date() };
             current = await reviewerAttemptModel.findOneAndUpdate(
                 { _id: attempt._id, finishedAt: null, 'answers.question': { $ne: question._id } },
                 { $push: { answers: answer } },
