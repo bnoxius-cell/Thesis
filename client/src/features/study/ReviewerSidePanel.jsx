@@ -13,7 +13,9 @@ function statusLine(reviewer, openSession, progress) {
   if (progress?.sessions) {
     return `Last score ${Math.round(progress.lastScore)}% · best ${Math.round(progress.bestScore)}% · ${plural(progress.sessions, "session")}`;
   }
-  return `${plural(reviewer.questionCount, "question")}, one at a time. You'll see why after each answer.`;
+  const questions = plural(reviewer.questionCount, "question");
+  if (reviewer.questionType === "essay") return `${questions}, one at a time. The AI checks each answer.`;
+  return `${questions}, one at a time. You'll see why after each answer.`;
 }
 
 // The right-hand column (Figma 76:1287): Learning Mode progress with Resume when a session under
