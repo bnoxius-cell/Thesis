@@ -8,6 +8,7 @@ import Sidebar from "./shell/Sidebar";
 import SiteFooter from "./shell/SiteFooter";
 import UnreadProvider from "./shell/UnreadProvider";
 import useSidebarCollapsed from "./shell/useSidebarCollapsed";
+import WhatsNewWindow from "@/features/whats-new/WhatsNewWindow";
 import "./layout.css";
 
 // The frame for every signed-in page: skip link, the sidebar (from 1024px), the bottom bar (under
@@ -28,6 +29,7 @@ export default function AppLayout() {
               <SiteFooter />
             </main>
             <BottomBar />
+            <WhatsNewWindow />
           </div>
         </AddProvider>
       </FocusViewProvider>

@@ -17,6 +17,16 @@ import "./modal.css";
 // focus on close when the opener is gone (a window reopened after Edit goes back to its row).
 
 const stack = [];
+const listeners = new Set();
+
+// For code outside the dialogs that must not open on top of one (the "What's new" window).
+// Shaped for useSyncExternalStore: subscribe, then read the count.
+export const subscribeOpenDialogs = (listener) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+export const openDialogCount = () => stack.length;
+const notifyListeners = () => listeners.forEach((listener) => listener());
 let lockCount = 0;
 let savedOverflow = "";
 
@@ -82,6 +92,7 @@ export default function ModalShell({
     if (!open) return undefined;
     const token = {};
     stack.push(token);
+    notifyListeners();
     lockScroll();
 
     const root = contentRef.current;
@@ -104,6 +115,7 @@ export default function ModalShell({
       document.removeEventListener("keydown", onKeyDown);
       const at = stack.indexOf(token);
       if (at >= 0) stack.splice(at, 1);
+      notifyListeners();
       unlockScroll();
       // Back to the opener. If it is gone (a dialog opened by a link on another page, like Today's
       // "Add task", or a button that left the page when its dialog finished), land on <main> instead
