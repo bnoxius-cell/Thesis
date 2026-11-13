@@ -22,7 +22,6 @@ import useEntryTarget from "./useEntryTarget";
 import useSaveEntry from "./useSaveEntry";
 import "./entry-form.css";
 
-const KINDS = ["class", "exam", "event", "activity"].map((value) => ({ value, label: KIND_LABELS[value] }));
 const REPEATS = [
   { value: REPEAT.once, label: "One day" },
   { value: REPEAT.weekly, label: "Weekly" },
@@ -30,7 +29,7 @@ const REPEATS = [
 const NO_SUBJECT = "";
 
 // New class, exam, event or activity (Figma D4: desktop 209:2364, 209:2681, 209:2980, phone sheets 210:2576,
-// 210:2673, 210:2753). `kind` is the one the "+" menu chose; the Type segment can change it. `subjects` is the
+// 210:2673, 210:2753). `kind` is the one the "+" menu chose and stays fixed. `subjects` is the
 // list the page loaded: picking one fills the Title with its name (the timetable matches by title). `timetable`
 // is the picked timetable the student can edit, or null for My week (the main timetable, created when missing).
 // Nothing is saved until the button; closing asks first when something was typed. A failed save keeps the
@@ -58,13 +57,6 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, onCl
     setErrors((prev) => ({ ...prev, [key]: undefined, ...times }));
   };
   const onText = (key) => (event) => set(key)(event.target.value);
-  const pickKind = (next) =>
-    setForm((prev) => ({
-      ...prev,
-      kind: next,
-      repeat: emptyEntryForm(next).repeat,
-      subject: next === "class" || next === "exam" ? prev.subject : NO_SUBJECT,
-    }));
   const pickSubject = (name) =>
     setForm((prev) => ({ ...prev, subject: name, title: titleAfterSubject(prev.title, prev.subject, name) }));
   const toggleDay = (day) => {
@@ -124,9 +116,6 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, onCl
         </>
       )}
     >
-      <Field label="Type">
-        {({ labelId }) => <Segment labelId={labelId} options={KINDS} value={form.kind} onChange={pickKind} />}
-      </Field>
       {form.kind === "class" || exam ? (
         <div className="entry-dialog__pair">
           {subjectField}
