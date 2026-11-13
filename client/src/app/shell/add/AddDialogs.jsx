@@ -1,7 +1,10 @@
+import JoinGroupDialog from "@/features/people/JoinGroupDialog";
+import NewGroupDialog from "@/features/people/NewGroupDialog";
 import EntryFormDialog from "@/features/plan/EntryFormDialog";
 import NewReviewerDialog from "@/features/study/NewReviewerDialog";
 import NewSubjectDialog from "@/features/study/NewSubjectDialog";
 import TaskFormDialog from "@/features/tasks/TaskFormDialog";
+import AddUploadDialog from "./AddUploadDialog";
 import useAddInputs from "./useAddInputs";
 
 // The one dialog host: the form for `request.kind`, using what the page that opened it holds (`request.page`,
@@ -23,6 +26,9 @@ export default function AddDialogs({ request, onClose, onSaved, onSubjectMade })
       />
     );
   }
+  if (kind === "file") return <AddUploadDialog onClose={onClose} />;
+  if (kind === "group") return <NewGroupDialog onClose={onClose} onDone={(group) => onSaved("group", group)} />;
+  if (kind === "join") return <JoinGroupDialog onClose={onClose} onDone={(group) => onSaved("join", group)} />;
   if (kind === "subject") {
     return <NewSubjectDialog onClose={onClose} onSaved={(_editing, subject) => onSaved("subject", subject)} />;
   }

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { toast } from "react-toastify";
 import { Button, Field, Modal } from "@/shared/ui";
 import { joinGroup } from "@/shared/api/groups";
 import "./people-new.css";
@@ -8,7 +7,8 @@ const CODE_LENGTH = 6;
 
 // "Join a group": the 6-character code a classmate shares from the group's Info. The server's own
 // words ("Group not found", "Already a member of this group") show under the field and the dialog
-// stays open. `onDone(group)` runs once the student is in (the page refreshes the list and opens it).
+// stays open. `onDone(group)` runs once the student is in (the add host toasts with a View button and the
+// page refreshes its list).
 export default function JoinGroupDialog({ onClose, onDone }) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -27,7 +27,6 @@ export default function JoinGroupDialog({ onClose, onDone }) {
       setError(failure);
       return;
     }
-    toast.success("You joined the group.");
     onDone(data.group);
   };
 

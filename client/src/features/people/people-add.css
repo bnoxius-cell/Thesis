@@ -1,12 +1,5 @@
-/* The People "+" menu (Figma 64:302) and the empty Groups page (66:963). */
+/* The empty Groups page (66:963). */
 @layer pages {
-  .people-addmenu {
-    min-width: 240px;
-  }
-  .people-addmenu .ui-menu__item {
-    min-height: 44px;
-  }
-
   /* The card fills the height the panes would have; the frame's blob is 112px with a 48px icon. */
   .people-empty {
     display: flex;

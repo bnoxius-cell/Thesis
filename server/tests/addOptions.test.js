@@ -11,6 +11,12 @@ describe('addGroupFor', () => {
         expect(addGroupFor('/study/practice')).toBe('study');
     });
 
+    it('lists People first on People and everything under it', () => {
+        expect(addGroupFor('/people')).toBe('people');
+        expect(addGroupFor('/people/groups/abc')).toBe('people');
+        expect(addGroupFor('/peoples')).toBe('plan');
+    });
+
     it('lists Plan first everywhere else, Home included', () => {
         for (const path of ['/home', '/plan', '/wellbeing', '/studying', '/notifications']) {
             expect(addGroupFor(path)).toBe('plan');
@@ -22,13 +28,13 @@ describe('addSections', () => {
     it('puts the page group first and the rest under "Everything else"', () => {
         const [first, rest] = addSections('/study');
         expect(first.heading).toBe('Study');
-        expect(first.rows.map((row) => row.kind)).toEqual(['subject', 'reviewer']);
+        expect(first.rows.map((row) => row.kind)).toEqual(['subject', 'reviewer', 'file']);
         expect(rest.heading).toBe('Everything else');
-        expect(rest.rows.map((row) => row.kind)).toEqual(['task', 'class', 'exam', 'event', 'activity']);
+        expect(rest.rows.map((row) => row.kind)).toEqual(['task', 'class', 'exam', 'event', 'activity', 'group', 'join', 'friend']);
     });
 
     it('offers every option exactly once on any page', () => {
-        for (const path of ['/home', '/plan', '/study']) {
+        for (const path of ['/home', '/plan', '/study', '/people']) {
             const kinds = addSections(path).flatMap((section) => section.rows.map((row) => row.kind));
             expect([...kinds].sort()).toEqual(ADD_OPTIONS.map((option) => option.kind).sort());
         }
@@ -36,6 +42,14 @@ describe('addSections', () => {
 });
 
 describe('addedToast', () => {
+    it('keeps the group dialogs wording and sends View to the group', () => {
+        expect(addedToast('group', { _id: 'g1' })).toEqual({
+            message: 'Group created. Share its join code with your classmates.',
+            href: '/people/groups/g1',
+        });
+        expect(addedToast('join', { _id: 'g1' })).toEqual({ message: 'You joined the group.', href: '/people/groups/g1' });
+    });
+
     it('sends a task to its place in Tasks', () => {
         const toast = addedToast('task', { _id: 't1' }, today);
         expect(toast.message).toBe('Task added to Plan');
