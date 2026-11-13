@@ -13,6 +13,7 @@ import scheduleRouter from './routes/scheduleRoutes.js';
 import reviewerRouter from './routes/reviewerRoutes.js';
 import subjectRouter from './routes/subjectRoutes.js';
 import fileRouter from './routes/fileRoutes.js';
+import flashcardRouter from './routes/flashcardRoutes.js';
 import healthRouter from './routes/healthRoutes.js';
 
 // Express app wiring only — no DB connection, no app.listen(). Kept separate from
@@ -69,5 +70,6 @@ app.use('/api/schedules', scheduleRouter);
 app.use('/api/reviewers', reviewerRouter);
 app.use('/api/subjects', subjectRouter);
 app.use('/api/files', fileRouter);
+app.use('/api/flashcards', flashcardRouter);
 
 export default app;
