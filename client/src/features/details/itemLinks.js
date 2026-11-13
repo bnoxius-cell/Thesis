@@ -55,13 +55,14 @@ function subjectInTitle(title, subjects) {
   return best;
 }
 
-// The subject a timetable entry belongs to. Entries carry no subject id (a shared timetable would point at
-// someone else's), so a class matches by its title and an exam also by the words in its title. Events and
-// activities have none.
+// The subject a timetable entry belongs to: the one its `subject` id names (the server sets it, as the
+// viewer's own subject, or null). An entry that never passed the server (an import preview) has no `subject`, so a class
+// matches by its title and an exam also by the words in its title. Events and activities have none.
 export function entrySubject(entry, subjects) {
+  if (entry.kind !== "class" && entry.kind !== "exam") return null;
+  if (entry.subject !== undefined) return subjects.find((s) => s._id === entry.subject) ?? null;
   if (entry.kind === "class") return subjectForLabel(entry.title, subjects);
-  if (entry.kind === "exam") return subjectForLabel(entry.title, subjects) ?? subjectInTitle(entry.title, subjects);
-  return null;
+  return subjectForLabel(entry.title, subjects) ?? subjectInTitle(entry.title, subjects);
 }
 
 const minutes = (hhmm) => {

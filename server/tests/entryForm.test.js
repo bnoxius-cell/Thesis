@@ -51,6 +51,29 @@ describe('entryPayload', () => {
     });
 });
 
+describe('entryPayload subject', () => {
+    const linked = { ...stored, subject: 's1' };
+
+    test('the form reads the stored subject id and a round trip sends it back', () => {
+        const form = entryFormFrom(linked);
+        expect(form.subject).toBe('s1');
+        expect(entryPayload(form, linked).subject).toBe('s1');
+    });
+
+    test('a new pick replaces the stored id; clearing it sends null on a stored link only', () => {
+        expect(entryPayload({ ...entryFormFrom(linked), subject: 's2' }, linked).subject).toBe('s2');
+        expect(entryPayload({ ...entryFormFrom(linked), subject: '' }, linked).subject).toBeNull();
+        expect(entryPayload({ ...entryFormFrom(stored), subject: '' }, stored)).not.toHaveProperty('subject');
+    });
+
+    test('exams send it, events and activities never do', () => {
+        const exam = { ...emptyEntryForm('exam', TODAY), title: 'Finals', subject: 's1' };
+        expect(entryPayload(exam).subject).toBe('s1');
+        const event = { ...emptyEntryForm('event', TODAY), title: 'Party', subject: 's1' };
+        expect(entryPayload(event, linked)).not.toHaveProperty('subject');
+    });
+});
+
 describe('entryErrors', () => {
     const ok = { ...emptyEntryForm('class', TODAY), title: 'Data Mining', days: [1] };
 
@@ -78,9 +101,10 @@ describe('entryErrors', () => {
 });
 
 describe('form helpers', () => {
-    test('entryStarted ignores the subject pick and notices a change', () => {
+    test('entryStarted notices any change, the subject pick included', () => {
         const start = emptyEntryForm('class', TODAY);
-        expect(entryStarted({ ...start, subject: 'Networking' }, start)).toBe(false);
+        expect(entryStarted(start, start)).toBe(false);
+        expect(entryStarted({ ...start, subject: 's1' }, start)).toBe(true);
         expect(entryStarted({ ...start, title: 'x' }, start)).toBe(true);
     });
     test('a subject fills the title only while the title is empty or the previous pick', () => {

@@ -19,7 +19,8 @@ const isPrepTask = (task) => task.isExam || String(task._id).startsWith("exam:")
 // dialog came and went. `onEditTask`, `onDeleteTask`, `onEditEntry` and `onDeleteEntry` are optional; each one is
 // called with the item and `{ close, reopen }` (close this window; reopen it on an item, focus on
 // its "edit" or "delete" button), and without it the
-// window draws no such button. Edit and Delete are drawn only for a task with a real id.
+// window draws no such button. Edit and Delete are drawn only for a task with a real id, and for an entry the
+// student can change (`canEdit`).
 // openEntry(entry, iso) takes the entry as it is on day `iso` (YYYY-MM-DD).
 // openDay(day, { onOpenWeek }) opens the day window (Figma D9) on a day from buildDay (features/plan/planDays.js).
 // A row in it opens that item's window in its place, with a back arrow to the day; Escape and the X close both.
@@ -68,8 +69,18 @@ export default function useItemDetail({
     setDay(null);
     setItem({ task, focus });
   }, []);
+  const reopenEntry = useCallback((entry, iso, focus) => {
+    setDay(null);
+    setItem({ entry, iso, focus });
+  }, []);
 
   const replacing = (handler) => handler && ((target, { close: closeWindow }) => handler(target, { close: closeWindow, reopen: reopenTask }));
+  // An entry's handlers also get the day it was opened on, which `reopen` puts it back on.
+  const replacingEntry = (handler) =>
+    handler && ((entry, { close: closeWindow }) => handler(entry, {
+      close: closeWindow,
+      reopen: (reopened, focus) => reopenEntry(reopened, item.iso, focus),
+    }));
   const canChange = item?.task && isStoredTask(item.task);
 
   let dialog = null;
@@ -98,8 +109,9 @@ export default function useItemDetail({
         onClose={close}
         onBack={day ? backToDay : undefined}
         returnFocusRef={row}
-        onEdit={onEditEntry}
-        onDelete={onDeleteEntry}
+        focus={item.focus}
+        onEdit={replacingEntry(onEditEntry)}
+        onDelete={replacingEntry(onDeleteEntry)}
       />
     );
   } else if (day) {

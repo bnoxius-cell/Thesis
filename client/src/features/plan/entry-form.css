@@ -111,4 +111,17 @@
     color: var(--danger);
     font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
   }
+  /* Delete confirm (Figma D5): 480 wide like Delete task, the shared line sits under the text. */
+  .ui-modal.entry-delete {
+    max-width: 480px;
+  }
+  .entry-delete__shared {
+    margin-top: var(--space-3);
+  }
+  /* Phone Delete sheet (Figma 211:3351): 32px under the buttons. */
+  @media (max-width: 719.98px) {
+    .ui-modal--sheet.entry-delete .ui-modal__actions {
+      padding-bottom: var(--space-6);
+    }
+  }
 }

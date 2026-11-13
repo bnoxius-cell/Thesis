@@ -11,6 +11,7 @@ import useMoveSuggestions from "@/features/tasks/useMoveSuggestions";
 import { finishedRecently } from "@/features/tasks/finishedRecently";
 import useItemDetail from "@/features/details/useItemDetail";
 import useTaskEdit from "@/features/tasks/useTaskEdit";
+import useEntryEdit from "@/features/plan/useEntryEdit";
 import useOpenWeekDay from "@/features/workload/useOpenWeekDay";
 import TodayHero from "./TodayHero";
 import ThisWeekCard from "./ThisWeekCard";
@@ -45,12 +46,15 @@ export default function HomePage() {
   const setDone = useTaskDone(data.setTasks);
   const subjects = useMemo(() => [...data.subjectsById.values()], [data.subjectsById]);
   const edit = useTaskEdit({ subjects, setTasks: data.setTasks });
+  const entryEdit = useEntryEdit({ subjects, onChanged: data.reload });
   const detail = useItemDetail({
     subjects,
     onToggle: setDone,
     context: "home",
     onEditTask: edit.onEditTask,
     onDeleteTask: edit.onDeleteTask,
+    onEditEntry: entryEdit.onEditEntry,
+    onDeleteEntry: entryEdit.onDeleteEntry,
   });
   const openWeekDay = useOpenWeekDay({ detail, overview: data.overview, tasks: data.tasks, subjects, profile: work.profile, now });
   const { prompt, later } = useCheckInPrompt(userData, now);
@@ -111,6 +115,7 @@ export default function HomePage() {
       )}
       {detail.dialog}
       {edit.dialog}
+      {entryEdit.dialog}
     </Page>
   );
 }

@@ -58,6 +58,12 @@ describe('subject matching', () => {
         expect(entrySubject({ kind: 'exam', title: 'Midterm: Discrete Math' }, subjects)._id).toBe('s3');
     });
 
+    test('the subject id wins over the title, and null means none', () => {
+        expect(entrySubject({ kind: 'class', title: 'Math', subject: 's1' }, subjects)._id).toBe('s1');
+        expect(entrySubject({ kind: 'exam', title: 'Midterm: Math', subject: null }, subjects)).toBeNull();
+        expect(entrySubject({ kind: 'class', title: 'Math', subject: 'gone' }, subjects)).toBeNull();
+    });
+
     test('events and activities have no subject', () => {
         expect(entrySubject({ kind: 'event', title: 'Information Assurance' }, subjects)).toBeNull();
         expect(entrySubject({ kind: 'activity', title: 'Math' }, subjects)).toBeNull();
