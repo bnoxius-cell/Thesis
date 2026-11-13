@@ -1,0 +1,114 @@
+/* New class, exam, event and activity form (Figma D4). The shell and fields come from Modal and Field; this
+   is the side-by-side pairs, the weekday toggles, the clash note and the shared and failed-save lines. */
+@layer pages {
+  .entry-dialog__pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+  /* Frames: 20px between rows on desktop, pairs side by side from 720px (one column on a phone). */
+  @media (min-width: 720px) {
+    .ui-modal.entry-dialog .ui-modal__body {
+      gap: 20px;
+    }
+    .entry-dialog__pair {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+      gap: var(--space-4);
+    }
+  }
+
+  /* Weekday toggles: 40px circles (44px on a phone), Monday first; they wrap to a second row when seven
+     don't fit (320px). */
+  .entry-dialog__days {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .entry-dialog__day {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    cursor: pointer;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  .entry-dialog__day[aria-pressed="true"] {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  .entry-dialog__day:active {
+    transform: scale(0.96);
+  }
+  .entry-dialog__day:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  @media (min-width: 720px) {
+    .entry-dialog__day {
+      width: 40px;
+      height: 40px;
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .entry-dialog__day[aria-pressed="false"]:hover {
+      background: var(--surface-2);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .entry-dialog__day:active {
+      transform: none;
+    }
+  }
+
+  /* Clash note: watch-soft, never blocks. */
+  .entry-dialog__note {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border-radius: 14px;
+    background: var(--watch-soft);
+    color: var(--text-primary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .entry-dialog__note svg {
+    flex: none;
+    color: var(--watch);
+  }
+
+  .entry-dialog__notes .ui-field__hint {
+    text-align: end;
+  }
+  .entry-dialog__shared {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .entry-dialog__shared svg {
+    flex: none;
+  }
+  .entry-dialog__error {
+    margin: 0;
+    color: var(--danger);
+    font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+  }
+}

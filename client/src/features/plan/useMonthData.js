@@ -11,7 +11,7 @@ const FAILED = "We couldn't load this month. Check your connection and try again
 //   status     "loading" | "ready" | "failed"
 //   error      a plain message for the failed state
 //   overviews  Map of week-start ISO date to overview (empty until ready)
-//   reload     forgets this month and fetches it again
+//   reload     forgets every month shown so far and fetches this one again (a class was added)
 export default function useMonthData(monthStart, enabled) {
   const key = monthWeekIsos(monthStart).join();
   const [cache, setCache] = useState(() => new Map());
@@ -37,11 +37,7 @@ export default function useMonthData(monthStart, enabled) {
   const reload = () => {
     setFailedKey("");
     setAttempt((n) => n + 1);
-    setCache((prev) => {
-      const next = new Map(prev);
-      next.delete(key);
-      return next;
-    });
+    setCache(new Map());
   };
 
   const failed = !cached && failedKey === key;

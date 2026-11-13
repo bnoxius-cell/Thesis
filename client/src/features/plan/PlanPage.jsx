@@ -8,11 +8,13 @@ import useNow from "@/shared/hooks/useNow";
 import { monthOfWeek, toISODate } from "@/utils/scheduleUtils";
 import { profileFromUser } from "@/features/workload/useWorkload";
 import useTaskDone from "@/features/tasks/useTaskDone";
-import AddTaskButton from "@/features/tasks/AddTaskButton";
 import useItemDetail from "@/features/details/useItemDetail";
 import useTaskEdit from "@/features/tasks/useTaskEdit";
+import AddToPlanMenu from "./AddToPlanMenu";
 import MonthGrid from "./MonthGrid";
 import PhoneWeek from "./PhoneWeek";
+import PlanAdd from "./PlanAdd";
+import PlanEmpty from "./PlanEmpty";
 import PlanControls from "./PlanControls";
 import WeekGrid from "./WeekGrid";
 import { buildMonthRows } from "./monthDays";
@@ -55,6 +57,8 @@ export default function PlanPage() {
   const month = monthOfWeek(params.weekStart);
   const monthData = useMonthData(month, view === "month");
   const setDone = useTaskDone(data.setTasks);
+  // What the "+" menu opened: "task", a kind of entry, or null.
+  const [adding, setAdding] = useState(null);
   const subjects = useMemo(() => [...data.subjectsById.values()], [data.subjectsById]);
   const edit = useTaskEdit({ subjects, setTasks: data.setTasks });
   const detail = useItemDetail({
@@ -128,16 +132,25 @@ export default function PlanPage() {
     params.goToday();
   };
 
-  // A timetable shared by someone else has no tasks of the student's own, so the "+" waits for My week.
-  const addTask = ready && !(view === "week" && params.timetable) && (
-    <AddTaskButton
-      subjects={subjects}
-      onAdded={(task) => data.setTasks((prev) => [...prev, task])}
-    />
-  );
+  // The "+" adds to My week: a task, or a class, exam, event or activity on the main timetable. With a timetable
+  // picked it adds entries only (tasks aren't part of a timetable), and only when the student may edit it:
+  // a viewer sees no "+".
+  const picked = view === "week" && params.timetable ? data.schedule : null;
+  const editable = picked && ["owner", "editor"].includes(picked.role) ? picked : null;
+  const showAdd = ready && (!(view === "week" && params.timetable) || editable);
+  const addMenu = showAdd && <AddToPlanMenu onPick={setAdding} withTask={!editable} />;
+  // R10: every open view agrees. The week and the month read again, and the switcher too when the first
+  // class just created "My timetable".
+  const entryAdded = () => {
+    data.reload();
+    monthData.reload();
+    if (!editable) timetables.reload();
+  };
+  const emptyWeek = view === "week" && !params.timetable && nothingPlanned
+    && timetables.status === "ready" && timetables.timetables.length === 0;
 
   return (
-    <Page title="Plan" subtitle={now.toLocaleDateString("en-US", DATE_FORMAT)} action={addTask}>
+    <Page title="Plan" subtitle={now.toLocaleDateString("en-US", DATE_FORMAT)} action={addMenu}>
       <PlanControls
         view={view}
         onView={params.setView}
@@ -214,9 +227,18 @@ export default function PlanPage() {
             />
           )}
           {data.holidayError && <p className="plan-quiet">{data.holidayError}</p>}
-          {nothingPlanned && <p className="plan-quiet">Nothing is planned for this week yet.</p>}
+          {emptyWeek && <PlanEmpty onAddClass={() => setAdding("class")} onAddTask={() => setAdding("task")} />}
+          {nothingPlanned && !emptyWeek && <p className="plan-quiet">Nothing is planned for this week yet.</p>}
         </>
       )}
+      <PlanAdd
+        adding={adding}
+        subjects={subjects}
+        timetable={editable}
+        onClose={() => setAdding(null)}
+        onTaskAdded={(task) => data.setTasks((prev) => [...prev, task])}
+        onEntryAdded={entryAdded}
+      />
       {detail.dialog}
       {edit.dialog}
     </Page>
