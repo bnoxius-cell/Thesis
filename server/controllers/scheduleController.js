@@ -6,6 +6,7 @@ import scheduleModel, {
 import Friend from '../models/Friend.js';
 import { notify } from '../utils/notify.js';
 import userModel from '../models/userModel.js';
+import subjectModel from '../models/subjectModel.js';
 import { fetchPublicHolidays } from '../utils/holidays.js';
 import { buildWeekOverview, addDaysIso, findUpcomingExams } from '../utils/weekOverview.js';
 import groupModel from '../models/groupMode.js';
@@ -420,17 +421,19 @@ const ownerIdOf = (schedule) => String(schedule.owner._id ?? schedule.owner);
 //    stored one); `name` is set when a new subject has to be made once the entry is valid.
 // Only the timetable's owner picks, creates or clears a subject, and only from their own active ones.
 // An editor's `subject` and `newSubject` are ignored: a class they add links to the owner's subject of
-// that name, so the owner sees it linked, and an edit keeps whatever link the entry has.
+// that name, so the owner sees it linked, and an edit keeps whatever link the entry has, even when the
+// editor turns it into an event for a while.
 const readEntrySubject = async (req, schedule, { adding, kind }) => {
-    if (!SUBJECT_KINDS.includes(kind)) return { link: null };
     const { body } = req;
     const ownerId = ownerIdOf(schedule);
+    if (ownerId !== req.userId && !adding) return { link: undefined };
+    if (!SUBJECT_KINDS.includes(kind)) return { link: null };
     const byName = async () => {
         const subjects = await activeSubjects(ownerId);
         return { link: entrySubjectFor({ kind, title: String(body.title || '') }, subjects) };
     };
 
-    if (ownerId !== req.userId) return adding ? byName() : { link: undefined };
+    if (ownerId !== req.userId) return byName();
 
     if (body.newSubject !== undefined && body.newSubject !== null) {
         const planned = await planNewSubject(ownerId, body.newSubject);
@@ -447,14 +450,17 @@ const readEntrySubject = async (req, schedule, { adding, kind }) => {
 // Reads the body into a clean entry plus the subject link it should carry. Sends the error itself and
 // returns null when the caller should stop. A class with a subject is titled with the subject's name
 // (the class form has no title field).
-const readEntryWrite = async (req, res, schedule, { adding }) => {
+// `stored` is the entry being edited. When the write keeps its link, the class is still titled with that
+// subject's name, so an editor can't retitle a linked class away from it.
+const readEntryWrite = async (req, res, schedule, { adding, stored }) => {
     const kind = ENTRY_KINDS.includes(req.body.kind) ? req.body.kind : 'class';
     const resolved = await readEntrySubject(req, schedule, { adding, kind });
     if (resolved.error) {
         fail(res, 400, resolved.error);
         return null;
     }
-    const subjectName = resolved.link?.name ?? resolved.name;
+    const kept = resolved.link === undefined && stored?.subject ? await subjectModel.findById(stored.subject).select('name') : null;
+    const subjectName = resolved.link?.name ?? resolved.name ?? kept?.name;
     const body = kind === 'class' && subjectName ? { ...req.body, title: subjectName } : req.body;
     const { entry, error } = cleanEntry(body);
     if (error) {
@@ -541,7 +547,7 @@ export const updateEntry = async (req, res) => {
         const existing = schedule.entries.id(req.params.entryId);
         if (!existing) return fail(res, 404, 'Entry not found');
 
-        const write = await readEntryWrite(req, res, schedule, { adding: false });
+        const write = await readEntryWrite(req, res, schedule, { adding: false, stored: existing });
         if (!write) return;
         const { entry } = write;
         const { link, created } = await finishEntrySubject(schedule, write.resolved);
