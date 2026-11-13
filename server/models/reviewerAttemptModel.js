@@ -5,7 +5,15 @@ import mongoose from 'mongoose';
 // Unfinished sessions are kept (finishedAt null) but don't count toward progress.
 const answerSchema = new mongoose.Schema({
     question: { type: mongoose.Schema.Types.ObjectId, required: true },
-    choice: { type: Number, required: true, min: 0, max: 3 },
+    // A multiple choice or true/false answer is `choice`; a typed one is `text`, or `entries` for
+    // enumeration with `got` of `of` items right. `covered` and `note` are for essay checks.
+    choice: { type: Number, min: 0, max: 3 },
+    text: { type: String, default: '', maxlength: 1000 },
+    entries: { type: [String], default: [], validate: { validator: (v) => v.length <= 6, message: 'At most 6 entries.' } },
+    got: { type: Number, default: null },
+    of: { type: Number, default: null },
+    covered: { type: [Number], default: [] },
+    note: { type: String, default: '', maxlength: 300 },
     correct: { type: Boolean, required: true },
     answeredAt: { type: Date, default: Date.now },
 }, { _id: false });
