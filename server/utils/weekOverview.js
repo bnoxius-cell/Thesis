@@ -58,6 +58,8 @@ const originOf = (schedule, entry) => ({
     scheduleTitle: schedule.title,
     canEdit: schedule.role === 'owner' || schedule.role === 'editor',
     notes: entry.notes || '',
+    // The viewer's own subject id (set by withViewerSubjects), never the timetable owner's.
+    subject: entry.subject ? String(entry.subject) : null,
 });
 
 // What the details window says about an entry on a given day: which weekdays a class repeats on, its

@@ -12,6 +12,9 @@ import groupModel from '../models/groupMode.js';
 import groupMessageModel from '../models/groupMessageModel.js';
 import { timetableLink } from '../utils/appLinks.js';
 import { serverError } from '../utils/httpErrors.js';
+import { activeSubjects, entrySubjectFor, resolveItemSubject } from '../utils/subjectMatch.js';
+import { withViewerSubjects } from '../utils/entrySubjects.js';
+import { planNewSubject, createPlannedSubject, publicSubject } from './subjectController.js';
 
 // How far ahead the dashboard looks for exams to plan study time around.
 const EXAM_LOOKAHEAD_DAYS = 30;
@@ -145,6 +148,9 @@ const serialize = async (schedule, role, viewerId = '') => {
         { path: 'collaborators.user', select: PERSON_FIELDS },
     ]);
     const plain = schedule.toObject();
+    // Every entry's subject becomes the viewer's own (or null), never the stored id of someone else.
+    const subjectViewer = role === 'owner' ? String(schedule.owner._id ?? schedule.owner) : viewerId;
+    plain.entries = withViewerSubjects(plain, subjectViewer, subjectViewer ? await activeSubjects(subjectViewer).lean() : []);
     plain.role = role;
     plain.live = isLive(schedule);
     plain.canShare = canManageSharing(schedule, role);
@@ -404,16 +410,86 @@ export const deleteSchedule = async (req, res) => {
     }
 };
 
-// Adds an already cleaned entry to a schedule the caller may edit and answers with the schedule.
-const appendEntry = async (req, res, schedule, role, entry) => {
+const SUBJECT_KINDS = ['class', 'exam'];
+
+const ownerIdOf = (schedule) => String(schedule.owner._id ?? schedule.owner);
+
+// What a write does to an entry's subject link, decided before the entry is cleaned. Answers
+//  - { error }: the request named a subject the caller may not use;
+//  - { link, name, subjects }: `link` is a subject document, null (no subject) or undefined (keep the
+//    stored one); `name` is set when a new subject has to be made once the entry is valid.
+// Only the timetable's owner picks, creates or clears a subject, and only from their own active ones.
+// An editor's `subject` and `newSubject` are ignored: a class they add links to the owner's subject of
+// that name, so the owner sees it linked, and an edit keeps whatever link the entry has.
+const readEntrySubject = async (req, schedule, { adding, kind }) => {
+    if (!SUBJECT_KINDS.includes(kind)) return { link: null };
+    const { body } = req;
+    const ownerId = ownerIdOf(schedule);
+    const byName = async () => {
+        const subjects = await activeSubjects(ownerId);
+        return { link: entrySubjectFor({ kind, title: String(body.title || '') }, subjects) };
+    };
+
+    if (ownerId !== req.userId) return adding ? byName() : { link: undefined };
+
+    if (body.newSubject !== undefined && body.newSubject !== null) {
+        const planned = await planNewSubject(ownerId, body.newSubject);
+        if (planned.error) return { error: planned.error };
+        return planned.subject ? { link: planned.subject } : { link: null, name: planned.name, subjects: planned.subjects };
+    }
+    if (body.subject !== undefined) {
+        const { subject, error } = await resolveItemSubject(ownerId, { subject: body.subject });
+        return error ? { error } : { link: subject };
+    }
+    return adding ? byName() : { link: undefined };
+};
+
+// Reads the body into a clean entry plus the subject link it should carry. Sends the error itself and
+// returns null when the caller should stop. A class with a subject is titled with the subject's name
+// (the class form has no title field).
+const readEntryWrite = async (req, res, schedule, { adding }) => {
+    const kind = ENTRY_KINDS.includes(req.body.kind) ? req.body.kind : 'class';
+    const resolved = await readEntrySubject(req, schedule, { adding, kind });
+    if (resolved.error) {
+        fail(res, 400, resolved.error);
+        return null;
+    }
+    const subjectName = resolved.link?.name ?? resolved.name;
+    const body = kind === 'class' && subjectName ? { ...req.body, title: subjectName } : req.body;
+    const { entry, error } = cleanEntry(body);
+    if (error) {
+        fail(res, 400, error);
+        return null;
+    }
+    return { entry, resolved };
+};
+
+// Makes the new subject an entry asked for, now that the entry is valid. Returns the link to store
+// (undefined keeps the stored one) and the subject that was created, if any.
+const finishEntrySubject = async (schedule, resolved) => {
+    if (!resolved.name) return { link: resolved.link, created: null };
+    const created = await createPlannedSubject(ownerIdOf(schedule), { name: resolved.name, subjects: resolved.subjects });
+    return { link: created, created };
+};
+
+const linkId = (link) => (link ? link._id : null);
+
+// Adds a cleaned entry to a schedule the caller may edit and answers with the schedule (and the subject
+// when the request made one).
+const appendEntry = async (req, res, schedule, role, { entry, resolved }) => {
     if (schedule.entries.length >= MAX_ENTRIES) {
         return fail(res, 400, `A schedule can hold up to ${MAX_ENTRIES} entries.`);
     }
-    schedule.entries.push(entry);
+    const { link, created } = await finishEntrySubject(schedule, resolved);
+    schedule.entries.push({ ...entry, subject: linkId(link) });
     const announce = await recordChange(schedule, req.userId, `added ${describeEntry(entry)}`);
     await schedule.save();
     await announce();
-    res.status(201).json({ success: true, schedule: await serialize(schedule, role, req.userId) });
+    res.status(201).json({
+        success: true,
+        schedule: await serialize(schedule, role, req.userId),
+        ...(created && { subject: publicSubject(created) }),
+    });
 };
 
 export const addEntry = async (req, res) => {
@@ -421,9 +497,8 @@ export const addEntry = async (req, res) => {
         const loaded = await loadSchedule(req, res, 'edit');
         if (!loaded) return;
 
-        const { entry, error } = cleanEntry(req.body);
-        if (error) return fail(res, 400, error);
-        await appendEntry(req, res, loaded.schedule, loaded.role, entry);
+        const write = await readEntryWrite(req, res, loaded.schedule, { adding: true });
+        if (write) await appendEntry(req, res, loaded.schedule, loaded.role, write);
     } catch (error) {
         serverError(res, 'addEntry error', error);
     }
@@ -449,9 +524,9 @@ const mainScheduleOrNew = async (userId) => {
 // one request, creating the timetable first when they have none.
 export const addMainEntry = async (req, res) => {
     try {
-        const { entry, error } = cleanEntry(req.body);
-        if (error) return fail(res, 400, error);
-        await appendEntry(req, res, await mainScheduleOrNew(req.userId), 'owner', entry);
+        // Validate first so a bad entry doesn't create the timetable. The caller owns their main one.
+        const write = await readEntryWrite(req, res, { owner: req.userId }, { adding: true });
+        if (write) await appendEntry(req, res, await mainScheduleOrNew(req.userId), 'owner', write);
     } catch (error) {
         serverError(res, 'addMainEntry error', error);
     }
@@ -466,14 +541,22 @@ export const updateEntry = async (req, res) => {
         const existing = schedule.entries.id(req.params.entryId);
         if (!existing) return fail(res, 404, 'Entry not found');
 
-        const { entry, error } = cleanEntry(req.body);
-        if (error) return fail(res, 400, error);
+        const write = await readEntryWrite(req, res, schedule, { adding: false });
+        if (!write) return;
+        const { entry } = write;
+        const { link, created } = await finishEntrySubject(schedule, write.resolved);
         const renamed = existing.title !== entry.title ? ` (was "${existing.title}")` : '';
+        // `entry` carries no subject, so `set` keeps the stored link unless the owner changed it above.
         existing.set(entry);
+        if (link !== undefined) existing.subject = linkId(link);
         const announce = await recordChange(schedule, req.userId, `edited ${describeEntry(entry)}${renamed}`);
         await schedule.save();
         await announce();
-        res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
+        res.json({
+            success: true,
+            schedule: await serialize(schedule, role, req.userId),
+            ...(created && { subject: publicSubject(created) }),
+        });
     } catch (error) {
         serverError(res, 'updateEntry error', error);
     }
@@ -675,6 +758,7 @@ export const previewImport = async (req, res) => {
         if (!source) return;
 
         const owned = await ownedForImport(req.userId);
+        const mySubjects = await activeSubjects(req.userId).lean();
         res.json({
             success: true,
             source: {
@@ -687,15 +771,17 @@ export const previewImport = async (req, res) => {
             },
             entries: source.entries.map((e) => ({
                 ..._pick(e, ['_id', ...PLAIN_ENTRY_FIELDS]),
+                // The owner's subject id stays on the server.
+                subject: null,
                 hasImage: Boolean(e.image),
             })),
             // Only the schedules that count toward the caller's week can clash with it.
             existing: owned
                 .filter((s) => s.isMain || s.countInWorkload !== false)
-                .flatMap((s) => s.entries.map((entry) => ({
+                .flatMap((s) => withViewerSubjects(s, req.userId, mySubjects).map((entry) => ({
                     scheduleId: s._id,
                     scheduleTitle: s.title,
-                    entry: _pick(entry, ['_id', ...PLAIN_ENTRY_FIELDS]),
+                    entry: _pick(entry, ['_id', 'subject', ...PLAIN_ENTRY_FIELDS]),
                 }))),
             schedules: owned.map((s) => ({ _id: s._id, title: s.title, isMain: Boolean(s.isMain), entryCount: s.entries.length })),
         });
@@ -737,6 +823,11 @@ export const importSchedule = async (req, res) => {
             if (error) return fail(res, 400, `${original.title}: ${error}`);
             cleaned.push(entry);
         }
+        // The copy is the caller's own: its classes and exams belong to the caller's subjects of that name.
+        const mySubjects = await activeSubjects(req.userId).lean();
+        cleaned.forEach((entry) => {
+            entry.subject = entrySubjectFor(entry, mySubjects)?._id ?? null;
+        });
 
         // By default the entries go into the caller's main schedule. They can pick one of their
         // extras, or ask for a new extra (newSchedule). With no schedule at all, the copy becomes the main one.
@@ -808,9 +899,11 @@ export const getWeekOverview = async (req, res) => {
                 }
             }));
         }
+        const mySubjects = await activeSubjects(req.userId).lean();
         schedules.forEach((s) => {
             s.publicByDate = publicByDate;
             s.role = roleOf(s, req.userId);
+            s.entries = withViewerSubjects(s, req.userId, mySubjects);
         });
         // Owned first, so a class copied into two timetables keeps the copy the student can edit.
         schedules.sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role));
@@ -1072,6 +1165,8 @@ export const duplicateSchedule = async (req, res) => {
             return fail(res, 400, `You can have a main schedule and up to ${MAX_OWNED_SCHEDULES - 1} extra ones.`);
         }
         const source = schedule.toObject();
+        // A copy of someone else's timetable links to the copier's subjects by name, never the owner's.
+        source.entries = withViewerSubjects(source, req.userId, await activeSubjects(req.userId).lean());
         const title = String(req.body?.title || '').trim().slice(0, 80) || `Copy of ${source.title}`.slice(0, 80);
         const copy = await scheduleModel.create({
             isMain: ownedCount === 0,

@@ -6,7 +6,7 @@ import scheduleModel from '../models/scheduleModel.js';
 import fileModel from '../models/fileModel.js';
 import { isId, serverError } from '../utils/httpErrors.js';
 import { filesChoice, releasePlaceFiles, removePlaceFiles } from '../utils/placeFiles.js';
-import { courseKey, activeSubjects } from '../utils/subjectMatch.js';
+import { courseKey, activeSubjects, matchesLabel } from '../utils/subjectMatch.js';
 import { linkMatchingItems, relabelLinkedItems, unlinkItems } from '../utils/subjectCascade.js';
 
 const MAX_SUGGESTIONS = 15;
@@ -36,7 +36,7 @@ const countsFor = async (owner, subjectIds) => {
     return counts;
 };
 
-const publicSubject = (subject, counts) => ({
+export const publicSubject = (subject, counts) => ({
     _id: subject._id,
     name: subject.name,
     code: subject.code,
@@ -55,7 +55,7 @@ const sameNameTaken = async (owner, name, exceptId = null) => {
 };
 
 // Checks the fields that were sent. `partial` is true for a PATCH.
-const readFields = (body, { partial }) => {
+export const readFields = (body, { partial }) => {
     const fields = {};
     const limits = SUBJECT_LIMITS;
     if (!partial || body.name !== undefined) {
@@ -83,6 +83,35 @@ const nextColor = (subjects) => {
     return SUBJECT_COLORS.find((c) => !used.has(c)) || SUBJECT_COLORS[subjects.length % SUBJECT_COLORS.length];
 };
 
+const capMessage = () => `You can have up to ${SUBJECT_LIMITS.maxActive} subjects. Delete one you no longer need first.`;
+
+// Creates a subject for the owner (colour and order come next in turn) and links the tasks and
+// reviewers whose course text matches it. `subjects` are the owner's active ones.
+const insertSubject = async (owner, fields, subjects) => {
+    const subject = await subjectModel.create({
+        ...fields,
+        color: fields.color || nextColor(subjects),
+        owner,
+        order: subjects.length ? Math.max(...subjects.map((s) => s.order)) + 1 : 0,
+    });
+    return { subject, linked: await linkMatchingItems(subject) };
+};
+
+// A timetable entry asks for a subject by name. Checks it the way POST /api/subjects does and answers
+// without writing: { error }, { subject } (the active one with that name or code, reused), or { name,
+// subjects } for a new one that `createPlannedSubject` makes once the entry itself is valid.
+export const planNewSubject = async (owner, rawName) => {
+    const { fields, error } = readFields({ name: rawName }, { partial: false });
+    if (error) return { error };
+    const subjects = await activeSubjects(owner);
+    const existing = subjects.find((s) => matchesLabel(s, fields.name));
+    if (existing) return { subject: existing };
+    if (subjects.length >= SUBJECT_LIMITS.maxActive) return { error: capMessage() };
+    return { name: fields.name, subjects };
+};
+
+export const createPlannedSubject = async (owner, { name, subjects }) => (await insertSubject(owner, { name }, subjects)).subject;
+
 export const getSubjects = async (req, res) => {
     try {
         const archived = req.query.archived === '1';
@@ -103,19 +132,13 @@ export const createSubject = async (req, res) => {
 
         const subjects = await activeSubjects(req.userId);
         if (subjects.length >= SUBJECT_LIMITS.maxActive) {
-            return bad(res, `You can have up to ${SUBJECT_LIMITS.maxActive} subjects. Delete one you no longer need first.`);
+            return bad(res, capMessage());
         }
         if (await sameNameTaken(req.userId, fields.name)) {
             return bad(res, `You already have a subject called ${fields.name}.`, 409);
         }
 
-        const subject = await subjectModel.create({
-            ...fields,
-            color: fields.color || nextColor(subjects),
-            owner: req.userId,
-            order: subjects.length ? Math.max(...subjects.map((s) => s.order)) + 1 : 0,
-        });
-        const linked = await linkMatchingItems(subject);
+        const { subject, linked } = await insertSubject(req.userId, fields, subjects);
         res.status(201).json({
             success: true,
             subject: publicSubject(subject, { openTasks: linked.tasks, reviewers: linked.reviewers, files: 0 }),
@@ -133,7 +156,7 @@ export const getSuggestions = async (req, res) => {
             subjectModel.find({ owner: req.userId }).select('name code').lean(),
             taskModel.find({ owner: req.userId, subject: null }).select('course').lean(),
             reviewerModel.find({ owner: req.userId, subject: null }).select('course').lean(),
-            scheduleModel.find({ owner: req.userId }).select('entries.title entries.kind').lean(),
+            scheduleModel.find({ owner: req.userId }).select('entries.title entries.kind entries.subject').lean(),
         ]);
 
         const known = new Set(subjects.flatMap((s) => [courseKey(s.name), courseKey(s.code)]));
@@ -150,7 +173,7 @@ export const getSuggestions = async (req, res) => {
         tasks.forEach((t) => add(t.course, 'tasks'));
         reviewers.forEach((r) => add(r.course, 'reviewers'));
         schedules.forEach((s) => s.entries
-            .filter((e) => SUGGESTED_ENTRY_KINDS.includes(e.kind))
+            .filter((e) => !e.subject && SUGGESTED_ENTRY_KINDS.includes(e.kind))
             .forEach((e) => add(e.title, 'schedule')));
 
         const suggestions = [...found.values()]

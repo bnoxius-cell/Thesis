@@ -14,6 +14,9 @@ export const MAX_MEETING_URL = 300;
 
 export const entrySchema = new mongoose.Schema({
     title: { type: String, required: true, trim: true, maxlength: 80 },
+    // Classes and exams in a timetable the student owns: the subject it belongs to. Other members never
+    // see this id (the server swaps in their own subject, see utils/entrySubjects.js).
+    subject: { type: mongoose.Schema.Types.ObjectId, ref: 'subject', default: null },
     kind: { type: String, enum: ENTRY_KINDS, default: 'class' },
     // Exams only: hours the student wants to set aside to prepare. The dashboard turns them
     // into study work due on the exam date.
