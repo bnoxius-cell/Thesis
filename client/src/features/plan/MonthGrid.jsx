@@ -42,7 +42,7 @@ function DayCell({ day, onOpen }) {
 }
 
 // The month as a grid of days, Monday first (Figma 38:234): the date, a dot for each class and a
-// short label for each holiday, exam or task due. Phones draw the dots and a small bar instead of
+// short label for each holiday, exam, event, activity or task due. Phones draw the dots and a small bar instead of
 // the labels. Clicking a day opens that week. `direction` is which way the month was stepped, so the
 // new one slides in from that side.
 export default function MonthGrid({ rows, label, onOpen, direction }) {
