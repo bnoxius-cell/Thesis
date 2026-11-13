@@ -1,28 +1,35 @@
-/* The global "+ Add" (Figma 221:4053 button, 221:4428 menu, 221:4474 and 223:480 phone sheet): a pill in the
-   page header, a 320px popover from 720px, a bottom sheet of 60px rows below. Each row is a 36px accent-soft
+/* The global "+ Add" (Figma 221:4053 button, 221:4428 menu, 221:4474 and 223:480 phone sheet): a pill with
+   "+ Add" in the page header at every width, a 320px popover from 720px, a bottom sheet of 60px rows below. Each row is a 36px accent-soft
    tile, a title and a one-line hint. Motion is on transform and opacity only; the Animations switch and
    reduced motion are handled once in base.css. */
 @layer pages {
+  /* The frame's pill is 40px tall (padding 10 18 10 14, 6px gap); the ::after grows the hit area to 44px. */
   .global-add__btn {
+    position: relative;
     display: inline-flex;
     flex: none;
     align-items: center;
     justify-content: center;
-    gap: var(--space-2);
+    gap: 6px;
     box-sizing: border-box;
-    min-width: 44px;
-    height: 44px;
+    height: 40px;
     margin: 0;
-    padding: 0 var(--space-4);
+    padding: 0 18px 0 14px;
     border: 0;
     border-radius: var(--radius-pill);
     background: var(--accent);
     color: var(--on-accent);
     font: 600 var(--text-sm) / 20px var(--font-ui);
+    white-space: nowrap;
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
+  }
+  .global-add__btn::after {
+    content: "";
+    position: absolute;
+    inset: -2px 0;
   }
   .global-add__btn:active {
     transform: scale(0.97);
@@ -36,11 +43,10 @@
       box-shadow: var(--shadow-1);
     }
   }
-  /* On a phone it is a round icon button, the same 44px as the bell and the avatar next to it. */
-  @media (max-width: 719.98px) {
+  /* On a phone the tools sit tight (the bell has its own hit area), so the pill keeps the frame's 8px gap. */
+  @media (max-width: 720px) {
     .global-add__btn {
-      width: 44px;
-      padding: 0;
+      margin-right: var(--space-2);
     }
   }
 

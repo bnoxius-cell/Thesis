@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
-import { BookOpen, CalendarPlus, ClipboardCheck, Flag, ListChecks, Plus, Shapes, Sparkles } from "lucide-react";
+import { BookOpen, CalendarPlus, ClipboardCheck, FileText, Flag, ListChecks, Plus, Shapes } from "lucide-react";
 import { Button, Menu, MenuItem, Modal } from "@/shared/ui";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import { useGlobalAdd } from "./addContext";
@@ -14,7 +14,7 @@ const ICONS = {
   flag: Flag,
   shapes: Shapes,
   subjects: BookOpen,
-  reviewers: Sparkles,
+  reviewers: FileText,
 };
 
 // One row: a 36px accent-soft tile, the title and a one-line hint (Figma AddMenuRow 219:3284).
@@ -31,8 +31,8 @@ function RowContent({ option }) {
   );
 }
 
-// The "+ Add" in every page header (Figma 221:4053): a pill with a menu under it from 720px, a round
-// button that opens a bottom sheet below. Both list the page's own group first, then the rest, and a pick
+// The "+ Add" in every page header (Figma 221:4053): a pill with a menu under it from 720px, the same pill
+// opening a bottom sheet below. Both list the page's own group first, then the rest, and a pick
 // opens the one dialog host. The dialog opens a tick after the menu or sheet has closed, so the focus
 // return and the scroll lock have settled and two dialogs never stack.
 export default function GlobalAddButton() {
@@ -47,8 +47,9 @@ export default function GlobalAddButton() {
   if (phone) {
     return (
       <>
-        <button type="button" className="global-add__btn" aria-label="Add" aria-haspopup="dialog" onClick={() => setSheet(true)}>
-          <Plus size={20} strokeWidth={2.25} aria-hidden="true" />
+        <button type="button" className="global-add__btn" aria-haspopup="dialog" onClick={() => setSheet(true)}>
+          <Plus size={16} strokeWidth={2.25} aria-hidden="true" />
+          <span>Add</span>
         </button>
         {sheet && (
           <Modal
@@ -89,7 +90,7 @@ export default function GlobalAddButton() {
       menuClassName="global-add__menu"
       trigger={(props) => (
         <button type="button" className="global-add__btn" {...props}>
-          <Plus size={18} strokeWidth={2.25} aria-hidden="true" />
+          <Plus size={16} strokeWidth={2.25} aria-hidden="true" />
           <span>Add</span>
         </button>
       )}

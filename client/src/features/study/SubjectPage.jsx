@@ -1,17 +1,16 @@
 import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { toast } from "react-toastify";
 import { FileQuestion } from "lucide-react";
 import { Button, Chip, EmptyState, Skeleton, Tabs } from "@/shared/ui";
 import Page from "@/app/shell/Page";
+import { useGlobalAdd } from "@/app/shell/add/addContext";
+import useAddHere from "@/app/shell/add/useAddHere";
 import UploadDialog from "@/features/files/UploadDialog";
-import TaskFormDialog from "@/features/tasks/TaskFormDialog";
 import useTaskDone from "@/features/tasks/useTaskDone";
 import useNow from "@/shared/hooks/useNow";
 import useSelectedTabInView from "@/shared/hooks/useSelectedTabInView";
 import { subjectMeta } from "@/utils/subjectColors";
 import ClassSchedule from "./ClassSchedule";
-import NewReviewerDialog from "./NewReviewerDialog";
 import NextUpList from "./NextUpList";
 import PickUpCard from "./PickUpCard";
 import SubjectCounts from "./SubjectCounts";
@@ -59,15 +58,24 @@ function SubjectView({ subjectId }) {
   const navigate = useNavigate();
   const now = useNow();
   const [dialog, setDialog] = useState(null); // edit or delete: { type, subject }
-  const [adding, setAdding] = useState(null); // "task" | "reviewer"
   const data = useSubject(subjectId);
-  const { reviewers: allReviewers, limits, refresh: refreshReviewers } = useReviewers();
+  const { reviewers: allReviewers, refresh: refreshReviewers } = useReviewers();
   const { subject, status } = data;
   const files = useSubjectFiles(subjectId, Boolean(subject?.archivedAt));
   const setDone = useTaskDone(data.setTasks);
   const tab = TAB_VALUES.includes(params.get("tab")) ? params.get("tab") : "overview";
   const reviewers = allReviewers && allReviewers.filter((r) => r.subject === subjectId);
   useSelectedTabInView(`subject-tab-${tab}`, status === "ready");
+  const { open: openAdd } = useGlobalAdd();
+  // The header Add starts a task or a reviewer on this subject; each kind refreshes its own part of the page.
+  useAddHere({
+    subject,
+    onAdded: (kind, result) => {
+      if (kind === "task") data.setTasks((list) => [...list, result]);
+      else if (kind === "reviewer") refreshReviewers();
+      else if (kind !== "subject") data.refresh();
+    },
+  });
 
   if (status !== "ready") {
     return (
@@ -114,17 +122,6 @@ function SubjectView({ subjectId }) {
     library.status === "ready"
       ? library.files.filter((file) => file.location.id === subjectId && !library.leavingIds.includes(file.id)).length
       : subject.counts.files;
-  const taskAdded = (task) => {
-    data.setTasks((list) => [...list, task]);
-    toast.success("Task added.");
-    setAdding(null);
-  };
-  const reviewerAdded = () => {
-    toast.success("Making your reviewer. It will be ready here in a moment.");
-    refreshReviewers();
-    setAdding(null);
-  };
-
   return (
     <Page
       title={subject.name}
@@ -176,31 +173,13 @@ function SubjectView({ subjectId }) {
               doneTasks={data.doneTasks}
               now={now}
               onToggle={setDone}
-              onNew={() => setAdding("task")}
+              onNew={() => openAdd("task")}
             />
           )}
-          {tab === "reviewers" && <SubjectReviewers reviewers={reviewers} onNew={() => setAdding("reviewer")} />}
+          {tab === "reviewers" && <SubjectReviewers reviewers={reviewers} onNew={() => openAdd("reviewer")} />}
           {tab === "files" && <SubjectFiles subject={subject} library={files.library} block={files.block} uploadStatus={files.dialog.status} openUpload={files.openUpload} />}
         </div>
       </div>
-      {adding === "task" && (
-        <TaskFormDialog
-          subjects={[subject]}
-          defaultSubject={subject._id}
-          onClose={() => setAdding(null)}
-          onSaved={taskAdded}
-        />
-      )}
-      {adding === "reviewer" && (
-        <NewReviewerDialog
-          subjects={[subject]}
-          defaultSubject={subject._id}
-          allowNewSubject={false}
-          limits={limits}
-          onClose={() => setAdding(null)}
-          onCreated={reviewerAdded}
-        />
-      )}
       <SubjectDialogs dialog={dialog} onClose={() => setDialog(null)} onChanged={changed} />
       {files.dialog.isOpen && library.status === "ready" && (
         <UploadDialog
