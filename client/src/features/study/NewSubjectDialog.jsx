@@ -24,7 +24,8 @@ export default function NewSubjectDialog({ subject, onClose, onSaved }) {
     const missing = subjectNameError(form);
     if (missing) return setNameError(missing);
     if (editing && !changed) return onClose();
-    if (await save(form)) onSaved(editing);
+    const saved = await save(form);
+    if (saved) onSaved(editing, saved);
   };
 
   return (

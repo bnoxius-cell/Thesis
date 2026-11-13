@@ -1,0 +1,148 @@
+/* The global "+ Add" (Figma 221:4053 button, 221:4428 menu, 221:4474 and 223:480 phone sheet): a pill with
+   "+ Add" in the page header at every width, a 320px popover from 720px, a bottom sheet of 60px rows below. Each row is a 36px accent-soft
+   tile, a title and a one-line hint. Motion is on transform and opacity only; the Animations switch and
+   reduced motion are handled once in base.css. */
+@layer pages {
+  /* The frame's pill is 40px tall (padding 10 18 10 14, 6px gap); the ::after grows the hit area to 44px. */
+  .global-add__btn {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
+    height: 40px;
+    margin: 0;
+    padding: 0 18px 0 14px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: var(--on-accent);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    white-space: nowrap;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
+  }
+  .global-add__btn::after {
+    content: "";
+    position: absolute;
+    inset: -2px 0;
+  }
+  .global-add__btn:active {
+    transform: scale(0.97);
+  }
+  .global-add__btn:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .global-add__btn:hover {
+      box-shadow: var(--shadow-1);
+    }
+  }
+  /* On a phone the tools sit tight (the bell has its own hit area), so the pill keeps the frame's 8px gap. */
+  @media (max-width: 720px) {
+    .global-add__btn {
+      margin-right: var(--space-2);
+    }
+  }
+
+  .ui-menu.global-add__menu {
+    width: 320px;
+    max-height: none;
+    padding: var(--space-2);
+    animation: add-pop-in 140ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  /* Opened from the keyboard, it appears without the entrance. */
+  .ui-menu.global-add__menu[data-opened-by="keyboard"] {
+    animation: none;
+  }
+  .global-add__group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .global-add__group + .global-add__group {
+    margin-top: var(--space-1);
+    padding-top: var(--space-1);
+    border-top: 1px solid var(--border);
+  }
+  .global-add__eyebrow {
+    margin: 0;
+    padding: 6px var(--space-3);
+    color: var(--text-muted);
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .ui-menu .global-add__item {
+    min-height: 56px;
+    padding-block: var(--space-2);
+  }
+  /* MenuItem wraps its children in a block label; lay it out as a row so the tile sits beside the text. */
+  .global-add__item .ui-menu__label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .global-add__tile {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .global-add__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    text-align: left;
+  }
+  .global-add__title {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+  }
+  .global-add__hint {
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+
+  .global-add__row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 60px;
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color var(--dur-1) var(--ease-out), transform var(--dur-1) var(--ease-out);
+  }
+  .global-add__row:active {
+    background: var(--surface-2);
+    transform: scale(0.98);
+  }
+  .global-add__row:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .global-add__sheet .global-add__eyebrow {
+    padding-top: var(--space-3);
+  }
+}

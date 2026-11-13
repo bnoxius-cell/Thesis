@@ -13,6 +13,7 @@ import {
   clashNote,
   emptyEntryForm,
   entryErrors,
+  entryPayload,
   entryStarted,
   linkError,
   titleAfterSubject,
@@ -33,7 +34,7 @@ const NO_SUBJECT = "";
 // list the page loaded: picking one fills the Title with its name (the timetable matches by title). `timetable`
 // is the picked timetable the student can edit, or null for My week (the main timetable, created when missing).
 // Nothing is saved until the button; closing asks first when something was typed. A failed save keeps the
-// dialog open with the message. `onSaved` gets the timetable after the change and the kind saved. The clash note only warns.
+// dialog open with the message. `onSaved` gets the timetable after the change, the kind saved and the entry's fields (its date or days). The clash note only warns.
 export default function EntryFormDialog({ kind, subjects, timetable = null, onClose, onSaved }) {
   const [start] = useState(() => emptyEntryForm(kind));
   const [form, setForm] = useState(start);
@@ -76,7 +77,7 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, onCl
     const found = entryErrors(form);
     if (Object.keys(found).length > 0) return setErrors(found);
     const schedule = await save(form, timetable);
-    if (schedule) onSaved(schedule, form.kind);
+    if (schedule) onSaved(schedule, form.kind, entryPayload(form));
   };
 
   let subtitle = "Adds to your main timetable.";

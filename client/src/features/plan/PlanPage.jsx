@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { Button, Skeleton } from "@/shared/ui";
 import Page from "@/app/shell/Page";
+import { useGlobalAdd } from "@/app/shell/add/addContext";
+import useAddHere from "@/app/shell/add/useAddHere";
 import { useAuth } from "@/pages/authentication/AuthContext";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import useNow from "@/shared/hooks/useNow";
@@ -10,10 +12,8 @@ import { profileFromUser } from "@/features/workload/useWorkload";
 import useTaskDone from "@/features/tasks/useTaskDone";
 import useItemDetail from "@/features/details/useItemDetail";
 import useTaskEdit from "@/features/tasks/useTaskEdit";
-import AddToPlanMenu from "./AddToPlanMenu";
 import MonthGrid from "./MonthGrid";
 import PhoneWeek from "./PhoneWeek";
-import PlanAdd from "./PlanAdd";
 import PlanEmpty from "./PlanEmpty";
 import PlanControls from "./PlanControls";
 import WeekGrid from "./WeekGrid";
@@ -57,8 +57,6 @@ export default function PlanPage() {
   const month = monthOfWeek(params.weekStart);
   const monthData = useMonthData(month, view === "month");
   const setDone = useTaskDone(data.setTasks);
-  // What the "+" menu opened: "task", a kind of entry, or null.
-  const [adding, setAdding] = useState(null);
   const subjects = useMemo(() => [...data.subjectsById.values()], [data.subjectsById]);
   const edit = useTaskEdit({ subjects, setTasks: data.setTasks });
   const detail = useItemDetail({
@@ -132,13 +130,10 @@ export default function PlanPage() {
     params.goToday();
   };
 
-  // The "+" adds to My week: a task, or a class, exam, event or activity on the main timetable. With a timetable
-  // picked it adds entries only (tasks aren't part of a timetable), and only when the student may edit it:
-  // a viewer sees no "+".
+  // The header Add puts a task in My week, and a class, exam, event or activity on the picked timetable when
+  // the student may edit it, else on the main one (a viewer's timetable is never the target).
   const picked = view === "week" && params.timetable ? data.schedule : null;
   const editable = picked && ["owner", "editor"].includes(picked.role) ? picked : null;
-  const showAdd = ready && (!(view === "week" && params.timetable) || editable);
-  const addMenu = showAdd && <AddToPlanMenu onPick={setAdding} withTask={!editable} />;
   // R10: every open view agrees. The week and the month read again, and the switcher too when the first
   // class just created "My timetable".
   const entryAdded = () => {
@@ -146,11 +141,17 @@ export default function PlanPage() {
     monthData.reload();
     if (!editable) timetables.reload();
   };
+  const { open: openAdd } = useGlobalAdd();
+  useAddHere({
+    subjects,
+    timetable: editable,
+    onAdded: (kind, task) => (kind === "task" ? data.setTasks((prev) => [...prev, task]) : entryAdded()),
+  });
   const emptyWeek = view === "week" && !params.timetable && nothingPlanned
     && timetables.status === "ready" && timetables.timetables.length === 0;
 
   return (
-    <Page title="Plan" subtitle={now.toLocaleDateString("en-US", DATE_FORMAT)} action={addMenu}>
+    <Page title="Plan" subtitle={now.toLocaleDateString("en-US", DATE_FORMAT)}>
       <PlanControls
         view={view}
         onView={params.setView}
@@ -227,18 +228,10 @@ export default function PlanPage() {
             />
           )}
           {data.holidayError && <p className="plan-quiet">{data.holidayError}</p>}
-          {emptyWeek && <PlanEmpty onAddClass={() => setAdding("class")} onAddTask={() => setAdding("task")} />}
+          {emptyWeek && <PlanEmpty onAddClass={() => openAdd("class")} onAddTask={() => openAdd("task")} />}
           {nothingPlanned && !emptyWeek && <p className="plan-quiet">Nothing is planned for this week yet.</p>}
         </>
       )}
-      <PlanAdd
-        adding={adding}
-        subjects={subjects}
-        timetable={editable}
-        onClose={() => setAdding(null)}
-        onTaskAdded={(task) => data.setTasks((prev) => [...prev, task])}
-        onEntryAdded={entryAdded}
-      />
       {detail.dialog}
       {edit.dialog}
     </Page>

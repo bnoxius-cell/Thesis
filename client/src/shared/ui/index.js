@@ -19,3 +19,4 @@ export { default as Segment } from "./Segment";
 export { default as SelectButton } from "./SelectButton";
 export { default as Skeleton } from "./Skeleton";
 export { default as Tabs } from "./Tabs";
+export { showActionToast } from "./toast";
