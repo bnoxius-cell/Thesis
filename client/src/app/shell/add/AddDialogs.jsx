@@ -1,0 +1,52 @@
+import EntryFormDialog from "@/features/plan/EntryFormDialog";
+import NewReviewerDialog from "@/features/study/NewReviewerDialog";
+import NewSubjectDialog from "@/features/study/NewSubjectDialog";
+import TaskFormDialog from "@/features/tasks/TaskFormDialog";
+import useAddInputs from "./useAddInputs";
+
+// The one dialog host: the form for `request.kind`, using what the page that opened it holds (`request.page`,
+// see useAddHere). `onSaved(kind, result)` runs after a save, `onSubjectMade()` when a reviewer's dialog made
+// a new subject with it, and `onClose` when the student leaves without saving.
+export default function AddDialogs({ request, onClose, onSaved, onSubjectMade }) {
+  const { kind, page } = request;
+  const inputs = useAddInputs(kind, page);
+  if (!inputs) return null;
+  const { subjects, limits } = inputs;
+
+  if (kind === "task") {
+    return (
+      <TaskFormDialog
+        subjects={subjects}
+        defaultSubject={page?.subject?._id}
+        onClose={onClose}
+        onSaved={(task) => onSaved("task", task)}
+      />
+    );
+  }
+  if (kind === "subject") {
+    return <NewSubjectDialog onClose={onClose} onSaved={(_editing, subject) => onSaved("subject", subject)} />;
+  }
+  if (kind === "reviewer") {
+    return (
+      <NewReviewerDialog
+        subjects={subjects}
+        defaultSubject={page?.subject?._id}
+        allowNewSubject={!page?.subject}
+        limits={limits}
+        onClose={onClose}
+        onCreated={() => onSaved("reviewer")}
+        onSubjectCreated={onSubjectMade}
+      />
+    );
+  }
+  // The Type segment can switch kinds inside the dialog, so the kind that was saved comes back from it.
+  return (
+    <EntryFormDialog
+      kind={kind}
+      subjects={subjects}
+      timetable={page?.timetable ?? null}
+      onClose={onClose}
+      onSaved={(schedule, saved, entry) => onSaved(saved, { schedule, entry })}
+    />
+  );
+}

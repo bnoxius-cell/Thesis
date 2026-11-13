@@ -28,6 +28,7 @@ export default function Menu({
   menuClassName = "",
 }) {
   const [open, setOpen] = useState(false);
+  const [keyboard, setKeyboard] = useState(false); // opened with a key, so a menu can skip its entrance
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
   const menuId = useId();
@@ -108,10 +109,16 @@ export default function Menu({
 
   const triggerProps = {
     ref: triggerRef,
-    onClick: () => (open ? close() : setOpen(true)),
+    // A click from Enter or Space has detail 0; a pointer click has 1 or more.
+    onClick: (e) => {
+      setKeyboard(e.detail === 0);
+      if (open) close();
+      else setOpen(true);
+    },
     onKeyDown: (e) => {
       if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
       e.preventDefault();
+      setKeyboard(true);
       setOpen(true);
     },
     "aria-haspopup": role,
@@ -125,7 +132,7 @@ export default function Menu({
       {open &&
         createPortal(
           <MenuContext.Provider value={{ role: role === "listbox" ? "option" : "menuitem", close }}>
-            <div ref={menuRef} id={menuId} role={role} aria-label={label} className={`ui-menu ${menuClassName}`.trim()} onKeyDown={onMenuKeyDown}>
+            <div ref={menuRef} id={menuId} role={role} aria-label={label} className={`ui-menu ${menuClassName}`.trim()} data-opened-by={keyboard ? "keyboard" : undefined} onKeyDown={onMenuKeyDown}>
               {children}
             </div>
           </MenuContext.Provider>,

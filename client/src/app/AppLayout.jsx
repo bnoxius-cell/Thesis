@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import PageArrival from "./PageArrival";
 import useFocusMain from "./useFocusMain";
+import AddProvider from "./shell/add/AddProvider";
 import BottomBar from "./shell/BottomBar";
 import FocusViewProvider from "./shell/FocusViewProvider";
 import Sidebar from "./shell/Sidebar";
@@ -18,15 +19,17 @@ export default function AppLayout() {
   return (
     <UnreadProvider>
       <FocusViewProvider>
-        <div className="shell-app" data-sidebar={collapsed ? "rail" : undefined}>
-          <a className="skip-link" href="#main">Skip to content</a>
-          <Sidebar collapsed={collapsed} onToggle={toggleCollapsed} />
-          <main id="main" ref={main} tabIndex={-1} className="shell-main shell-main--app">
-            <PageArrival />
-            <SiteFooter />
-          </main>
-          <BottomBar />
-        </div>
+        <AddProvider>
+          <div className="shell-app" data-sidebar={collapsed ? "rail" : undefined}>
+            <a className="skip-link" href="#main">Skip to content</a>
+            <Sidebar collapsed={collapsed} onToggle={toggleCollapsed} />
+            <main id="main" ref={main} tabIndex={-1} className="shell-main shell-main--app">
+              <PageArrival />
+              <SiteFooter />
+            </main>
+            <BottomBar />
+          </div>
+        </AddProvider>
       </FocusViewProvider>
     </UnreadProvider>
   );
