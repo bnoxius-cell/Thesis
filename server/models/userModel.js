@@ -30,6 +30,8 @@ const userSchema = new mongoose.Schema({
     // Which version of the Terms and Privacy Policy this user agreed to, and when.
     termsVersion: { type: String, default: '' },
     termsAcceptedAt: { type: Date, default: null },
+    // The newest "What's new" entry id this user has seen (ids are release dates, see releaseNotes.js).
+    seenNotesVersion: { type: String, default: '' },
     // Bytes this student's files hold in storage (fileBudget reserves and releases it atomically).
     storageUsedBytes: { type: Number, default: 0, min: 0 },
     // What this user wants to hear about. Everything is on by default. groupOverrides

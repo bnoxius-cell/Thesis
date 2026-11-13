@@ -4,6 +4,7 @@ import Friend from '../models/Friend.js';
 import groupModel from '../models/groupMode.js';
 import { LEGAL_VERSION } from '../utils/legal.js';
 import { isValidPicture } from '../utils/images.js';
+import { serverError } from '../utils/httpErrors.js';
 
 const MAX_BIO_LENGTH = 200;
 const MAX_NAME_LENGTH = 60;
@@ -46,6 +47,7 @@ export const getUserData = async (req, res) => {
                 profileTag: user.profileTag,
                 termsVersion: user.termsVersion,
                 currentLegalVersion: LEGAL_VERSION,
+                seenNotesVersion: user.seenNotesVersion,
             }
         });
     } catch (error) {
@@ -214,5 +216,28 @@ export const acceptTerms = async (req, res) => {
         res.json({ success: true, termsVersion: user.termsVersion });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const NOTES_VERSION = /^\d{4}-\d{2}-\d{2}(-\d{1,2})?$/;
+
+// POST /api/user/notes-seen
+// Records the newest "What's new" entry the student has seen. The server can't see the notes file,
+// so it only checks the id's shape.
+export const markNotesSeen = async (req, res) => {
+    const { version } = req.body;
+    if (typeof version !== 'string' || !NOTES_VERSION.test(version)) {
+        return res.status(400).json({ success: false, message: 'That update id is not valid.' });
+    }
+    try {
+        const user = await userModel.findByIdAndUpdate(
+            req.userId,
+            { seenNotesVersion: version },
+            { returnDocument: 'after' }
+        );
+        if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+        res.json({ success: true, seenNotesVersion: user.seenNotesVersion });
+    } catch (error) {
+        serverError(res, 'Saving the seen update failed', error);
     }
 };
