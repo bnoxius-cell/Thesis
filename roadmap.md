@@ -1,4 +1,4 @@
-> ORDER CHANGE 2026-11-13 (owner): plan 33 first, then plan 34 (C5 onward), then plan 35. See handout.md.
+> ORDER CHANGE 2026-11-14 (owner): plan 33 flashcards (FC1..FC6) next, THEN plan 34 (C5 onward), then plan 35. Question types are released. See handout.md.
 
 # Roadmap
 
