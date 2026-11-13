@@ -29,6 +29,7 @@ export default function PracticeQuestion({ run }) {
   const typed = kind === "id" || kind === "fill" || kind === "enum";
   const group = useRef(null);
   const nextButton = useRef(null);
+  const usingKeyboard = useRef(false);
   const chosen = result ? result.choice : draft;
   const tabStop = Math.max(chosen ?? 0, 0);
 
@@ -36,7 +37,8 @@ export default function PracticeQuestion({ run }) {
     group.current?.querySelector('[tabindex="0"]')?.focus({ preventScroll: true });
   }, [question._id]);
   useEffect(() => {
-    if (result) nextButton.current?.focus({ preventScroll: true });
+    // Only after the keyboard: a mouse or touch check needs no focus move, and would draw a second ring.
+    if (result && usingKeyboard.current) nextButton.current?.focus({ preventScroll: true });
   }, [result]);
 
   const onKeyDown = (event) => {
@@ -56,7 +58,11 @@ export default function PracticeQuestion({ run }) {
   };
 
   return (
-    <div className="practice-column">
+    <div
+      className="practice-column"
+      onKeyDownCapture={() => { usingKeyboard.current = true; }}
+      onPointerDownCapture={() => { usingKeyboard.current = false; }}
+    >
       <div className="practice-progress">
         <p className="practice-progress__text">Question {index + 1} of {total}</p>
         <ProgressBar

@@ -174,11 +174,15 @@
     gap: var(--space-3);
   }
   .practice-boxes__number {
+    display: grid;
     flex: none;
-    width: 24px;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-2);
     font: 600 var(--text-sm) / 20px var(--font-ui);
-    color: var(--text-muted);
-    text-align: right;
+    color: var(--text-secondary);
   }
   .practice-boxes__row .practice-input {
     flex: 1;

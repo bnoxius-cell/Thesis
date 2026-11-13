@@ -74,6 +74,10 @@
   .ui-menu__item[aria-checked="true"] {
     font-weight: 600;
   }
+  /* The chosen option in a select's listbox is tinted as well as checked. */
+  .ui-menu__item[aria-selected="true"] {
+    background: var(--accent-soft);
+  }
   .ui-menu__item--danger {
     color: var(--danger);
   }
