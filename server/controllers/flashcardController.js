@@ -195,12 +195,17 @@ export const createDeckFromReviewer = async (req, res) => {
         } catch (error) {
             // Two requests for the same reviewer at once: the other one made the deck.
             if (error.code !== 11000) throw error;
-            return res.json({ success: true, deck: await publicDeckWithCounts(await findExisting(), now), existing: true });
+            const winner = await findExisting();
+            // The other request rolled its deck back after we lost the race.
+            if (!winner) return bad(res, 'Something went wrong making the deck. Try again.', 409);
+            return res.json({ success: true, deck: await publicDeckWithCounts(winner, now), existing: true });
         }
 
         try {
             await flashcardModel.insertMany(cards.map((card) => ({ ...card, owner: req.userId, deck: deck._id })));
         } catch (error) {
+            // Drop the deck and any cards a partial insert left behind, so none count toward the cap.
+            await flashcardModel.deleteMany({ deck: deck._id, owner: req.userId });
             await flashcardDeckModel.deleteOne({ _id: deck._id });
             throw error;
         }
