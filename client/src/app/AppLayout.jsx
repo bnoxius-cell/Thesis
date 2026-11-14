@@ -10,6 +10,7 @@ import Sidebar from "./shell/Sidebar";
 import SiteFooter from "./shell/SiteFooter";
 import UnreadProvider from "./shell/UnreadProvider";
 import useSidebarCollapsed from "./shell/useSidebarCollapsed";
+import WelcomeTour from "@/features/guide/WelcomeTour";
 import WhatsNewWindow from "@/features/whats-new/WhatsNewWindow";
 import "./layout.css";
 
@@ -37,6 +38,7 @@ export default function AppLayout() {
               <SiteFooter />
             </main>
             <BottomBar />
+            <WelcomeTour />
             <WhatsNewWindow />
           </div>
         </AddProvider>

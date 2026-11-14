@@ -1,0 +1,165 @@
+/* Welcome tour (Figma 315:48, 315:220, 315:402, phone 316:312, 316:390): the Modal card and sheet,
+   re-laid out as a centred column with the buttons pinned at the bottom. Tokens only. Motion follows
+   .claude/docs/motion.md: a step change is a 120 ms fade out and a 200 ms fade in with an 8px slide
+   (from the right going on, from the left going back), and the dots change colour only. The global
+   reduced-motion rule in base.css makes both instant. */
+@layer pages {
+  .welcome-tour {
+    position: relative;
+  }
+
+  /* The X is 36px at 16px from the corner on a laptop; a phone sheet has none (drag or Skip). */
+  .welcome-tour__close {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+  }
+
+  .welcome-tour .ui-modal__body {
+    align-items: center;
+    gap: var(--space-5);
+    padding: var(--space-6) var(--space-6) var(--space-5);
+    text-align: center;
+  }
+
+  /* Every step shares one grid cell, so the tallest sets the height for all of them. */
+  .welcome-tour__steps {
+    display: grid;
+    width: 100%;
+  }
+  .tour-step {
+    display: flex;
+    grid-area: 1 / 1;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-5);
+    min-width: 0;
+    visibility: hidden;
+    opacity: 0;
+    /* Leaving: fade out first, then hide and park the step on its side for next time. */
+    transition:
+      opacity var(--dur-1) var(--ease-out),
+      visibility 0s linear var(--dur-1),
+      transform 0s linear var(--dur-1);
+  }
+  .tour-step[data-pos="before"] {
+    transform: translateX(-8px);
+  }
+  .tour-step[data-pos="after"] {
+    transform: translateX(8px);
+  }
+  .tour-step[data-pos="current"] {
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+    /* Arriving: wait for the outgoing step to mostly clear, then fade and slide in. */
+    transition:
+      opacity 200ms var(--ease-out) 60ms,
+      transform 200ms var(--ease-out) 60ms;
+  }
+
+  .tour-step__art {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 72px;
+    height: 72px;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .tour-step__logo {
+    width: 36px;
+    height: 36px;
+  }
+  .tour-step__copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .tour-step__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+    text-wrap: balance;
+  }
+  .tour-step__text {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    text-wrap: pretty;
+  }
+  .tour-step__where {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+
+  .step-dots {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+  }
+  .step-dots__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--border-input);
+    transition: background-color var(--dur-2) var(--ease-out);
+  }
+  .step-dots__dot[data-state="done"],
+  .step-dots__dot[data-state="current"] {
+    background: var(--accent);
+  }
+  .step-dots__dot[data-state="current"] {
+    width: 24px;
+  }
+
+  /* Skip on the left, Back and the main button on the right, in one row on every screen. */
+  .welcome-tour .ui-modal__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    padding: 0 var(--space-6) var(--space-6);
+  }
+  .welcome-tour__skip {
+    margin-right: auto;
+  }
+  /* Always laid out so the window never changes height; only the last step shows it. */
+  .welcome-tour__note {
+    flex: 0 0 100%;
+    margin: var(--space-4) 0 0;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    text-align: center;
+  }
+  .welcome-tour__note[data-shown="false"] {
+    visibility: hidden;
+  }
+
+  @media (max-width: 719.98px) {
+    .welcome-tour__close {
+      display: none;
+    }
+    .welcome-tour .ui-modal__body {
+      gap: 20px;
+      padding: var(--space-3) 20px var(--space-2);
+    }
+    .tour-step {
+      gap: 20px;
+    }
+    .welcome-tour .ui-modal__actions {
+      padding: var(--space-2) 20px var(--space-5);
+    }
+  }
+}
