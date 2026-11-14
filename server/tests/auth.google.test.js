@@ -49,6 +49,50 @@ describe('POST /api/auth/google', () => {
         expect(res.body.message).toMatch(/google authentication failed/i);
     });
 
+    test('linking Google to an unverified email account removes the earlier password', async () => {
+        await userModel.create({
+            name: 'Someone Else',
+            email: 'test.student@student.fatima.edu.ph',
+            password: await bcrypt.hash('attacker-pass-1', 10),
+            passwordSet: true,
+            isAccountVerified: false,
+            verifyEmailOtp: '123456',
+            verifyEmailOtpExpireAt: Date.now() + 60000,
+        });
+        verifyGoogleIdToken.mockResolvedValue(mockGooglePayload());
+
+        const res = await request(app).post('/api/auth/google').send({ token: 'valid-token' });
+        expect(res.body.success).toBe(true);
+
+        const user = await userModel.findOne({ email: 'test.student@student.fatima.edu.ph' });
+        expect(user.isAccountVerified).toBe(true);
+        expect(user.passwordSet).toBe(false);
+        expect(user.verifyEmailOtp).toBe('');
+        expect(await bcrypt.compare('attacker-pass-1', user.password)).toBe(false);
+
+        const login = await request(app)
+            .post('/api/auth/login')
+            .send({ email: 'test.student@student.fatima.edu.ph', password: 'attacker-pass-1' });
+        expect(login.body.success).toBe(false);
+    });
+
+    test('linking Google to a verified account keeps its password', async () => {
+        await userModel.create({
+            name: 'Real Owner',
+            email: 'test.student@student.fatima.edu.ph',
+            password: await bcrypt.hash('my-own-pass-1', 10),
+            passwordSet: true,
+            isAccountVerified: true,
+        });
+        verifyGoogleIdToken.mockResolvedValue(mockGooglePayload());
+
+        await request(app).post('/api/auth/google').send({ token: 'valid-token' });
+
+        const user = await userModel.findOne({ email: 'test.student@student.fatima.edu.ph' });
+        expect(user.passwordSet).toBe(true);
+        expect(await bcrypt.compare('my-own-pass-1', user.password)).toBe(true);
+    });
+
     test('rejects an unverified Google email', async () => {
         verifyGoogleIdToken.mockResolvedValue(mockGooglePayload({ email_verified: false }));
 
