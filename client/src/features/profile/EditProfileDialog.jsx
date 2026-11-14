@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { Button, Field, Modal, SelectButton } from "@/shared/ui";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
@@ -39,6 +39,7 @@ export default function EditProfileDialog({ onClose }) {
   const [programError, setProgramError] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const changePhotoRef = useRef(null); // first stop for focus: the file input behind it is hidden
 
   const set = (key) => (value) => setForm((prev) => ({ ...prev, [key]: value }));
   const text = (key, clear) => (event) => {
@@ -104,6 +105,7 @@ export default function EditProfileDialog({ onClose }) {
       subtitle="This is how other students see you."
       sheet
       busy={saving}
+      initialFocusRef={changePhotoRef}
       onClose={onClose}
       confirmClose={() => dirty}
       actions={(close) => (
@@ -113,7 +115,7 @@ export default function EditProfileDialog({ onClose }) {
         </>
       )}
     >
-      <ProfilePictureField name={form.name || user.name} value={form.avatar} onChange={set("avatar")} disabled={saving} />
+      <ProfilePictureField name={form.name || user.name} value={form.avatar} onChange={set("avatar")} disabled={saving} focusRef={changePhotoRef} />
       <Field
         label="Name"
         value={form.name}

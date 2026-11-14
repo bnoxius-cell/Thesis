@@ -69,7 +69,7 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    width: 36px;
+    width: 22px; /* the frames' pill: 22 wide, 36 tall, inside the circle's corner */
     height: 36px;
     border: 1px solid var(--border);
     border-radius: var(--radius-pill);
@@ -155,7 +155,21 @@
   .profile-stats__label {
     color: var(--text-secondary);
     font: 400 var(--text-sm) / 20px var(--font-ui);
-    overflow-wrap: anywhere;
+  }
+  /* Narrow phones: a 2x2 grid so "Reviewers" and "Flashcards" stay whole. */
+  @media (max-width: 359px) {
+    .profile-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .profile-stats__item + .profile-stats__item {
+      border-left: 0;
+    }
+    .profile-stats__item:nth-child(even) {
+      border-left: 1px solid var(--border);
+    }
+    .profile-stats__item:nth-child(n + 3) {
+      border-top: 1px solid var(--border);
+    }
   }
 
   .profile-hero__private {
@@ -301,6 +315,10 @@
   }
 
   /* ---- Edit profile (the shell, title and actions come from Modal) ---- */
+  /* The phone sheet keeps its close X (Figma 298:18892); sheets with actions hide it by default. */
+  .profile-dialog.ui-modal--sheet:has(> .ui-modal__actions) .ui-modal__head .ui-icon-btn {
+    display: inline-flex;
+  }
   .profile-photo {
     display: flex;
     align-items: center;
