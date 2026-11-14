@@ -41,11 +41,16 @@ export default function useGuide() {
   }, [userId, change]);
   const hideSetup = useCallback(() => change("setup-hide", { setupHidden: true }), [change]);
   const showSetup = useCallback(() => change("setup-show", { setupHidden: false }), [change]);
+  // The server records "all done" itself when it first sees all four steps, so this only updates the
+  // local copy (the card is dismissed or Home is left), with no save.
+  const markSetupDone = useCallback(() => {
+    setUserData((prev) => (prev?.guide ? { ...prev, guide: { ...prev.guide, setupDone: true } } : prev));
+  }, [setUserData]);
 
   const guide = useMemo(
     () => serverGuide && { ...serverGuide, welcomeDone: serverGuide.welcomeDone || readWelcomeCache(userId) },
     [serverGuide, userId],
   );
 
-  return { guide, ready: Boolean(guide), markWelcomeDone, hideSetup, showSetup };
+  return { guide, ready: Boolean(guide), markWelcomeDone, hideSetup, showSetup, markSetupDone };
 }
