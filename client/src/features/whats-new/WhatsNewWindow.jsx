@@ -10,6 +10,8 @@ import "./whats-new.css";
 const SETTLE_MS = 1200;
 const AFTER_DIALOG_MS = 1500;
 const MAX_ENTRIES = 3;
+// An entry id starts with its release date (YYYY-MM-DD, maybe a "-2" after it): "14 Nov 2026".
+const entryDate = (id) => new Date(`${id.slice(0, 10)}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 const TAG_TONE = { new: "accent", improved: "neutral", fixed: "good" };
 
 // A one-time "What's new" window after an update. It never interrupts: it waits for the legal gate,
@@ -56,6 +58,7 @@ export default function WhatsNewWindow() {
     >
       {entries.map((entry) => (
         <section key={entry.id} className="whats-new__entry">
+          <time className="whats-new__date" dateTime={entry.id.slice(0, 10)}>{entryDate(entry.id)}</time>
           {entry.title && <h3 className="whats-new__title">{entry.title}</h3>}
           <ul className="whats-new__items">
             {entry.items.map((item) => (
