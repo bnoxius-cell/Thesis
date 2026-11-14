@@ -103,6 +103,7 @@ export default function NewReviewerDialog({
     setPickError(problemsMessage(problems));
   };
   const removeFile = (id) => {
+    if (preparing) return; // addFiles builds its list from the one it started with, so a removal now would come back
     setPickError("");
     setEntries((current) => current.filter((entry) => entry.id !== id));
   };
