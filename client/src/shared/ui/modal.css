@@ -2,6 +2,14 @@
    (the --shadow-3 token), a title row with a close button, the body, then right-aligned actions. The
    overlay is the --overlay scrim. The card never grows past the screen: the head and the actions
    stay put and only the body scrolls, so the buttons are always reachable. */
+/* Registered so the scrim can ease back when a sheet drag is let go (a transition on a custom
+   property needs a type). Outside the layer: @property is global anyway. */
+@property --sheet-drag {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
 @layer components {
   .ui-modal-overlay {
     position: fixed;
@@ -140,6 +148,18 @@
     .ui-modal-overlay--sheet {
       align-items: flex-end;
       padding: max(16px, env(safe-area-inset-top)) 0 0;
+      /* useSheetDrag sets --sheet-drag (0 at rest, 1 fully dragged down) to fade the scrim. */
+      background: color-mix(in srgb, var(--overlay) calc((1 - var(--sheet-drag, 0)) * 100%), transparent);
+    }
+    /* The handle and title row are the drag area: the sheet owns the touch there, so the page
+       doesn't scroll. The body keeps its own scrolling. */
+    .ui-modal--sheet > .ui-modal__handle,
+    .ui-modal--sheet .ui-modal__head {
+      touch-action: none;
+    }
+    .ui-modal--sheet > .ui-modal__handle {
+      user-select: none;
+      -webkit-user-select: none;
     }
     .ui-modal--sheet {
       max-width: none;

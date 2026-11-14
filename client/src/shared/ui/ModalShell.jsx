@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import useSheetDrag from "./useSheetDrag";
 import "./modal.css";
 
 // The dialog shell. Use Modal (or ConfirmDialog), which build on this.
@@ -13,7 +14,9 @@ import "./modal.css";
 // `busy` blocks every way of closing. `confirmClose` is a function that returns true when
 // closing should ask first; Modal.jsx adds that question.
 // `sheet` makes it a bottom sheet on phones (under 720px, with a grab handle, above the home
-// indicator); wider screens keep the centred card. `returnFocusRef` names a ref whose element takes
+// indicator); wider screens keep the centred card. A phone sheet can be dragged down by its handle
+// or title row to close (useSheetDrag), through the same close path as Escape and the X.
+// `returnFocusRef` names a ref whose element takes
 // focus on close when the opener is gone (a window reopened after Edit goes back to its row).
 
 const stack = [];
@@ -88,6 +91,9 @@ export default function ModalShell({
     if (!isBusy) close?.();
   }, []);
 
+  const overlayRef = useRef(null);
+  const sheetDrag = useSheetDrag({ enabled: sheet, contentRef, overlayRef, busy, onClose: requestClose });
+
   useEffect(() => {
     if (!open) return undefined;
     const token = {};
@@ -157,6 +163,7 @@ export default function ModalShell({
   // trap the overlay under the phone bottom bar or turn it into a box inside the header.
   return createPortal(
     <div
+      ref={overlayRef}
       className={classes("ui-modal-overlay", sheet && "ui-modal-overlay--sheet", overlayClassName)}
       onPointerDown={(e) => {
         pressedOverlay.current = e.target === e.currentTarget;
@@ -175,6 +182,7 @@ export default function ModalShell({
         aria-labelledby={labelledBy}
         tabIndex={-1}
         onKeyDown={onContentKeyDown}
+        {...sheetDrag}
         {...rest}
       >
         {sheet && <span className="ui-modal__handle" aria-hidden="true" />}
