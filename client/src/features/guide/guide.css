@@ -149,21 +149,28 @@
     width: 24px;
   }
 
-  /* Skip on the left, Back and the main button on the right, in one row on every screen. */
+  /* The buttons: Skip on the left, Back and the main button on the right, one row that never wraps
+     (a wrapped row made the card taller on some steps). The note sits under it. */
   .welcome-tour .ui-modal__actions {
-    flex-direction: row;
-    flex-wrap: wrap;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: var(--space-2);
+    padding: 0 var(--space-6) var(--space-6);
+  }
+  .welcome-tour__buttons {
+    display: flex;
+    flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-end;
     gap: var(--space-2);
-    padding: 0 var(--space-6) var(--space-6);
   }
   .welcome-tour__skip {
     margin-right: auto;
   }
   /* Always laid out so the window never changes height; only the last step shows it. */
   .welcome-tour__note {
-    flex: 0 0 100%;
     margin: var(--space-4) 0 0;
     color: var(--text-muted);
     font: 400 var(--text-xs) / 18px var(--font-ui);
@@ -199,6 +206,14 @@
     }
     .welcome-tour .ui-modal__actions {
       padding: var(--space-2) 20px var(--space-5);
+    }
+  }
+
+  /* At 320px the floating card is 296px wide: tighter button padding keeps Skip, Back and Next on one
+     line (still 44px tall). */
+  @media (max-width: 359.98px) {
+    .welcome-tour__buttons .ui-btn {
+      padding: 0 var(--space-3);
     }
   }
 }

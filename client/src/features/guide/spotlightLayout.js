@@ -6,7 +6,7 @@ const DESKTOP_HOLE = { pad: 6, radius: 12 }; // Figma 322:957 and its siblings
 const PHONE_HOLE = { pad: 4, radius: 14 }; // Figma 316:390
 const CARD_GAP = 32; // laptop: the window sits this far right of the sidebar
 const CARD_EDGE = 24; // laptop: and keeps this far from the top and bottom of the screen
-const CARD_ABOVE_BAR = 16; // phone: the card floats this far above the bar
+export const CARD_ABOVE_BAR = 16; // phone: the card floats this far above the bar
 
 const visibleRect = (el) => {
   const rect = el.getBoundingClientRect();

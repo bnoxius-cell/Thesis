@@ -7,7 +7,7 @@ import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import { scrollToId } from "@/shared/hooks/useHashScroll";
 import Spotlight from "./Spotlight";
 import StepDots from "./StepDots";
-import { cardOffset, holeFor } from "./spotlightLayout";
+import { CARD_ABOVE_BAR, cardOffset, holeFor } from "./spotlightLayout";
 import useSpotlight from "./useSpotlight";
 import { TOUR_STEPS, whereToFind } from "./tourSteps";
 import "./guide.css";
@@ -63,6 +63,8 @@ export default function TourDialog({ onClose }) {
   useLayoutEffect(() => {
     const card = stepsRef.current?.closest(".welcome-tour");
     if (!card) return;
+    // Above the bar a card that is too tall for the room scrolls its text instead of covering the hole.
+    card.style.maxHeight = hole && phone ? `${measure.frameTop - 2 * CARD_ABOVE_BAR}px` : "";
     const { dx, dy } = hole ? cardOffset(card, measure, hole, phone) : { dx: 0, dy: 0 };
     card.style.translate = hole ? `${dx}px ${dy}px` : "";
   }, [hole, measure, phone]);
@@ -99,9 +101,11 @@ export default function TourDialog({ onClose }) {
       onClose={onClose}
       actions={(
         <>
-          {!last && <Button variant="ghost" className="welcome-tour__skip" onClick={onClose}>Skip tour</Button>}
-          {index > 0 && <Button variant="ghost" onClick={() => go(-1)}>Back</Button>}
-          <Button ref={primaryRef} onClick={last ? finish : () => go(1)}>{last ? "Let's get started" : "Next"}</Button>
+          <div className="welcome-tour__buttons">
+            {!last && <Button variant="ghost" className="welcome-tour__skip" onClick={onClose}>Skip tour</Button>}
+            {index > 0 && <Button variant="ghost" onClick={() => go(-1)}>Back</Button>}
+            <Button ref={primaryRef} onClick={last ? finish : () => go(1)}>{last ? "Let's get started" : "Next"}</Button>
+          </div>
           <p className="welcome-tour__note" aria-hidden={!last} data-shown={last}>You can take this tour again from Settings &gt; Help.</p>
         </>
       )}
