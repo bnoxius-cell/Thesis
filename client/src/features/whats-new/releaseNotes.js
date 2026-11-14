@@ -1,5 +1,6 @@
 // What changed for students. One file per DAY in ./notes, named by its date: `2026-11-14.js`. A second
-// release the same day goes into that day's file (add its items there), never a new `-2` file. The file
+// release the same day goes into that day's file (add its items there, and the window shows again for everyone
+// because the entry's `version` includes its item count), never a new `-2` file. The file
 // name is the entry's id, so nothing else needs editing: this module finds every file in the folder and sorts them newest first.
 //
 // A note file is `export default { title, items: [{ tag, text }] }`.
@@ -9,7 +10,11 @@
 const files = import.meta.glob("./notes/*.js", { eager: true, import: "default" });
 
 export const RELEASE_NOTES = Object.entries(files)
-  .map(([path, note]) => ({ id: path.slice("./notes/".length, -".js".length), ...note }))
+  .map(([path, note]) => {
+    const id = path.slice("./notes/".length, -".js".length);
+    // `version` changes when items are added to or removed from the day's file, so the window shows again.
+    return { id, version: `${id}.${note.items.length}`, ...note };
+  })
   .sort((a, b) => b.id.localeCompare(a.id));
 
 export const NOTE_TAGS = { new: "New", improved: "Improved", fixed: "Fixed" };

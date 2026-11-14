@@ -63,4 +63,22 @@ describe('unseenNotes', () => {
     test('shows everything newer than the seen id', () => {
         expect(unseenNotes(notes, '2026-11-01', old).entries).toEqual([notes[0], notes[1]]);
     });
+
+    describe('versions (items added to a days file show it again)', () => {
+        const versioned = [
+            { id: '2026-11-20', version: '2026-11-20.8' },
+            { id: '2026-11-14', version: '2026-11-14.6' },
+        ];
+
+        test('the same version is quiet, a changed item count shows the entry again', () => {
+            expect(unseenNotes(versioned, '2026-11-20.8', old).entries).toEqual([]);
+            expect(unseenNotes(versioned, '2026-11-20.6', old).entries).toEqual([versioned[0]]);
+        });
+
+        test('an account that saved a bare id sees the newest entry once, and an older one stays quiet', () => {
+            expect(unseenNotes(versioned, '2026-11-20', old).entries).toEqual([versioned[0]]);
+            expect(unseenNotes(versioned, '2026-11-14', old).entries).toEqual([versioned[0]]);
+            expect(unseenNotes(versioned, '2026-11-14.6', old).entries).toEqual([versioned[0]]);
+        });
+    });
 });

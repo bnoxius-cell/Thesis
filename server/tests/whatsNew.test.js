@@ -49,6 +49,13 @@ describe('POST /api/user/notes-seen', () => {
         expect(data.body.userData.seenNotesVersion).toBe('2026-11-14-2');
     });
 
+    test('saves a version with an item count', async () => {
+        const agent = await signedInAgent();
+        const res = await agent.post('/api/user/notes-seen').send({ version: '2026-11-15.10' });
+        expect(res.status).toBe(200);
+        expect(res.body.seenNotesVersion).toBe('2026-11-15.10');
+    });
+
     test('a new account starts with nothing seen', async () => {
         const agent = await signedInAgent();
         const data = await agent.get('/api/user/data');
