@@ -164,6 +164,58 @@
     }
   }
 
+  /* ---- Account dialogs (Figma 291:2382, 291:2516, 291:2678, 291:2812; phone sheets 298:19026 to 298:19276) ---- */
+  .account-dialog__text {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+  }
+  .account-dialog__error {
+    margin: 0;
+    color: var(--danger);
+    font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+  }
+  /* The frames keep the close button on the phone sheet too. */
+  .account-dialog.ui-modal--sheet:has(> .ui-modal__actions) .ui-modal__head .ui-icon-btn {
+    display: inline-flex;
+  }
+  .account-code {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .account-code__resend {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 var(--space-1);
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / var(--text-xs-lh) var(--font-ui);
+  }
+  /* A text link in look, a 44px target in size. */
+  .account-code__link {
+    min-height: 44px;
+    margin-block: -12px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .account-code__link:disabled {
+    color: var(--text-muted);
+    cursor: default;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .account-code__link:not(:disabled):hover {
+      text-decoration: underline;
+    }
+  }
+
   /* ---- Area list (desktop) ---- */
   .settings-nav {
     display: flex;
