@@ -3,6 +3,9 @@
 // leaves it alone (the pages only draw four tones anyway).
 export const SUBJECT_LIMITS = { name: 80, code: 20, term: 40 };
 
+// The Subject dropdown's last option in the reviewer and class forms. Never a real subject id.
+export const NEW_SUBJECT = "new-subject";
+
 const clean = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 
 export const subjectForm = (subject) => ({

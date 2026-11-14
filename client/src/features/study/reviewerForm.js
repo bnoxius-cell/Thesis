@@ -45,9 +45,6 @@ const SOURCE_EXTS = ["pdf", "docx", "pptx", "png", "jpg", "jpeg", "webp"];
 // For <input accept>: phones convert other photo formats to JPEG when the type is listed.
 export const SOURCE_ACCEPT = [...SOURCE_EXTS.map((ext) => `.${ext}`), "image/jpeg", "image/png", "image/webp"].join(",");
 
-// The Subject dropdown's last option. Never a real subject id.
-export const NEW_SUBJECT = "new-subject";
-
 const TOO_MANY = `You can add up to ${MAX_SOURCES} files to one reviewer.`;
 const TOO_BIG_TOGETHER = `Those files are too big together. The limit is ${formatSize(MAX_SOURCES_BYTES)} for one reviewer.`;
 
