@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema({
     avatar: { type: String, default: '' },
     verifyEmailOtp: { type: String, default: '' },
     verifyEmailOtpExpireAt: { type: Number, default: 0 },
-    // Wrong guesses at the current code; too many burns it (see checkOtp in authController).
+    // Wrong guesses at the current code; too many burns it (see consumeOtp in authController).
     verifyEmailOtpAttempts: { type: Number, default: 0 },
     isAccountVerified: { type: Boolean, default: false },
     resetPasswordOtp: { type: String, default: '' },

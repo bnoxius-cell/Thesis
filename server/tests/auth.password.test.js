@@ -294,6 +294,87 @@ describe('verify email from the Account tab', () => {
     });
 });
 
+describe('code checks', () => {
+    const localAgent = async () => {
+        const agent = request.agent(app);
+        await agent.post('/api/auth/register').send(validRegisterPayload());
+        return agent;
+    };
+    const verifyWith = (agent, otp) => agent.post('/api/auth/verify-email').send({ otp });
+
+    test('a verify code does not work for reset, and a reset code does not work for verify', async () => {
+        const agent = await localAgent();
+        await userModel.updateOne({ email: EMAIL }, {
+            verifyEmailOtp: '111111', verifyEmailOtpExpireAt: Date.now() + 60000,
+            resetPasswordOtp: '222222', resetPasswordOtpExpireAt: Date.now() + 60000,
+        });
+
+        expect((await resetWith(agent, EMAIL, '111111')).body.success).toBe(false);
+        expect((await verifyWith(agent, '222222')).body.success).toBe(false);
+
+        const user = await userModel.findOne({ email: EMAIL });
+        expect(user.isAccountVerified).toBe(false);
+        expect(await bcrypt.compare('Password123', user.password)).toBe(true);
+        // each code still works for its own purpose
+        expect((await verifyWith(agent, '111111')).body.success).toBe(true);
+        expect((await resetWith(agent, EMAIL, '222222')).body.success).toBe(true);
+    });
+
+    test('four wrong guesses, then the right code on the fifth still works', async () => {
+        const agent = await localAgent();
+        const otp = await requestResetCode(agent, EMAIL);
+        const wrong = otp === '111111' ? '222222' : '111111';
+        for (let i = 0; i < 4; i++) await resetWith(agent, EMAIL, wrong);
+
+        expect((await resetWith(agent, EMAIL, otp)).body.success).toBe(true);
+    });
+
+    test('a burst of guesses that includes the right code accepts it at most once and counts attempts', async () => {
+        const agent = await localAgent();
+        const otp = await requestResetCode(agent, EMAIL);
+        const wrong = otp === '111111' ? '222222' : '111111';
+        const guesses = [wrong, wrong, otp, wrong, otp, wrong];
+
+        const results = await Promise.all(guesses.map((guess) => resetWith(request(app), EMAIL, guess)));
+
+        expect(results.filter((res) => res.body.success).length).toBeLessThanOrEqual(1);
+        const user = await userModel.findOne({ email: EMAIL });
+        // either the code was used (count reset) or the guesses were counted, never lost
+        expect(user.resetPasswordOtp === '' || user.resetPasswordOtpAttempts > 0).toBe(true);
+    });
+});
+
+describe('login messages', () => {
+    const login = (email, password) => request(app).post('/api/auth/login').send({ email, password });
+
+    test('a user document with no passwordSet field can still log in', async () => {
+        await userModel.collection.insertOne({
+            name: 'Old Student', email: EMAIL, password: await bcrypt.hash('Password123', 10), authProvider: 'local', isAccountVerified: true,
+        });
+
+        expect((await login(EMAIL, 'Password123')).body.success).toBe(true);
+    });
+
+    test('a Google account that set a password gets the plain wrong-password message', async () => {
+        await googleSignUp();
+        await userModel.updateOne({ email: GOOGLE_EMAIL }, { passwordSet: true });
+
+        const res = await login(GOOGLE_EMAIL, 'WrongPassword1');
+
+        expect(res.body.success).toBe(false);
+        expect(res.body.message).toMatch(/incorrect password/i);
+    });
+
+    test('a Google account with no password set is pointed to Google', async () => {
+        await googleSignUp();
+
+        const res = await login(GOOGLE_EMAIL, 'WrongPassword1');
+
+        expect(res.body.success).toBe(false);
+        expect(res.body.message).toMatch(/google sign-in/i);
+    });
+});
+
 describe('generateOtp', () => {
     test('gives six digits', () => {
         for (let i = 0; i < 50; i++) expect(generateOtp()).toMatch(/^[1-9]\d{5}$/);

@@ -163,7 +163,7 @@ export const login = async (req, res) => {
 
         const isMatch = user.password ? await bcrypt.compare(password, user.password) : false;
         if (!isMatch) {
-            if (user.authProvider === 'google') {
+            if (user.authProvider === 'google' && !user.passwordSet) {
                 return res.json({ success: false, message: "This account uses Google sign-in. Please continue with Google." });
             }
             return res.json({ success: false, message: "Incorrect password. Please try again."})

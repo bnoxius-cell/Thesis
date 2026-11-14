@@ -334,7 +334,7 @@ const AuthPage = () => {
     login: ['Welcome back', 'Sign in', 'Sign in with your email, or continue with Google.'],
     register: ['Create profile', 'Student signup', 'Sign up with any email, or continue with Google.'],
     verify: ['Verify account', 'Check your email', <>Enter the {sixDigit} code we emailed to {userData?.email || 'your email'}. It's valid for 20 minutes.</>],
-    forgot: ['Forgot password', 'Reset your password', <>Enter the email you signed up with and we'll send you a {sixDigit} code. If you signed up with Google, use the Google button on the sign-in page instead.</>],
+    forgot: ['Forgot password', 'Reset your password', <>Enter the email you signed up with and we'll send you a {sixDigit} code. Signed up with Google and never set a password? Use the Google button on the sign-in page, or set a password from Settings once you're in.</>],
     reset: ['Reset password', 'Choose a new password', `Enter the code we emailed to ${email.trim() || 'your email'} and pick a new password. The code is valid for 20 minutes.`],
   }[authMode];
 
