@@ -45,6 +45,20 @@
     color: var(--text-secondary);
     font: 400 1rem / 1.55 var(--font-ui);
   }
+  .patch__items li {
+    position: relative;
+    padding-left: var(--space-5);
+  }
+  .patch__items li::before {
+    content: "";
+    position: absolute;
+    left: var(--space-1);
+    top: 0.65em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
 
   /* The page: a single readable column that scrolls through every update. */
   .patch-list {
