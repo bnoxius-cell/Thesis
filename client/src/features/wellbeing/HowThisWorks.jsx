@@ -1,9 +1,9 @@
 import { ChevronDown, Info } from "lucide-react";
-import { Card } from "@/shared/ui";
+import { Button, Card } from "@/shared/ui";
 import { PSS_VALID_DAYS, WHO_VALID_DAYS } from "@/utils/workload";
 
 // How this works (Figma 51:2): the method in plain words and where the two check-ins come from. Closed
-// until opened. The "Full method on About" link waits for the About page.
+// until opened, with a link to the full method on the About page.
 export default function HowThisWorks() {
   return (
     <Card as="details" className="wellbeing-how">
@@ -29,6 +29,7 @@ export default function HowThisWorks() {
           Well-Being Index, World Health Organization, 1998. Both are widely used questionnaires. The app uses
           them to adjust your plan, not to diagnose anything.
         </p>
+        <Button to="/about" variant="ghost" size="sm" className="wellbeing-how__more">Full method on About</Button>
       </div>
     </Card>
   );

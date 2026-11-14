@@ -7,10 +7,10 @@ import FocusLayout from "./FocusLayout";
 import PublicLayout from "./PublicLayout";
 import RequireAuth from "./RequireAuth";
 import NotFound from "./NotFound";
-import PlaceholderPage from "./PlaceholderPage";
 import RedirectTo from "./RedirectTo";
 import usePageTitle from "./usePageTitle";
 
+const AboutPage = lazy(() => import("@/features/about/AboutPage"));
 const LegalPage = lazy(() => import("@/features/legal/LegalPage"));
 const HomePage = lazy(() => import("@/features/home/HomePage"));
 const PlanPage = lazy(() => import("@/features/plan/PlanPage"));
@@ -40,10 +40,6 @@ function SignInRoute() {
   return <AuthPage />;
 }
 
-// A page that is still unbuilt is a titled placeholder until its own batch replaces it with a
-// lazy-loaded page. Only About is left: it sits in the public layout, so it has no shell.
-const barePlaceholder = (title) => <PlaceholderPage title={title} />;
-
 export default function AppRoutes() {
   return (
     <Routes>
@@ -55,7 +51,7 @@ export default function AppRoutes() {
       <Route element={<PublicLayout />}>
         <Route path="/terms-of-service" element={<LegalPage kind="terms" />} />
         <Route path="/privacy-policy" element={<LegalPage kind="privacy" />} />
-        <Route path="/about" element={barePlaceholder("About")} />
+        <Route path="/about" element={<AboutPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
 
