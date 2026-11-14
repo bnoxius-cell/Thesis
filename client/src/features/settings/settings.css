@@ -58,12 +58,21 @@
     border-top: 1px solid var(--border);
   }
   .settings-row--sub {
+    display: flex; /* label, segment and "Saved" share a line; the segment wraps under the label only when it can't fit */
+    flex-wrap: wrap;
     justify-content: flex-start;
-    gap: var(--space-3);
+    gap: var(--space-2) var(--space-3);
     min-height: 0;
     padding-top: 0;
     padding-bottom: 14px;
     border-top: 0;
+  }
+  .settings-row--sub > .settings-row__hint {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .settings-row--sub > .settings-row__error {
+    flex: 1 1 100%;
   }
   @media (max-width: 1023px) {
     .settings-row--stacked {
