@@ -13,7 +13,7 @@ const MAX_PROGRAM_LENGTH = 80;
 export const getUserData = async (req, res) => {
     try {
         const userId = req.userId;
-        const user = await userModel.findById(userId).populate('friends', 'name email avatar');
+        const user = await userModel.findById(userId);
 
         if (!user) {
             return res.json({ success: false, message: 'User not found.' });
@@ -38,7 +38,6 @@ export const getUserData = async (req, res) => {
                 usualWakeTime: user.usualWakeTime,
                 travelMinutesPerDay: user.travelMinutesPerDay,
                 wellbeingGoal: user.wellbeingGoal,
-                friends: user.friends,
                 lastPSSSubmission: user.lastPSSSubmission,
                 latestPSSScore: user.lastPSSSubmission ? user.latestPSSScore : null,
                 lastWHOSubmission: user.lastWHOSubmission,
@@ -48,10 +47,13 @@ export const getUserData = async (req, res) => {
                 termsVersion: user.termsVersion,
                 currentLegalVersion: LEGAL_VERSION,
                 seenNotesVersion: user.seenNotesVersion,
+                termsAcceptedAt: user.termsAcceptedAt,
+                // Only whether a password is set: the hash never leaves the server.
+                hasPassword: Boolean(user.password),
             }
         });
     } catch (error) {
-        return res.json({ success: false, message: error.message });
+        serverError(res, 'Loading user data failed', error);
     }
 };
 
@@ -108,7 +110,7 @@ export const updateProfile = async (req, res) => {
             userId,
             updateFields,
             { returnDocument: 'after', runValidators: true }
-        ).populate('friends', 'name email avatar');
+        );
 
         if (!updatedUser) {
             return res.json({ success: false, message: 'User not found.' });
@@ -131,7 +133,7 @@ export const updateProfile = async (req, res) => {
             }
         });
     } catch (error) {
-        return res.json({ success: false, message: error.message });
+        serverError(res, 'Updating the profile failed', error);
     }
 };
 
@@ -146,7 +148,7 @@ export const updateAvatar = async (req, res) => {
         if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
         res.json({ success: true, avatar: user.avatar });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Updating the avatar failed', error);
     }
 };
 
@@ -199,7 +201,7 @@ export const getPublicProfile = async (req, res) => {
             },
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Loading the public profile failed', error);
     }
 };
 
@@ -215,7 +217,7 @@ export const acceptTerms = async (req, res) => {
         if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
         res.json({ success: true, termsVersion: user.termsVersion });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Accepting the terms failed', error);
     }
 };
 
