@@ -1,0 +1,83 @@
+/* Help > Guides how-to rows (Figma 319:1225, phone 320:928): native <details> styled as settings rows.
+   Content fades in over 150 ms with no height animation; the global reduced-motion rule makes it instant. Tokens only. */
+@layer pages {
+  .guide-topic {
+    scroll-margin-top: calc(96px + env(safe-area-inset-top)); /* clears the sticky header when a link opens this topic */
+    border-top: 1px solid var(--border);
+  }
+  .guide-topic__summary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    box-sizing: border-box;
+    min-height: 60px;
+    padding: 14px var(--space-5);
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+    transition: background-color var(--dur-1) var(--ease-out);
+  }
+  .guide-topic__summary::-webkit-details-marker {
+    display: none;
+  }
+  .guide-topic__title {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .guide-topic__chevron {
+    flex: none;
+    color: var(--text-secondary);
+    transition: transform var(--dur-2) var(--ease-out);
+  }
+  .guide-topic[open] > .guide-topic__summary .guide-topic__chevron {
+    transform: rotate(180deg);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .guide-topic__summary:hover {
+      background: var(--surface-2);
+    }
+  }
+  .guide-topic__body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: 0 var(--space-5) 14px;
+    animation: ui-fade-in 150ms var(--ease-out);
+  }
+  .guide-topic__steps {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: guide-step;
+  }
+  .guide-topic__step {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    color: var(--text-secondary);
+    font: 400 var(--text-md) / var(--text-md-lh) var(--font-ui);
+    overflow-wrap: anywhere;
+    counter-increment: guide-step;
+  }
+  .guide-topic__step::before {
+    content: counter(guide-step);
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font: 400 var(--text-sm) / 1 var(--font-ui);
+  }
+}

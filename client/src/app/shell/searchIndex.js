@@ -1,6 +1,8 @@
 // What the header search can find, built from lists the app already loads. Each entry goes to a
-// route that exists today.
-export const SEARCH_KINDS = { subject: "Subject", reviewer: "Reviewer", task: "Task" };
+// route that exists today. Relative import: a server test loads this file.
+import { GUIDE_TOPICS, guideId } from "../../features/guide/guideTopics.js";
+
+export const SEARCH_KINDS = { subject: "Subject", reviewer: "Reviewer", task: "Task", guide: "Guide" };
 
 const MAX_RESULTS = 8;
 
@@ -29,6 +31,14 @@ export function buildSearchIndex({ subjects = [], reviewers = [], tasks = [] }) 
         sub: t.course || "",
         to: "/plan?view=tasks",
       })),
+    ...GUIDE_TOPICS.map((topic) => ({
+      key: guideId(topic.key),
+      kind: "guide",
+      label: topic.title,
+      sub: "How to",
+      to: `/settings/help#${guideId(topic.key)}`,
+    })),
+    { key: "guide-tour", kind: "guide", label: "Take the tour", sub: "A quick look around", to: "/home?tour=1" },
   ];
 }
 
