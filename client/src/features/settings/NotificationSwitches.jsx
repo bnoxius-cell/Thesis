@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+import { Check } from "lucide-react";
 import { Button, Segment, Skeleton, Switch } from "@/shared/ui";
 import SettingsRow, { SettingsGroup } from "./SettingsRow";
 
@@ -19,7 +21,7 @@ const LEAD_TIMES = [
 // "Tell me about": one switch per kind of news. The switches stop the inbox rows as well as the
 // alerts, so the copy says what the student gets.
 export default function NotificationSwitches({ state }) {
-  const { prefs, loadError, errors, setPref, reload } = state;
+  const { prefs, loadError, errors, savedKey, setPref, reload } = state;
 
   if (loadError) {
     return (
@@ -43,8 +45,8 @@ export default function NotificationSwitches({ state }) {
     <SettingsGroup title="Notifications">
       <p className="settings-group__lead">Tell me about</p>
       {TOPICS.map(({ key, label }) => (
-        <div key={key}>
-          <SettingsRow label={label} error={errors[key]}>
+        <Fragment key={key}>
+          <SettingsRow label={label} inlineError={errors[key]} saved={savedKey === key}>
             {(labelId) => <Switch labelId={labelId} checked={prefs[key]} onChange={(on) => setPref(key, on)} />}
           </SettingsRow>
           {key === "taskReminders" && (
@@ -57,10 +59,16 @@ export default function NotificationSwitches({ state }) {
                 disabled={!prefs.taskReminders}
                 onChange={(hours) => setPref("reminderLeadHours", hours)}
               />
+              {savedKey === "reminderLeadHours" && (
+                <span className="settings-row__saved" aria-hidden="true">
+                  <Check size={16} />
+                  Saved
+                </span>
+              )}
               {errors.reminderLeadHours && <p className="settings-row__error" role="alert">{errors.reminderLeadHours}</p>}
             </div>
           )}
-        </div>
+        </Fragment>
       ))}
       <p className="settings-group__note">To mute one group, open it and use Info.</p>
     </SettingsGroup>

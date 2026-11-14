@@ -10,16 +10,15 @@ const CHOICES = [
 ];
 
 // The Animations switch lives in this browser only, so it never waits on the server.
-export default function AppearanceRow({ onSaved }) {
+export default function AppearanceRow() {
   const [motion, setMotion] = useState(readMotionPref);
   const choose = (value) => {
     setMotionPref(value);
     setMotion(value);
-    onSaved?.();
   };
   return (
     <SettingsGroup title="Appearance">
-      <SettingsRow label="Animations" hint="On this device">
+      <SettingsRow label="Animations" hint="On this device" stacked>
         {(labelId) => <Segment labelId={labelId} options={CHOICES} value={motion} onChange={choose} />}
       </SettingsRow>
     </SettingsGroup>

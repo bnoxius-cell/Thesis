@@ -1,15 +1,24 @@
 import { useId } from "react";
+import { Check } from "lucide-react";
 
 // One row of a settings card: a label with an optional hint on the left, the control on the right
 // (`children` gets the label's id so it can name itself), and a plain error line under both.
-export default function SettingsRow({ label, hint, error, children }) {
+// `saved` shows a quiet "Saved" beside the control and `inlineError` a short failure in its place; `stacked` puts the control under the text.
+export default function SettingsRow({ label, hint, error, inlineError, saved, stacked, children }) {
   const id = useId();
   return (
-    <div className="settings-row">
+    <div className={`settings-row${stacked ? " settings-row--stacked" : ""}`}>
       <div className="settings-row__text">
         <span id={id} className="settings-row__label">{label}</span>
         {hint && <span className="settings-row__hint">{hint}</span>}
       </div>
+      {inlineError && <span className="settings-row__fail" role="alert">{inlineError}</span>}
+      {saved && (
+        <span className="settings-row__saved" aria-hidden="true">
+          <Check size={16} />
+          Saved
+        </span>
+      )}
       {children && <div className="settings-row__control">{typeof children === "function" ? children(id) : children}</div>}
       {error && <p className="settings-row__error" role="alert">{error}</p>}
     </div>

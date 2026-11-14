@@ -1,4 +1,4 @@
-/* Settings (Figma 276:3 desktop, 290:15286 phone list, 290:15387 and 290:15488 phone areas).
+/* Settings (Figma 276:3 desktop, 290:15286 phone list, 290:15387 and 290:15488 phone areas, 290:518 device states).
    From 1024px: a 240px list of areas and a 680px column of cards. Tokens only. */
 @layer pages {
   .settings {
@@ -23,21 +23,26 @@
     box-shadow: var(--shadow-1);
   }
   .settings-group__title {
-    margin: 0 0 var(--space-2);
-    padding: 0 var(--space-4);
+    margin: 0 0 var(--space-3);
+    padding: 0 var(--space-5);
     color: var(--text-primary);
     font: 600 var(--text-xl) / 28px var(--font-ui);
   }
   .settings-group__lead,
   .settings-group__note {
     margin: 0;
-    padding: 0 var(--space-4) var(--space-2);
+    padding: 0 var(--space-5) var(--space-3);
     color: var(--text-secondary);
     font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
   }
+  .settings-group__lead {
+    margin-top: calc(-1 * var(--space-2));
+  }
   .settings-group__note {
-    padding-top: var(--space-2);
+    padding-top: var(--space-1);
     color: var(--text-muted);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs-lh);
   }
   .settings-row {
     display: flex;
@@ -49,14 +54,25 @@
     box-sizing: border-box;
     width: 100%;
     min-height: 60px;
-    padding: 8px var(--space-4);
+    padding: 14px var(--space-5);
+  }
+  .settings-row + .settings-row {
+    border-top: 1px solid var(--border);
   }
   .settings-row--sub {
-    flex-direction: column;
-    align-items: stretch;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: var(--space-3);
     min-height: 0;
     padding-top: 0;
-    padding-bottom: var(--space-3);
+    padding-bottom: 14px;
+    border-top: 0;
+  }
+  .settings-row--stacked {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    gap: var(--space-3);
   }
   .settings-row__text {
     display: flex;
@@ -67,10 +83,10 @@
   }
   .settings-row__label {
     color: var(--text-primary);
-    font: 500 var(--text-md) / var(--text-md-lh) var(--font-ui);
+    font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
   }
   .settings-row__hint {
-    color: var(--text-muted);
+    color: var(--text-secondary);
     font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
     overflow-wrap: anywhere;
   }
@@ -82,12 +98,6 @@
     gap: var(--space-3);
     min-width: 0;
   }
-  .settings-row__value {
-    color: var(--text-secondary);
-    font: 400 var(--text-md) / var(--text-md-lh) var(--font-ui);
-    overflow-wrap: anywhere;
-    text-align: right;
-  }
   .settings-row__error {
     flex: 1 0 100%;
     margin: 0;
@@ -95,17 +105,26 @@
     font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
   }
 
-  /* One quiet "Saved", right-aligned above the cards. It keeps its height so nothing jumps. */
-  .settings-saved {
-    align-self: flex-end;
-    margin: 0 0 calc(-1 * var(--space-4));
-    color: var(--text-muted);
-    font: 400 var(--text-sm) / 20px var(--font-ui);
-    opacity: 0;
-    transition: opacity var(--dur-3) var(--ease-out);
+  /* Beside a switch: "Saved" fades in after a change; a failed save says so in red. */
+  .settings-row__saved,
+  .settings-row__fail {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font: 400 var(--text-xs) / var(--text-xs-lh) var(--font-ui);
   }
-  .settings-saved[data-show] {
-    opacity: 1;
+  .settings-row__saved {
+    color: var(--good);
+    animation: settings-saved-in var(--dur-3) var(--ease-out);
+  }
+  .settings-row__fail {
+    color: var(--danger);
+    text-align: right;
+  }
+  @keyframes settings-saved-in {
+    from {
+      opacity: 0;
+    }
   }
 
   /* ---- Area list (desktop) ---- */
@@ -128,8 +147,8 @@
     min-height: 44px;
     padding: 10px var(--space-3);
     border-radius: var(--radius-lg);
-    color: var(--text-secondary);
-    font: 500 var(--text-md) / var(--text-md-lh) var(--font-ui);
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
     text-decoration: none;
     transition: background-color var(--hover-dur) var(--hover-ease), color var(--hover-dur) var(--hover-ease);
   }
@@ -150,41 +169,78 @@
   .settings-list {
     display: flex;
     flex-direction: column;
+    gap: var(--space-4);
+  }
+  .settings-profile {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
     box-sizing: border-box;
+    padding: 14px var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+  .settings-profile__who {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+  .settings-profile__name {
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .settings-profile__program {
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .settings-menu {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    box-sizing: border-box;
+    padding: var(--space-2);
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
     background: var(--surface);
     box-shadow: var(--shadow-1);
-    overflow: hidden;
   }
-  .settings-list__row {
+  .settings-menu__row {
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: var(--space-3);
     box-sizing: border-box;
     width: 100%;
-    min-height: 56px;
-    padding: 8px var(--space-4);
+    min-height: 44px;
+    padding: 10px var(--space-3);
     border: 0;
+    border-radius: var(--radius-lg);
     background: none;
     color: var(--text-primary);
-    font: 500 var(--text-md) / var(--text-md-lh) var(--font-ui);
+    font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
     text-align: left;
     text-decoration: none;
     cursor: pointer;
     touch-action: manipulation;
   }
-  .settings-list__row + .settings-list__row {
-    border-top: 1px solid var(--border);
+  .settings-menu__row[data-first] {
+    font-weight: 600;
   }
-  .settings-list__row > svg:last-child:not(:first-child) {
+  .settings-menu__row > svg:last-child:not(:first-child) {
     color: var(--text-muted);
   }
-  .settings-list__label {
+  .settings-menu__label {
     flex: 1;
   }
-  .settings-list__row:active {
+  .settings-menu__row:active {
     background: var(--surface-2);
   }
 
@@ -202,21 +258,6 @@
       flex: 0 1 680px;
       width: 680px;
       max-width: 100%;
-    }
-    .settings-group__title,
-    .settings-group__lead,
-    .settings-group__note,
-    .settings-row {
-      padding-left: var(--space-5);
-      padding-right: var(--space-5);
-    }
-    .settings-row {
-      padding-top: 14px;
-      padding-bottom: 14px;
-      gap: var(--space-4);
-    }
-    .settings-row--sub {
-      padding-top: 0;
     }
   }
 }
