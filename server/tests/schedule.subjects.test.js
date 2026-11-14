@@ -152,9 +152,47 @@ describe('owner writes a class with a subject', () => {
         const res = await alice.put(`${base}/entries/${added.body.schedule.entries[0]._id}`).send(cls({ kind: 'event', title: 'Meetup' }));
         expect((await storedEntries(res.body.schedule._id))[0].subject).toBeNull();
     });
+
+    test('an owner newSubject on PUT creates the subject and relabels the class', async () => {
+        const { alice, base } = await setup();
+        const web = await makeSubject(alice, 'Web Systems');
+        const added = await alice.post(`${base}/entries`).send(cls({ subject: web._id }));
+        const res = await alice.put(`${base}/entries/${added.body.schedule.entries[0]._id}`).send(cls({ newSubject: 'Data Mining' }));
+        expect(res.status).toBe(200);
+        expect(res.body.subject).toMatchObject({ name: 'Data Mining' });
+        expect(res.body.schedule.entries[0]).toMatchObject({ title: 'Data Mining', subject: res.body.subject._id });
+    });
+
+    test('a bad entry on /main/entries creates no timetable', async () => {
+        const alice = await signUp('lone@student.fatima.edu.ph', 'Lone');
+        const res = await alice.post('/api/schedules/main/entries').send(cls({ title: 'Bad', startTime: '10:00', endTime: '09:00' }));
+        expect(res.status).toBe(400);
+        expect(await scheduleModel.countDocuments()).toBe(0);
+    });
 });
 
 describe('editors and viewers cannot set subjects', () => {
+    test("an editor cannot retitle a linked class away from its subject", async () => {
+        const { alice, bob, base } = await setup();
+        const web = await makeSubject(alice, 'Web Systems');
+        const added = await alice.post(`${base}/entries`).send(cls({ subject: web._id }));
+        const res = await bob.put(`${base}/entries/${added.body.schedule.entries[0]._id}`).send(cls({ title: 'Something Else' }));
+        expect(res.status).toBe(200);
+        const [entry] = await storedEntries(res.body.schedule._id);
+        expect(entry.title).toBe('Web Systems');
+        expect(String(entry.subject)).toBe(web._id);
+    });
+
+    test("an editor turning a class into an event keeps the owner's link", async () => {
+        const { alice, bob, base } = await setup();
+        const web = await makeSubject(alice, 'Web Systems');
+        const added = await alice.post(`${base}/entries`).send(cls({ subject: web._id }));
+        const res = await bob.put(`${base}/entries/${added.body.schedule.entries[0]._id}`).send(cls({ kind: 'event', title: 'Meetup' }));
+        expect(res.status).toBe(200);
+        const [entry] = await storedEntries(res.body.schedule._id);
+        expect(entry).toMatchObject({ kind: 'event', title: 'Meetup' });
+        expect(String(entry.subject)).toBe(web._id);
+    });
     test("an editor's subject and newSubject are ignored", async () => {
         const { alice, bob, base } = await setup();
         const web = await makeSubject(alice, 'Web Systems');
@@ -262,6 +300,16 @@ describe("the owner's subject ids never reach a member", () => {
         expect(stored.map((e) => (e.subject ? String(e.subject) : null))).toEqual([bobWeb._id, null, bobWeb._id]);
         expect(JSON.stringify(res.body)).not.toContain(web._id);
         expect(JSON.stringify(res.body)).not.toContain(capstone._id);
+    });
+
+    test("a copy links by name without changing a title", async () => {
+        const { alice, bob, base } = await setupWithSubjects();
+        await scheduleModel.updateOne({ _id: base.split('/').pop() }, { $push: { entries: { ...cls({ title: 'web  systems', days: [5] }), subject: null } } });
+        await makeSubject(bob, 'Web Systems');
+        const res = await bob.post(`${base}/duplicate`).send({});
+        const copied = res.body.schedule.entries.find((e) => e.days.includes(5));
+        expect(copied.title).toBe('web  systems');
+        expect(copied.subject).not.toBeNull();
     });
 
     test("an owner's copy keeps the links", async () => {

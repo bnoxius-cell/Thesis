@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { CalendarDays, Clock, FileText, MapPin, Shapes, Timer, Video } from "lucide-react";
 import { Button, Chip } from "@/shared/ui";
@@ -11,8 +12,11 @@ import { entryIsLive, entrySubject, planDayHref, repeatText, subjectHref } from 
 // A class, activity, exam or event in the details window (Figma D2), on day `iso`. The week overview's entries
 // carry the timetable they come from and whether the student may change them (`scheduleTitle`, `canEdit`);
 // when `canEdit` is false the window says so instead of drawing Edit and Delete. `onEdit` and `onDelete`
-// are passed only when the student can use them, and a missing one draws no button.
-export default function EntryDetails({ entry, iso, subjects, context, onClose, onBack, returnFocusRef, onEdit, onDelete }) {
+// are passed only when the student can use them, and a missing one draws no button. `focus` ("edit" or
+// "delete") puts focus on that button when the window comes back from its dialog.
+export default function EntryDetails({ entry, iso, subjects, context, onClose, onBack, returnFocusRef, focus, onEdit, onDelete }) {
+  const editRef = useRef(null);
+  const deleteRef = useRef(null);
   const now = useNow();
   const subject = entrySubject(entry, subjects);
   const live = entryIsLive(entry, iso, now);
@@ -34,12 +38,12 @@ export default function EntryDetails({ entry, iso, subjects, context, onClose, o
     <DetailFooter
       note={shared && `From ${entry.scheduleTitle || "another timetable"}. Only its owner and editors can change it.`}
       remove={canChange && onDelete && (
-        <Button variant="ghost" className="item-footer__delete" onClick={() => onDelete(entry, handlers)}>
+        <Button ref={deleteRef} variant="ghost" className="item-footer__delete" onClick={() => onDelete(entry, handlers)}>
           Delete
         </Button>
       )}
       edit={canChange && onEdit && (
-        <Button variant="secondary" className="item-footer__edit" onClick={() => onEdit(entry, handlers)}>
+        <Button ref={editRef} variant="secondary" className="item-footer__edit" onClick={() => onEdit(entry, handlers)}>
           Edit
         </Button>
       )}
@@ -54,6 +58,7 @@ export default function EntryDetails({ entry, iso, subjects, context, onClose, o
       onClose={onClose}
       onBack={onBack}
       returnFocusRef={returnFocusRef}
+      initialFocusRef={focus === "delete" ? deleteRef : focus === "edit" ? editRef : undefined}
       footer={footer}
     >
       {chip && <Chip tone={chip.tone} className="item-chip">{chip.label}</Chip>}

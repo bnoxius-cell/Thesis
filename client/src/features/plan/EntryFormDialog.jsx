@@ -13,6 +13,7 @@ import {
   clashNote,
   emptyEntryForm,
   entryErrors,
+  entryFormFrom,
   entryPayload,
   entryStarted,
   linkError,
@@ -28,14 +29,18 @@ const REPEATS = [
 ];
 const NO_SUBJECT = "";
 
-// New class, exam, event or activity (Figma D4: desktop 209:2364, 209:2681, 209:2980, phone sheets 210:2576,
-// 210:2673, 210:2753). `kind` is the one the "+" menu chose and stays fixed. `subjects` is the
-// list the page loaded: picking one fills the Title with its name (the timetable matches by title). `timetable`
-// is the picked timetable the student can edit, or null for My week (the main timetable, created when missing).
+// New or edited class, exam, event or activity (Figma D4: desktop 209:2364, 209:2681, 209:2980, edit on a
+// shared timetable 209:3273, phone sheets 210:2576, 210:2673, 210:2753, 210:2828). `kind` is the one the "+"
+// menu chose and stays fixed. `subjects` is the list the page loaded: the picker's values are subject ids, and
+// picking one fills the Title with its name (the server titles a class with its subject's name anyway).
+// `timetable` is the picked timetable the student can edit, or null for My week (the main timetable, created
+// when missing). To edit, pass the stored `entry` and the `timetable` it lives on (always required then).
 // Nothing is saved until the button; closing asks first when something was typed. A failed save keeps the
-// dialog open with the message. `onSaved` gets the timetable after the change, the kind saved and the entry's fields (its date or days). The clash note only warns.
-export default function EntryFormDialog({ kind, subjects, timetable = null, onClose, onSaved }) {
-  const [start] = useState(() => emptyEntryForm(kind));
+// dialog open with the message. `onSaved` gets the timetable after the change, the kind saved and the entry's
+// fields (its date or days). `onGone` runs when an edited entry has been removed meanwhile. The clash note only warns.
+export default function EntryFormDialog({ kind, subjects, timetable = null, entry = null, onClose, onSaved, onGone }) {
+  const editing = Boolean(entry);
+  const [start] = useState(() => (entry ? entryFormFrom(entry) : emptyEntryForm(kind)));
   const [form, setForm] = useState(start);
   const [errors, setErrors] = useState({});
   const { save, saving, error } = useSaveEntry();
@@ -45,10 +50,13 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, onCl
   const exam = form.kind === "exam";
   const weekly = form.repeat === REPEAT.weekly && !exam;
   const label = KIND_LABELS[form.kind].toLowerCase();
-  const note = useMemo(() => clashNote(form, target?.entries), [form, target]);
+  const note = useMemo(
+    () => clashNote(form, target?.entries.filter((other) => other._id !== entry?._id)),
+    [form, target, entry],
+  );
   const subjectOptions = [
     { value: NO_SUBJECT, label: "No subject" },
-    ...subjects.map((subject) => ({ value: subject.name, label: subject.name })),
+    ...subjects.map((subject) => ({ value: subject._id, label: subject.name })),
   ];
 
   const set = (key) => (value) => {
@@ -57,8 +65,9 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, onCl
     setErrors((prev) => ({ ...prev, [key]: undefined, ...times }));
   };
   const onText = (key) => (event) => set(key)(event.target.value);
-  const pickSubject = (name) =>
-    setForm((prev) => ({ ...prev, subject: name, title: titleAfterSubject(prev.title, prev.subject, name) }));
+  const nameOf = (id) => subjects.find((subject) => subject._id === id)?.name ?? "";
+  const pickSubject = (id) =>
+    setForm((prev) => ({ ...prev, subject: id, title: titleAfterSubject(prev.title, nameOf(prev.subject), nameOf(id) || prev.title) }));
   const toggleDay = (day) => {
     setForm((prev) => ({ ...prev, days: prev.days.includes(day) ? prev.days.filter((d) => d !== day) : [...prev.days, day] }));
     setErrors((prev) => ({ ...prev, days: undefined }));
@@ -68,12 +77,14 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, onCl
     event.preventDefault();
     const found = entryErrors(form);
     if (Object.keys(found).length > 0) return setErrors(found);
-    const schedule = await save(form, timetable);
-    if (schedule) onSaved(schedule, form.kind, entryPayload(form));
+    const { schedule, gone } = await save(form, timetable, entry);
+    if (gone) onGone();
+    else if (schedule) onSaved(schedule, form.kind, entryPayload(form));
   };
 
   let subtitle = "Adds to your main timetable.";
-  if (timetable) subtitle = `Adds to ${timetable.title}.`;
+  if (editing) subtitle = `On ${timetable.title}.`;
+  else if (timetable) subtitle = `Adds to ${timetable.title}.`;
   else if (target) subtitle = `Adds to ${target.title}, your main timetable.`;
   else if (target === null) subtitle = "Adds to a new timetable called My timetable.";
 
@@ -104,7 +115,7 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, onCl
       noValidate
       sheet
       className="entry-dialog"
-      title={`New ${label}`}
+      title={`${editing ? "Edit" : "New"} ${label}`}
       subtitle={subtitle}
       busy={saving}
       onClose={onClose}
@@ -112,7 +123,7 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, onCl
       actions={(close) => (
         <>
           <Button variant="ghost" onClick={close} disabled={saving}>Cancel</Button>
-          <Button type="submit" busy={saving}>{saving ? "Saving" : `Add ${label}`}</Button>
+          <Button type="submit" busy={saving}>{saving ? "Saving" : editing ? "Save changes" : `Add ${label}`}</Button>
         </>
       )}
     >

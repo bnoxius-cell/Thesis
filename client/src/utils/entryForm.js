@@ -22,7 +22,7 @@ const isRealDate = (value) => DATE.test(value) && toISODate(fromISODate(value)) 
 const clean = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 
 // A new form for one kind. Exams are always one day; an event starts as one day; classes and activities
-// repeat weekly. `subject` is the subject's name when the picker chose one (it fills the title).
+// repeat weekly. `subject` is the picked subject's id ("" for none); picking one fills the title.
 export const emptyEntryForm = (kind = "class", today = new Date()) => ({
   kind,
   subject: "",
@@ -41,7 +41,7 @@ export const emptyEntryForm = (kind = "class", today = new Date()) => ({
 // The form for a stored entry (editing). The kind stays what it was.
 export const entryFormFrom = (entry) => ({
   kind: entry.kind,
-  subject: "",
+  subject: entry.subject || "",
   title: entry.title,
   repeat: entry.date ? REPEAT.once : REPEAT.weekly,
   days: [...(entry.days ?? [])],
@@ -58,6 +58,8 @@ export const entryFormFrom = (entry) => ({
 // so what the form doesn't show (color, icon, image, skipOnHoliday, startDate and endDate) is carried over
 // from it. `_id` never goes back. A weekly entry sends `date: ""` and a one-day entry sends `days: []`, so
 // switching between them leaves nothing behind. startDate and endDate only belong to weekly entries.
+// A class or exam sends its subject's id; with none picked it sends nothing (the server links by name),
+// or `null` when the stored entry had one, which unlinks it. Events and activities send no subject.
 export function entryPayload(form, stored = {}) {
   const { _id, ...kept } = stored;
   const once = form.repeat === REPEAT.once || form.kind === "exam";
@@ -73,6 +75,13 @@ export function entryPayload(form, stored = {}) {
     date: once ? form.date : "",
     days: once ? [] : [...form.days].sort((a, b) => a - b),
   };
+  if (form.kind === "class" || form.kind === "exam") {
+    if (form.subject) payload.subject = form.subject;
+    else if (stored.subject) payload.subject = null;
+    else delete payload.subject;
+  } else {
+    delete payload.subject;
+  }
   if (once) Object.assign(payload, { startDate: "", endDate: "" });
   if (form.kind === "exam") payload.prepHours = Number(form.prepHours);
   else delete payload.prepHours;
@@ -117,9 +126,8 @@ export function entryErrors(form) {
   return errors;
 }
 
-// Whether closing the form should ask first: anything typed, picked or changed from the empty form.
-export const entryStarted = (form, start) =>
-  JSON.stringify({ ...form, subject: "" }) !== JSON.stringify({ ...start, subject: "" });
+// Whether closing the form should ask first: anything typed, picked or changed from where it started.
+export const entryStarted = (form, start) => JSON.stringify(form) !== JSON.stringify(start);
 
 // The title a subject pick fills in: the subject's name, but only while the title is empty or still the
 // name the previous pick put there, so a title the student typed is never overwritten.

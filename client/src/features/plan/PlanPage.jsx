@@ -12,6 +12,7 @@ import { profileFromUser } from "@/features/workload/useWorkload";
 import useTaskDone from "@/features/tasks/useTaskDone";
 import useItemDetail from "@/features/details/useItemDetail";
 import useTaskEdit from "@/features/tasks/useTaskEdit";
+import useEntryEdit from "./useEntryEdit";
 import MonthGrid from "./MonthGrid";
 import PhoneWeek from "./PhoneWeek";
 import PlanEmpty from "./PlanEmpty";
@@ -61,12 +62,22 @@ export default function PlanPage() {
   const setDone = useTaskDone(data.setTasks);
   const subjects = useMemo(() => [...data.subjectsById.values()], [data.subjectsById]);
   const edit = useTaskEdit({ subjects, setTasks: data.setTasks });
+  // R10: after an entry is edited or deleted the week and the month read again.
+  const entryEdit = useEntryEdit({
+    subjects,
+    onChanged: () => {
+      data.reload();
+      monthData.reload();
+    },
+  });
   const detail = useItemDetail({
     subjects,
     onToggle: setDone,
     context: view === "tasks" ? "plan-tasks" : "plan-week",
     onEditTask: edit.onEditTask,
     onDeleteTask: edit.onDeleteTask,
+    onEditEntry: entryEdit.onEditEntry,
+    onDeleteEntry: entryEdit.onDeleteEntry,
   });
   // Which way the week was last stepped, so the new one slides in from that side.
   const [direction, setDirection] = useState("none");
@@ -271,6 +282,7 @@ export default function PlanPage() {
       )}
       {detail.dialog}
       {edit.dialog}
+      {entryEdit.dialog}
     </Page>
   );
 }
