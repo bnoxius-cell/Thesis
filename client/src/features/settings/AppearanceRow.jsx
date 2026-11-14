@@ -19,7 +19,7 @@ export default function AppearanceRow() {
   return (
     <SettingsGroup title="Appearance">
       <SettingsRow label="Animations" hint="On this device" stacked>
-        {(labelId) => <Segment labelId={labelId} options={CHOICES} value={motion} onChange={choose} />}
+        {(labelId) => <Segment className="settings-segment" labelId={labelId} options={CHOICES} value={motion} onChange={choose} />}
       </SettingsRow>
     </SettingsGroup>
   );

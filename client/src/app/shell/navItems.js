@@ -12,6 +12,7 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
+import { sectionFor } from "@/features/settings/settingsSections";
 
 // The sidebar, as drawn in Figma 16:3. An item is lit when its `isActive` says so for the current
 // location; the rules read path, query and hash, and no two items can be lit at once (Plan is not
@@ -100,7 +101,7 @@ export const SETTINGS_ITEM = {
   label: "Settings",
   to: "/settings",
   icon: Settings,
-  isActive: (loc) => under(loc.pathname, "/settings"),
+  isActive: (loc) => under(loc.pathname, "/settings") && Boolean(sectionFor(loc.pathname.split("/")[2])),
 };
 
 export const ALL_ITEMS = [...NAV_GROUPS.flatMap((group) => group.items), SETTINGS_ITEM];

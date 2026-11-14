@@ -53,6 +53,7 @@ export default function NotificationSwitches({ state }) {
             <div className="settings-row settings-row--sub">
               <span id="lead-label" className="settings-row__hint">How early</span>
               <Segment
+                className="settings-segment"
                 labelId="lead-label"
                 options={LEAD_TIMES}
                 value={prefs.reminderLeadHours}

@@ -47,7 +47,7 @@
   .settings-row {
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: wrap; /* only the full-width error line wraps; text and control share one line */
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3) var(--space-4);
@@ -60,7 +60,6 @@
     border-top: 1px solid var(--border);
   }
   .settings-row--sub {
-    flex-wrap: nowrap;
     justify-content: flex-start;
     gap: var(--space-3);
     min-height: 0;
@@ -68,16 +67,30 @@
     padding-bottom: 14px;
     border-top: 0;
   }
-  .settings-row--stacked {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    justify-items: start;
-    gap: var(--space-3);
+  @media (max-width: 1023px) {
+    .settings-row--stacked {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: start;
+      gap: var(--space-3);
+    }
+  }
+  /* A compact segment: equal columns sized to the widest option, one line each. */
+  .settings-segment {
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    width: auto;
+    max-width: 100%;
+  }
+  .settings-segment .ui-segment__option {
+    padding-inline: var(--space-3);
+    white-space: nowrap;
   }
   .settings-row__text {
     display: flex;
     flex-direction: column;
-    flex: 1 1 200px;
+    flex: 1 1 0;
     gap: 2px;
     min-width: 0;
   }
@@ -118,6 +131,8 @@
     animation: settings-saved-in var(--dur-3) var(--ease-out);
   }
   .settings-row__fail {
+    flex: 0 1 auto;
+    min-width: 0;
     color: var(--danger);
     text-align: right;
   }

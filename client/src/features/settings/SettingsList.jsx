@@ -23,7 +23,7 @@ export default function SettingsList() {
       </Link>
       <nav aria-label="Me" className="settings-menu">
         {SECTIONS.map(({ key, label, icon: Icon, dot }) => (
-          <Link key={key} to={sectionPath(key)} className="settings-menu__row" data-first={key === "settings" || undefined}>
+          <Link key={key} to={sectionPath(key, true)} className="settings-menu__row" data-first={key === "settings" || undefined}>
             <Icon size={20} aria-hidden="true" />
             <span className="settings-menu__label">{label}</span>
             {dot && hasUnseen && (

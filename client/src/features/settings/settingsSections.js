@@ -10,8 +10,15 @@ export const SECTIONS = [
   { key: "whats-new", label: "What's new", icon: Info, dot: true },
 ];
 
-export const sectionPath = (key) => (key === "settings" ? "/settings" : `/settings/${key}`);
+// On a phone /settings is the list, so the preferences area gets its own address there.
+export const sectionPath = (key, phone = false) => {
+  if (key !== "settings") return `/settings/${key}`;
+  return phone ? "/settings/general" : "/settings";
+};
 
 // The section for the :section URL part, or undefined for an address that isn't one.
-export const sectionFor = (param) => SECTIONS.find((s) => s.key === (param ?? "settings"));
-
+// "general" is the phone address of the preferences area; "settings" is only ever redirected.
+export const sectionFor = (param) => {
+  const key = param === "general" ? "settings" : (param ?? "settings");
+  return SECTIONS.find((s) => s.key === key);
+};

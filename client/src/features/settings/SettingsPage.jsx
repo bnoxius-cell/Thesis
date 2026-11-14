@@ -1,8 +1,7 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { Hammer } from "lucide-react";
-import { Badge, EmptyState } from "@/shared/ui";
+import { Badge, Button, EmptyState } from "@/shared/ui";
 import Page from "@/app/shell/Page";
-import PlaceholderPage from "@/app/PlaceholderPage";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import WhatsNewContent from "@/features/whats-new/WhatsNewContent";
 import useWhatsNew from "@/features/whats-new/useWhatsNew";
@@ -26,15 +25,35 @@ const BODIES = {
 };
 
 // /settings and /settings/:section. From 1024px a list of areas sits left of the open one; on a phone
-// /settings is the list and each area is its own screen with a back arrow. An address that is not an
-// area shows the not-found page with no area lit.
+// /settings is the list and each area is its own screen with a back arrow (the preferences area lives
+// at /settings/general there). An address that is not an area shows the list with none lit and a
+// way back (frame 290:845).
 export default function SettingsPage() {
   const { section } = useParams();
   const phone = useMediaQuery("(max-width: 1023px)");
   const current = sectionFor(section);
 
+  if (section === "settings" || (section === "general" && !phone)) {
+    return <Navigate to={sectionPath("settings", phone)} replace />;
+  }
+
   if (!current) {
-    return <PlaceholderPage title="Page not found" heading="We can't find that page" body="The link may be old or mistyped." shell />;
+    return (
+      <Page title="Settings" back={phone ? { to: "/settings", label: "Back to Me" } : undefined}>
+        <div className="settings">
+          {!phone && <SectionNav />}
+          <div className="settings__body">
+            <EmptyState
+              icon={Hammer}
+              title="That page isn't here"
+              actions={<Button to="/settings">Go to Settings</Button>}
+            >
+              It may have moved. Your settings are one tap away.
+            </EmptyState>
+          </div>
+        </div>
+      </Page>
+    );
   }
 
   if (phone && !section) {
