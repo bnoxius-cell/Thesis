@@ -1,4 +1,6 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
+import { useAuth } from "@/pages/authentication/AuthContext";
+import { syncPush } from "@/utils/pushClient";
 import PageArrival from "./PageArrival";
 import useFocusMain from "./useFocusMain";
 import AddProvider from "./shell/add/AddProvider";
@@ -16,6 +18,12 @@ import "./layout.css";
 export default function AppLayout() {
   const main = useRef(null);
   useFocusMain(main);
+  const { backendUrl, userData } = useAuth();
+  const userId = userData?._id;
+  // If this browser had alerts on, make sure the server still has its subscription.
+  useEffect(() => {
+    if (userId) syncPush(backendUrl, userId);
+  }, [backendUrl, userId]);
   const [collapsed, toggleCollapsed] = useSidebarCollapsed();
   return (
     <UnreadProvider>

@@ -46,6 +46,7 @@ export default function UiSpecimen() {
         <Badge count={42} />
         <Badge count={120} />
         <Badge count={0} />
+        <Badge dot />
       </Section>
 
       <Section title="Avatar">

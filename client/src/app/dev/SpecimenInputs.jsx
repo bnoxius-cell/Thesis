@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { LogOut, Settings, Trash2, User } from "lucide-react";
-import { Button, Field, Menu, MenuDivider, MenuItem, Segment, SelectButton, Tabs } from "@/shared/ui";
+import { Button, Field, Menu, MenuDivider, MenuItem, Segment, SelectButton, Switch, Tabs } from "@/shared/ui";
 import Section from "./Section";
 
 const HOURS = [1, 2, 3, 4, 5, 6].map((h) => ({ value: h, label: `${h} ${h === 1 ? "hour" : "hours"}` }));
@@ -38,6 +38,7 @@ export default function SpecimenInputs() {
   const [picked, setPicked] = useState("Nothing yet");
   const [layout, setLayout] = useState("week");
   const [timetable, setTimetable] = useState("My week");
+  const [alertsOn, setAlertsOn] = useState(true);
 
   return (
     <>
@@ -76,6 +77,12 @@ export default function SpecimenInputs() {
           </Field>
           <Segment label="Layout" options={[{ value: "week", label: "Week" }, { value: "month", label: "Month" }, { value: "tasks", label: "Tasks" }]} value={layout} onChange={setLayout} />
         </div>
+      </Section>
+
+      <Section title="Switch">
+        <Switch label="On" checked={alertsOn} onChange={setAlertsOn} />
+        <Switch label="Off" checked={!alertsOn} onChange={(on) => setAlertsOn(!on)} />
+        <Switch label="Disabled" checked={false} disabled />
       </Section>
 
       <Section title="Tabs">

@@ -53,7 +53,7 @@ export default function WhatsNewWindow() {
       onClose={close}
       actions={(
         <>
-          <Button variant="secondary" to="/whats-new" onClick={close}>See all updates</Button>
+          <Button variant="secondary" to="/settings/whats-new" onClick={close}>See all updates</Button>
           <Button ref={gotItRef} onClick={close}>Got it</Button>
         </>
       )}

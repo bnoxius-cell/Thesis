@@ -98,9 +98,9 @@ export const NAV_GROUPS = [
 export const SETTINGS_ITEM = {
   key: "settings",
   label: "Settings",
-  to: "/me/settings",
+  to: "/settings",
   icon: Settings,
-  isActive: (loc) => under(loc.pathname, "/me/settings"),
+  isActive: (loc) => under(loc.pathname, "/settings"),
 };
 
 export const ALL_ITEMS = [...NAV_GROUPS.flatMap((group) => group.items), SETTINGS_ITEM];

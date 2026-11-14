@@ -6,7 +6,7 @@ const LINKS = [
   { label: "Terms", to: "/terms-of-service" },
   { label: "Privacy", to: "/privacy-policy" },
   { label: "About", to: "/about" },
-  { label: "Help", to: "/me/help" },
+  { label: "Help", to: "/settings/help" },
 ];
 
 // The quiet row at the foot of every signed-in page (Figma 164:3243, 164:3376): the name on the left
