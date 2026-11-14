@@ -1,0 +1,342 @@
+/* The Flashcards side of Practice (Figma 144:826, 146:1038) and the Make flashcards dialog (261:860).
+   The tab row's link reuses .study-tabsrow__link. Phone rules come first, desktop ones at 721px. */
+@layer pages {
+  .fc-list,
+  .fc-decks {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .fc-decks {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  /* FC-F1: the empty state is a white bordered card with a bigger icon and a wider line. */
+  .ui-empty.fc-empty {
+    gap: var(--space-3);
+    padding: 56px var(--space-5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+  .fc-empty .ui-empty__icon {
+    width: 72px;
+    height: 72px;
+  }
+  .fc-empty .ui-empty__icon > svg {
+    width: 32px;
+    height: 32px;
+  }
+  .fc-empty .ui-empty__title {
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+  }
+  .fc-empty .ui-empty__text {
+    max-width: 520px;
+    font: 400 var(--text-md, 16px) / 24px var(--font-ui);
+  }
+  .fc-skeleton {
+    border-radius: var(--radius-xl);
+  }
+
+  .fc-due,
+  .fc-deck {
+    box-sizing: border-box;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+
+  /* ---- Due today ---- */
+  .fc-due {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: 14px var(--space-4) var(--space-4);
+  }
+  .fc-due__text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+  .fc-due__title,
+  .fc-deck__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .fc-due__line,
+  .fc-deck__meta {
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .fc-due__start {
+    width: 100%;
+  }
+
+  /* ---- Deck rows: the title is a stretched link, so the whole row opens the deck ---- */
+  /* Phone: the title takes the full row, then the meta line and the status chip share the next one. */
+  .fc-deck {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-1) var(--space-3);
+    min-height: 44px;
+    padding: 14px var(--space-4);
+    transition:
+      background-color var(--hover-dur) var(--hover-ease),
+      transform var(--dur-2) var(--ease-out);
+  }
+  .fc-deck__text {
+    display: contents;
+  }
+  .fc-deck__title {
+    grid-column: 1 / -1;
+  }
+  .fc-deck__link {
+    color: inherit;
+    text-decoration: none;
+  }
+  .fc-deck__link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+  .fc-deck__link:focus-visible {
+    outline: none;
+  }
+  .fc-deck__link:focus-visible::after {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .fc-deck:active {
+    transform: scale(0.99);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .fc-deck:hover {
+      background: var(--surface-2);
+    }
+  }
+  .fc-deck__side {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  /* The subject chip, "Study" and the layers mark are desktop only. */
+  .fc-deck .fc-deck__subject,
+  .fc-deck .fc-deck__study,
+  .fc-deck .fc-deck__icon {
+    display: none;
+  }
+  .fc-deck__study {
+    position: relative;
+    z-index: 1;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 var(--space-2);
+    color: var(--accent);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    text-decoration: none;
+  }
+  .fc-deck__study:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+    border-radius: var(--radius-sm);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .fc-deck__study:hover {
+      text-decoration: underline;
+    }
+  }
+  .fc-deck__icon {
+    flex: none;
+    color: var(--text-secondary);
+  }
+
+  @media (min-width: 721px) {
+    .fc-due {
+      flex-direction: row;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-4) 20px;
+    }
+    .fc-due__start {
+      flex: none;
+      width: auto;
+    }
+    .fc-deck {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-4) 20px;
+    }
+    .fc-deck__text {
+      display: flex;
+      flex: 1 1 0;
+      flex-direction: column;
+      gap: var(--space-1);
+      min-width: 0;
+    }
+    .fc-deck .fc-deck__subject,
+    .fc-deck .fc-deck__icon,
+    .fc-deck .fc-deck__study {
+      display: inline-flex;
+    }
+  }
+
+  /* The reviewer page's Flashcards card shows a failed make here. */
+  .fc-card__error {
+    margin: 0;
+    color: var(--danger);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+
+  /* ---- Make flashcards dialog ---- */
+  /* 480px wide (the frames); the phone sheet keeps its close X and has no Cancel row. */
+  @media (min-width: 720px) {
+    .ui-modal.fc-dialog {
+      max-width: 480px;
+    }
+  }
+  @media (max-width: 719.98px) {
+    .ui-modal--sheet.fc-dialog:has(> .ui-modal__actions) .ui-modal__head .ui-icon-btn {
+      display: inline-flex;
+    }
+    .fc-dialog__cancel {
+      display: none;
+    }
+  }
+
+  /* The reviewer radios. Bare label and input are styled globally (column flex, full width), so the row
+     and the hidden input say what they are. Arrow keys come with the native radio group. */
+  .fc-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-height: 288px;
+    margin: -3px;
+    padding: 3px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .fc-option {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out),
+      box-shadow var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  .fc-option:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .fc-option:has(input:focus-visible) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .fc-option:active:not(.is-disabled) {
+    transform: scale(0.99);
+  }
+  .fc-option.is-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .fc-option__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .fc-option__mark {
+    display: grid;
+    flex: none;
+    place-items: center;
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid var(--border-input);
+    border-radius: 50%;
+    background: var(--surface);
+    transition: border-color var(--dur-2) var(--ease-out);
+  }
+  .fc-option__mark::after {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    transform: scale(0.5);
+    opacity: 0;
+    transition:
+      transform var(--dur-2) var(--ease-out),
+      opacity var(--dur-2) var(--ease-out);
+  }
+  .fc-option:has(input:checked) .fc-option__mark {
+    border-color: var(--accent);
+  }
+  .fc-option:has(input:checked) .fc-option__mark::after {
+    transform: scale(1);
+    opacity: 1;
+  }
+  .fc-option__text {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .fc-option__title {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .fc-option__sub {
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .fc-option.is-disabled .fc-option__title,
+  .fc-option.is-disabled .fc-option__sub {
+    color: var(--text-muted);
+  }
+
+  /* No ready reviewer yet (FC-F5). */
+  .fc-none {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    text-align: center;
+  }
+  .fc-none__text {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+}

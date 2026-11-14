@@ -12,6 +12,7 @@ export const ADD_OPTIONS = [
   { kind: "activity", title: "Activity", hint: "Org, sports or work you do each week", icon: "shapes", group: "plan" },
   { kind: "subject", title: "Subject", hint: "A course for your tasks and notes", icon: "subjects", group: "study" },
   { kind: "reviewer", title: "Reviewer", hint: "Practice questions from your notes", icon: "reviewers", group: "study" },
+  { kind: "flashcards", title: "Flashcards", hint: "Cards from a reviewer or your own", icon: "flashcards", group: "study" },
   { kind: "file", title: "File", hint: "Upload a file to your library", icon: "file", group: "study" },
   { kind: "group", title: "New group", hint: "Start a space for a class or club", icon: "people", group: "people" },
   { kind: "join", title: "Join a group", hint: "Use a code someone sent you", icon: "link", group: "people" },
@@ -53,7 +54,7 @@ const groupHref = (id) => `/people/groups/${id}`;
 
 // The toast after a save: its message and where "View" goes. `result` is the saved task, subject or group, `{ entry }`
 // (the saved entry's date or days) for class, exam, event and activity, and nothing for a reviewer, which the
-// server is still writing.
+// server is still writing. Flashcards has no toast: the Flashcards tab shows the new deck (AddProvider).
 export function addedToast(kind, result, today = new Date()) {
   if (kind === "group") return { message: "Group created. Share its join code with your classmates.", href: groupHref(result._id) };
   if (kind === "join") return { message: "You joined the group.", href: groupHref(result._id) };

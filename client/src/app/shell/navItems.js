@@ -22,8 +22,9 @@ const under = (pathname, base) => pathname === base || pathname.startsWith(`${ba
 const param = ({ search }, key) => new URLSearchParams(search).get(key);
 
 const onPlan = (loc) => under(loc.pathname, "/plan");
-// Practice covers the reviewer pages too: a reviewer belongs to it. Files covers its folder pages.
-const onStudyPractice = (loc) => under(loc.pathname, "/study/practice") || under(loc.pathname, "/study/reviewers");
+// Practice covers the reviewer and flashcard pages too: they belong to it. Files covers its folder pages.
+const onStudyPractice = (loc) =>
+  under(loc.pathname, "/study/practice") || under(loc.pathname, "/study/reviewers") || under(loc.pathname, "/study/flashcards");
 const onStudyFiles = (loc) => under(loc.pathname, "/study/files");
 const onWellbeing = (loc) => under(loc.pathname, "/wellbeing");
 

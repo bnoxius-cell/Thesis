@@ -28,7 +28,7 @@ describe('addSections', () => {
     it('puts the page group first and the rest under "Everything else"', () => {
         const [first, rest] = addSections('/study');
         expect(first.heading).toBe('Study');
-        expect(first.rows.map((row) => row.kind)).toEqual(['subject', 'reviewer', 'file']);
+        expect(first.rows.map((row) => row.kind)).toEqual(['subject', 'reviewer', 'flashcards', 'file']);
         expect(rest.heading).toBe('Everything else');
         expect(rest.rows.map((row) => row.kind)).toEqual(['task', 'class', 'exam', 'event', 'activity', 'group', 'join', 'friend']);
     });
