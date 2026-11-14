@@ -3,6 +3,10 @@ import { get, put } from "./http";
 // Saves part of the signed-in student's profile. Answers { data } or { error }.
 export const updateProfile = (fields) => put("/api/user/profile", fields);
 
+// Saves the signed-in student's picture: a small JPEG data URL from compressImage(file, AVATAR_PICTURE),
+// or "" to go back to the initial. Answers { data: { avatar } } or { error }.
+export const updateAvatar = (avatar) => put("/api/user/avatar", { avatar });
+
 // Another student's profile, for friends and people who share a group with the student:
 // { profile }. It has _id, name, avatar, program, bio, profileTag, relation ("none" | "sent" |
 // "received" | "friends"), requestId (set when relation is "received") and sharedGroups ([{ _id,

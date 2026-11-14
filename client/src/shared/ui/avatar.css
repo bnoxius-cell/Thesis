@@ -21,4 +21,16 @@
     font-size: var(--text-3xl);
     line-height: var(--lh-tight);
   }
+  .ui-avatar--row.ui-avatar--initial {
+    font-size: var(--text-md);
+    line-height: 20px;
+  }
+  .ui-avatar--field.ui-avatar--initial {
+    font-size: var(--text-3xl);
+    line-height: var(--lh-tight);
+  }
+  .ui-avatar--hero.ui-avatar--initial {
+    font-size: 2.75rem; /* Figma 44px */
+    line-height: var(--lh-tight);
+  }
 }
