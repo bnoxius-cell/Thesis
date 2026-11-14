@@ -23,6 +23,7 @@ const FlashcardReviewPage = lazy(() => import("@/features/flashcards/FlashcardRe
 const PracticePage =lazy(() => import("@/features/practice/PracticePage"));
 const PeoplePage = lazy(() => import("@/features/people/PeoplePage"));
 const ProfilePage = lazy(() => import("@/features/people/ProfilePage"));
+const MyProfilePage = lazy(() => import("@/features/profile/ProfilePage"));
 const SettingsPage = lazy(() => import("@/features/settings/SettingsPage"));
 const WellbeingPage = lazy(() => import("@/features/wellbeing/WellbeingPage"));
 const CheckInPage = lazy(() => import("@/features/checkin/CheckInPage"));
@@ -76,7 +77,7 @@ export default function AppRoutes() {
           <Route path="/people/groups/:groupId" element={<PeoplePage />} />
           <Route path="/people/friends" element={<PeoplePage tab="friends" />} />
           <Route path="/people/:userId" element={<ProfilePage />} />
-          <Route path="/profile" element={<PlaceholderPage title="Profile" heading="We're redrawing this part" shell />} />
+          <Route path="/profile" element={<MyProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/settings/:section" element={<SettingsPage />} />
           <Route path="/me" element={<RedirectTo to="/profile" />} />

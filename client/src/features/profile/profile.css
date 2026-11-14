@@ -1,0 +1,355 @@
+/* Profile (Figma 290:16329 desktop, 292:2586 phone) and Edit profile (293:2133 dialog, 298:18892
+   sheet). One column of cards on a phone; from 720px the two small cards sit side by side under the
+   hero. Tokens only. */
+@layer pages {
+  .profile {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: start;
+  }
+  .profile > * {
+    min-width: 0;
+  }
+  @media (min-width: 720px) {
+    .profile {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .profile > :first-child {
+      grid-column: 1 / -1;
+    }
+  }
+
+  /* ---- Hero card ---- */
+  .profile-hero,
+  .profile-card {
+    box-sizing: border-box;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+    overflow: hidden;
+  }
+  .profile-hero__cover {
+    position: relative;
+    height: 176px;
+  }
+  .profile-hero__band {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 120px;
+    background: var(--accent-soft);
+  }
+  .profile-hero__photo {
+    position: absolute;
+    top: 72px;
+    left: var(--space-5);
+    box-sizing: border-box;
+    width: 104px;
+    height: 104px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: none;
+    cursor: pointer;
+  }
+  .profile-hero__photo:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .profile-hero__avatar {
+    border: 5px solid var(--surface); /* the white ring over the band */
+  }
+  .profile-hero__badge {
+    position: absolute;
+    top: 68px;
+    left: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    color: var(--text-primary);
+    transition: transform var(--dur-1) var(--ease-out);
+  }
+  .profile-hero__photo:active .profile-hero__badge {
+    transform: scale(0.97);
+  }
+  .profile-hero__actions {
+    position: absolute;
+    top: 128px;
+    right: var(--space-5);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .profile-hero__identity {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+    padding: var(--space-4) var(--space-5) var(--space-5);
+  }
+  .profile-hero__name {
+    margin: 0;
+    max-width: 100%;
+    color: var(--text-primary);
+    font: 600 1.75rem / 28px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .profile-hero__program {
+    margin: 0;
+    max-width: 100%;
+    color: var(--text-secondary);
+    font: 500 var(--text-md) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .profile-hero__since {
+    margin: var(--space-2) 0 var(--space-1);
+  }
+  .profile-hero__bio {
+    margin: 0;
+    max-width: 100%;
+    color: var(--text-secondary);
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+  }
+  .profile-hero__bio.is-empty {
+    color: var(--text-muted);
+  }
+  /* Only phones narrower than the cover's two buttons use this one (see the media query below). */
+  .profile-hero__see {
+    display: none;
+  }
+
+  .profile-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--border);
+    list-style: none;
+  }
+  .profile-stats__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 18px var(--space-1);
+    text-align: center;
+  }
+  .profile-stats__item + .profile-stats__item {
+    border-left: 1px solid var(--border);
+  }
+  .profile-stats__num {
+    color: var(--text-primary);
+    font: 600 var(--text-2xl) / 28px var(--font-ui);
+  }
+  .profile-stats__label {
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+
+  .profile-hero__private {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: 20px var(--space-5) var(--space-5);
+    border-top: 1px solid var(--border);
+  }
+  .profile-hero__private-label {
+    margin: 0;
+    color: var(--text-primary);
+    font: 500 var(--text-xs) / 20px var(--font-ui);
+  }
+  .profile-hero__private-text {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 0.9375rem / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+
+  @media (min-width: 720px) {
+    .profile-hero__photo,
+    .profile-hero__actions {
+      left: var(--space-6);
+    }
+    .profile-hero__actions {
+      left: auto;
+      right: var(--space-6);
+    }
+    .profile-hero__identity {
+      padding: var(--space-4) var(--space-6) var(--space-5);
+    }
+    .profile-hero__private {
+      padding-inline: var(--space-6);
+    }
+  }
+  /* Phone frame: the picture, then only Edit profile beside it; Preview goes under the bio. */
+  @media (max-width: 479px) {
+    .profile-hero__photo,
+    .profile-hero__actions {
+      left: 20px;
+    }
+    .profile-hero__actions {
+      left: auto;
+      right: 20px;
+    }
+    .profile-hero__identity,
+    .profile-hero__private {
+      padding-inline: 20px;
+    }
+    .profile-hero__preview {
+      display: none;
+    }
+    .profile-hero__see {
+      display: inline-flex;
+      margin: var(--space-2) 0 0 -20px; /* the button's own padding lines its label up with the text */
+    }
+  }
+
+  /* ---- Your rhythm, Your groups ---- */
+  .profile-card {
+    padding: var(--space-5) 0 var(--space-3);
+  }
+  .profile-card__head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0 var(--space-5) var(--space-2);
+  }
+  .profile-card__title {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+  }
+  .profile-card__rows {
+    margin: 0;
+  }
+  .profile-card__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-5);
+  }
+  .profile-card__row dt {
+    color: var(--text-secondary);
+    font: 400 0.9375rem / 20px var(--font-ui);
+  }
+  .profile-card__row dd {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-md) / 28px var(--font-ui);
+    text-align: right;
+  }
+  .profile-card__note {
+    margin: 0;
+    padding: var(--space-3) var(--space-5);
+    color: var(--text-muted);
+    font: 400 0.9375rem / 20px var(--font-ui);
+  }
+  .profile-card__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .profile-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    min-height: 64px;
+    padding: var(--space-3) var(--space-5);
+    color: inherit;
+    text-decoration: none;
+    transition: background-color var(--dur-2) var(--ease-out);
+  }
+  .profile-group:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+  }
+  @media (hover: hover) {
+    .profile-group:hover {
+      background: var(--surface-2);
+    }
+  }
+  .profile-group__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .profile-group__name {
+    color: var(--text-primary);
+    font: 500 var(--text-md) / 24px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .profile-group__meta {
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+
+  /* ---- Edit profile (the shell, title and actions come from Modal) ---- */
+  .profile-photo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .profile-photo__img {
+    flex: none;
+    animation: ui-fade-in 150ms var(--ease-out) backwards; /* a newly picked photo cross-fades in */
+  }
+  .profile-photo__side {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .profile-photo__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .profile-photo__hint,
+  .profile-photo__error {
+    margin: 0;
+    padding-left: 20px; /* lines up with the button labels */
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .profile-photo__hint {
+    color: var(--text-primary);
+  }
+  .profile-photo__error,
+  .profile-dialog__error {
+    color: var(--danger);
+  }
+  .profile-dialog__error {
+    margin: 0;
+    font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+  }
+  /* The two buttons plus the hint are too wide for a narrow phone beside the picture. */
+  @media (max-width: 400px) {
+    .profile-photo {
+      align-items: flex-start;
+    }
+    .profile-photo__buttons .ui-btn {
+      padding-inline: var(--space-3);
+    }
+    .profile-photo__hint,
+    .profile-photo__error {
+      padding-left: var(--space-3);
+    }
+  }
+}

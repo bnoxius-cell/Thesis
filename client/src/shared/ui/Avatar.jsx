@@ -1,10 +1,10 @@
 import { useState } from "react";
 import "./avatar.css";
 
-const SIZES = { md: 36, lg: 44, xl: 96 };
+const SIZES = { md: 36, lg: 44, row: 40, field: 72, xl: 96, hero: 104 };
 
 // A person's picture, or their first initial when there is none (or it fails to load).
-// size: md (36) | lg (44) | xl (profile page). Decorative: the name sits next to it.
+// size: md (36) | lg (44) | row (40, list rows) | field (72, a form's photo) | xl (96) | hero (104, the Profile page). Decorative: the name sits next to it.
 export default function Avatar({ name, src, size = "md", className = "" }) {
   const [broken, setBroken] = useState(false);
   const classes = `ui-avatar ui-avatar--${size} ${className}`.trim();
