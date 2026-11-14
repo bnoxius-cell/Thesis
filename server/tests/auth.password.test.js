@@ -134,7 +134,7 @@ describe('setting a first password on a Google-only account', () => {
         const res = await resetWith(agent, GOOGLE_EMAIL, wrong);
 
         expect(res.body.success).toBe(false);
-        expect(res.body.message).toMatch(/invalid otp/i);
+        expect(res.body.message).toMatch(/isn't right/i);
         expect((await userModel.findOne({ email: GOOGLE_EMAIL })).passwordSet).toBe(false);
     });
 
@@ -215,8 +215,8 @@ describe('changing a password', () => {
         const answers = [];
         for (let i = 0; i < 5; i++) answers.push((await resetWith(agent, EMAIL, wrong)).body.message);
 
-        expect(answers.slice(0, 4)).toEqual(Array(4).fill('Invalid OTP.'));
-        expect(answers[4]).toMatch(/too many wrong codes/i);
+        answers.slice(0, 4).forEach((message) => expect(message).toMatch(/isn't right/i));
+        expect(answers[4]).toMatch(/too many wrong tries/i);
         expect((await resetWith(agent, EMAIL, otp)).body.success).toBe(false);
     });
 

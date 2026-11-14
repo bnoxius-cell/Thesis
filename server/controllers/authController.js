@@ -11,6 +11,9 @@ import { serverError } from '../utils/httpErrors.js';
 
 const OTP_LIFETIME_MS = 20 * 60 * 1000;
 const MAX_OTP_ATTEMPTS = 5;
+const CODE_WRONG = "That code isn't right. Check the email and try again.";
+const CODE_EXPIRED = 'That code has expired. Ask for a new one.';
+const CODE_USED_UP = 'Too many wrong tries. Ask for a new code.';
 
 const OTP_FIELDS = {
     verify: { code: 'verifyEmailOtp', expireAt: 'verifyEmailOtpExpireAt', attempts: 'verifyEmailOtpAttempts' },
@@ -32,26 +35,26 @@ const codesMatch = (stored, submitted) => {
 const consumeOtp = async (user, kind, submitted) => {
     const { code, expireAt, attempts } = OTP_FIELDS[kind];
     const stored = user[code];
-    if (!stored || !['string', 'number'].includes(typeof submitted)) return 'Invalid OTP.';
+    if (!stored || !['string', 'number'].includes(typeof submitted)) return CODE_WRONG;
 
     const sameCode = { _id: user._id, [code]: stored };
     const counted = await userModel.findOneAndUpdate(sameCode, { $inc: { [attempts]: 1 } }, { returnDocument: 'after' });
-    if (!counted) return 'Invalid OTP.';
+    if (!counted) return CODE_WRONG;
 
     const burn = () => userModel.updateOne(sameCode, { [code]: '', [expireAt]: 0 });
     if (counted[attempts] > MAX_OTP_ATTEMPTS) {
         await burn();
-        return 'Too many wrong codes. Please request a new one.';
+        return CODE_USED_UP;
     }
     if (!codesMatch(stored, submitted)) {
-        if (counted[attempts] < MAX_OTP_ATTEMPTS) return 'Invalid OTP.';
+        if (counted[attempts] < MAX_OTP_ATTEMPTS) return CODE_WRONG;
         await burn();
-        return 'Too many wrong codes. Please request a new one.';
+        return CODE_USED_UP;
     }
-    if (counted[expireAt] < Date.now()) return 'OTP has expired.';
+    if (counted[expireAt] < Date.now()) return CODE_EXPIRED;
 
     const used = await userModel.updateOne(sameCode, { [code]: '', [expireAt]: 0, [attempts]: 0 });
-    return used.modifiedCount === 1 ? null : 'Invalid OTP.';
+    return used.modifiedCount === 1 ? null : CODE_WRONG;
 };
 
 // Saves a fresh code of the given kind on the user (and resets its wrong-guess count).
