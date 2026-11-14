@@ -132,6 +132,9 @@
     overflow-wrap: anywhere;
   }
   .settings-row__hint a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px; /* a tap target, not a bare text link */
     color: var(--accent);
     overflow-wrap: anywhere;
   }
