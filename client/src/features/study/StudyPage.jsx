@@ -121,7 +121,7 @@ function Study() {
             )}
             {!practiceTab && data.subjects.length === 0 && (
               <EmptyState icon={FileText} title="No subjects yet" actions={<Button onClick={openNew}>Add subject</Button>}>
-                They will show up here once you add them.
+                Subjects keep a course's classes, tasks, files and reviewers together.
               </EmptyState>
             )}
             {practiceTab && (

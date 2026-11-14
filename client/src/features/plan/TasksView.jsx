@@ -2,7 +2,8 @@ import "./tasks-view.css";
 import { useEffect, useRef, useState } from "react";
 import { CheckCheck } from "lucide-react";
 import { toast } from "react-toastify";
-import { EmptyState } from "@/shared/ui";
+import { Button, EmptyState } from "@/shared/ui";
+import { useGlobalAdd } from "@/app/shell/add/addContext";
 import { prefersLessMotion } from "@/utils/motion";
 import { groupTasks } from "@/features/tasks/groupTasks";
 import { subjectForLabel } from "@/utils/subjectColors";
@@ -22,6 +23,7 @@ const TODAY_NOTE = { weekday: "short", month: "short", day: "numeric" };
 // listed for as long as this view is open, so its focus and place hold. An id that isn't on the list says
 // so once.
 export default function TasksView({ tasks, subjectsById, now, onToggle, onOpen, foundTaskId, onFound }) {
+  const { open: openAdd } = useGlobalAdd();
   const root = useRef(null);
   const handled = useRef(null);
   const [flashed, flash] = useFlash();
@@ -66,7 +68,7 @@ export default function TasksView({ tasks, subjectsById, now, onToggle, onOpen, 
 
   if (tasks.length === 0) {
     return (
-      <EmptyState page icon={CheckCheck} title="No tasks yet">
+      <EmptyState page icon={CheckCheck} title="No tasks yet" actions={<Button onClick={() => openAdd("task")}>Add a task</Button>}>
         Tasks you add show up here, grouped by when they are due.
       </EmptyState>
     );
