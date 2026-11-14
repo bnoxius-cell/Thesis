@@ -45,11 +45,9 @@
     line-height: var(--text-xs-lh);
   }
   .settings-row {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap; /* only the full-width error line wraps; text and control share one line */
+    display: grid; /* text left, control right on one line; only the full-width error line goes below */
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
     gap: var(--space-3) var(--space-4);
     box-sizing: border-box;
     width: 100%;
@@ -112,7 +110,7 @@
     min-width: 0;
   }
   .settings-row__error {
-    flex: 1 0 100%;
+    grid-column: 1 / -1;
     margin: 0;
     color: var(--danger);
     font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
@@ -133,6 +131,7 @@
   .settings-row__fail {
     flex: 0 1 auto;
     min-width: 0;
+    max-width: 10rem; /* caps the control's width so the label column keeps room at 320 */
     color: var(--danger);
     text-align: right;
   }

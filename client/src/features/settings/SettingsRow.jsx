@@ -12,14 +12,18 @@ export default function SettingsRow({ label, hint, error, inlineError, saved, st
         <span id={id} className="settings-row__label">{label}</span>
         {hint && <span className="settings-row__hint">{hint}</span>}
       </div>
-      {inlineError && <span className="settings-row__fail" role="alert">{inlineError}</span>}
-      {saved && (
-        <span className="settings-row__saved" aria-hidden="true">
-          <Check size={16} />
-          Saved
-        </span>
+      {(children || inlineError || saved) && (
+        <div className="settings-row__control">
+          {inlineError && <span className="settings-row__fail" role="alert">{inlineError}</span>}
+          {saved && (
+            <span className="settings-row__saved" aria-hidden="true">
+              <Check size={16} />
+              Saved
+            </span>
+          )}
+          {typeof children === "function" ? children(id) : children}
+        </div>
       )}
-      {children && <div className="settings-row__control">{typeof children === "function" ? children(id) : children}</div>}
       {error && <p className="settings-row__error" role="alert">{error}</p>}
     </div>
   );
