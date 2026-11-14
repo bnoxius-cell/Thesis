@@ -99,6 +99,48 @@
     min-height: 52px;
   }
 
+  /* The end screen (261:2654, 261:2674): one centred 480px column. The check badge settles once; the
+     numbers never count up. On a phone the buttons stack at the foot, clear of the home bar. */
+  .flash-done {
+    max-width: 480px;
+    text-align: center;
+  }
+  .flash-done__body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .flash-done__body > * {
+    margin: 0;
+    max-width: 100%;
+  }
+  .flash-done__badge {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--good-soft);
+    color: var(--good);
+    animation: checkin-check-pop var(--dur-2) var(--ease-out) backwards;
+  }
+  .flash-done__tally {
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .flash-done__unsaved {
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    color: var(--watch);
+  }
+  .flash-done__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-3);
+    padding-top: var(--space-3);
+  }
+
   /* Reduced motion (the rule in base.css, written out because the faces swap by opacity instead of
      turning): the card never rotates, and the face you can't see is transparent. */
   @media (prefers-reduced-motion: reduce) {
@@ -147,11 +189,31 @@
       color: var(--text-primary);
       text-align: left;
     }
-    .practice-main:has(.flash-column) {
+    .flash-top--done .flash-top__label {
+      flex: 0 1 auto;
+      font: 400 var(--text-sm) / 20px var(--font-ui);
+      color: var(--text-muted);
+      text-align: right;
+    }
+    .practice-main:has(.flash-column),
+    .practice-main:has(.flash-done) {
       align-items: stretch;
     }
-    .flash-column {
+    .flash-column,
+    .flash-done {
       flex: 1;
+    }
+    .flash-done__body {
+      flex: 1;
+      justify-content: center;
+    }
+    .flash-done__actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .flash-done__actions .ui-btn {
+      width: 100%;
+      min-height: 52px;
     }
     .flash-card__inner {
       min-height: 420px;

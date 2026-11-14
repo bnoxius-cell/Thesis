@@ -1,10 +1,10 @@
 import { useCallback } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { toast } from "react-toastify";
 import { FileQuestion, Layers } from "lucide-react";
 import { Button, EmptyState, Skeleton } from "@/shared/ui";
 import { useFocusView } from "@/app/shell/focusView";
 import usePageTitle from "@/app/usePageTitle";
+import FlashcardDone from "./FlashcardDone";
 import FlashcardStudy from "./FlashcardStudy";
 import { FLASHCARDS_TAB, deckHref } from "./flashcardLinks";
 import useFlashcardRun from "./useFlashcardRun";
@@ -38,24 +38,24 @@ function Message({ icon, title, children, exit, onRetry }) {
 export default function FlashcardReviewPage() {
   const deckId = useSearchParams()[0].get("deck") || "";
   const navigate = useNavigate();
-  const stateFrom = useLocation().state?.from;
+  const location = useLocation();
+  const stateFrom = location.state?.from;
   const from = typeof stateFrom === "string" && stateFrom.startsWith("/") && !stateFrom.startsWith("//") ? stateFrom : "";
+  const back = from || (deckId ? deckHref(deckId) : FLASHCARDS_TAB);
   const run = useFlashcardRun(deckId);
-  const { finish } = run;
+  const { complete } = run;
   useFocusView(true);
   usePageTitle("Flashcards");
 
   const exit = useCallback(() => {
-    navigate(from || (deckId ? deckHref(deckId) : FLASHCARDS_TAB), { replace: true });
-  }, [navigate, from, deckId]);
+    navigate(back, { replace: true });
+  }, [navigate, back]);
 
-  // Until the end screen (FC5) the run just goes back to where it started.
-  const onFinish = useCallback(async () => {
-    const { reviewed, unsaved } = await finish();
-    const cards = `${reviewed} ${reviewed === 1 ? "card" : "cards"}`;
-    toast.info(unsaved ? `Done. ${cards} reviewed, but ${unsaved} couldn't be saved.` : `Done. ${cards} reviewed.`);
-    exit();
-  }, [finish, exit]);
+  // A new run over what is still due: the same address and state (so Back still lands where the first run
+  // started), replaced rather than pushed, which reloads the review and keys a fresh study screen.
+  const again = useCallback(() => {
+    navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: location.state });
+  }, [navigate, location]);
 
   if (run.status === "loading") {
     return (
@@ -70,6 +70,18 @@ export default function FlashcardReviewPage() {
       </div>
     );
   }
+  if (run.status === "loaded" && run.summary) {
+    return (
+      <FlashcardDone
+        summary={run.summary}
+        practice={run.mode === "all"}
+        title={[run.deck?.course, run.deck?.title].filter(Boolean).join(" · ")}
+        backLabel={back.startsWith("/study/flashcards/") ? "Back to deck" : "Back to Practice"}
+        onBack={exit}
+        onAgain={again}
+      />
+    );
+  }
   if (run.status === "loaded") {
     return (
       <FlashcardStudy
@@ -79,7 +91,7 @@ export default function FlashcardReviewPage() {
         title={run.deck?.title || "Due today"}
         onExit={exit}
         onRate={run.rate}
-        onFinish={onFinish}
+        onFinish={complete}
       />
     );
   }

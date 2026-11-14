@@ -40,3 +40,12 @@ export function caughtUpLine(decks) {
 
 // "18 key terms" / "1 key term", the line under a reviewer in the dialog.
 export const termsLine = (terms) => (terms > 0 ? plural(terms, "key term") : "No key terms");
+
+// The end screen's words (FlashcardDone). A run that studied what was due says "today"; a practice run doesn't.
+export const doneHeadline = (reviewed, practice) => (practice ? `That's all ${plural(reviewed, "card")}.` : `That's all ${reviewed} for today.`);
+
+// "10 got it · 4 still learning", "14 got it" or "4 still learning".
+export const doneTally = (got, learning) => [got > 0 && `${got} got it`, learning > 0 && `${learning} still learning`].filter(Boolean).join(" · ");
+
+// "4 cards are still due today." / "1 card is still due today."
+export const stillDueLine = (cards) => `${cards} ${cards === 1 ? "card is" : "cards are"} still due today.`;
