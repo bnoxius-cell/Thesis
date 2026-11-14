@@ -5,12 +5,20 @@ import groupModel from '../models/groupMode.js';
 import { LEGAL_VERSION } from '../utils/legal.js';
 import { isValidPicture } from '../utils/images.js';
 import { serverError } from '../utils/httpErrors.js';
+import { setupSteps } from '../utils/setupSteps.js';
 
 const MAX_BIO_LENGTH = 200;
 const MAX_NAME_LENGTH = 60;
 const MAX_PROGRAM_LENGTH = 80;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const WELLBEING_GOALS = ['steady', 'catch-up', 'high-performance'];
+
+// The guide dates as booleans: clients only need to know whether each thing happened.
+const guideFlags = (user) => ({
+    welcomeDone: Boolean(user.guide?.welcomeDoneAt),
+    setupHidden: Boolean(user.guide?.setupHiddenAt),
+    setupDone: Boolean(user.guide?.setupDoneAt),
+});
 
 export const getUserData = async (req, res) => {
     try {
@@ -49,6 +57,7 @@ export const getUserData = async (req, res) => {
                 termsVersion: user.termsVersion,
                 currentLegalVersion: LEGAL_VERSION,
                 seenNotesVersion: user.seenNotesVersion,
+                guide: guideFlags(user),
                 termsAcceptedAt: user.termsAcceptedAt,
                 // Only whether the user chose a password of their own: the hash never leaves the server.
                 // Google sign-ups store a random hash, so they count as having none until they set one.
@@ -258,5 +267,49 @@ export const markNotesSeen = async (req, res) => {
         res.json({ success: true, seenNotesVersion: user.seenNotesVersion });
     } catch (error) {
         serverError(res, 'Saving the seen update failed', error);
+    }
+};
+
+// Each guide action and the update it makes. The date is only set the first time for welcome-done.
+const GUIDE_ACTIONS = {
+    'welcome-done': () => ({ filter: { 'guide.welcomeDoneAt': null }, set: { 'guide.welcomeDoneAt': new Date() } }),
+    'setup-hide': () => ({ filter: {}, set: { 'guide.setupHiddenAt': new Date() } }),
+    'setup-show': () => ({ filter: {}, set: { 'guide.setupHiddenAt': null } }),
+};
+
+// POST /api/user/guide
+// Saves one guide step for the signed-in student and answers with the new flags.
+export const saveGuide = async (req, res) => {
+    const action = req.body?.action;
+    if (typeof action !== 'string' || !Object.hasOwn(GUIDE_ACTIONS, action)) {
+        return res.status(400).json({ success: false, message: "That isn't a guide action." });
+    }
+    try {
+        const { filter, set } = GUIDE_ACTIONS[action]();
+        // welcome-done keeps its first date: when it's already set the filter misses, so read the user instead.
+        const user = await userModel.findOneAndUpdate({ _id: req.userId, ...filter }, { $set: set }, { returnDocument: 'after' })
+            ?? await userModel.findById(req.userId);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+        res.json({ success: true, guide: guideFlags(user) });
+    } catch (error) {
+        serverError(res, 'Saving the guide state failed', error);
+    }
+};
+
+// GET /api/user/setup
+// Which Get started steps the student has done. Plain booleans, worked out from what they own.
+export const getSetup = async (req, res) => {
+    try {
+        const user = await userModel.findById(req.userId);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+        const steps = await setupSteps(req.userId, user);
+        const done = Object.values(steps).every(Boolean);
+        if (done && !user.guide?.setupDoneAt) {
+            // The filter makes this safe when two tabs finish at once: only the first one writes.
+            await userModel.updateOne({ _id: req.userId, 'guide.setupDoneAt': null }, { $set: { 'guide.setupDoneAt': new Date() } });
+        }
+        res.json({ success: true, steps, done });
+    } catch (error) {
+        serverError(res, 'Loading the setup steps failed', error);
     }
 };
