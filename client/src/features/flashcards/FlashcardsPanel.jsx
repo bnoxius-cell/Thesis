@@ -35,7 +35,7 @@ export default function FlashcardsPanel({ flashcards, subjects, entries, now, on
   const { decks, due } = data;
   if (decks.length === 0) {
     return (
-      <EmptyState icon={Layers} title="No flashcards yet" actions={<Button onClick={onMake}>Make flashcards</Button>}>
+      <EmptyState icon={Layers} title="No flashcards yet" className="fc-empty" actions={<Button onClick={onMake}>Make flashcards</Button>}>
         Turn the key terms of a reviewer into cards, or write your own.
       </EmptyState>
     );

@@ -58,10 +58,14 @@ function Study() {
   const data = useSubjects();
   const { reviewers, settled, refresh: refreshReviewers } = useReviewers({ poll: practiceTab });
 
-  // Flashcards load once, when that side opens: the Reviewers side and the other tabs never ask for them.
-  const flashcards = useFlashcards({ enabled: practiceTab && show === "flashcards" });
-
-  const isNewAccount = data.status === "ready" && settled && data.subjects.length === 0 && !reviewers?.length;
+  // Flashcards load once, when that side opens: the Reviewers side and the other tabs never ask for them. A
+  // student with no subjects and no reviewers (the new-account screen) is the one other case: a deck of their
+  // own may be all they have, so it is looked up first and that screen only shows when there is none.
+  const flashcardsSide = practiceTab && show === "flashcards";
+  const looksNew = data.status === "ready" && settled && data.subjects.length === 0 && !reviewers?.length;
+  const flashcards = useFlashcards({ enabled: flashcardsSide || looksNew });
+  const checkingDecks = looksNew && !flashcardsSide && (flashcards.status === "idle" || flashcards.status === "loading");
+  const isNewAccount = looksNew && !flashcardsSide && !checkingDecks && !flashcards.data?.decks.length;
 
   const { open: openAdd } = useGlobalAdd();
   const openNew = () => openAdd("subject");
@@ -89,7 +93,7 @@ function Study() {
 
   return (
     <Page title="Study">
-      {data.status === "loading" && <StudySkeleton />}
+      {(data.status === "loading" || checkingDecks) && <StudySkeleton />}
       {data.status === "failed" && (
         <div className="study-failed" role="alert">
           <p>{data.error}</p>
@@ -97,7 +101,7 @@ function Study() {
         </div>
       )}
       {isNewAccount && <StudyEmpty onAddSubject={openNew} onUpload={openUpload} />}
-      {data.status === "ready" && !isNewAccount && (
+      {data.status === "ready" && !checkingDecks && !isNewAccount && (
         <div className="study-body">
           {!practiceTab && <PickUpHero reviewers={reviewers} />}
           <div className={`study-tabsrow${practiceTab ? "" : " study-tabsrow--subjects"}`}>

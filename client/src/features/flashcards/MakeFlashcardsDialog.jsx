@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Chip, Field, Modal, Segment } from "@/shared/ui";
+import { Button, Chip, Modal, Segment } from "@/shared/ui";
 import { useGlobalAdd } from "@/app/shell/add/addContext";
 import { createDeck, createDeckFromReviewer } from "@/shared/api/flashcards";
 import DeckFields from "./DeckFields";
@@ -42,13 +42,14 @@ function SourceOption({ source, picked, onPick, disabled }) {
 // Make flashcards (Figma 261:860 from a reviewer, 261:993 write my own, 261:1117 no reviewers, 261:1235 on a
 // phone). `sources` are the ready reviewers from the flashcards list ({ reviewerId, title, terms, deckId });
 // null means they didn't load, and Write my own still works. A reviewer that already has a deck opens it
-// instead of making a second one (the server answers `existing`). `onSaved(result)` gets { deck, ... }.
+// instead of making a second one (the server answers `existing`). On a phone the sheet keeps its close X and
+// drops Cancel, as frame 261:1235 draws it. `onSaved(result)` gets { deck, ... }.
 export default function MakeFlashcardsDialog({ subjects, sources, limits, onClose, onSaved }) {
   const { open } = useGlobalAdd();
   const [mode, setMode] = useState("reviewer");
   const [reviewerId, setReviewerId] = useState(() => firstUsable(sources));
   const [title, setTitle] = useState("");
-  const [subject, setSubject] = useState("");
+  const [subject, setSubject] = useState(null); // null shows "Choose a subject"; "" is the No subject option
   const [titleError, setTitleError] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -88,7 +89,7 @@ export default function MakeFlashcardsDialog({ subjects, sources, limits, onClos
       onSubmit={submit}
       noValidate
       sheet
-      className="study-dialog"
+      className="study-dialog fc-dialog"
       title="Make flashcards"
       subtitle="Turn a reviewer into cards, or write your own."
       busy={busy}
@@ -96,16 +97,14 @@ export default function MakeFlashcardsDialog({ subjects, sources, limits, onClos
       confirmClose={() => !reviewerSide && Boolean(title.trim())}
       actions={(close) => (
         <>
-          <Button variant="ghost" onClick={close} disabled={busy}>Cancel</Button>
+          <Button variant="ghost" className="fc-dialog__cancel" onClick={close} disabled={busy}>Cancel</Button>
           <Button type="submit" busy={busy} disabled={reviewerSide && !picked}>
             {opens ? "Open deck" : reviewerSide ? "Make flashcards" : "Make deck"}
           </Button>
         </>
       )}
     >
-      <Field label="Source">
-        {({ labelId }) => <Segment labelId={labelId} options={SOURCE_OPTIONS} value={mode} onChange={chooseMode} disabled={busy} />}
-      </Field>
+      <Segment label="Source" options={SOURCE_OPTIONS} value={mode} onChange={chooseMode} disabled={busy} />
       {reviewerSide && sources?.length > 0 && (
         <div className="fc-options" role="radiogroup" aria-label="Reviewer">
           {sources.map((source) => (
@@ -122,7 +121,7 @@ export default function MakeFlashcardsDialog({ subjects, sources, limits, onClos
       {reviewerSide && noReviewers && (
         <div className="fc-none">
           <p className="fc-none__text">Make a reviewer first, then turn its key terms into cards.</p>
-          <Button variant="secondary" onClick={() => open("reviewer")}>Make a reviewer</Button>
+          <Button variant="secondary" onClick={() => open("reviewer")}>New reviewer</Button>
         </div>
       )}
       {!reviewerSide && (

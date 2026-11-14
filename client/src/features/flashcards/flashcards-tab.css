@@ -12,6 +12,29 @@
     padding: 0;
     list-style: none;
   }
+  /* FC-F1: the empty state is a white bordered card with a bigger icon and a wider line. */
+  .ui-empty.fc-empty {
+    gap: var(--space-3);
+    padding: 56px var(--space-5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+  .fc-empty .ui-empty__icon {
+    width: 72px;
+    height: 72px;
+  }
+  .fc-empty .ui-empty__icon > svg {
+    width: 32px;
+    height: 32px;
+  }
+  .fc-empty .ui-empty__title {
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+  }
+  .fc-empty .ui-empty__text {
+    max-width: 520px;
+    font: 400 var(--text-md, 16px) / 24px var(--font-ui);
+  }
   .fc-skeleton {
     border-radius: var(--radius-xl);
   }
@@ -56,12 +79,13 @@
   }
 
   /* ---- Deck rows: the title is a stretched link, so the whole row opens the deck ---- */
+  /* Phone: the title takes the full row, then the meta line and the status chip share the next one. */
   .fc-deck {
     position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
-    gap: var(--space-2) var(--space-4);
+    align-items: center;
+    gap: var(--space-1) var(--space-3);
     min-height: 44px;
     padding: 14px var(--space-4);
     transition:
@@ -69,10 +93,10 @@
       transform var(--dur-2) var(--ease-out);
   }
   .fc-deck__text {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-    min-width: 0;
+    display: contents;
+  }
+  .fc-deck__title {
+    grid-column: 1 / -1;
   }
   .fc-deck__link {
     color: inherit;
@@ -149,10 +173,15 @@
     .fc-deck {
       display: flex;
       align-items: center;
+      gap: var(--space-4);
       padding: var(--space-4) 20px;
     }
     .fc-deck__text {
+      display: flex;
       flex: 1 1 0;
+      flex-direction: column;
+      gap: var(--space-1);
+      min-width: 0;
     }
     .fc-deck .fc-deck__subject,
     .fc-deck .fc-deck__icon,
@@ -169,6 +198,21 @@
   }
 
   /* ---- Make flashcards dialog ---- */
+  /* 480px wide (the frames); the phone sheet keeps its close X and has no Cancel row. */
+  @media (min-width: 720px) {
+    .ui-modal.fc-dialog {
+      max-width: 480px;
+    }
+  }
+  @media (max-width: 719.98px) {
+    .ui-modal--sheet.fc-dialog:has(> .ui-modal__actions) .ui-modal__head .ui-icon-btn {
+      display: inline-flex;
+    }
+    .fc-dialog__cancel {
+      display: none;
+    }
+  }
+
   /* The reviewer radios. Bare label and input are styled globally (column flex, full width), so the row
      and the hidden input say what they are. Arrow keys come with the native radio group. */
   .fc-options {

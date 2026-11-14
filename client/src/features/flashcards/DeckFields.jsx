@@ -22,7 +22,7 @@ export default function DeckFields({ title, onTitle, subject, onSubject, subject
       />
       <Field label="Subject">
         {(wiring) => (
-          <SelectButton {...wiring} block native={phone} options={options} value={subject} onChange={onSubject} disabled={disabled} label="Subject" />
+          <SelectButton {...wiring} block native={phone} options={options} value={subject} placeholder="Choose a subject" onChange={onSubject} disabled={disabled} label="Subject" />
         )}
       </Field>
     </>
