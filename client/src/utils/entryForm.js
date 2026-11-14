@@ -60,7 +60,8 @@ export const entryFormFrom = (entry) => ({
 // switching between them leaves nothing behind. startDate and endDate only belong to weekly entries.
 // A class or exam sends its subject's id; with none picked it sends nothing (the server links by name),
 // or `null` when the stored entry had one, which unlinks it. Events and activities send no subject.
-export function entryPayload(form, stored = {}) {
+export function entryPayload(form, storedEntry) {
+  const stored = storedEntry ?? {}; // adding passes null (no stored entry), which a default value wouldn't replace
   const { _id, ...kept } = stored;
   const once = form.repeat === REPEAT.once || form.kind === "exam";
   const payload = {
