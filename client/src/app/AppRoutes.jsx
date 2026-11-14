@@ -19,7 +19,8 @@ const FilesPage = lazy(() => import("@/features/files/FilesPage"));
 const SubjectPage = lazy(() => import("@/features/study/SubjectPage"));
 const ReviewerPage = lazy(() => import("@/features/study/ReviewerPage"));
 const DeckPage = lazy(() => import("@/features/flashcards/DeckPage"));
-const PracticePage = lazy(() => import("@/features/practice/PracticePage"));
+const FlashcardReviewPage = lazy(() => import("@/features/flashcards/FlashcardReviewPage"));
+const PracticePage =lazy(() => import("@/features/practice/PracticePage"));
 const PeoplePage = lazy(() => import("@/features/people/PeoplePage"));
 const ProfilePage = lazy(() => import("@/features/people/ProfilePage"));
 const WellbeingPage = lazy(() => import("@/features/wellbeing/WellbeingPage"));
@@ -81,6 +82,7 @@ export default function AppRoutes() {
         </Route>
         <Route element={<FocusLayout />}>
           <Route path="/study/reviewers/:reviewerId/practice" element={<PracticePage />} />
+          <Route path="/study/flashcards/review" element={<FlashcardReviewPage />} />
           <Route path="/wellbeing/check-in/:kind" element={<CheckInPage />} />
         </Route>
       </Route>
