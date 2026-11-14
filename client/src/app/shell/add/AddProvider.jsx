@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FLASHCARDS_TAB } from "@/features/flashcards/flashcardLinks";
+import { deckHref, FLASHCARDS_TAB, opensDeckPage } from "@/features/flashcards/flashcardLinks";
 import { showActionToast } from "@/shared/ui";
 import AddDialogs from "./AddDialogs";
 import { AddContext } from "./addContext";
@@ -8,7 +8,7 @@ import { addedToast } from "./addOptions";
 
 // Holds the global add for the signed-in area: which dialog is open, and the page that said (through
 // useAddHere) what it holds. After a save it closes the dialog, tells that page so it can refresh, and
-// toasts with a View button. It never navigates by itself, except that a saved deck opens the Flashcards tab.
+// toasts with a View button. It never navigates by itself, except that a saved deck opens its page (or the Flashcards tab, for one made from a reviewer).
 export default function AddProvider({ children }) {
   const navigate = useNavigate();
   const [request, setRequest] = useState(null);
@@ -39,11 +39,15 @@ export default function AddProvider({ children }) {
   };
 
   const saved = (kind, result) => {
-    // A deck shows up on the Flashcards tab, which says so itself: no toast, just take the student there.
+    // A deck shows up where it opens, which says so itself: no toast, just take the student there.
     if (kind === "flashcards") {
       setRequest(null);
-      tellPage(kind, result);
-      navigate(FLASHCARDS_TAB);
+      if (opensDeckPage(result)) {
+        navigate(deckHref(result.deck.id));
+      } else {
+        tellPage(kind, result);
+        navigate(FLASHCARDS_TAB);
+      }
       return;
     }
     const { message, href } = addedToast(kind, result);
