@@ -5,6 +5,17 @@
 // server/tests/releaseNotes.test.js checks the shape.
 export const RELEASE_NOTES = [
   {
+    id: "2026-11-14-2",
+    title: "Flashcards",
+    items: [
+      { tag: "new", text: "Make flashcards from a reviewer's key terms, or write your own, and find them in Practice." },
+      { tag: "new", text: "Review the cards due today. Tap Got it or Still learning and the ones you miss come back sooner." },
+      { tag: "new", text: "Each deck has its own page where you can add, edit and delete cards." },
+      { tag: "new", text: "A subject's Practice tab now holds its reviewers and its flashcards." },
+      { tag: "improved", text: "On your phone, drag any bottom sheet down to close it." },
+    ],
+  },
+  {
     id: "2026-11-14",
     title: "Question types and easier adding",
     items: [
