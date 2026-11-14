@@ -1,0 +1,300 @@
+/* Settings (Figma 276:3 desktop, 290:15286 phone list, 290:15387 and 290:15488 phone areas, 290:518 device states).
+   From 1024px: a 240px list of areas and a 680px column of cards. Tokens only. */
+@layer pages {
+  .settings {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+  .settings__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+
+  /* ---- Cards and rows ---- */
+  .settings-group {
+    box-sizing: border-box;
+    padding: 20px 0 var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+  }
+  .settings-group__title {
+    margin: 0 0 var(--space-3);
+    padding: 0 var(--space-5);
+    color: var(--text-primary);
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+  }
+  .settings-group__lead,
+  .settings-group__note {
+    margin: 0;
+    padding: 0 var(--space-5) var(--space-3);
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+  }
+  .settings-group__lead {
+    margin-top: calc(-1 * var(--space-2));
+  }
+  .settings-group__note {
+    padding-top: var(--space-1);
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs-lh);
+  }
+  .settings-row {
+    display: grid; /* text left, control right on one line; only the full-width error line goes below */
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 60px;
+    padding: 14px var(--space-5);
+  }
+  .settings-row + .settings-row {
+    border-top: 1px solid var(--border);
+  }
+  .settings-row--sub {
+    display: flex; /* label, segment and "Saved" share a line; the segment wraps under the label only when it can't fit */
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: var(--space-2) var(--space-3);
+    min-height: 0;
+    padding-top: 0;
+    padding-bottom: 14px;
+    border-top: 0;
+  }
+  .settings-row--sub > .settings-row__hint {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .settings-row--sub > .settings-row__error {
+    flex: 1 1 100%;
+  }
+  @media (max-width: 359px) {
+    /* Too narrow for segment + "Saved" side by side: "Saved" takes the label's line so the row never grows. */
+    .settings-row--sub > .settings-row__saved {
+      order: 1;
+      margin-left: auto;
+    }
+    .settings-row--sub > .settings-segment {
+      order: 2;
+      flex: 1 1 100%;
+    }
+    .settings-row--sub > .settings-row__error {
+      order: 3;
+    }
+  }
+  @media (max-width: 1023px) {
+    .settings-row--stacked {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: start;
+      gap: var(--space-3);
+    }
+  }
+  /* A compact segment: equal columns sized to the widest option, one line each. */
+  .settings-segment {
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    width: auto;
+    max-width: 100%;
+  }
+  .settings-segment .ui-segment__option {
+    padding-inline: var(--space-3);
+    white-space: nowrap;
+  }
+  .settings-row__text {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    gap: 2px;
+    min-width: 0;
+  }
+  .settings-row__label {
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+  }
+  .settings-row__hint {
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .settings-row__control {
+    display: flex;
+    flex-direction: row;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+  .settings-row__error {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--danger);
+    font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+  }
+
+  /* Beside a switch: "Saved" fades in after a change; a failed save says so in red. */
+  .settings-row__saved,
+  .settings-row__fail {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font: 400 var(--text-xs) / var(--text-xs-lh) var(--font-ui);
+  }
+  .settings-row__saved {
+    color: var(--good);
+    animation: settings-saved-in var(--dur-3) var(--ease-out);
+  }
+  .settings-row__fail {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 10rem; /* caps the control's width so the label column keeps room at 320 */
+    color: var(--danger);
+    text-align: right;
+  }
+  @keyframes settings-saved-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* ---- Area list (desktop) ---- */
+  .settings-nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    box-sizing: border-box;
+    padding: var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+  .settings-nav__link {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 10px var(--space-3);
+    border-radius: var(--radius-lg);
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+    text-decoration: none;
+    transition: background-color var(--hover-dur) var(--hover-ease), color var(--hover-dur) var(--hover-ease);
+  }
+  .settings-nav__label {
+    flex: 1;
+  }
+  .settings-nav__link[aria-current="page"] {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .settings-nav__link:not([aria-current]):hover {
+      background: var(--surface-2);
+    }
+  }
+
+  /* ---- Phone list ---- */
+  .settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .settings-profile {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    padding: 14px var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+  .settings-profile__who {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+  .settings-profile__name {
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .settings-profile__program {
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .settings-menu {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    box-sizing: border-box;
+    padding: var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+  }
+  .settings-menu__row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px var(--space-3);
+    border: 0;
+    border-radius: var(--radius-lg);
+    background: none;
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .settings-menu__row[data-first] {
+    font-weight: 600;
+  }
+  .settings-menu__row > svg:last-child:not(:first-child) {
+    color: var(--text-muted);
+  }
+  .settings-menu__label {
+    flex: 1;
+  }
+  .settings-menu__row:active {
+    background: var(--surface-2);
+  }
+
+  @media (min-width: 1024px) {
+    .settings {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: var(--space-6);
+    }
+    .settings-nav {
+      flex: none;
+      width: 240px;
+    }
+    .settings__body {
+      flex: 0 1 680px;
+      width: 680px;
+      max-width: 100%;
+    }
+  }
+}

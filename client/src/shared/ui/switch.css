@@ -1,0 +1,61 @@
+/* Switch: a 44x44 button around a 40x24 pill. Off is a --border-input track (3:1 on the surface),
+   on is --accent. The knob moves with transform only, 150ms ease-out. */
+@layer components {
+  .ui-switch {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ui-switch__track {
+    position: relative;
+    box-sizing: border-box;
+    width: 40px;
+    height: 24px;
+    border-radius: var(--radius-pill);
+    background: var(--border-input);
+    transition: background-color var(--dur-2) var(--ease-out);
+  }
+  .ui-switch__knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+    transition: transform 150ms var(--ease-out);
+  }
+  .ui-switch[aria-checked="true"] .ui-switch__track {
+    background: var(--accent);
+  }
+  .ui-switch[aria-checked="true"] .ui-switch__knob {
+    transform: translateX(16px);
+  }
+  .ui-switch:active .ui-switch__knob {
+    transform: scale(0.96);
+  }
+  .ui-switch[aria-checked="true"]:active .ui-switch__knob {
+    transform: translateX(16px) scale(0.96);
+  }
+  .ui-switch:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 0;
+    border-radius: var(--radius-pill);
+  }
+  .ui-switch:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}

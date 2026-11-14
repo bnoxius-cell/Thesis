@@ -18,5 +18,6 @@ export { default as ProgressBar } from "./ProgressBar";
 export { default as Segment } from "./Segment";
 export { default as SelectButton } from "./SelectButton";
 export { default as Skeleton } from "./Skeleton";
+export { default as Switch } from "./Switch";
 export { default as Tabs } from "./Tabs";
 export { showActionToast } from "./toast";

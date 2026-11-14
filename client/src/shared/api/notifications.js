@@ -13,6 +13,9 @@ export const fetchUnreadSummary = () => get("/api/notifications/summary");
 // level "tasks" (shared tasks only) or "muted"; a group missing from it follows the account ("all").
 export const fetchPreferences = () => get("/api/notifications/preferences");
 
+// Saves just the fields sent (the server leaves the rest alone): { preferences }, or { error }.
+export const savePreferences = (fields) => put("/api/notifications/preferences", fields);
+
 // Saves one group's level ("all" | "tasks" | "muted"). The server replaces the whole override list,
 // so this reads the current list first and changes only that group's entry: { preferences }.
 export async function saveGroupLevel(groupId, level) {

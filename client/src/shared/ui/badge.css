@@ -14,4 +14,10 @@
     font: 400 var(--text-xs) / 18px var(--font-ui);
     font-variant-numeric: tabular-nums;
   }
+  .ui-badge--dot {
+    min-width: 0;
+    width: 8px;
+    height: 8px;
+    padding: 0;
+  }
 }

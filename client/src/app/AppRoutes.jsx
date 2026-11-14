@@ -23,7 +23,7 @@ const FlashcardReviewPage = lazy(() => import("@/features/flashcards/FlashcardRe
 const PracticePage =lazy(() => import("@/features/practice/PracticePage"));
 const PeoplePage = lazy(() => import("@/features/people/PeoplePage"));
 const ProfilePage = lazy(() => import("@/features/people/ProfilePage"));
-const WhatsNewPage = lazy(() => import("@/features/whats-new/WhatsNewPage"));
+const SettingsPage = lazy(() => import("@/features/settings/SettingsPage"));
 const WellbeingPage = lazy(() => import("@/features/wellbeing/WellbeingPage"));
 const CheckInPage = lazy(() => import("@/features/checkin/CheckInPage"));
 // Development-only specimen of the shared primitives.
@@ -76,10 +76,16 @@ export default function AppRoutes() {
           <Route path="/people/groups/:groupId" element={<PeoplePage />} />
           <Route path="/people/friends" element={<PeoplePage tab="friends" />} />
           <Route path="/people/:userId" element={<ProfilePage />} />
-          <Route path="/me" element={placeholder("Profile and settings")} />
-          <Route path="/me/help" element={placeholder("Help")} />
-          <Route path="/me/:section" element={placeholder("Profile and settings")} />
-          <Route path="/whats-new" element={<WhatsNewPage />} />
+          <Route path="/profile" element={<PlaceholderPage title="Profile" heading="We're redrawing this part" shell />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/settings/:section" element={<SettingsPage />} />
+          <Route path="/me" element={<RedirectTo to="/profile" />} />
+          <Route path="/me/profile" element={<RedirectTo to="/profile" />} />
+          <Route path="/me/settings" element={<RedirectTo to="/settings" />} />
+          <Route path="/me/account" element={<RedirectTo to="/settings/account" />} />
+          <Route path="/me/privacy" element={<RedirectTo to="/settings/privacy" />} />
+          <Route path="/me/help" element={<RedirectTo to="/settings/help" />} />
+          <Route path="/whats-new" element={<RedirectTo to="/settings/whats-new" />} />
           <Route path="/notifications" element={placeholder("Notifications")} />
         </Route>
         <Route element={<FocusLayout />}>
