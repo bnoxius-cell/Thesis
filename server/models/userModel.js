@@ -4,6 +4,9 @@ const userSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, default: '' },
+    // True once the user has chosen a password themselves (sign-up or an emailed-code reset).
+    // Google sign-ups store a random hash they never see, so this stays false for them.
+    passwordSet: { type: Boolean, default: false },
     bio: { type: String, default: '' },
     program: { type: String, default: 'BS Information Technology' },
     studyHoursPerDay: { type: Number, default: 4 },
@@ -19,9 +22,12 @@ const userSchema = new mongoose.Schema({
     avatar: { type: String, default: '' },
     verifyEmailOtp: { type: String, default: '' },
     verifyEmailOtpExpireAt: { type: Number, default: 0 },
+    // Wrong guesses at the current code; too many burns it (see consumeOtp in authController).
+    verifyEmailOtpAttempts: { type: Number, default: 0 },
     isAccountVerified: { type: Boolean, default: false },
     resetPasswordOtp: { type: String, default: '' },
     resetPasswordOtpExpireAt: { type: Number, default: 0 },
+    resetPasswordOtpAttempts: { type: Number, default: 0 },
     lastPSSSubmission: { type: Date, default: null },
     latestPSSScore: { type: Number, default: null },
     lastWHOSubmission: { type: Date, default: null },

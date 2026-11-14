@@ -50,9 +50,9 @@ export const getUserData = async (req, res) => {
                 currentLegalVersion: LEGAL_VERSION,
                 seenNotesVersion: user.seenNotesVersion,
                 termsAcceptedAt: user.termsAcceptedAt,
-                // Only whether the user has a password of their own: the hash never leaves the server.
-                // Google sign-ups store a random hash, so they count as having none.
-                hasPassword: Boolean(user.password) && user.authProvider !== 'google',
+                // Only whether the user chose a password of their own: the hash never leaves the server.
+                // Google sign-ups store a random hash, so they count as having none until they set one.
+                hasPassword: Boolean(user.passwordSet),
             }
         });
     } catch (error) {

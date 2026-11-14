@@ -73,7 +73,7 @@ describe('email verification flow', () => {
         const res = await agent.post('/api/auth/verify-email').send({ otp: '000000' });
 
         expect(res.body.success).toBe(false);
-        expect(res.body.message).toMatch(/invalid otp/i);
+        expect(res.body.message).toMatch(/isn't right/i);
     });
 
     test('rejects an expired OTP', async () => {
@@ -87,7 +87,7 @@ describe('email verification flow', () => {
         const res = await agent.post('/api/auth/verify-email').send({ otp: user.verifyEmailOtp });
 
         expect(res.body.success).toBe(false);
-        expect(res.body.message).toMatch(/otp has expired/i);
+        expect(res.body.message).toMatch(/has expired/i);
     });
 
     test('rejects a new OTP request once the account is already verified', async () => {
@@ -176,7 +176,7 @@ describe('password reset flow', () => {
         });
 
         expect(res.body.success).toBe(false);
-        expect(res.body.message).toMatch(/invalid otp/i);
+        expect(res.body.message).toMatch(/isn't right/i);
     });
 
     test('rejects resetting with an expired OTP', async () => {
@@ -194,6 +194,6 @@ describe('password reset flow', () => {
         });
 
         expect(res.body.success).toBe(false);
-        expect(res.body.message).toMatch(/otp has expired/i);
+        expect(res.body.message).toMatch(/has expired/i);
     });
 });

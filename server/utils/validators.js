@@ -4,6 +4,16 @@ export const validateEmail = (email) => {
     return re.test(email.trim().toLowerCase());
 };
 
+export const MIN_PASSWORD_LENGTH = 8;
+
+// The one rule for every password a user chooses (sign-up and reset).
+export const validateNewPassword = (password) => {
+    if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+        return { isValid: false, message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` };
+    }
+    return { isValid: true };
+};
+
 export const validateRegisterFields = (name, email, password) => {
     if (!name || !email || !password) {
         return { isValid: false, message: "All fields must be filled." };
@@ -13,11 +23,7 @@ export const validateRegisterFields = (name, email, password) => {
         return { isValid: false, message: "Please enter a valid email address." };
     }
 
-    if (password.length < 8) {
-        return { isValid: false, message: "Password must be at least 8 characters." };
-    }
-
-    return { isValid: true };
+    return validateNewPassword(password);
 };
 
 
@@ -55,5 +61,5 @@ export const validateResetPasswordFields = (email, otp, password) => {
     if (!otp) {
         return { isValid: false, message: 'OTP is required' };
     }
-    return { isValid: true };
+    return validateNewPassword(password);
 };
