@@ -430,6 +430,10 @@
   .wellbeing-how__body p {
     margin: 0;
   }
+  .wellbeing-how__more {
+    align-self: flex-start;
+    margin-left: calc(-1 * var(--space-4));
+  }
   .wellbeing-how__sources {
     font-size: var(--text-xs);
     line-height: 18px;
