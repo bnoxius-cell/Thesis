@@ -52,6 +52,7 @@ export default function AddDialogs({ request, onClose, onSaved, onSubjectMade })
         subjects={subjects}
         sources={sources}
         limits={limits}
+        defaultSubject={page?.subject?._id}
         onClose={onClose}
         onSaved={(result) => onSaved("flashcards", result)}
       />

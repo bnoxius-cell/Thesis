@@ -74,9 +74,29 @@
     flex-direction: column;
     gap: var(--space-4);
   }
-  .subject-actions {
+  /* Practice tab (FC-F17): the Segment at the left, its action at the right. On a phone the Segment keeps its
+     own width and Make flashcards floats above the bottom bar, as the Files tab's Upload does. */
+  .subject-practice__bar {
     display: flex;
-    justify-content: flex-end;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .subject-practice__segment {
+    width: 224px;
+    max-width: 100%;
+  }
+  .subject-practice__float {
+    position: fixed;
+    right: max(var(--space-4), env(safe-area-inset-right));
+    bottom: var(--files-above-bar);
+    z-index: 35;
+    box-shadow: var(--shadow-3);
+  }
+  /* The floating button leaves room to scroll past it. */
+  .subject-practice__panel--float {
+    padding-bottom: calc(44px + var(--space-4));
   }
 
   .subject-columns {
