@@ -1,6 +1,6 @@
-// What changed for students. One file per release in ./notes, named by its date: `2026-11-14.js`, and
-// `2026-11-14-2.js` for a second release the same day. The file name is the entry's id, so nothing else
-// needs editing: this module finds every file in the folder and sorts them newest first.
+// What changed for students. One file per DAY in ./notes, named by its date: `2026-11-14.js`. A second
+// release the same day goes into that day's file (add its items there), never a new `-2` file. The file
+// name is the entry's id, so nothing else needs editing: this module finds every file in the folder and sorts them newest first.
 //
 // A note file is `export default { title, items: [{ tag, text }] }`.
 // Wording: one sentence per item, 140 characters at most, talk to the student ("you", "your"), say what they'll
