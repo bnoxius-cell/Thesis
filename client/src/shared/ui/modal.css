@@ -122,6 +122,24 @@
     display: none;
   }
 
+  /* Drawer (notifications, Figma 290:17094): a full-height panel on the right edge with its left
+     corners rounded, over a lighter scrim than a dialog's. It slides in from the right. */
+  .ui-modal-overlay--drawer {
+    align-items: stretch;
+    justify-content: flex-end;
+    padding: 0;
+    background: color-mix(in srgb, var(--overlay) 55%, transparent);
+  }
+  .ui-modal--drawer {
+    width: min(400px, 100vw);
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    padding-right: env(safe-area-inset-right, 0px);
+    border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+    animation: ui-drawer-in var(--dur-3) var(--ease-out);
+  }
+
   /* Phones: less padding, and the actions stack full width with the main one first. */
   @media (max-width: 480px) {
     .ui-modal__head {

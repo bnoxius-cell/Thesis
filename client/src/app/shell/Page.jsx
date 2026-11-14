@@ -10,7 +10,8 @@ import "./shell.css";
 //   title     the h1, also the browser tab title
 //   subtitle  a quiet line under the title (Home's date)
 //   action    a node next to the title, usually an AddButton
-//   back      { to, label } shows a back arrow before the title; label says where it goes
+//   back      { to, label, onClick } shows a back arrow before the title; label says where it goes
+//             (an onClick that calls preventDefault takes over, to go back in history instead)
 export default function Page({ title, subtitle, action, back, children }) {
   usePageTitle(title);
   const [sentinel, stuck] = useStuck();
@@ -20,7 +21,7 @@ export default function Page({ title, subtitle, action, back, children }) {
       <span ref={sentinel} className="shell-pagewrap__sentinel" aria-hidden="true" />
       <header className="shell-header" data-stuck={stuck || undefined}>
         <div className={`shell-header__inner${back ? " shell-header__inner--back" : ""}`}>
-          {back && <IconButton to={back.to} icon={ArrowLeft} label={back.label} plain />}
+          {back && <IconButton to={back.to} icon={ArrowLeft} label={back.label} plain onClick={back.onClick} />}
           <div className="shell-header__main">
             <div className="shell-header__row">
               <h1 className="shell-header__title">{title}</h1>

@@ -27,6 +27,7 @@ const { default: app } = await import('../app.js');
 const { default: userModel } = await import('../models/userModel.js');
 const { default: reviewerModel } = await import('../models/reviewerModel.js');
 const { default: flashcardModel } = await import('../models/flashcardModel.js');
+const { default: notificationModel } = await import('../models/notificationModel.js');
 const { LEGAL_VERSION } = await import('../utils/legal.js');
 
 app.listen(PORT, () => console.log(`UI harness API on ${base}`));
@@ -119,10 +120,19 @@ const shareWithMaria = async (title, entry, role) => {
 await shareWithMaria('Org officers', { title: 'Officers meeting', kind: 'event', days: [3], startTime: '17:00', endTime: '18:00' }, 'viewer');
 await shareWithMaria('Study group', { title: 'Group study', kind: 'activity', days: [6], startTime: '14:00', endTime: '16:00' }, 'editor');
 
+const groupIds = [];
 for (const name of ['Capstone Team 4', 'Study Buddies']) {
     const made = await api('/api/groups', 'POST', { name, description: `${name} group chat` });
+    groupIds.push(made.group._id);
     await api(`/api/groups/${made.group._id}/messages`, 'POST', { text: 'Hi everyone, meeting at 3 tomorrow?' });
 }
+
+// Two unread rows in the shape the old site wrote them, with the old link paths (/groups?g=<id> and
+// /dashboard), to check that the inbox still opens them. The real routes now write the new paths.
+await notificationModel.create([
+    { recipient: maria._id, sender: jose._id, type: 'group_message', title: 'Capstone Team 4', message: 'Jose: Hi everyone, see you at 3.', link: `/groups?g=${groupIds[0]}`, group: groupIds[0] },
+    { recipient: maria._id, type: 'task_reminder', title: 'Task reminder', message: 'Lab report is due tomorrow.', link: '/dashboard' },
+]);
 
 // A ready reviewer for Maria, written straight to the model (no Gemini key here), so the Study page
 // and the open-reviewer view can be checked.
