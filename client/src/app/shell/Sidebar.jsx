@@ -47,7 +47,7 @@ export default function Sidebar({ collapsed, onToggle }) {
   );
 
   return (
-    <aside className="shell-sidebar" data-collapsed={collapsed || undefined}>
+    <aside className="shell-sidebar" data-collapsed={collapsed || undefined} data-tour-frame>
       <Link to="/home" className="shell-sidebar__logo" aria-label="StressCare home" title={collapsed ? "StressCare home" : undefined}>
         <img src={Logo} alt="" width="28" height="28" />
         <span aria-hidden="true">StressCare</span>

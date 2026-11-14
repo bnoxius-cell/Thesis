@@ -1,11 +1,37 @@
 /* Welcome tour (Figma 315:48, 315:220, 315:402, phone 316:312, 316:390): the Modal card and sheet,
    re-laid out as a centred column with the buttons pinned at the bottom. Tokens only. Motion follows
    .claude/docs/motion.md: a step change is a 120 ms fade out and a 200 ms fade in with an 8px slide
-   (from the right going on, from the left going back), and the dots change colour only. The global
-   reduced-motion rule in base.css makes both instant. */
+   (from the right going on, from the left going back), and the dots change colour only. A step that
+   points at the menu (Figma 322:957, 315:220, 322:1126, 315:402, phone 316:390) dims the page 55% except
+   a rounded hole over the real item, no outline; the hole and the window slide to the next step in
+   240 ms. The global reduced-motion rule in base.css makes all of it instant. */
 @layer pages {
   .welcome-tour {
     position: relative;
+    transition: translate var(--dur-3) var(--ease-out); /* set from TourDialog when beside the hole */
+  }
+  /* With a hole the Spotlight draws the dim, so the dialog's own overlay stops dimming. */
+  .welcome-tour-overlay--spot {
+    background: transparent;
+  }
+
+  .tour-spotlight,
+  .tour-spotlight__guard {
+    position: fixed;
+    transition:
+      top var(--dur-3) var(--ease-out),
+      left var(--dur-3) var(--ease-out),
+      width var(--dur-3) var(--ease-out),
+      height var(--dur-3) var(--ease-out);
+  }
+  .tour-spotlight {
+    z-index: 999; /* above the page and its bars, under the dialog overlay (1000) */
+    box-shadow: 0 0 0 100vmax rgb(0 0 0 / 55%); /* the frames' dim: black at 55% */
+    pointer-events: none;
+    animation: ui-fade-in var(--dur-2) var(--ease-out);
+  }
+  .tour-spotlight__guard {
+    z-index: 1001; /* over the dialog overlay, so a tap on the highlighted item is swallowed */
   }
 
   /* The X is 36px at 16px from the corner on a laptop; a phone sheet has none (drag or Skip). */
@@ -157,6 +183,19 @@
     }
     .tour-step {
       gap: 20px;
+    }
+    /* Beside the bar the sheet becomes a floating card: no handle, 12px side margins, 20px corners. */
+    .welcome-tour[data-spot] {
+      width: calc(100% - 24px);
+      padding: var(--space-3) 0 0;
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-3);
+    }
+    .welcome-tour[data-spot] > .ui-modal__handle {
+      display: none;
+    }
+    .welcome-tour[data-spot] .ui-modal__body {
+      padding-top: 0;
     }
     .welcome-tour .ui-modal__actions {
       padding: var(--space-2) 20px var(--space-5);

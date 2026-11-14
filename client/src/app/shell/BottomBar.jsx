@@ -14,7 +14,7 @@ export default function BottomBar() {
   if (hidden) return null;
 
   return (
-    <nav className="shell-bottombar" aria-label="Main">
+    <nav className="shell-bottombar" aria-label="Main" data-tour-frame>
       <ul>
         {PHONE_ITEMS.map((item) => {
           const Icon = item.icon;
