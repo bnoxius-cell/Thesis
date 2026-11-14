@@ -13,6 +13,8 @@ import useItemDetail from "@/features/details/useItemDetail";
 import useTaskEdit from "@/features/tasks/useTaskEdit";
 import useEntryEdit from "@/features/plan/useEntryEdit";
 import useOpenWeekDay from "@/features/workload/useOpenWeekDay";
+import GetStartedCard from "@/features/guide/GetStartedCard";
+import useSetupSteps from "@/features/guide/useSetupSteps";
 import TodayHero from "./TodayHero";
 import ThisWeekCard from "./ThisWeekCard";
 import NextStepCard from "./NextStepCard";
@@ -58,6 +60,7 @@ export default function HomePage() {
   });
   const openWeekDay = useOpenWeekDay({ detail, overview: data.overview, tasks: data.tasks, subjects, profile: work.profile, now });
   const { prompt, later } = useCheckInPrompt(userData, now);
+  const setup = useSetupSteps();
   const moves = useMoveSuggestions({
     userId: userData?._id,
     tasks: data.tasks,
@@ -73,9 +76,14 @@ export default function HomePage() {
   const title = `${GREETING[work.focus.phase]}${firstName ? `, ${firstName}` : ""}`;
   const dueToday = work.enrichedTasks.filter((task) => task.daysLeft <= 0).sort((a, b) => a.daysLeft - b.daysLeft);
 
-  // Header Add: a task joins the lists at once; anything else changes the week, so reload it.
+  // Header Add: a task joins the lists at once; anything else changes the week, so reload it. Either way
+  // the Get started steps may have changed.
   useAddHere({
-    onAdded: (kind, task) => (kind === "task" ? data.setTasks((prev) => [...prev, task]) : data.reload()),
+    onAdded: (kind, task) => {
+      if (kind === "task") data.setTasks((prev) => [...prev, task]);
+      else data.reload();
+      setup.reload();
+    },
   });
 
   return (
@@ -87,6 +95,7 @@ export default function HomePage() {
           <Button variant="secondary" onClick={data.reload}>Try again</Button>
         </div>
       )}
+      {data.status === "ready" && setup.visible && <GetStartedCard setup={setup} />}
       {data.status === "ready" && (
         <div className="home-grid">
           <TodayHero

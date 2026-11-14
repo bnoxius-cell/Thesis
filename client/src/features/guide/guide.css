@@ -216,4 +216,131 @@
       padding: 0 var(--space-3);
     }
   }
+
+  /* Get started card (Figma 317:380, 317:642, 317:901, phone 318:703, 318:811). Hide fades the card's
+     opacity only, then it unmounts (no height animation). Rows stagger once on first render (.stagger);
+     the tick pops only when its row turns done on screen. Reduced motion is handled by base.css. */
+  .get-started {
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+    padding: var(--space-5);
+    transition: opacity 150ms var(--ease-out);
+  }
+  .get-started[data-leaving] {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .get-started__head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 220px auto;
+    grid-template-areas: "titles bar action";
+    align-items: center;
+    gap: var(--space-5);
+  }
+  .get-started__titles {
+    display: flex;
+    grid-area: titles;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .get-started__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+  }
+  .get-started__count {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .get-started__bar {
+    grid-area: bar;
+  }
+  .get-started__action {
+    grid-area: action;
+  }
+
+  .get-started__rows {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .checklist-row {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--space-4);
+    padding: 14px 0;
+  }
+  .checklist-row + .checklist-row {
+    border-top: 1px solid var(--border);
+  }
+  .checklist-row__tick {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border-input);
+    border-radius: var(--radius-pill);
+  }
+  .checklist-row[data-done] .checklist-row__tick {
+    border-color: transparent;
+    background: var(--good-soft);
+    color: var(--good);
+  }
+  .checklist-row__tick[data-popping] {
+    animation: tasks-check-pop var(--dur-2) var(--ease-spring) backwards;
+  }
+  .checklist-row__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .checklist-row__label {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .checklist-row__hint {
+    color: var(--text-secondary);
+  }
+  .checklist-row[data-done] .checklist-row__label {
+    color: var(--text-secondary);
+  }
+
+  /* Phone: the title row keeps Hide beside it, the bar drops under it, and each row's button sits
+     under its text, back at the row's left edge (frame 318:703). */
+  @media (max-width: 719.98px) {
+    .get-started {
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+      padding: 20px;
+    }
+    .get-started__head {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+        "titles action"
+        "bar bar";
+      gap: var(--space-3) var(--space-2);
+    }
+    .get-started__rows {
+      border-top: 1px solid var(--border);
+    }
+    .checklist-row {
+      align-items: start;
+      grid-template-columns: 24px minmax(0, 1fr);
+      column-gap: var(--space-3);
+      padding: var(--space-4) 0;
+    }
+    .checklist-row__button {
+      grid-column: 1 / -1;
+      justify-self: start;
+      margin-top: var(--space-2);
+    }
+  }
 }
