@@ -21,7 +21,7 @@ describe('New reviewer form: the numbers match the server', () => {
         expect(MAX_SOURCES).toBe(10);
         expect(takeSources([], [file('a.pdf', MAX_SOURCE_BYTES)]).entries).toHaveLength(1);
         expect(sourceProblem(file('a.pdf', MAX_SOURCE_BYTES + 1))).toMatch(/too big/);
-        expect(sourceCounter([file('a.pdf', MAX_SOURCES_BYTES)])).toBe('1 file · 20 MB of 20 MB');
+        expect(sourceCounter([file('a.pdf', MAX_SOURCES_BYTES)])).toBe('1 file · 40 MB of 40 MB');
     });
 
     test('accept lists every kind a reviewer can read, and none it cannot', () => {
@@ -46,9 +46,9 @@ describe('sourceProblem', () => {
         expect(sourceProblem(file('noextension'))).toMatch(/^noextension can't be made/);
     });
 
-    test('a file over 10 MB is refused by name', () => {
-        expect(sourceProblem(file('big.pdf', 10 * MB))).toBe('');
-        expect(sourceProblem(file('big.pdf', 10 * MB + 1))).toBe('big.pdf is too big. Each file can be up to 10 MB.');
+    test('a file over 30 MB is refused by name', () => {
+        expect(sourceProblem(file('big.pdf', 30 * MB))).toBe('');
+        expect(sourceProblem(file('big.pdf', 30 * MB + 1))).toBe('big.pdf is too big. Each file can be up to 30 MB.');
     });
 });
 
@@ -75,11 +75,11 @@ describe('takeSources', () => {
         expect(problems).toEqual(['You can add up to 10 files to one reviewer.']);
     });
 
-    test('files past 20 MB together are refused; a smaller one that still fits is added', () => {
-        const current = takeSources([], [file('a.pdf', 10 * MB), file('b.pdf', 8 * MB)]).entries;
+    test('files past 40 MB together are refused; a smaller one that still fits is added', () => {
+        const current = takeSources([], [file('a.pdf', 25 * MB), file('b.pdf', 13 * MB)]).entries;
         const { entries, problems } = takeSources(current, [file('c.pdf', 3 * MB), file('d.pdf', MB)]);
         expect(entries.map((entry) => entry.file.name)).toEqual(['a.pdf', 'b.pdf', 'd.pdf']);
-        expect(problems).toEqual(['Those files are too big together. The limit is 20 MB for one reviewer.']);
+        expect(problems).toEqual(['Those files are too big together. The limit is 40 MB for one reviewer.']);
     });
 
     test('picking nothing changes nothing', () => {
@@ -110,20 +110,20 @@ describe('stored files', () => {
         expect(usableSources([])).toEqual([]);
     });
 
-    test('canPickStored stops at 10 files and at 20 MB', () => {
+    test('canPickStored stops at 10 files and at 40 MB', () => {
         const ten = Array.from({ length: 10 }, (_, i) => ({ id: String(i), size: 1 }));
         expect(canPickStored(ten.slice(0, 9), { size: 1 })).toBe(true);
         expect(canPickStored(ten, { size: 1 })).toBe(false);
-        expect(canPickStored([{ size: 15 * MB }], { size: 5 * MB })).toBe(true);
-        expect(canPickStored([{ size: 15 * MB }], { size: 5 * MB + 1 })).toBe(false);
+        expect(canPickStored([{ size: 35 * MB }], { size: 5 * MB })).toBe(true);
+        expect(canPickStored([{ size: 35 * MB }], { size: 5 * MB + 1 })).toBe(false);
     });
 });
 
 describe('sourceCounter', () => {
-    test('reads "3 files · 14.2 MB of 20 MB"', () => {
+    test('reads "3 files · 14.2 MB of 40 MB"', () => {
         const items = [file('a', 4 * MB), file('b', 5 * MB), file('c', 5.2 * MB)];
-        expect(sourceCounter(items)).toBe('3 files · 14.2 MB of 20 MB');
-        expect(sourceCounter([file('a', 890 * 1024)])).toBe('1 file · 890 KB of 20 MB');
+        expect(sourceCounter(items)).toBe('3 files · 14.2 MB of 40 MB');
+        expect(sourceCounter([file('a', 890 * 1024)])).toBe('1 file · 890 KB of 40 MB');
     });
 });
 

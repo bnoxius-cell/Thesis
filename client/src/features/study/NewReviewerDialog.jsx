@@ -4,6 +4,7 @@ import { Button, Field, Modal, Segment, SelectButton } from "@/shared/ui";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import SourceDropZone from "./SourceDropZone";
 import StoredFilesPicker from "./StoredFilesPicker";
+import prepareSources from "./prepareSources";
 import useCreateReviewer from "./useCreateReviewer";
 import useSubjectSources from "./useSubjectSources";
 import {
@@ -59,6 +60,7 @@ export default function NewReviewerDialog({
   const [count, setCount] = useState(DEFAULT_QUESTION_COUNT);
   const [questionType, setQuestionType] = useState(DEFAULT_QUESTION_TYPE);
   const [pickError, setPickError] = useState("");
+  const [preparing, setPreparing] = useState(false); // shrinking the picked files before they are listed
   const { create, creating, error, clearError } = useCreateReviewer({ onSubjectCreated });
   const phone = useMediaQuery("(max-width: 720px)");
   const blocked = limitMessage(limits);
@@ -91,13 +93,17 @@ export default function NewReviewerDialog({
     setCount((current) => clampCount(value, current));
   };
 
-  const addFiles = (picked) => {
+  const addFiles = async (picked) => {
     clearError();
-    const { entries: next, problems } = takeSources(entries, picked);
+    setPreparing(true);
+    const prepared = await prepareSources(picked);
+    setPreparing(false);
+    const { entries: next, problems } = takeSources(entries, prepared);
     setEntries(next);
     setPickError(problemsMessage(problems));
   };
   const removeFile = (id) => {
+    if (preparing) return; // addFiles builds its list from the one it started with, so a removal now would come back
     setPickError("");
     setEntries((current) => current.filter((entry) => entry.id !== id));
   };
@@ -113,7 +119,7 @@ export default function NewReviewerDialog({
 
   const submit = async (event) => {
     event.preventDefault();
-    if (blocked || creating) return;
+    if (blocked || creating || preparing) return;
     const problem = creatingSubject ? subjectNameError({ name: newName }) : "";
     setNameError(problem);
     if (problem) return;
@@ -146,8 +152,8 @@ export default function NewReviewerDialog({
       actions={(close) => (
         <>
           <Button variant="ghost" onClick={close} disabled={creating}>Cancel</Button>
-          <Button type="submit" busy={creating} disabled={Boolean(blocked)}>
-            {creating ? "Reading your files" : "Create reviewer"}
+          <Button type="submit" busy={creating || preparing} disabled={Boolean(blocked) || preparing}>
+            {creating ? "Reading your files" : preparing ? "Getting your files ready" : "Create reviewer"}
           </Button>
         </>
       )}
@@ -203,7 +209,7 @@ export default function NewReviewerDialog({
               describedBy="reviewer-note"
             />
           ) : (
-            <SourceDropZone entries={entries} onAdd={addFiles} onRemove={removeFile} disabled={creating} describedBy="reviewer-note" />
+            <SourceDropZone entries={entries} onAdd={addFiles} onRemove={removeFile} disabled={creating || preparing} describedBy="reviewer-note" />
           )}
         </div>
       </div>

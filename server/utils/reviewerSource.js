@@ -12,8 +12,8 @@ import { extensionOf } from './fileNames.js';
 
 const MB = 1024 * 1024;
 export const MAX_SOURCES = 10;
-export const MAX_SOURCE_BYTES = 10 * MB;
-export const MAX_SOURCES_BYTES = 20 * MB;
+export const MAX_SOURCE_BYTES = 30 * MB;
+export const MAX_SOURCES_BYTES = 40 * MB;
 // The multipart framing and the small text fields on top of the files.
 export const BODY_OVERHEAD_BYTES = 1 * MB;
 export const MAX_NOTES_CHARS = 100000;
@@ -24,9 +24,9 @@ export const MAX_UNPACKED_BYTES = 60 * MB;
 export const MAX_SOURCE_SLOTS = 2;
 // How long the whole upload may take to arrive, scaled to the length it announced: a floor for the
 // connection and the small fields, plus the time its bytes need at a slow phone's 256 kbps, never more
-// than bodyMaxMs (which fits the 21 MB cap on a 1.5 Mbps connection). A small body gets a short
-// deadline, so a few junk bytes can't hold a slot for two minutes. Tests shorten them.
-export const sourceSettings = { bodyFloorMs: 10 * 1000, bodyBytesPerSecond: 32 * 1024, bodyMaxMs: 120 * 1000 };
+// than bodyMaxMs (which fits the 41 MB cap, about 220 s, on a 1.5 Mbps connection). A small body gets a short
+// deadline, so a few junk bytes can't hold a slot for four minutes. Tests shorten them.
+export const sourceSettings = { bodyFloorMs: 10 * 1000, bodyBytesPerSecond: 32 * 1024, bodyMaxMs: 240 * 1000 };
 export const bodyDeadlineMs = (length) => {
     const { bodyFloorMs, bodyBytesPerSecond, bodyMaxMs } = sourceSettings;
     return Math.min(bodyMaxMs, bodyFloorMs + (length / bodyBytesPerSecond) * 1000);

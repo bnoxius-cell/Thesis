@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import { uploadFile } from "@/shared/api/files";
 import { MAX_PICK, extensionOf, fileProblem, isPhoto } from "./fileRules";
 import makeThumb from "./makeThumb";
+import shrinkPhoto from "./shrinkPhoto";
 import { GENERAL } from "./places";
 
 // An answer that means every other file in the queue would fail the same way, so they aren't sent.
@@ -65,10 +66,12 @@ export default function useUploads({ to, onUploaded, onSettled }) {
   }, [update]);
 
   const send = useCallback(async (item) => {
-    const file = files.current.get(item.key);
     const controller = new AbortController();
     abort.current.set(item.key, controller);
     patch(item.key, { status: "uploading", progress: 0, error: "" });
+
+    // A photo over 4 MB is stored as a smaller JPEG; everything else is sent as it was picked.
+    const file = await shrinkPhoto(files.current.get(item.key));
 
     const thumb = isPhoto(item.ext) ? await makeThumb(file) : null;
     const result = controller.signal.aborted || !mounted.current

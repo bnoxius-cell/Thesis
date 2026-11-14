@@ -122,9 +122,9 @@ describe('uploading a PDF', () => {
         expect(generateJson).not.toHaveBeenCalled();
     });
 
-    test('rejects a PDF over 10 MB', async () => {
+    test('rejects a PDF over 30 MB', async () => {
         const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
-        const big = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(10 * 1024 * 1024)]);
+        const big = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(30 * 1024 * 1024)]);
         const res = await upload(alice, { file: big });
         expect(res.status).toBe(413);
         expect(res.body.success).toBe(false);

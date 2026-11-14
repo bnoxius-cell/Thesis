@@ -5,7 +5,7 @@ import "@/features/files/upload-dialog.css";
 
 // The "Subject files" half of the Source field in New reviewer: the subject's stored files as
 // checkboxes, so nothing is uploaded again. `files` are the usable ones, `pickedIds` the ticked ones.
-// Once 10 files or 20 MB are ticked, the rest are dimmed and can't be ticked until one is cleared.
+// Once 10 files or 40 MB are ticked, the rest are dimmed and can't be ticked until one is cleared.
 export default function StoredFilesPicker({ files, pickedIds, onToggle, disabled = false, describedBy }) {
   const picked = files.filter((file) => pickedIds.includes(file.id));
 
