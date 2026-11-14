@@ -29,7 +29,7 @@ export default function HelpTab() {
           <Button variant="secondary" to="/home?tour=1">Start</Button>
         </SettingsRow>
         {guide?.setupHidden && !guide.setupDone && (
-          <SettingsRow label="Get started list" hint="Bring the checklist back on Home.">
+          <SettingsRow label="Get started list" hint="Hidden on Home. Bring it back any time.">
             <Button variant="secondary" onClick={showAgain}>Show on Home</Button>
           </SettingsRow>
         )}

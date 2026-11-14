@@ -60,7 +60,7 @@ export const GUIDE_TOPICS = [
     steps: [
       `Tap + Add and choose ${addRow("reviewer")}.`,
       `Add your notes (${SOURCE_TYPES_TEXT}, up to ${MAX_SOURCES} files) and tap Create reviewer.`,
-      "It takes a moment. Your reviewer shows as processing until the questions are ready.",
+      "It takes a moment. Your reviewer says Making it until the questions are ready.",
       "Open it and tap Start Learning Mode to practise, or Make flashcards to turn it into a deck.",
     ],
     goTo: { to: "/study/practice", label: "Go to Reviewers" },
