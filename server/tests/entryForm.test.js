@@ -1,7 +1,8 @@
 import { describe, test, expect } from 'vitest';
 import {
-    emptyEntryForm, entryFormFrom, entryPayload, entryErrors, entryStarted, linkError, clashNote, titleAfterSubject,
+    emptyEntryForm, entryFormFrom, entryPayload, entryErrors, entryStarted, linkError, clashNote, titleAfterSubject, subjectNameOf,
 } from '../../client/src/utils/entryForm.js';
+import { NEW_SUBJECT } from '../../client/src/features/study/subjectForm.js';
 
 const TODAY = new Date(2026, 10, 9); // Mon 2026-11-09
 
@@ -77,6 +78,48 @@ describe('entryPayload subject', () => {
         expect(entryPayload(exam).subject).toBe('s1');
         const event = { ...emptyEntryForm('event', TODAY), title: 'Party', subject: 's1' };
         expect(entryPayload(event, linked)).not.toHaveProperty('subject');
+    });
+});
+
+describe('new subject', () => {
+    const made = (kind, overrides = {}) => ({
+        ...emptyEntryForm(kind, TODAY), title: 'Data Mining', subject: NEW_SUBJECT, newSubjectName: '  Data   Mining ', days: [1], ...overrides,
+    });
+
+    test('a class or exam sends newSubject (cleaned) and no subject', () => {
+        for (const kind of ['class', 'exam']) {
+            const payload = entryPayload(made(kind));
+            expect(payload.newSubject).toBe('Data Mining');
+            expect(payload).not.toHaveProperty('subject');
+        }
+    });
+
+    test('it replaces the subject an edited entry already had', () => {
+        const linked = { ...stored, subject: 's1' };
+        const payload = entryPayload({ ...entryFormFrom(linked), subject: NEW_SUBJECT, newSubjectName: 'Statistics' }, linked);
+        expect(payload).toMatchObject({ newSubject: 'Statistics' });
+        expect(payload).not.toHaveProperty('subject');
+    });
+
+    test('an empty name is an error, for a class and an exam', () => {
+        for (const kind of ['class', 'exam']) {
+            expect(entryErrors(made(kind, { newSubjectName: '   ' })).newSubject).toBe('Give the subject a name.');
+            expect(entryErrors(made(kind)).newSubject).toBeUndefined();
+        }
+    });
+
+    test('an event or activity never sends it or asks for the name', () => {
+        for (const kind of ['event', 'activity']) {
+            const form = made(kind, { newSubjectName: '' });
+            expect(entryPayload(form)).not.toHaveProperty('newSubject');
+            expect(entryErrors(form)).not.toHaveProperty('newSubject');
+        }
+    });
+
+    test('a normal pick sends no newSubject, and the title name follows the typed name', () => {
+        expect(entryPayload({ ...emptyEntryForm('class', TODAY), title: 'A', subject: 's1', newSubjectName: 'x' })).not.toHaveProperty('newSubject');
+        expect(subjectNameOf(made('class'), [])).toBe('Data Mining');
+        expect(subjectNameOf({ subject: 's1' }, [{ _id: 's1', name: 'Web' }])).toBe('Web');
     });
 });
 

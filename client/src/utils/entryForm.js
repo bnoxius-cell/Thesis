@@ -1,3 +1,4 @@
+import { NEW_SUBJECT, subjectNameError } from "../features/study/subjectForm.js";
 import { analyzeEntry } from "./scheduleConflicts";
 import { WEEKDAYS, formatTime, fromISODate, isWebLink, toISODate } from "./scheduleUtils";
 
@@ -22,10 +23,12 @@ const isRealDate = (value) => DATE.test(value) && toISODate(fromISODate(value)) 
 const clean = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 
 // A new form for one kind. Exams are always one day; an event starts as one day; classes and activities
-// repeat weekly. `subject` is the picked subject's id ("" for none); picking one fills the title.
+// repeat weekly. `subject` is the picked subject's id ("" for none, NEW_SUBJECT to make one from
+// `newSubjectName`); picking one fills the title.
 export const emptyEntryForm = (kind = "class", today = new Date()) => ({
   kind,
   subject: "",
+  newSubjectName: "",
   title: "",
   repeat: kind === "class" || kind === "activity" ? REPEAT.weekly : REPEAT.once,
   days: [],
@@ -42,6 +45,7 @@ export const emptyEntryForm = (kind = "class", today = new Date()) => ({
 export const entryFormFrom = (entry) => ({
   kind: entry.kind,
   subject: entry.subject || "",
+  newSubjectName: "",
   title: entry.title,
   repeat: entry.date ? REPEAT.once : REPEAT.weekly,
   days: [...(entry.days ?? [])],
@@ -59,7 +63,9 @@ export const entryFormFrom = (entry) => ({
 // from it. `_id` never goes back. A weekly entry sends `date: ""` and a one-day entry sends `days: []`, so
 // switching between them leaves nothing behind. startDate and endDate only belong to weekly entries.
 // A class or exam sends its subject's id; with none picked it sends nothing (the server links by name),
-// or `null` when the stored entry had one, which unlinks it. Events and activities send no subject.
+// or `null` when the stored entry had one, which unlinks it. With NEW_SUBJECT picked it sends `newSubject`
+// (the name) and no `subject`; the server makes the subject for the timetable's owner. Events and activities
+// send neither.
 export function entryPayload(form, storedEntry) {
   const stored = storedEntry ?? {}; // adding passes null (no stored entry), which a default value wouldn't replace
   const { _id, ...kept } = stored;
@@ -77,7 +83,10 @@ export function entryPayload(form, storedEntry) {
     days: once ? [] : [...form.days].sort((a, b) => a - b),
   };
   if (form.kind === "class" || form.kind === "exam") {
-    if (form.subject) payload.subject = form.subject;
+    if (form.subject === NEW_SUBJECT) {
+      payload.newSubject = clean(form.newSubjectName);
+      delete payload.subject;
+    } else if (form.subject) payload.subject = form.subject;
     else if (stored.subject) payload.subject = null;
     else delete payload.subject;
   } else {
@@ -115,6 +124,11 @@ export function entryErrors(form) {
   if (!TIME.test(form.startTime) || !TIME.test(form.endTime)) errors.times = "Start and end times are required.";
   else if (form.endTime <= form.startTime) errors.times = "The end time must be after the start time.";
 
+  if ((form.kind === "class" || form.kind === "exam") && form.subject === NEW_SUBJECT) {
+    const nameError = subjectNameError({ name: form.newSubjectName });
+    if (nameError) errors.newSubject = nameError;
+  }
+
   const link = linkError(form.meetingUrl);
   if (link) errors.meetingUrl = link;
 
@@ -134,6 +148,10 @@ export const entryStarted = (form, start) => JSON.stringify(form) !== JSON.strin
 // name the previous pick put there, so a title the student typed is never overwritten.
 export const titleAfterSubject = (title, previousName, name) =>
   !clean(title) || clean(title) === previousName ? name : title;
+
+// The name the picked subject gives the title: an existing subject's, or what was typed for a new one.
+export const subjectNameOf = (form, subjects) =>
+  form.subject === NEW_SUBJECT ? clean(form.newSubjectName) : (subjects.find((subject) => subject._id === form.subject)?.name ?? "");
 
 const SHORT_DAY = Object.fromEntries(WEEKDAYS.map((day) => [day.value, day.short]));
 

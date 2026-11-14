@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { TriangleAlert, Users } from "lucide-react";
 import { Button, Field, Modal, Segment, SelectButton } from "@/shared/ui";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
+import newSubjectOption from "@/features/study/newSubjectOption";
+import { NEW_SUBJECT, SUBJECT_LIMITS } from "@/features/study/subjectForm";
 import { KIND_LABELS, WEEKDAYS } from "@/utils/scheduleUtils";
 import {
   ENTRY_LINK_MAX,
@@ -17,6 +19,7 @@ import {
   entryPayload,
   entryStarted,
   linkError,
+  subjectNameOf,
   titleAfterSubject,
 } from "@/utils/entryForm";
 import useEntryTarget from "./useEntryTarget";
@@ -28,11 +31,14 @@ const REPEATS = [
   { value: REPEAT.weekly, label: "Weekly" },
 ];
 const NO_SUBJECT = "";
+const NEW_SUBJECT_OPTION = newSubjectOption("New subject...");
 
 // New or edited class, exam, event or activity (Figma D4: desktop 209:2364, 209:2681, 209:2980, edit on a
 // shared timetable 209:3273, phone sheets 210:2576, 210:2673, 210:2753, 210:2828). `kind` is the one the "+"
 // menu chose and stays fixed. `subjects` is the list the page loaded: the picker's values are subject ids, and
 // picking one fills the Title with its name (the server titles a class with its subject's name anyway).
+// The Subject picker ends with "New subject..." when the student owns the timetable (the server ignores it from
+// an editor): it shows a required Name field and the save sends `newSubject`, so the server makes the subject.
 // `timetable` is the picked timetable the student can edit, or null for My week (the main timetable, created
 // when missing). To edit, pass the stored `entry` and the `timetable` it lives on (always required then).
 // Nothing is saved until the button; closing asks first when something was typed. A failed save keeps the
@@ -48,6 +54,8 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
   const phone = useMediaQuery("(max-width: 480px)");
 
   const exam = form.kind === "exam";
+  const ownsTimetable = !timetable || timetable.role === "owner";
+  const creatingSubject = form.subject === NEW_SUBJECT;
   const weekly = form.repeat === REPEAT.weekly && !exam;
   const label = KIND_LABELS[form.kind].toLowerCase();
   const note = useMemo(
@@ -57,6 +65,7 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
   const subjectOptions = [
     { value: NO_SUBJECT, label: "No subject" },
     ...subjects.map((subject) => ({ value: subject._id, label: subject.name })),
+    ...(ownsTimetable ? [NEW_SUBJECT_OPTION] : []),
   ];
 
   const set = (key) => (value) => {
@@ -65,9 +74,20 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
     setErrors((prev) => ({ ...prev, [key]: undefined, ...times }));
   };
   const onText = (key) => (event) => set(key)(event.target.value);
-  const nameOf = (id) => subjects.find((subject) => subject._id === id)?.name ?? "";
-  const pickSubject = (id) =>
-    setForm((prev) => ({ ...prev, subject: id, title: titleAfterSubject(prev.title, nameOf(prev.subject), nameOf(id) || prev.title) }));
+  // The Title follows the picked subject's name, or the name typed for a new one, until the student edits it.
+  const changeSubject = (change) =>
+    setForm((prev) => {
+      const next = { ...prev, ...change };
+      return { ...next, title: titleAfterSubject(prev.title, subjectNameOf(prev, subjects), subjectNameOf(next, subjects) || prev.title) };
+    });
+  const pickSubject = (id) => {
+    changeSubject({ subject: id });
+    setErrors((prev) => ({ ...prev, newSubject: undefined }));
+  };
+  const typeNewSubject = (event) => {
+    changeSubject({ newSubjectName: event.target.value });
+    setErrors((prev) => ({ ...prev, newSubject: undefined }));
+  };
   const toggleDay = (day) => {
     setForm((prev) => ({ ...prev, days: prev.days.includes(day) ? prev.days.filter((d) => d !== day) : [...prev.days, day] }));
     setErrors((prev) => ({ ...prev, days: undefined }));
@@ -94,6 +114,19 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
         <SelectButton block native={phone} options={subjectOptions} value={form.subject} onChange={pickSubject} label="Subject" {...control} />
       )}
     </Field>
+  );
+  const newSubjectField = creatingSubject && (
+    <Field
+      className="is-entering"
+      label="Subject name"
+      value={form.newSubjectName}
+      onChange={typeNewSubject}
+      error={errors.newSubject}
+      maxLength={SUBJECT_LIMITS.name}
+      autoComplete="off"
+      autoFocus
+      required
+    />
   );
   const titleField = (
     <Field
@@ -128,10 +161,13 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
       )}
     >
       {form.kind === "class" || exam ? (
-        <div className="entry-dialog__pair">
-          {subjectField}
-          {titleField}
-        </div>
+        <>
+          <div className="entry-dialog__pair">
+            {subjectField}
+            {titleField}
+          </div>
+          {newSubjectField}
+        </>
       ) : (
         titleField
       )}

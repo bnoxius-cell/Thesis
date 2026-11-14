@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
 import { Button, Field, Modal, Segment, SelectButton } from "@/shared/ui";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import SourceDropZone from "./SourceDropZone";
@@ -10,7 +9,6 @@ import useSubjectSources from "./useSubjectSources";
 import {
   DEFAULT_QUESTION_COUNT,
   DEFAULT_QUESTION_TYPE,
-  NEW_SUBJECT,
   clampCount,
   countOptionsFor,
   limitMessage,
@@ -18,7 +16,8 @@ import {
   questionTypeOptions,
   takeSources,
 } from "./reviewerForm";
-import { SUBJECT_LIMITS, subjectNameError } from "./subjectForm";
+import newSubjectOption from "./newSubjectOption";
+import { NEW_SUBJECT, SUBJECT_LIMITS, subjectNameError } from "./subjectForm";
 import "./study-dialog.css";
 
 const countOptions = (type) => countOptionsFor(type).map((n) => ({ value: n, label: String(n) }));
@@ -28,7 +27,7 @@ const SOURCE_TABS = [
   { value: "upload", label: "Upload a file" },
   { value: "stored", label: "Subject files" },
 ];
-const NEW_SUBJECT_OPTION = { value: NEW_SUBJECT, label: "Create new subject", leading: <Plus size={18} aria-hidden="true" /> };
+const NEW_SUBJECT_OPTION = newSubjectOption("Create new subject");
 
 // New reviewer (Figma 78:1272). Title and Subject can stay as they are: a blank title is named from
 // the files and "No subject" files it nowhere. Pasting notes has no backend, so it isn't offered. Question type
