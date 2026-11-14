@@ -6,21 +6,18 @@ import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import WhatsNewContent from "@/features/whats-new/WhatsNewContent";
 import useWhatsNew from "@/features/whats-new/useWhatsNew";
 import AccountTab from "./AccountTab";
+import HelpTab from "./HelpTab";
+import PrivacyTab from "./PrivacyTab";
 import SettingsList from "./SettingsList";
 import SettingsTab from "./SettingsTab";
 import { SECTIONS, sectionFor, sectionPath } from "./settingsSections";
 import "./settings.css";
 
-// Privacy and Help are still being redrawn.
-const Redrawing = () => (
-  <EmptyState icon={Hammer} title="We're redrawing this part">It'll be back soon.</EmptyState>
-);
-
 const BODIES = {
   settings: SettingsTab,
   account: AccountTab,
-  privacy: Redrawing,
-  help: Redrawing,
+  privacy: PrivacyTab,
+  help: HelpTab,
   "whats-new": WhatsNewContent,
 };
 
