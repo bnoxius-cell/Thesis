@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'crypto';
+import { randomBytes, timingSafeEqual } from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import userModel from '../models/userModel.js';
@@ -74,6 +74,9 @@ const findUserByEmail = (email) => {
     return userModel.findOne({ email: new RegExp(`^${escaped}$`, 'i') });
 };
 
+// A hash of a password nobody knows, for accounts made or taken over through Google.
+const randomPasswordHash = () => bcrypt.hash(randomBytes(24).toString('hex'), 10);
+
 // Generates a fresh verification code, saves it, and emails it. Returns whether the email
 // actually went out, so a mail failure doesn't undo an otherwise successful signup or login.
 const issueVerifyOtp = async (user) => {
@@ -143,7 +146,7 @@ export const register = async (req, res) => {
                 : "Account created, but we couldn't send the verification email. Tap Resend Code to try again."
         });
     } catch (error) {
-        return res.json({ success: false, message: error.message});
+        return serverError(res, 'Creating an account failed', error);
     }
 };
 
@@ -199,7 +202,7 @@ export const login = async (req, res) => {
 
         return res.json({success: true, message: 'Login successful'})
     } catch (error) {
-        return res.json({ success: false, message: error.message });
+        return serverError(res, 'Signing in failed', error);
     }
 };
 
@@ -225,20 +228,25 @@ export const googleLogin = async (req, res) => {
         if (user) {
             // Link the Google identity to the existing account. Google auth also confirms the email.
             let changed = false;
-            if (!user.isAccountVerified) { user.isAccountVerified = true; changed = true; }
+            if (!user.isAccountVerified) {
+                // Nobody proved they own this address before now, so whoever signed it up with a password
+                // could be a stranger. Drop that password and any pending code before trusting the account.
+                user.password = await randomPasswordHash();
+                user.passwordSet = false;
+                user.verifyEmailOtp = '';
+                user.verifyEmailOtpExpireAt = 0;
+                user.isAccountVerified = true;
+                changed = true;
+            }
             if (!user.googleId) { user.googleId = googleId; changed = true; }
             if (!user.avatar && picture) { user.avatar = picture; changed = true; }
             if (changed) await user.save();
         } else {
             // Create user. Generate a random password since Mongoose schema requires it.
-            const randomPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(randomPassword, salt);
-
             user = new userModel({
                 name,
                 email,
-                password: hashedPassword,
+                password: await randomPasswordHash(),
                 authProvider: 'google',
                 googleId,
                 avatar: picture,
@@ -259,7 +267,7 @@ export const googleLogin = async (req, res) => {
 
         return res.json({ success: true, message: 'Google login successful' });
     } catch (error) {
-        return res.json({ success: false, message: 'Google authentication failed: ' + error.message });
+        return res.json({ success: false, message: 'Google authentication failed. Please try again.' });
     }
 };
 
