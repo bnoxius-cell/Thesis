@@ -1,0 +1,213 @@
+/* Notifications (Figma 290:17094 drawer, 290:17243 empty, 291:1145 unread, 298:1910 loading, 298:2180 failed,
+   298:2440 clear-all confirm, 298:2810 phone page, 298:2990 phone empty). One panel (.inbox) is the body of both
+   the drawer and the page. Tokens only. */
+@layer pages {
+  /* ---- The drawer: a full-height column; the head stays, the list scrolls ---- */
+  .inbox-drawer__head {
+    display: flex;
+    flex: none;
+    align-items: center;
+    padding: 20px var(--space-4) var(--space-3) 20px;
+  }
+  /* The icon buttons are 44px boxes around 36px faces, so the row needs no gap of its own. */
+  .inbox-drawer__head .ui-modal__title {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-right: var(--space-2);
+    overflow-wrap: normal;
+  }
+  .inbox-drawer__head .ui-btn {
+    flex: none;
+    white-space: nowrap;
+  }
+  .inbox-drawer__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* ---- The page: the panel as one card, as wide as a reading column ---- */
+  .inbox-page {
+    max-width: var(--reading-max);
+  }
+  .inbox-page > .inbox {
+    overflow: hidden; /* the rows' backgrounds follow the card's corners */
+    padding-block: var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+  }
+  .inbox__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-1);
+    padding: 0 var(--space-3);
+  }
+
+  /* ---- Filter and sections ---- */
+  .inbox__filter {
+    padding: 0 var(--space-4) var(--space-3);
+  }
+  .inbox__section {
+    margin: 0;
+    padding: var(--space-3) 20px 6px;
+    color: var(--text-muted);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    text-transform: uppercase;
+  }
+  .inbox__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .inbox__none {
+    margin: 0;
+    padding: var(--space-5) 20px;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+    text-align: center;
+  }
+
+  /* ---- A row: mark, text, then the time over the unread dot ---- */
+  .inbox-row {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    padding: var(--space-3) 20px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--hover-dur) var(--hover-ease);
+  }
+  .inbox-row[data-unread] {
+    background: var(--accent-soft);
+  }
+  .inbox-row:active {
+    background: var(--surface-3);
+  }
+  .inbox-row[data-unread]:active {
+    background: color-mix(in srgb, var(--accent) 12%, var(--accent-soft));
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .inbox-row:hover {
+      background: var(--surface-2);
+    }
+    .inbox-row[data-unread]:hover {
+      background: color-mix(in srgb, var(--accent) 8%, var(--accent-soft));
+    }
+  }
+  .inbox-row:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+  }
+  .inbox-row__chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .inbox-row[data-unread] .inbox-row__chip {
+    background: var(--surface); /* the row itself is tinted */
+  }
+  .inbox-row__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .inbox-row__title {
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .inbox-row[data-unread] .inbox-row__title {
+    font-weight: 600;
+  }
+  .inbox-row__message {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .inbox-row__meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    color: var(--text-muted);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    white-space: nowrap;
+  }
+
+  /* ---- Loading, failed and empty ---- */
+  .inbox__loading {
+    padding: var(--space-2) 0;
+  }
+  .inbox__skeleton {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) 20px;
+  }
+  .inbox__skeleton-lines {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  /* The frames draw a plain icon over the title, not the shared tinted blob. */
+  .inbox__state {
+    padding-block: var(--space-7);
+  }
+  .inbox-drawer .inbox__state {
+    padding-top: 96px;
+  }
+  .inbox__state .ui-empty__icon {
+    width: auto;
+    height: auto;
+    background: none;
+    color: var(--text-secondary);
+  }
+  .inbox__state .ui-empty__icon > svg {
+    opacity: 1;
+  }
+
+  .inbox__settings {
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    min-height: 44px;
+    margin: var(--space-2) 0 var(--space-2) var(--space-2);
+    padding: 0 12px;
+    border-radius: var(--radius-md);
+    color: var(--accent);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+    text-decoration: none;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .inbox__settings:hover {
+      background: var(--accent-soft);
+    }
+  }
+  .inbox__settings:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}

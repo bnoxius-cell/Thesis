@@ -24,6 +24,7 @@ const PracticePage =lazy(() => import("@/features/practice/PracticePage"));
 const PeoplePage = lazy(() => import("@/features/people/PeoplePage"));
 const ProfilePage = lazy(() => import("@/features/people/ProfilePage"));
 const MyProfilePage = lazy(() => import("@/features/profile/ProfilePage"));
+const NotificationsPage = lazy(() => import("@/features/notifications/NotificationsPage"));
 const SettingsPage = lazy(() => import("@/features/settings/SettingsPage"));
 const WellbeingPage = lazy(() => import("@/features/wellbeing/WellbeingPage"));
 const CheckInPage = lazy(() => import("@/features/checkin/CheckInPage"));
@@ -39,9 +40,8 @@ function SignInRoute() {
   return <AuthPage />;
 }
 
-// Each signed-in page that is still unbuilt is a titled placeholder inside the shell until its own
-// batch replaces it with a lazy-loaded page. Focus screens have no shell.
-const placeholder = (title) => <PlaceholderPage title={title} shell />;
+// A page that is still unbuilt is a titled placeholder until its own batch replaces it with a
+// lazy-loaded page. Only About is left: it sits in the public layout, so it has no shell.
 const barePlaceholder = (title) => <PlaceholderPage title={title} />;
 
 export default function AppRoutes() {
@@ -87,7 +87,7 @@ export default function AppRoutes() {
           <Route path="/me/privacy" element={<RedirectTo to="/settings/privacy" />} />
           <Route path="/me/help" element={<RedirectTo to="/settings/help" />} />
           <Route path="/whats-new" element={<RedirectTo to="/settings/whats-new" />} />
-          <Route path="/notifications" element={placeholder("Notifications")} />
+          <Route path="/notifications" element={<NotificationsPage />} />
         </Route>
         <Route element={<FocusLayout />}>
           <Route path="/study/reviewers/:reviewerId/practice" element={<PracticePage />} />

@@ -1,13 +1,14 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchUnreadSummary } from "@/shared/api/notifications";
 import usePolling from "@/shared/hooks/usePolling";
+import { showUnreadCount } from "../usePageTitle";
 import { UnreadContext } from "./unreadContext";
 
 const POLL_MS = 20000;
 const NONE = { total: 0, friendRequests: 0, groupEntries: [] };
 
 // Polls the unread summary for the whole signed-in area and shares the numbers the badges need:
-//   total          unread notifications (the bell)
+//   total          unread notifications (the bell, the tab title and the app icon)
 //   groupsUnread   groups with something new (People > Groups)
 //   groupUnread    { [groupId]: unread messages } for the badge on each group row
 //   friendRequests incoming friend requests still waiting (People > Friends)
@@ -30,6 +31,12 @@ export default function UnreadProvider({ children }) {
   }, []);
 
   usePolling(refresh, POLL_MS);
+
+  // The unread count also goes in the tab title and on the app icon, and is cleared on the way out (sign-out).
+  useEffect(() => {
+    showUnreadCount(counts.total);
+  }, [counts.total]);
+  useEffect(() => () => showUnreadCount(0), []);
 
   const markGroupRead = useCallback((groupId) => {
     setCounts((prev) => {

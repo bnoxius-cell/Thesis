@@ -16,6 +16,8 @@ import "./modal.css";
 // `sheet` makes it a bottom sheet on phones (under 720px, with a grab handle, above the home
 // indicator); wider screens keep the centred card. A phone sheet can be dragged down by its handle
 // or title row to close (useSheetDrag), through the same close path as Escape and the X.
+// `drawer` makes it a full-height panel on the right edge, 400px wide, sliding in from that side (the
+// notifications inbox). It has no sheet behaviour and the same stack, focus and scroll lock as any dialog.
 // `returnFocusRef` names a ref whose element takes
 // focus on close when the opener is gone (a window reopened after Edit goes back to its row).
 
@@ -68,6 +70,7 @@ export default function ModalShell({
   initialFocusRef,
   returnFocusRef,
   sheet = false,
+  drawer = false,
   children,
   ...rest
 }) {
@@ -164,7 +167,7 @@ export default function ModalShell({
   return createPortal(
     <div
       ref={overlayRef}
-      className={classes("ui-modal-overlay", sheet && "ui-modal-overlay--sheet", overlayClassName)}
+      className={classes("ui-modal-overlay", sheet && "ui-modal-overlay--sheet", drawer && "ui-modal-overlay--drawer", overlayClassName)}
       onPointerDown={(e) => {
         pressedOverlay.current = e.target === e.currentTarget;
       }}
@@ -176,7 +179,7 @@ export default function ModalShell({
     >
       <Tag
         ref={contentRef}
-        className={classes("ui-modal", sheet && "ui-modal--sheet", className)}
+        className={classes("ui-modal", sheet && "ui-modal--sheet", drawer && "ui-modal--drawer", className)}
         role={role}
         aria-modal="true"
         aria-labelledby={labelledBy}

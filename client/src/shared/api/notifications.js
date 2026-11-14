@@ -1,4 +1,4 @@
-import { get, put } from "./http";
+import { del, get, put } from "./http";
 
 // The inbox, newest first, with two counts the server works out itself: `unreadCount` (notifications
 // not yet read) and `pendingFriendRequests` (requests still waiting for an answer).
@@ -24,3 +24,12 @@ export async function saveGroupLevel(groupId, level) {
   const others = (data.preferences.groupOverrides ?? []).filter((o) => o.group !== groupId);
   return put("/api/notifications/preferences", { groupOverrides: [...others, { group: groupId, level }] });
 }
+
+// Marks one notification read. A stale id answers { error }: the caller can ignore it and refetch.
+export const markRead = (id) => put(`/api/notifications/${id}/read`);
+
+// Marks every notification read.
+export const markAllRead = () => put("/api/notifications/read-all");
+
+// Removes every notification in the inbox for good.
+export const clearAllNotifications = () => del("/api/notifications/clear-all");

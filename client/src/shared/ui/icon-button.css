@@ -31,6 +31,11 @@
   .ui-icon-btn--plain .ui-icon-btn__face {
     border-color: transparent;
   }
+  /* The button that opened a popover or drawer stays lit while it is open (Figma 298:18211, "Open"). */
+  .ui-icon-btn[aria-expanded="true"] .ui-icon-btn__face {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
   .ui-icon-btn:active:not(:disabled) .ui-icon-btn__face {
     transform: scale(0.96);
   }

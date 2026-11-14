@@ -48,6 +48,12 @@
       transform: translateY(8px) scale(0.98);
     }
   }
+  /* The notifications drawer slides in from the right edge by its own width. */
+  @keyframes ui-drawer-in {
+    from {
+      transform: translateX(100%);
+    }
+  }
   /* A phone bottom sheet rises from the bottom edge by its own height. */
   @keyframes ui-sheet-in {
     from {
