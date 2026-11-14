@@ -3,6 +3,8 @@ import { useLocation } from "react-router-dom";
 import { Button, Modal } from "@/shared/ui";
 import { openDialogCount, subscribeOpenDialogs } from "@/shared/ui/ModalShell";
 import { useAuth } from "@/pages/authentication/AuthContext";
+import useGuide from "@/features/guide/useGuide";
+import { welcomeShownThisVisit } from "@/features/guide/welcomeVisit";
 import PatchNotes from "./PatchNotes";
 import useWhatsNew from "./useWhatsNew";
 import "./whats-new.css";
@@ -17,6 +19,7 @@ const MAX_ENTRIES = 3;
 export default function WhatsNewWindow() {
   const { isLoggedin, userData } = useAuth();
   const { unseen, hasUnseen, markSeen } = useWhatsNew();
+  const { guide } = useGuide();
   const { pathname } = useLocation();
   const dialogs = useSyncExternalStore(subscribeOpenDialogs, openDialogCount);
   const [shown, setShown] = useState(null);
@@ -24,7 +27,9 @@ export default function WhatsNewWindow() {
   const gotItRef = useRef(null);
 
   const termsAgreed = userData?.termsVersion === userData?.currentLegalVersion;
-  const ready = Boolean(isLoggedin && userData && termsAgreed && hasUnseen && !shown);
+  // A student who hasn't had the welcome tour gets it first, and What's new on a later visit.
+  const welcomeFirst = guide?.welcomeDone === false || welcomeShownThisVisit();
+  const ready = Boolean(isLoggedin && userData && termsAgreed && hasUnseen && !shown && !welcomeFirst);
 
   useEffect(() => {
     if (dialogs > 0) sawDialog.current = true;

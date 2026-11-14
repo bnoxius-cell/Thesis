@@ -16,6 +16,7 @@ function NavLink({ item, active, count, collapsed }) {
       <Link
         to={item.to}
         className="shell-nav__link"
+        data-tour-target={item.key}
         aria-current={active ? "page" : undefined}
         title={collapsed ? item.label : undefined}
       >
@@ -31,7 +32,7 @@ function NavLink({ item, active, count, collapsed }) {
 
 // Sidebar v2 (Figma 16:3): the places in the app in groups, Settings, Log out and Collapse at the
 // bottom. Collapse turns it into a 72px icon rail (labels stay for screen readers, a badge becomes
-// a dot). Shown from 1024px; below that the phone bars (F5) take over.
+// a dot). The links and groups carry data-tour-target (their key) for the welcome tour's highlight. Shown from 1024px; below that the phone bars (F5) take over.
 export default function Sidebar({ collapsed, onToggle }) {
   const { logout } = useAuth();
   const unread = useUnread();
@@ -46,7 +47,7 @@ export default function Sidebar({ collapsed, onToggle }) {
   );
 
   return (
-    <aside className="shell-sidebar" data-collapsed={collapsed || undefined}>
+    <aside className="shell-sidebar" data-collapsed={collapsed || undefined} data-tour-frame>
       <Link to="/home" className="shell-sidebar__logo" aria-label="StressCare home" title={collapsed ? "StressCare home" : undefined}>
         <img src={Logo} alt="" width="28" height="28" />
         <span aria-hidden="true">StressCare</span>
@@ -62,7 +63,7 @@ export default function Sidebar({ collapsed, onToggle }) {
         />
         <nav aria-label="Main" id="shell-sidebar-nav">
           {NAV_GROUPS.map((group) => (
-            <div key={group.key} className="shell-nav__group">
+            <div key={group.key} className="shell-nav__group" data-tour-target={group.key}>
               {group.label && (
                 <p className="shell-nav__eyebrow" id={`nav-${group.key}`}>{group.label}</p>
               )}

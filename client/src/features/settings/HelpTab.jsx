@@ -11,6 +11,11 @@ const EMAIL_HINTS = ["Questions about the app", "Report a problem"];
 export default function HelpTab() {
   return (
     <>
+      <SettingsGroup title="Guides">
+        <SettingsRow label="Take the tour again" hint="A quick look at where everything is.">
+          <Button variant="secondary" to="/home?tour=1">Start</Button>
+        </SettingsRow>
+      </SettingsGroup>
       <SettingsGroup title="Talk to someone">
         {HELP_CONTACTS.map(({ name, detail }) => (
           <SettingsRow key={name} label={name} hint={detail} muted={isPlaceholder(detail)} />
