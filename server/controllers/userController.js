@@ -9,11 +9,13 @@ import { serverError } from '../utils/httpErrors.js';
 const MAX_BIO_LENGTH = 200;
 const MAX_NAME_LENGTH = 60;
 const MAX_PROGRAM_LENGTH = 80;
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+const WELLBEING_GOALS = ['steady', 'catch-up', 'high-performance'];
 
 export const getUserData = async (req, res) => {
     try {
         const userId = req.userId;
-        const user = await userModel.findById(userId).populate('friends', 'name email avatar');
+        const user = await userModel.findById(userId);
 
         if (!user) {
             return res.json({ success: false, message: 'User not found.' });
@@ -38,7 +40,6 @@ export const getUserData = async (req, res) => {
                 usualWakeTime: user.usualWakeTime,
                 travelMinutesPerDay: user.travelMinutesPerDay,
                 wellbeingGoal: user.wellbeingGoal,
-                friends: user.friends,
                 lastPSSSubmission: user.lastPSSSubmission,
                 latestPSSScore: user.lastPSSSubmission ? user.latestPSSScore : null,
                 lastWHOSubmission: user.lastWHOSubmission,
@@ -48,10 +49,14 @@ export const getUserData = async (req, res) => {
                 termsVersion: user.termsVersion,
                 currentLegalVersion: LEGAL_VERSION,
                 seenNotesVersion: user.seenNotesVersion,
+                termsAcceptedAt: user.termsAcceptedAt,
+                // Only whether the user has a password of their own: the hash never leaves the server.
+                // Google sign-ups store a random hash, so they count as having none.
+                hasPassword: Boolean(user.password) && user.authProvider !== 'google',
             }
         });
     } catch (error) {
-        return res.json({ success: false, message: error.message });
+        serverError(res, 'Loading user data failed', error);
     }
 };
 
@@ -100,15 +105,28 @@ export const updateProfile = async (req, res) => {
             updateFields[key] = number;
         }
         if (hasRegularSleepSchedule !== undefined) updateFields.hasRegularSleepSchedule = Boolean(hasRegularSleepSchedule);
-        if (usualSleepStart !== undefined) updateFields.usualSleepStart = usualSleepStart;
-        if (usualWakeTime !== undefined) updateFields.usualWakeTime = usualWakeTime;
-        if (wellbeingGoal !== undefined) updateFields.wellbeingGoal = wellbeingGoal;
+        for (const [key, value, label] of [
+            ['usualSleepStart', usualSleepStart, 'Bedtime'],
+            ['usualWakeTime', usualWakeTime, 'Wake-up time'],
+        ]) {
+            if (value === undefined) continue;
+            if (typeof value !== 'string' || !TIME_PATTERN.test(value)) {
+                return res.json({ success: false, message: `${label} must look like 22:30.` });
+            }
+            updateFields[key] = value;
+        }
+        if (wellbeingGoal !== undefined) {
+            if (!WELLBEING_GOALS.includes(wellbeingGoal)) {
+                return res.json({ success: false, message: 'Please pick one of the pace options.' });
+            }
+            updateFields.wellbeingGoal = wellbeingGoal;
+        }
 
         const updatedUser = await userModel.findByIdAndUpdate(
             userId,
             updateFields,
             { returnDocument: 'after', runValidators: true }
-        ).populate('friends', 'name email avatar');
+        );
 
         if (!updatedUser) {
             return res.json({ success: false, message: 'User not found.' });
@@ -131,7 +149,7 @@ export const updateProfile = async (req, res) => {
             }
         });
     } catch (error) {
-        return res.json({ success: false, message: error.message });
+        serverError(res, 'Updating the profile failed', error);
     }
 };
 
@@ -146,7 +164,7 @@ export const updateAvatar = async (req, res) => {
         if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
         res.json({ success: true, avatar: user.avatar });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Updating the avatar failed', error);
     }
 };
 
@@ -199,7 +217,7 @@ export const getPublicProfile = async (req, res) => {
             },
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Loading the public profile failed', error);
     }
 };
 
@@ -215,7 +233,7 @@ export const acceptTerms = async (req, res) => {
         if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
         res.json({ success: true, termsVersion: user.termsVersion });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        serverError(res, 'Accepting the terms failed', error);
     }
 };
 
