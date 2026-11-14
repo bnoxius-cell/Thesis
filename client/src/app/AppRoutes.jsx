@@ -40,6 +40,11 @@ function SignInRoute() {
   return <AuthPage />;
 }
 
+function AboutLayout() {
+  const { isLoggedin } = useAuth();
+  return isLoggedin ? <AppLayout /> : <PublicLayout />;
+}
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -48,10 +53,14 @@ export default function AppRoutes() {
         <Route path="/dev/ui" element={<Suspense fallback={null}><UiSpecimen /></Suspense>} />
       )}
 
+      {/* About keeps the app shell for a signed-in student (frame 298:18491) and the logo bar for a visitor. */}
+      <Route element={<AboutLayout />}>
+        <Route path="/about" element={<AboutPage />} />
+      </Route>
+
       <Route element={<PublicLayout />}>
         <Route path="/terms-of-service" element={<LegalPage kind="terms" />} />
         <Route path="/privacy-policy" element={<LegalPage kind="privacy" />} />
-        <Route path="/about" element={<AboutPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
 
