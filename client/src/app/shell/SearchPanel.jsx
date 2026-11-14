@@ -1,8 +1,8 @@
-import { BookOpen, FileText, ListChecks } from "lucide-react";
+import { BookOpen, FileText, ListChecks, Route } from "lucide-react";
 import { Button } from "@/shared/ui";
 import { SEARCH_KINDS } from "./searchIndex";
 
-const KIND_ICONS = { subject: BookOpen, reviewer: FileText, task: ListChecks };
+const KIND_ICONS = { subject: BookOpen, reviewer: FileText, task: ListChecks, guide: Route };
 
 // The list under the search bar: results, or one quiet line saying why there are none.
 // `optionId(i)` names each row so the input can point at the highlighted one.

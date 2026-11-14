@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import { Check } from "lucide-react";
 import { Button, Segment, Skeleton, Switch } from "@/shared/ui";
 import SettingsRow, { SettingsGroup } from "./SettingsRow";
+import { LEAD_TIMES } from "./leadTimes.js";
 
 const TOPICS = [
   { key: "taskReminders", label: "Task reminders" },
@@ -10,12 +11,6 @@ const TOPICS = [
   { key: "groupMessages", label: "Group messages" },
   { key: "groupTasks", label: "Shared tasks in groups" },
   { key: "groupMembers", label: "People joining or leaving my groups" },
-];
-
-const LEAD_TIMES = [
-  { value: 3, label: "3 hours" },
-  { value: 24, label: "1 day" },
-  { value: 48, label: "2 days" },
 ];
 
 // "Tell me about": one switch per kind of news. The switches stop the inbox rows as well as the

@@ -41,6 +41,7 @@ export const MAX_SOURCES_BYTES = 40 * MB;
 
 // What a reviewer can be made from: PDF, Word, PowerPoint and photos. Excel and text files are
 // stored in Files but can't be read here.
+export const SOURCE_TYPES_TEXT = "PDF, Word, PowerPoint or photos";
 const SOURCE_EXTS = ["pdf", "docx", "pptx", "png", "jpg", "jpeg", "webp"];
 // For <input accept>: phones convert other photo formats to JPEG when the type is listed.
 export const SOURCE_ACCEPT = [...SOURCE_EXTS.map((ext) => `.${ext}`), "image/jpeg", "image/png", "image/webp"].join(",");

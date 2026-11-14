@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
+import GuideTopics from "@/features/guide/GuideTopics.jsx";
 import useGuide from "@/features/guide/useGuide";
+import useHashScroll from "@/shared/hooks/useHashScroll";
 import { SUPPORT_EMAILS } from "@/pages/legal/legalContent";
 import { HELP_CONTACTS, isPlaceholder } from "@/utils/helpContacts";
 import { Button } from "@/shared/ui";
@@ -13,6 +15,7 @@ const EMAIL_HINTS = ["Questions about the app", "Report a problem"];
 export default function HelpTab() {
   const { guide, showSetup } = useGuide();
   const navigate = useNavigate();
+  useHashScroll(); // /settings/help#guide-<key>: GuideTopics opens that topic, this scrolls to it
   const showAgain = () => {
     showSetup();
     navigate("/home");
@@ -21,6 +24,7 @@ export default function HelpTab() {
   return (
     <>
       <SettingsGroup title="Guides">
+        <p className="settings-group__lead">Short how-tos for getting around StressCare.</p>
         <SettingsRow label="Take the tour again" hint="A quick look at where everything is.">
           <Button variant="secondary" to="/home?tour=1">Start</Button>
         </SettingsRow>
@@ -29,6 +33,7 @@ export default function HelpTab() {
             <Button variant="secondary" onClick={showAgain}>Show on Home</Button>
           </SettingsRow>
         )}
+        <GuideTopics />
       </SettingsGroup>
       <SettingsGroup title="Talk to someone">
         {HELP_CONTACTS.map(({ name, detail }) => (

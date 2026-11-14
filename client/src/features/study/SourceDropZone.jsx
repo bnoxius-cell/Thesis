@@ -4,7 +4,7 @@ import useFileDrop from "@/shared/hooks/useFileDrop";
 import UploadRow from "@/features/files/UploadRow";
 import { extensionOf } from "@/features/files/fileRules";
 import { formatSize } from "@/shared/lib/formatSize";
-import { MAX_SOURCES, MAX_SOURCES_BYTES, SOURCE_ACCEPT, sourceCounter } from "./reviewerForm";
+import { MAX_SOURCES, MAX_SOURCES_BYTES, SOURCE_ACCEPT, SOURCE_TYPES_TEXT, sourceCounter } from "./reviewerForm";
 import "@/features/files/upload-dialog.css";
 
 // The upload half of the Source field in New reviewer (Figma 78:1410 for the empty zone): a dashed
@@ -52,7 +52,7 @@ export default function SourceDropZone({ entries, onAdd, onRemove, disabled = fa
         {input}
         <label htmlFor={inputId} className="study-drop__prompt">
           <strong>Drop files here or choose files</strong>
-          <span>PDF, Word, PowerPoint or photos. Up to {formatSize(MAX_SOURCES_BYTES)}.</span>
+          <span>{SOURCE_TYPES_TEXT}. Up to {formatSize(MAX_SOURCES_BYTES)}.</span>
         </label>
       </div>
     );
