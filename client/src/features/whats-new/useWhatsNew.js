@@ -28,7 +28,7 @@ function writeCache(userId, id) {
 export default function useWhatsNew() {
   const { backendUrl, userData, setUserData } = useAuth();
   const userId = userData?._id;
-  const newestId = RELEASE_NOTES[0]?.id ?? "";
+  const newestId = RELEASE_NOTES[0]?.version ?? "";
 
   const markSeen = useCallback(() => {
     if (!userId || !newestId) return;
