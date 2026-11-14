@@ -1,4 +1,5 @@
 import { Button, Card, ProgressBar } from "@/shared/ui";
+import ReviewerFlashcardsCard from "@/features/flashcards/ReviewerFlashcardsCard";
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -19,7 +20,7 @@ function statusLine(reviewer, openSession, progress) {
 }
 
 // The right-hand column (Figma 76:1287): Learning Mode progress with Resume when a session under
-// 24 hours is open, and the topics that still need work with a way to practise just those.
+// 24 hours is open, the topics that still need work with a way to practise just those, and the Flashcards card.
 // `links` holds the router props (to, state) for Resume and for "Practise these".
 export default function ReviewerSidePanel({ reviewer, openSession, progress, links }) {
   const weakTopics = progress?.weakTopics ?? [];
@@ -40,6 +41,7 @@ export default function ReviewerSidePanel({ reviewer, openSession, progress, lin
           </>
         )}
       </Card>
+      <ReviewerFlashcardsCard reviewerId={reviewer._id} terms={reviewer.keyTerms?.length ?? 0} />
       {weakTopics.length > 0 && (
         <Card as="section" className="reviewer-card" aria-labelledby="reviewer-weak-title">
           <h2 id="reviewer-weak-title" className="reviewer-card__title">Worth another go</h2>

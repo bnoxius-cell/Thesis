@@ -1,23 +1,17 @@
-import { FileText, Layers, Plus } from "lucide-react";
-import { Button, EmptyState } from "@/shared/ui";
+import { FileText, Plus } from "lucide-react";
+import { EmptyState } from "@/shared/ui";
+import FlashcardsPanel from "@/features/flashcards/FlashcardsPanel";
 import ReviewerList from "./ReviewerList";
 
 // The Practice tab's body (Figma 144:654, 146:844). Reviewers is the list with its empty states and,
-// on a phone, the dashed New reviewer card under it. Flashcards is a placeholder card until the
-// flashcard backend exists. The wrapper is keyed on the Segment's choice, so a switch cross-fades.
-// `reviewers` is null while loading and after a failed load.
-export default function PracticePanel({ show, reviewers, onNew, onShow }) {
+// on a phone, the dashed New reviewer card under it. Flashcards is the due card and the decks (features/
+// flashcards). The wrapper is keyed on the Segment's choice, so a switch cross-fades.
+// `reviewers` is null while loading and after a failed load. `flashcards` is useFlashcards' answer.
+export default function PracticePanel({ show, reviewers, flashcards, subjects, entries, now, onNew, onMake }) {
   return (
     <div key={show} className="panel-fade">
       {show === "flashcards" && (
-        <EmptyState
-          icon={Layers}
-          title="Flashcards are on the way"
-          className="study-soon"
-          actions={<Button variant="ghost" onClick={() => onShow("reviewers")}>Open reviewers</Button>}
-        >
-          Flashcards from your notes will show up here. Your reviewers are ready to practice in the meantime.
-        </EmptyState>
+        <FlashcardsPanel flashcards={flashcards} subjects={subjects} entries={entries} now={now} onMake={onMake} />
       )}
       {show === "reviewers" && reviewers && (
         <>

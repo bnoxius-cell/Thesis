@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
-import { BookOpen, CalendarPlus, ClipboardCheck, FileText, Flag, Link2, ListChecks, Plus, Shapes, UserPlus, UsersRound } from "lucide-react";
+import { BookOpen, CalendarPlus, ClipboardCheck, FileText, Flag, Layers, Link2, ListChecks, Plus, Shapes, UserPlus, UsersRound } from "lucide-react";
 import { Button, Menu, MenuItem, Modal } from "@/shared/ui";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import { useGlobalAdd } from "./addContext";
@@ -15,6 +15,7 @@ const ICONS = {
   shapes: Shapes,
   subjects: BookOpen,
   reviewers: FileText,
+  flashcards: Layers,
   file: FileText,
   people: UsersRound,
   link: Link2,

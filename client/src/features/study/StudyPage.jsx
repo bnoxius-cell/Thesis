@@ -6,6 +6,7 @@ import Page from "@/app/shell/Page";
 import { useGlobalAdd } from "@/app/shell/add/addContext";
 import useAddHere from "@/app/shell/add/useAddHere";
 import RedirectTo from "@/app/RedirectTo";
+import useFlashcards from "@/features/flashcards/useFlashcards";
 import useNow from "@/shared/hooks/useNow";
 import PickUpHero from "./PickUpHero";
 import PracticePanel from "./PracticePanel";
@@ -57,16 +58,24 @@ function Study() {
   const data = useSubjects();
   const { reviewers, settled, refresh: refreshReviewers } = useReviewers({ poll: practiceTab });
 
+  // Flashcards load once, when that side opens: the Reviewers side and the other tabs never ask for them.
+  const flashcards = useFlashcards({ enabled: practiceTab && show === "flashcards" });
+
   const isNewAccount = data.status === "ready" && settled && data.subjects.length === 0 && !reviewers?.length;
 
   const { open: openAdd } = useGlobalAdd();
   const openNew = () => openAdd("subject");
   const openUpload = () => openAdd("reviewer");
+  const openMake = () => openAdd("flashcards");
   const open = (type) => (subject) => setDialog({ type, subject });
   // The header Add lands here: refresh what changed. No jump to Practice, the toast's View goes there.
   useAddHere({
     subjects: data.subjects,
-    onAdded: (kind) => (kind === "reviewer" ? refreshReviewers() : data.refresh()),
+    onAdded: (kind, result) => {
+      if (kind === "reviewer") refreshReviewers();
+      else if (kind === "flashcards") flashcards.refresh(result?.deck?.id);
+      else data.refresh();
+    },
   });
 
   // Each Segment choice is a history step (Back and reload keep it); Reviewers is the bare path.
@@ -93,7 +102,7 @@ function Study() {
           {!practiceTab && <PickUpHero reviewers={reviewers} />}
           <div className={`study-tabsrow${practiceTab ? "" : " study-tabsrow--subjects"}`}>
             <StudyTabs value={tab} subjectsCount={data.subjects.length} />
-            {practiceTab && <PracticeSwitch show={show} onShow={changeShow} onNew={openUpload} />}
+            {practiceTab && <PracticeSwitch show={show} onShow={changeShow} onNew={openUpload} onMake={openMake} />}
           </div>
           <div role="tabpanel" id="study-panel" aria-labelledby={`study-tab-${tab}`}>
             {!practiceTab && data.subjects.length > 0 && (
@@ -111,7 +120,18 @@ function Study() {
                 They will show up here once you add them.
               </EmptyState>
             )}
-            {practiceTab && <PracticePanel show={show} reviewers={reviewers} onNew={openUpload} onShow={changeShow} />}
+            {practiceTab && (
+              <PracticePanel
+                show={show}
+                reviewers={reviewers}
+                flashcards={flashcards}
+                subjects={data.subjects}
+                entries={data.entries}
+                now={now}
+                onNew={openUpload}
+                onMake={openMake}
+              />
+            )}
           </div>
         </div>
       )}

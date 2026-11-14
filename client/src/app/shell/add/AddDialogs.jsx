@@ -1,3 +1,4 @@
+import MakeFlashcardsDialog from "@/features/flashcards/MakeFlashcardsDialog";
 import JoinGroupDialog from "@/features/people/JoinGroupDialog";
 import NewGroupDialog from "@/features/people/NewGroupDialog";
 import EntryFormDialog from "@/features/plan/EntryFormDialog";
@@ -14,7 +15,7 @@ export default function AddDialogs({ request, onClose, onSaved, onSubjectMade })
   const { kind, page } = request;
   const inputs = useAddInputs(kind, page);
   if (!inputs) return null;
-  const { subjects, limits } = inputs;
+  const { subjects, limits, sources } = inputs;
 
   if (kind === "task") {
     return (
@@ -42,6 +43,17 @@ export default function AddDialogs({ request, onClose, onSaved, onSubjectMade })
         onClose={onClose}
         onCreated={() => onSaved("reviewer")}
         onSubjectCreated={onSubjectMade}
+      />
+    );
+  }
+  if (kind === "flashcards") {
+    return (
+      <MakeFlashcardsDialog
+        subjects={subjects}
+        sources={sources}
+        limits={limits}
+        onClose={onClose}
+        onSaved={(result) => onSaved("flashcards", result)}
       />
     );
   }
