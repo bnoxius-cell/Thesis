@@ -1,18 +1,15 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useLocation } from "react-router-dom";
-import { Button, Chip, Modal } from "@/shared/ui";
+import { Button, Modal } from "@/shared/ui";
 import { openDialogCount, subscribeOpenDialogs } from "@/shared/ui/ModalShell";
 import { useAuth } from "@/pages/authentication/AuthContext";
-import { NOTE_TAGS } from "./releaseNotes";
+import PatchNotes from "./PatchNotes";
 import useWhatsNew from "./useWhatsNew";
 import "./whats-new.css";
 
 const SETTLE_MS = 1200;
 const AFTER_DIALOG_MS = 1500;
 const MAX_ENTRIES = 3;
-// An entry id starts with its release date (YYYY-MM-DD, maybe a "-2" after it): "14 Nov 2026".
-const entryDate = (id) => new Date(`${id.slice(0, 10)}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-const TAG_TONE = { new: "accent", improved: "neutral", fixed: "good" };
 
 // A one-time "What's new" window after an update. It never interrupts: it waits for the legal gate,
 // for any open dialog, and for the page to settle. Any way of closing it marks the update seen.
@@ -54,23 +51,15 @@ export default function WhatsNewWindow() {
       className="whats-new"
       initialFocusRef={gotItRef}
       onClose={close}
-      actions={<Button ref={gotItRef} onClick={close}>Got it</Button>}
+      actions={(
+        <>
+          <Button variant="secondary" to="/whats-new" onClick={close}>See all updates</Button>
+          <Button ref={gotItRef} onClick={close}>Got it</Button>
+        </>
+      )}
     >
-      {entries.map((entry) => (
-        <section key={entry.id} className="whats-new__entry">
-          <time className="whats-new__date" dateTime={entry.id.slice(0, 10)}>{entryDate(entry.id)}</time>
-          {entry.title && <h3 className="whats-new__title">{entry.title}</h3>}
-          <ul className="whats-new__items">
-            {entry.items.map((item) => (
-              <li key={item.text} className="whats-new__item">
-                <Chip tone={TAG_TONE[item.tag]}>{NOTE_TAGS[item.tag]}</Chip>
-                <span>{item.text}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
-      {shown.length > MAX_ENTRIES && <p className="whats-new__more">and earlier updates</p>}
+      {entries.map((entry, i) => <PatchNotes key={entry.id} entry={entry} latest={i === 0} />)}
+      {shown.length > MAX_ENTRIES && <p className="whats-new__more">Older updates are under See all updates.</p>}
     </Modal>
   );
 }

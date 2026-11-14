@@ -1,4 +1,4 @@
-import { LifeBuoy, LogOut, Settings, User } from "lucide-react";
+import { LifeBuoy, LogOut, Settings, Sparkles, User } from "lucide-react";
 import { useAuth } from "@/pages/authentication/AuthContext";
 import { Avatar, Menu, MenuDivider, MenuItem } from "@/shared/ui";
 
@@ -30,6 +30,7 @@ export default function AvatarMenu() {
       <MenuDivider />
       <MenuItem to="/me" icon={User}>Profile</MenuItem>
       <MenuItem to="/me/settings" icon={Settings}>Settings</MenuItem>
+      <MenuItem to="/whats-new" icon={Sparkles}>What's new</MenuItem>
       <MenuItem to="/me/help" icon={LifeBuoy}>Help and contacts</MenuItem>
       <MenuDivider />
       <MenuItem icon={LogOut} onSelect={() => logout()}>Log out</MenuItem>
