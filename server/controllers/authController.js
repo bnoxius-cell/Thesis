@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import userModel from '../models/userModel.js';
@@ -6,8 +7,62 @@ import { generateOtp } from '../utils/generateOtp.js';
 import { validateLoginFields, validateRegisterFields, validateResetPasswordFields, validateVerifyEmailFields } from '../utils/validators.js';
 import { verifyGoogleIdToken } from '../utils/googleAuth.js';
 import { LEGAL_VERSION } from '../utils/legal.js';
+import { serverError } from '../utils/httpErrors.js';
+
+const OTP_LIFETIME_MS = 20 * 60 * 1000;
+const MAX_OTP_ATTEMPTS = 5;
+
+const OTP_FIELDS = {
+    verify: { code: 'verifyEmailOtp', expireAt: 'verifyEmailOtpExpireAt', attempts: 'verifyEmailOtpAttempts' },
+    reset: { code: 'resetPasswordOtp', expireAt: 'resetPasswordOtpExpireAt', attempts: 'resetPasswordOtpAttempts' },
+};
 
 const normalizeEmail = (email) => String(email).trim().toLowerCase();
+
+const codesMatch = (stored, submitted) => {
+    const a = Buffer.from(stored);
+    const b = Buffer.from(String(submitted).trim());
+    return a.length === b.length && timingSafeEqual(a, b);
+};
+
+// Checks a submitted code against the user's current one of the given kind and uses it up.
+// Returns an error message, or null when the code was good. Each guess is counted with an
+// atomic update before comparing, so parallel requests can't get past MAX_OTP_ATTEMPTS, and
+// the code is cleared atomically on success, so it works exactly once.
+const consumeOtp = async (user, kind, submitted) => {
+    const { code, expireAt, attempts } = OTP_FIELDS[kind];
+    const stored = user[code];
+    if (!stored || !['string', 'number'].includes(typeof submitted)) return 'Invalid OTP.';
+
+    const sameCode = { _id: user._id, [code]: stored };
+    const counted = await userModel.findOneAndUpdate(sameCode, { $inc: { [attempts]: 1 } }, { returnDocument: 'after' });
+    if (!counted) return 'Invalid OTP.';
+
+    const burn = () => userModel.updateOne(sameCode, { [code]: '', [expireAt]: 0 });
+    if (counted[attempts] > MAX_OTP_ATTEMPTS) {
+        await burn();
+        return 'Too many wrong codes. Please request a new one.';
+    }
+    if (!codesMatch(stored, submitted)) {
+        if (counted[attempts] < MAX_OTP_ATTEMPTS) return 'Invalid OTP.';
+        await burn();
+        return 'Too many wrong codes. Please request a new one.';
+    }
+    if (counted[expireAt] < Date.now()) return 'OTP has expired.';
+
+    const used = await userModel.updateOne(sameCode, { [code]: '', [expireAt]: 0, [attempts]: 0 });
+    return used.modifiedCount === 1 ? null : 'Invalid OTP.';
+};
+
+// Saves a fresh code of the given kind on the user (and resets its wrong-guess count).
+const setNewOtp = async (user, kind) => {
+    const { code, expireAt, attempts } = OTP_FIELDS[kind];
+    user[code] = generateOtp();
+    user[expireAt] = Date.now() + OTP_LIFETIME_MS;
+    user[attempts] = 0;
+    await user.save();
+    return user[code];
+};
 
 // Case-insensitive lookup so accounts saved with mixed-case emails (before normalization)
 // still match the lowercase email Google returns.
@@ -19,12 +74,10 @@ const findUserByEmail = (email) => {
 // Generates a fresh verification code, saves it, and emails it. Returns whether the email
 // actually went out, so a mail failure doesn't undo an otherwise successful signup or login.
 const issueVerifyOtp = async (user) => {
-    user.verifyEmailOtp = generateOtp();
-    user.verifyEmailOtpExpireAt = Date.now() + 20 * 60 * 1000; // 20 min otp expiry
-    await user.save();
+    const otp = await setNewOtp(user, 'verify');
 
     try {
-        await sendVerifyEmailOtp(user.email, user.verifyEmailOtp);
+        await sendVerifyEmailOtp(user.email, otp);
         return true;
     } catch (error) {
         console.error('Failed to send verification email:', error.message);
@@ -61,6 +114,7 @@ export const register = async (req, res) => {
             name,
             email,
             password: hashedPassword,
+            passwordSet: true,
             termsVersion: LEGAL_VERSION,
             termsAcceptedAt: new Date()
         });
@@ -242,7 +296,7 @@ export const sendVerifyOtp = async (req, res) => {
         return res.json({ success: true, message: 'OTP sent successfully.' })
 
     } catch (error) {
-        return res.json({ success: false, message: error.message });
+        serverError(res, 'Sending a verification code failed', error);
     }
 };
 
@@ -261,16 +315,12 @@ export const verifyEmail = async (req, res) => {
         if (!user) {
             return res.json({ success: false, message: 'User not found.' });
         }
-        if (user.verifyEmailOtp === '' || user.verifyEmailOtp != otp) {
-            return res.json({ success: false, message: 'Invalid OTP.' })
-        }
-        if (user.verifyEmailOtpExpireAt < Date.now()) {
-            return res.json({success: false, message: 'OTP has expired.'})
+        const otpError = await consumeOtp(user, 'verify', otp);
+        if (otpError) {
+            return res.json({ success: false, message: otpError });
         }
 
         user.isAccountVerified = true;
-        user.verifyEmailOtp = '';
-        user.verifyEmailOtpExpireAt = 0;
         await user.save();
 
         // The account is already verified at this point, so a failed welcome email
@@ -284,7 +334,7 @@ export const verifyEmail = async (req, res) => {
         return res.json({ success: true, message: 'Email verified successfully.' });
 
     } catch (error) {
-        return res.json({ success: false, message: error.message });
+        serverError(res, 'Verifying an email failed', error);
     }
 };
 
@@ -310,18 +360,19 @@ export const sendResetPasswordOtp = async (req, res) => {
             return res.json({success: false, message: 'User not found.'});
         }
         
-        const otp = generateOtp();
+        const otp = await setNewOtp(user, 'reset');
 
-        user.resetPasswordOtp = otp;
-        user.resetPasswordOtpExpireAt = Date.now() + 20 * 60 * 1000; // 20 min otp expiry
-        await user.save();
-
-        await sendPasswordResetEmail(email, otp);
+        try {
+            await sendPasswordResetEmail(user.email, otp);
+        } catch (error) {
+            console.error('Failed to send password reset email:', error.message);
+            return res.json({ success: false, message: "We couldn't send the email just now. Please try again in a minute." });
+        }
 
         return res.json({ success: true, message: 'OTP sent successfully.' });
-        
+
     } catch (error) {
-        return res.json({ success: false, message: error.message });
+        serverError(res, 'Sending a password reset code failed', error);
     }
 };
 
@@ -340,24 +391,27 @@ export const resetPassword = async (req, res) => {
             return res.json({ success: false, message: 'User not found.' })
         }
 
-        if (user.resetPasswordOtp === '' || user.resetPasswordOtp != otp) {
-            return res.json({ success: false, message: 'Invalid OTP.' })
-        }
-        if (user.resetPasswordOtpExpireAt < Date.now()) {
-            return res.json({ success: false, message: 'OTP has expired.' })
+        const otpError = await consumeOtp(user, 'reset', otp);
+        if (otpError) {
+            return res.json({ success: false, message: otpError });
         }
 
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-        user.password = hashedPassword;
-        user.resetPasswordOtp = '';
-        user.resetPasswordOtpExpireAt = 0;
+        user.password = await bcrypt.hash(password, salt);
+        // The emailed code proves the user holds this address, so from now on the password is theirs,
+        // including the first one on an account made with Google.
+        user.passwordSet = true;
         await user.save();
 
-        await sendPasswordResetSuccessEmail(user.email);
+        // The password is already changed, so a failed notice email shouldn't report an error.
+        try {
+            await sendPasswordResetSuccessEmail(user.email);
+        } catch (error) {
+            console.error('Failed to send password changed email:', error.message);
+        }
 
         return res.json({ success: true, message: 'Password reset successfully.' });
     } catch (error) {
-        return res.json({ success: false, message: error.message });
+        serverError(res, 'Resetting a password failed', error);
     }
 };
