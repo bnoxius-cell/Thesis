@@ -79,6 +79,7 @@
   .flash-face__answer {
     font: 600 var(--text-sm) / 20px var(--font-ui);
     color: var(--text-primary);
+    white-space: pre-line; /* answers keep their line breaks */
   }
   .flash-face__hint {
     display: flex;
