@@ -124,6 +124,20 @@
     font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
     overflow-wrap: anywhere;
   }
+  .settings-row--muted .settings-row__label,
+  .settings-row--muted .settings-row__hint {
+    color: var(--text-muted);
+  }
+  .settings-row__wrap {
+    overflow-wrap: anywhere;
+  }
+  .settings-row__hint a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px; /* a tap target, not a bare text link */
+    color: var(--accent);
+    overflow-wrap: anywhere;
+  }
   .settings-row__control {
     display: flex;
     flex-direction: row;
