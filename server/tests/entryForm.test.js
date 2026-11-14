@@ -21,6 +21,12 @@ describe('emptyEntryForm', () => {
 });
 
 describe('entryPayload', () => {
+    test('builds a payload for a new entry when the stored entry is null or undefined', () => {
+        const form = { ...emptyEntryForm('class'), title: 'Web Systems', days: [1] };
+        expect(() => entryPayload(form, null)).not.toThrow();
+        expect(entryPayload(form, null)).toEqual(entryPayload(form));
+    });
+
     test('round trip keeps image, colour, icon and skipOnHoliday: false, and drops _id', () => {
         const payload = entryPayload({ ...entryFormFrom(stored), location: 'Lab 4' }, stored);
         expect(payload).toMatchObject({
