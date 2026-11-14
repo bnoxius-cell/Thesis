@@ -43,10 +43,21 @@ describe('GET /api/user/data for the Me page', () => {
         expect(userData.hasPassword).toBe(true);
     });
 
-    test('hasPassword is false for an account without a password', async () => {
-        const user = await userModel.create({ name: 'Google Student', email: 'g@student.fatima.edu.ph', password: '' });
+    test('hasPassword is false for a Google account, even though it stores a random hash', async () => {
+        const user = await userModel.create({ name: 'Google Student', email: 'g@student.fatima.edu.ph', password: '$2a$10$randomhashforgoogleaccount', authProvider: 'google' });
         const res = await request(app).get('/api/user/data').set('Cookie', cookieOf(user));
         expect(res.body.userData.hasPassword).toBe(false);
+    });
+
+    test('updateProfile rejects a bad pace or time with a plain message, not a 500', async () => {
+        const agent = await signedInAgent();
+        for (const body of [{ wellbeingGoal: 'nope' }, { usualSleepStart: '25:99' }, { usualWakeTime: { a: 1 } }]) {
+            const res = await agent.put('/api/user/profile').send(body);
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(false);
+        }
+        const ok = await agent.put('/api/user/profile').send({ wellbeingGoal: 'catch-up', usualSleepStart: '22:30' });
+        expect(ok.body.success).toBe(true);
     });
 
     test('termsAcceptedAt is set after accepting the terms', async () => {
