@@ -121,7 +121,7 @@ export default function DeckPage() {
           <h2 id="deck-add-title" className="deck-heading">Add a card</h2>
           {empty && <p className="deck-add__intro">Add your first card. Put the word or question on top and what you want to remember underneath.</p>}
           <form className="deck-add__form" onSubmit={submit} noValidate>
-            <CardForm term={draft.term} answer={draft.answer} onChange={(part) => setDraft((prev) => ({ ...prev, ...part }))} termRef={termRef} disabled={adding} autoFocus={empty} />
+            <CardForm term={draft.term} answer={draft.answer} onChange={(part) => setDraft((prev) => ({ ...prev, ...part }))} termRef={termRef} autoFocus={empty} />
             {addError && <p className="deck-error" role="alert">{addError}</p>}
             <div className="deck-add__row">
               <Button type="submit" busy={adding} disabled={!ready}>Add card</Button>
