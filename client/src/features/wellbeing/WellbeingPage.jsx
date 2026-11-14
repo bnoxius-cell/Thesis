@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { Button, Skeleton } from "@/shared/ui";
 import Page from "@/app/shell/Page";
+import useAddHere from "@/app/shell/add/useAddHere";
 import { useAuth } from "@/pages/authentication/AuthContext";
 import useNow from "@/shared/hooks/useNow";
 import useHashScroll, { scrollToId } from "@/shared/hooks/useHashScroll";
@@ -63,6 +64,8 @@ export default function WellbeingPage() {
   const openWeekDay = useOpenWeekDay({ detail, overview: data.overview, tasks: data.tasks, subjects, profile: work.profile, now });
   const { pathname, search, hash } = useLocation();
   const ready = data.status === "ready";
+  // An add from the header or the empty hero changes the week, so fetch it again.
+  useAddHere({ onAdded: data.reload });
   useHashScroll(ready);
 
   // The header button goes to whichever check-in is due (a Later on Home doesn't hide it here); with

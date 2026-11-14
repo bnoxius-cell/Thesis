@@ -2,7 +2,7 @@
    Content fades in over 150 ms with no height animation; the global reduced-motion rule makes it instant. Tokens only. */
 @layer pages {
   .guide-topic {
-    scroll-margin-top: calc(96px + env(safe-area-inset-top)); /* clears the sticky header when a link opens this topic */
+    scroll-margin-top: calc(112px + env(safe-area-inset-top)); /* clears the sticky header when a link opens this topic */
     border-top: 1px solid var(--border);
   }
   .guide-topic__summary {

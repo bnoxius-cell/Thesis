@@ -155,9 +155,17 @@
     gap: var(--space-6);
     padding-block: var(--space-4);
   }
-  .wellbeing-empty .wellbeing-hero__title {
+  .wellbeing-empty__copy {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .wellbeing-empty__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
   }
   .wellbeing-empty__stubs {
     display: flex;
