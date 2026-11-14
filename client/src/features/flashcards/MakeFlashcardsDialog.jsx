@@ -42,14 +42,15 @@ function SourceOption({ source, picked, onPick, disabled }) {
 // Make flashcards (Figma 261:860 from a reviewer, 261:993 write my own, 261:1117 no reviewers, 261:1235 on a
 // phone). `sources` are the ready reviewers from the flashcards list ({ reviewerId, title, terms, deckId });
 // null means they didn't load, and Write my own still works. A reviewer that already has a deck opens it
-// instead of making a second one (the server answers `existing`). On a phone the sheet keeps its close X and
+// instead of making a second one (the server answers `existing`). `defaultSubject` (a subject page's id) presets the
+// subject of a deck of your own. On a phone the sheet keeps its close X and
 // drops Cancel, as frame 261:1235 draws it. `onSaved(result)` gets { deck, ... }.
-export default function MakeFlashcardsDialog({ subjects, sources, limits, onClose, onSaved }) {
+export default function MakeFlashcardsDialog({ subjects, sources, limits, defaultSubject, onClose, onSaved }) {
   const { open } = useGlobalAdd();
   const [mode, setMode] = useState("reviewer");
   const [reviewerId, setReviewerId] = useState(() => firstUsable(sources));
   const [title, setTitle] = useState("");
-  const [subject, setSubject] = useState(null); // null shows "Choose a subject"; "" is the No subject option
+  const [subject, setSubject] = useState(defaultSubject ?? null); // null shows "Choose a subject"; "" is the No subject option
   const [titleError, setTitleError] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);

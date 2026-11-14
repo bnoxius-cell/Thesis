@@ -10,8 +10,9 @@ import "./flashcards-tab.css";
 // The Flashcards side of Practice (Figma 144:826, 146:1038, FC-F1, FC-F2): the due card, or "All caught up" when
 // every deck is done for today, then one row per deck. `flashcards` is useFlashcards' answer; `subjects` and
 // `entries` (the timetable) only feed each row's exam chip. A deck made a moment ago eases in, and a polite live
-// region says so, since there is no toast. Nothing here polls.
-export default function FlashcardsPanel({ flashcards, subjects, entries, now, onMake }) {
+// region says so, since there is no toast. Nothing here polls. `hideDue` leaves out the due card and the caught-up
+// card (a subject's Practice tab shows only its own decks, and Start review would open every deck).
+export default function FlashcardsPanel({ flashcards, subjects, entries, now, onMake, hideDue = false }) {
   const { pathname, search, hash } = useLocation();
   const from = pathname + search + hash;
   const { data, status, error, fresh, refresh } = flashcards;
@@ -50,8 +51,8 @@ export default function FlashcardsPanel({ flashcards, subjects, entries, now, on
 
   return (
     <div className="fc-list">
-      {due.cards > 0 && <DueTodayCard due={due} from={from} />}
-      {due.cards === 0 && anyCards && (
+      {!hideDue && due.cards > 0 && <DueTodayCard due={due} from={from} />}
+      {!hideDue && due.cards === 0 && anyCards && (
         <section className="fc-due" aria-labelledby="fc-caught-title">
           <div className="fc-due__text">
             <h2 id="fc-caught-title" className="fc-due__title">All caught up</h2>

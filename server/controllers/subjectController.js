@@ -4,6 +4,7 @@ import taskModel from '../models/taskModel.js';
 import reviewerModel from '../models/reviewerModel.js';
 import scheduleModel from '../models/scheduleModel.js';
 import fileModel from '../models/fileModel.js';
+import flashcardDeckModel from '../models/flashcardDeckModel.js';
 import { isId, serverError } from '../utils/httpErrors.js';
 import { filesChoice, releasePlaceFiles, removePlaceFiles } from '../utils/placeFiles.js';
 import { courseKey, activeSubjects, matchesLabel } from '../utils/subjectMatch.js';
@@ -17,21 +18,23 @@ const bad = (res, message, status = 400) => res.status(status).json({ success: f
 const text = (value) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '');
 const asObjectId = (id) => new mongoose.Types.ObjectId(String(id));
 
-// Open tasks, reviewers and ready library files per subject: one aggregate for each, not one query per subject.
+// Open tasks, reviewers, flashcard decks and ready library files per subject: one aggregate for each, not one query per subject.
 const countsFor = async (owner, subjectIds) => {
     if (!subjectIds.length) return new Map();
     const countBy = (model, extra = {}) => model.aggregate([
         { $match: { owner: asObjectId(owner), subject: { $in: subjectIds }, ...extra } },
         { $group: { _id: '$subject', n: { $sum: 1 } } },
     ]);
-    const [tasks, reviewers, files] = await Promise.all([
+    const [tasks, reviewers, decks, files] = await Promise.all([
         countBy(taskModel, { isCompleted: false }),
         countBy(reviewerModel),
+        countBy(flashcardDeckModel),
         countBy(fileModel, { scope: 'library', state: 'ready' }),
     ]);
-    const counts = new Map(subjectIds.map((id) => [String(id), { openTasks: 0, reviewers: 0, files: 0 }]));
+    const counts = new Map(subjectIds.map((id) => [String(id), { openTasks: 0, reviewers: 0, decks: 0, files: 0 }]));
     tasks.forEach((row) => { counts.get(String(row._id)).openTasks = row.n; });
     reviewers.forEach((row) => { counts.get(String(row._id)).reviewers = row.n; });
+    decks.forEach((row) => { counts.get(String(row._id)).decks = row.n; });
     files.forEach((row) => { counts.get(String(row._id)).files = row.n; });
     return counts;
 };
@@ -44,7 +47,7 @@ export const publicSubject = (subject, counts) => ({
     color: subject.color,
     order: subject.order,
     archivedAt: subject.archivedAt,
-    counts: counts || { openTasks: 0, reviewers: 0, files: 0 },
+    counts: counts || { openTasks: 0, reviewers: 0, decks: 0, files: 0 },
 });
 
 const sameNameTaken = async (owner, name, exceptId = null) => {
@@ -141,7 +144,7 @@ export const createSubject = async (req, res) => {
         const { subject, linked } = await insertSubject(req.userId, fields, subjects);
         res.status(201).json({
             success: true,
-            subject: publicSubject(subject, { openTasks: linked.tasks, reviewers: linked.reviewers, files: 0 }),
+            subject: publicSubject(subject, { openTasks: linked.tasks, reviewers: linked.reviewers, decks: 0, files: 0 }),
             linked,
         });
     } catch (error) {

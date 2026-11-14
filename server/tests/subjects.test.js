@@ -9,6 +9,7 @@ import scheduleModel from '../models/scheduleModel.js';
 import { courseKey } from '../utils/subjectMatch.js';
 import { courseKey as clientCourseKey, subjectForLabel } from '../../client/src/utils/subjectColors.js';
 import fileModel from '../models/fileModel.js';
+import flashcardDeckModel from '../models/flashcardDeckModel.js';
 import { setFileLimitsForTests, reloadFileLimits } from '../utils/fileLimits.js';
 import { setFileStoreForTests } from '../utils/fileStore.js';
 import { createMemoryStore } from '../utils/fileStores/memoryStore.js';
@@ -85,7 +86,7 @@ describe('subject CRUD', () => {
 
         const list = await alice.agent.get('/api/subjects');
         expect(list.body.subjects).toHaveLength(1);
-        expect(list.body.subjects[0].counts).toEqual({ openTasks: 1, reviewers: 1, files: 0 });
+        expect(list.body.subjects[0].counts).toEqual({ openTasks: 1, reviewers: 1, decks: 0, files: 0 });
 
         const one = await alice.agent.get(`/api/subjects/${id}`);
         expect(one.body.subject.name).toBe('Data Structures');
@@ -95,6 +96,18 @@ describe('subject CRUD', () => {
 
         expect((await alice.agent.delete(`/api/subjects/${id}`)).body.success).toBe(true);
         expect((await alice.agent.get(`/api/subjects/${id}`)).status).toBe(404);
+    });
+
+    test('counts the flashcard decks of a subject, never another student decks', async () => {
+        const { alice, bob } = await twoStudents();
+        const id = (await addSubject(alice.agent, { name: 'Databases' })).body.subject._id;
+        await flashcardDeckModel.create({ owner: alice.id, title: 'Joins', subject: id });
+        await flashcardDeckModel.create({ owner: alice.id, title: 'Keys', subject: id });
+        await flashcardDeckModel.create({ owner: alice.id, title: 'No subject' });
+        await flashcardDeckModel.create({ owner: bob.id, title: 'Not hers', subject: id });
+
+        expect((await alice.agent.get('/api/subjects')).body.subjects[0].counts.decks).toBe(2);
+        expect((await alice.agent.get(`/api/subjects/${id}`)).body.subject.counts.decks).toBe(2);
     });
 
     test('picks a new colour for each subject until all eight are used', async () => {
