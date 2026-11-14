@@ -38,6 +38,14 @@ const userSchema = new mongoose.Schema({
     termsAcceptedAt: { type: Date, default: null },
     // The newest "What's new" entry id this user has seen (ids are release dates, see releaseNotes.js).
     seenNotesVersion: { type: String, default: '' },
+    // The in-app guide (welcome tour and Get started card). A date means it happened, null means not yet.
+    // welcomeDoneAt: finished or skipped the tour. setupHiddenAt: hid the Get started card.
+    // setupDoneAt: completed every Get started step (set once, by the server).
+    guide: {
+        welcomeDoneAt: { type: Date, default: null },
+        setupHiddenAt: { type: Date, default: null },
+        setupDoneAt: { type: Date, default: null },
+    },
     // Bytes this student's files hold in storage (fileBudget reserves and releases it atomically).
     storageUsedBytes: { type: Number, default: 0, min: 0 },
     // What this user wants to hear about. Everything is on by default. groupOverrides
