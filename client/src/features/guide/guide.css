@@ -225,6 +225,7 @@
     margin-bottom: var(--space-5);
     padding: var(--space-5);
     transition: opacity 150ms var(--ease-out);
+    scroll-margin-top: calc(96px + env(safe-area-inset-top)); /* clears the sticky header when the tour scrolls here */
   }
   .get-started[data-leaving] {
     opacity: 0;
