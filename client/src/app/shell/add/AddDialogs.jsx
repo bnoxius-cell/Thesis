@@ -9,8 +9,8 @@ import AddUploadDialog from "./AddUploadDialog";
 import useAddInputs from "./useAddInputs";
 
 // The one dialog host: the form for `request.kind`, using what the page that opened it holds (`request.page`,
-// see useAddHere). `onSaved(kind, result)` runs after a save, `onSubjectMade()` when a reviewer's dialog made
-// a new subject with it, and `onClose` when the student leaves without saving.
+// see useAddHere). `onSaved(kind, result)` runs after a save, `onSubjectMade()` when a task, reviewer or deck
+// dialog made a new subject with it, and `onClose` when the student leaves without saving.
 export default function AddDialogs({ request, onClose, onSaved, onSubjectMade }) {
   const { kind, page } = request;
   const inputs = useAddInputs(kind, page);
@@ -22,8 +22,10 @@ export default function AddDialogs({ request, onClose, onSaved, onSubjectMade })
       <TaskFormDialog
         subjects={subjects}
         defaultSubject={page?.subject?._id}
+        allowNewSubject={!page?.subject}
         onClose={onClose}
         onSaved={(task) => onSaved("task", task)}
+        onSubjectCreated={onSubjectMade}
       />
     );
   }
@@ -55,6 +57,7 @@ export default function AddDialogs({ request, onClose, onSaved, onSubjectMade })
         defaultSubject={page?.subject?._id}
         onClose={onClose}
         onSaved={(result) => onSaved("flashcards", result)}
+        onSubjectCreated={onSubjectMade}
       />
     );
   }

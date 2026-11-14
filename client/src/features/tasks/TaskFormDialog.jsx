@@ -3,6 +3,9 @@ import { Button, Field, Modal, Segment, SelectButton } from "@/shared/ui";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import useSaveTask from "./useSaveTask";
 import { taskSubject } from "@/features/details/itemLinks";
+import NewSubjectNameField from "@/features/study/NewSubjectNameField";
+import newSubjectOption from "@/features/study/newSubjectOption";
+import { NEW_SUBJECT } from "@/features/study/subjectForm";
 import {
   NO_SUBJECT,
   TASK_NOTES_MAX,
@@ -17,12 +20,17 @@ import {
 } from "./taskForm";
 import "./task-dialog.css";
 
+const NEW_SUBJECT_OPTION = newSubjectOption("New subject...");
+
 // New task and Edit task (Figma 207:1959, 207:2383, phone sheets 207:2111, 207:2535). Pass `task` to edit
 // it: the form starts as that task and Save sends only what changed (nothing at all when nothing did).
 // `subjects` is the list the page already loaded. Nothing is saved until the button; closing asks first
 // when something was typed (new) or changed (edit). `defaultSubject` is a subject id to start on (the
-// Subject page). A failed save keeps the dialog open with the message. `onSaved` gets the saved task.
-export default function TaskFormDialog({ subjects, task, defaultSubject = NO_SUBJECT, onClose, onSaved }) {
+// Subject page). The Subject dropdown ends with "New subject..." unless `allowNewSubject` is off (a Subject
+// page, where the list is that one subject): it opens a required name and the server makes the subject with the
+// task. `onSubjectCreated` runs after such a save, before `onSaved`, so the page can read its subjects again.
+// A failed save keeps the dialog open with the message. `onSaved` gets the saved task.
+export default function TaskFormDialog({ subjects, task, defaultSubject = NO_SUBJECT, allowNewSubject = true, onClose, onSaved, onSubjectCreated }) {
   const editing = Boolean(task);
   const [start] = useState(() => (task ? taskFormFrom(task, taskSubject(task, subjects)?._id) : null));
   const [form, setForm] = useState(() => start ?? { ...emptyTaskForm(), subject: defaultSubject });
@@ -32,10 +40,16 @@ export default function TaskFormDialog({ subjects, task, defaultSubject = NO_SUB
   const subjectOptions = [
     { value: NO_SUBJECT, label: "No subject" },
     ...subjects.map((subject) => ({ value: subject._id, label: subject.name })),
+    ...(allowNewSubject ? [NEW_SUBJECT_OPTION] : []),
   ];
+  const creatingSubject = form.subject === NEW_SUBJECT;
   const set = (key) => (value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
+  };
+  const pickSubject = (id) => {
+    set("subject")(id);
+    setErrors((prev) => ({ ...prev, newSubjectName: undefined }));
   };
 
   const submit = async (event) => {
@@ -43,7 +57,9 @@ export default function TaskFormDialog({ subjects, task, defaultSubject = NO_SUB
     const found = taskErrors(form);
     if (Object.keys(found).length > 0) return setErrors(found);
     const saved = await save(form, editing ? { task, start } : undefined);
-    if (saved) onSaved(saved);
+    if (!saved) return;
+    if (creatingSubject) onSubjectCreated?.();
+    onSaved(saved);
   };
 
   return (
@@ -83,12 +99,20 @@ export default function TaskFormDialog({ subjects, task, defaultSubject = NO_SUB
             native={phone}
             options={subjectOptions}
             value={form.subject}
-            onChange={set("subject")}
+            onChange={pickSubject}
             label="Subject"
             {...control}
           />
         )}
       </Field>
+      {creatingSubject && (
+        <NewSubjectNameField
+          value={form.newSubjectName}
+          onChange={(event) => set("newSubjectName")(event.target.value)}
+          error={errors.newSubjectName}
+          disabled={saving}
+        />
+      )}
       <Field
         label="Due"
         type="date"

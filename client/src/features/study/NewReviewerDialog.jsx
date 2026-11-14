@@ -15,8 +15,9 @@ import {
   questionTypeOptions,
   takeSources,
 } from "./reviewerForm";
+import NewSubjectNameField from "./NewSubjectNameField";
 import newSubjectOption from "./newSubjectOption";
-import { NEW_SUBJECT, SUBJECT_LIMITS, subjectNameError } from "./subjectForm";
+import { NEW_SUBJECT, subjectNameError } from "./subjectForm";
 import "./study-dialog.css";
 
 const countOptions = (type) => countOptionsFor(type).map((n) => ({ value: n, label: String(n) }));
@@ -175,17 +176,7 @@ export default function NewReviewerDialog({
         )}
       </Field>
       {creatingSubject && (
-        <Field
-          className="is-entering"
-          label="Subject name"
-          value={newName}
-          onChange={(event) => setNewName(event.target.value)}
-          error={nameError}
-          maxLength={SUBJECT_LIMITS.name}
-          autoComplete="off"
-          autoFocus
-          disabled={creating}
-        />
+        <NewSubjectNameField value={newName} onChange={(event) => setNewName(event.target.value)} error={nameError} disabled={creating} />
       )}
       <div className="ui-field" role="group" aria-labelledby="reviewer-source-label">
         <span id="reviewer-source-label" className="ui-field__label">Source</span>

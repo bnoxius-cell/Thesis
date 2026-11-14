@@ -45,7 +45,7 @@ export default function HomePage() {
   const work = useWorkload({ tasks: data.tasks, overview: data.overview, userData, now });
   const setDone = useTaskDone(data.setTasks);
   const subjects = useMemo(() => [...data.subjectsById.values()], [data.subjectsById]);
-  const edit = useTaskEdit({ subjects, setTasks: data.setTasks });
+  const edit = useTaskEdit({ subjects, setTasks: data.setTasks, onSubjectCreated: data.reload });
   const entryEdit = useEntryEdit({ subjects, onChanged: data.reload });
   const detail = useItemDetail({
     subjects,

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button, Chip, Modal, Segment } from "@/shared/ui";
 import { useGlobalAdd } from "@/app/shell/add/addContext";
 import { createDeck, createDeckFromReviewer } from "@/shared/api/flashcards";
+import { NEW_SUBJECT, subjectNameError, subjectPayload } from "@/features/study/subjectForm";
 import DeckFields from "./DeckFields";
 import { termsLine } from "./deckWords";
 import "../study/study-dialog.css";
@@ -43,15 +44,18 @@ function SourceOption({ source, picked, onPick, disabled }) {
 // phone). `sources` are the ready reviewers from the flashcards list ({ reviewerId, title, terms, deckId });
 // null means they didn't load, and Write my own still works. A reviewer that already has a deck opens it
 // instead of making a second one (the server answers `existing`). `defaultSubject` (a subject page's id) presets the
-// subject of a deck of your own. On a phone the sheet keeps its close X and
+// subject of a deck of your own, which can also make a new subject (`onSubjectCreated` runs after such a save,
+// before `onSaved`). On a phone the sheet keeps its close X and
 // drops Cancel, as frame 261:1235 draws it. `onSaved(result)` gets { deck, ... }.
-export default function MakeFlashcardsDialog({ subjects, sources, limits, defaultSubject, onClose, onSaved }) {
+export default function MakeFlashcardsDialog({ subjects, sources, limits, defaultSubject, onClose, onSaved, onSubjectCreated }) {
   const { open } = useGlobalAdd();
   const [mode, setMode] = useState("reviewer");
   const [reviewerId, setReviewerId] = useState(() => firstUsable(sources));
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState(defaultSubject ?? null); // null shows "Choose a subject"; "" is the No subject option
+  const [newSubjectName, setNewSubjectName] = useState("");
   const [titleError, setTitleError] = useState("");
+  const [newSubjectError, setNewSubjectError] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -59,11 +63,24 @@ export default function MakeFlashcardsDialog({ subjects, sources, limits, defaul
   const noReviewers = sources?.length === 0;
   const reviewerSide = mode === "reviewer";
   const opens = reviewerSide && Boolean(picked?.deckId);
+  const creatingSubject = !reviewerSide && subject === NEW_SUBJECT;
 
   const chooseMode = (value) => {
     setMode(value);
     setError("");
     setTitleError("");
+    setNewSubjectError("");
+  };
+
+  const chooseSubject = (value) => {
+    setSubject(value);
+    setNewSubjectError("");
+  };
+
+  // A deck of your own sends the picked subject id, or `newSubject` (the name) for the server to make one.
+  const subjectChoice = () => {
+    if (creatingSubject) return { newSubject: subjectPayload({ name: newSubjectName }).name };
+    return subject ? { subject } : {};
   };
 
   const submit = async (event) => {
@@ -71,14 +88,17 @@ export default function MakeFlashcardsDialog({ subjects, sources, limits, defaul
     if (busy) return;
     if (!reviewerSide && !title.trim()) return setTitleError("Give the deck a title.");
     if (reviewerSide && !picked) return;
+    const nameError = creatingSubject ? subjectNameError({ name: newSubjectName }) : "";
+    if (nameError) return setNewSubjectError(nameError);
     setBusy(true);
     setError("");
-    const body = reviewerSide ? undefined : { title: title.trim(), ...(subject ? { subject } : {}) };
+    const body = reviewerSide ? undefined : { title: title.trim(), ...subjectChoice() };
     const result = reviewerSide ? await createDeckFromReviewer(picked.reviewerId) : await createDeck(body);
     if (result.error) {
       setBusy(false);
       return setError(result.error);
     }
+    if (creatingSubject) onSubjectCreated?.();
     onSaved(result.data);
   };
 
@@ -134,7 +154,13 @@ export default function MakeFlashcardsDialog({ subjects, sources, limits, defaul
             setError("");
           }}
           subject={subject}
-          onSubject={setSubject}
+          onSubject={chooseSubject}
+          newSubjectName={newSubjectName}
+          onNewSubjectName={(value) => {
+            setNewSubjectName(value);
+            setNewSubjectError("");
+          }}
+          newSubjectError={newSubjectError}
           subjects={subjects}
           titleError={titleError}
           maxTitle={limits?.title ?? DEFAULT_MAX_TITLE}

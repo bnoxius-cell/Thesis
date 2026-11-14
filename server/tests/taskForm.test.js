@@ -1,7 +1,8 @@
 import { describe, test, expect } from 'vitest';
 import {
-    NO_SUBJECT, emptyTaskForm, sizeOf, taskChanges, taskFormFrom, taskPayload, taskStarted,
+    NO_SUBJECT, emptyTaskForm, sizeOf, taskChanges, taskErrors, taskFormFrom, taskPayload, taskStarted,
 } from '../../client/src/features/tasks/taskForm.js';
+import { NEW_SUBJECT } from '../../client/src/features/study/subjectForm.js';
 
 const stored = {
     _id: 'a'.repeat(24),
@@ -16,7 +17,7 @@ const subjectId = 'b'.repeat(24);
 describe('taskFormFrom', () => {
     test('reads the stored task back, due day in UTC, hours as stored', () => {
         expect(taskFormFrom(stored, subjectId)).toEqual({
-            title: 'Chapter 3 draft', subject: subjectId, dueDate: '2026-11-12', hours: 2, description: 'Methodology section.',
+            title: 'Chapter 3 draft', subject: subjectId, newSubjectName: '', dueDate: '2026-11-12', hours: 2, description: 'Methodology section.',
         });
     });
 
@@ -48,6 +49,11 @@ describe('taskChanges', () => {
         expect(changes).not.toHaveProperty('course');
     });
 
+    test('New subject sends its tidied name as newSubject, not an id or course', () => {
+        const changes = taskChanges(start, { ...start, subject: NEW_SUBJECT, newSubjectName: '  Data   Mining ' });
+        expect(changes).toEqual({ newSubject: 'Data Mining' });
+    });
+
     test('No subject unlinks and clears the old course label', () => {
         expect(taskChanges(start, { ...start, subject: NO_SUBJECT })).toEqual({ subject: null, course: '' });
     });
@@ -72,6 +78,20 @@ describe('create', () => {
     test('payload carries trimmed notes', () => {
         const form = { ...emptyTaskForm(new Date('2026-11-09T12:00:00')), title: ' Lab ', description: ' bring gown ' };
         expect(taskPayload(form)).toMatchObject({ title: 'Lab', description: 'bring gown', subject: null, hours: 3 });
+    });
+
+    test('a new subject sends newSubject in place of subject', () => {
+        const form = { ...emptyTaskForm(new Date('2026-11-09T12:00:00')), title: 'Lab', subject: NEW_SUBJECT, newSubjectName: ' Physics ' };
+        const payload = taskPayload(form);
+        expect(payload).toMatchObject({ title: 'Lab', newSubject: 'Physics' });
+        expect(payload).not.toHaveProperty('subject');
+    });
+
+    test('a new subject needs a name, and nothing else is asked of the picker', () => {
+        const form = { ...emptyTaskForm(new Date('2026-11-09T12:00:00')), title: 'Lab' };
+        expect(taskErrors(form)).toEqual({});
+        expect(taskErrors({ ...form, subject: NEW_SUBJECT, newSubjectName: '  ' })).toEqual({ newSubjectName: 'Give the subject a name.' });
+        expect(taskErrors({ ...form, subject: NEW_SUBJECT, newSubjectName: 'Physics' })).toEqual({});
     });
 
     test('a form with only notes typed still asks before closing', () => {

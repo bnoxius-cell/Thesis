@@ -4,11 +4,12 @@ import TaskFormDialog from "./TaskFormDialog";
 import DeleteTaskDialog from "./DeleteTaskDialog";
 
 // Edit and delete for a page's task list, wired to the details window (plan 25 C3, R4, R5, R10).
-//   const edit = useTaskEdit({ subjects, setTasks });
+//   const edit = useTaskEdit({ subjects, setTasks, onSubjectCreated });
 //   useItemDetail({ ..., onEditTask: edit.onEditTask, onDeleteTask: edit.onDeleteTask }), then {edit.dialog}.
 // Edit and Delete replace the details window. Cancel puts the window back; a save puts it back showing the
 // saved task; a delete drops the task from the list and shows the toast. `reopen` comes from useItemDetail and puts focus back on the Edit or Delete button.
-export default function useTaskEdit({ subjects, setTasks }) {
+// `onSubjectCreated` runs when a save made a new subject, so the page reads its subjects again.
+export default function useTaskEdit({ subjects, setTasks, onSubjectCreated }) {
   const [open, setOpen] = useState(null); // { mode: "edit" | "delete", task, reopen }
 
   const start = (mode) => (task, { close, reopen }) => {
@@ -36,7 +37,15 @@ export default function useTaskEdit({ subjects, setTasks }) {
 
   let dialog = null;
   if (open?.mode === "edit") {
-    dialog = <TaskFormDialog subjects={subjects} task={open.task} onClose={() => back(open.task)} onSaved={saved} />;
+    dialog = (
+      <TaskFormDialog
+        subjects={subjects}
+        task={open.task}
+        onClose={() => back(open.task)}
+        onSaved={saved}
+        onSubjectCreated={onSubjectCreated}
+      />
+    );
   } else if (open?.mode === "delete") {
     dialog = <DeleteTaskDialog task={open.task} onClose={() => back(open.task)} onDeleted={deleted} />;
   }

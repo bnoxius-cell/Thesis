@@ -3,7 +3,8 @@ import flashcardDeckModel, { FLASHCARD_LIMITS } from '../models/flashcardDeckMod
 import flashcardModel from '../models/flashcardModel.js';
 import reviewerModel from '../models/reviewerModel.js';
 import { isId, serverError } from '../utils/httpErrors.js';
-import { applyItemSubject, resolveItemSubject } from '../utils/subjectMatch.js';
+import { applyItemSubject } from '../utils/subjectMatch.js';
+import { readItemSubject, finishItemSubject } from '../utils/itemSubject.js';
 import { readCardFields } from '../utils/flashcardCards.js';
 import { MASTERED_BOX, applyRating, deckStatus, isDue, nextDueDays, tomorrowStart } from '../utils/flashcardSchedule.js';
 import { shuffled } from '../utils/shuffle.js';
@@ -131,12 +132,12 @@ export const createDeck = async (req, res) => {
         const body = req.body ?? {};
         const { title, error } = readTitle(body.title);
         if (error) return bad(res, error);
-        const link = await resolveItemSubject(req.userId, { subject: body.subject });
+        const link = await readItemSubject(req.userId, { subject: body.subject, newSubject: body.newSubject });
         if (link.error) return bad(res, link.error);
         if (await flashcardDeckModel.countDocuments({ owner: req.userId }) >= FLASHCARD_LIMITS.decks) return bad(res, DECK_CAP_MESSAGE);
 
         const fields = { owner: req.userId, title };
-        applyItemSubject(fields, link.subject);
+        applyItemSubject(fields, await finishItemSubject(req.userId, link));
         const deck = await flashcardDeckModel.create(fields);
         res.status(201).json({ success: true, deck: publicDeck(deck) });
     } catch (error) {
@@ -278,9 +279,9 @@ export const updateDeck = async (req, res) => {
             if (error) return bad(res, error);
             deck.title = title;
         }
-        const link = await resolveItemSubject(req.userId, { subject: body.subject });
+        const link = await readItemSubject(req.userId, { subject: body.subject, newSubject: body.newSubject });
         if (link.error) return bad(res, link.error);
-        applyItemSubject(deck, link.subject);
+        applyItemSubject(deck, await finishItemSubject(req.userId, link));
         await deck.save();
         res.json({ success: true, deck: await publicDeckWithCounts(deck, new Date()) });
     } catch (error) {
