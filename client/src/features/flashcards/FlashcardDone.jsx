@@ -52,7 +52,7 @@ export default function FlashcardDone({ summary, practice, title, backLabel, onB
             </h1>
             <p className="flash-done__tally">{tally}</p>
             {next && <p className="practice-lead">{next}</p>}
-            {practice && <p className="practice-lead">Nothing was due, so your schedule stays the same.</p>}
+            {practice && !stillDue && <p className="practice-lead">Nothing was due, so your schedule stays the same.</p>}
             {unsaved > 0 && (
               <p className="flash-done__unsaved">
                 Some answers didn't save, so those cards may come back sooner than planned.
