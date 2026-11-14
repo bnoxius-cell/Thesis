@@ -329,11 +329,11 @@ describe('several files in one reviewer', () => {
 // --- body size ---
 
 describe('how much can be sent', () => {
-    test('a declared body over 20 MB is refused before anything is read', async () => {
+    test('a declared body over 40 MB is refused before anything is read', async () => {
         const { user } = await signUp();
-        const res = await rawPost(user, { 'content-length': String(25 * MIB) });
+        const res = await rawPost(user, { 'content-length': String(45 * MIB) });
         expect(res.status).toBe(413);
-        expect(res.body.message).toBe('Those files are too big together. The limit is 20 MB for one reviewer.');
+        expect(res.body.message).toBe('Those files are too big together. The limit is 40 MB for one reviewer.');
         await slotsFree();
         await noReviewerMade();
     });
@@ -349,9 +349,9 @@ describe('how much can be sent', () => {
     test('files that fit one by one but not together are 413, with nothing saved', async () => {
         const { agent } = await signUp();
         const padded = (size) => Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(size - 9, 0x20)]);
-        const res = await send(agent, { files: [[padded(10 * MIB), 'a.pdf'], [padded(10 * MIB), 'b.pdf'], [padded(2000), 'c.pdf']] });
+        const res = await send(agent, { files: [[padded(25 * MIB), 'a.pdf'], [padded(15 * MIB), 'b.pdf'], [padded(2000), 'c.pdf']] });
         expect(res.status).toBe(413);
-        expect(res.body.message).toBe('Those files are too big together. The limit is 20 MB for one reviewer.');
+        expect(res.body.message).toBe('Those files are too big together. The limit is 40 MB for one reviewer.');
         await slotsFree();
         await noReviewerMade();
     });
@@ -485,14 +485,23 @@ describe('how much can be sent', () => {
         await noReviewerMade();
     });
 
-    test('one file over 10 MB is 413 and gives its slot back', async () => {
+    test('one file over 30 MB is 413 and gives its slot back', async () => {
         const { agent } = await signUp();
-        const big = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(10 * MIB)]);
+        const big = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(30 * MIB)]);
         const res = await send(agent, { files: [[docx(), 'fine.docx'], [big, 'big.pdf']] });
         expect(res.status).toBe(413);
-        expect(res.body.message).toBe('One of the files is too big. Each file can be up to 10 MB.');
+        expect(res.body.message).toBe('One of the files is too big. Each file can be up to 30 MB.');
         await slotsFree();
         await noReviewerMade();
+    });
+
+    test('Word files of 29 MB and 10 MB are read, because only their text counts', async () => {
+        const { agent } = await signUp();
+        const withPictures = (size) => makeDocx(STUDY_LINES, { extra: [{ name: 'word/media/image1.png', data: Buffer.alloc(size) }] });
+        const res = await send(agent, { files: [[withPictures(29 * MIB), 'big.docx'], [withPictures(10 * MIB), 'second.docx']] });
+        expect(res.status).toBe(201);
+        expect(res.body.reviewer.source).toMatchObject({ type: 'docx', count: 2 });
+        await settleGenerationJobs();
     });
 });
 

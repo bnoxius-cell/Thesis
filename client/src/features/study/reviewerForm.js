@@ -36,8 +36,8 @@ export const clampCount = (type, count) => {
 
 const MB = 1024 * 1024;
 export const MAX_SOURCES = 10;
-export const MAX_SOURCE_BYTES = 10 * MB;
-export const MAX_SOURCES_BYTES = 20 * MB;
+export const MAX_SOURCE_BYTES = 30 * MB;
+export const MAX_SOURCES_BYTES = 40 * MB;
 
 // What a reviewer can be made from: PDF, Word, PowerPoint and photos. Excel and text files are
 // stored in Files but can't be read here.
@@ -103,7 +103,7 @@ export const usableSources = (files) => files.filter((file) => SOURCE_EXTS.inclu
 // Whether a stored file can still be ticked next to the ones already picked.
 export const canPickStored = (picked, file) => roomProblem(picked.length, totalBytes(picked), file.size) === "";
 
-// "3 files · 14.2 MB of 20 MB".
+// "3 files · 14.2 MB of 40 MB".
 export const sourceCounter = (items) => `${filesText(items.length)} · ${formatSize(totalBytes(items))} of ${formatSize(MAX_SOURCES_BYTES)}`;
 
 // The message that blocks Create, or "" when a reviewer can be made. `limits` is what the list

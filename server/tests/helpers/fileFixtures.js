@@ -121,19 +121,21 @@ const escapeXml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').re
 const XMLNS_W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
 const XMLNS_P = 'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
 
-// A real Word file whose body has one paragraph per line, so the text reader can run on it.
-export const makeDocx = (lines) => makeZip([
+// A real Word file whose body has one paragraph per line, so the text reader can run on it. `extra` adds
+// more entries (pictures, for example).
+export const makeDocx = (lines, { extra = [] } = {}) => makeZip([
     '[Content_Types].xml',
     {
         name: 'word/document.xml',
         data: `<w:document ${XMLNS_W}><w:body>${lines.map((line) => `<w:p><w:r><w:t>${escapeXml(line)}</w:t></w:r></w:p>`).join('')}</w:body></w:document>`,
         deflate: true,
     },
+    ...extra,
 ]);
 
 // A real PowerPoint file: `slides` is an array of line arrays (slide 1 first). `order` lists slide indexes
-// in show order when that isn't the numbering.
-export const makePptx = (slides, { order = slides.map((_, i) => i) } = {}) => makeZip([
+// in show order when that isn't the numbering. `extra` adds more entries (pictures, for example).
+export const makePptx = (slides, { order = slides.map((_, i) => i), extra = [] } = {}) => makeZip([
     '[Content_Types].xml',
     {
         name: 'ppt/presentation.xml',
@@ -150,4 +152,5 @@ export const makePptx = (slides, { order = slides.map((_, i) => i) } = {}) => ma
         data: `<p:sld ${XMLNS_P}><p:cSld><p:spTree><p:sp><p:txBody>${lines.map((line) => `<a:p><a:r><a:t>${escapeXml(line)}</a:t></a:r></a:p>`).join('')}</p:txBody></p:sp></p:spTree></p:cSld></p:sld>`,
         deflate: true,
     })),
+    ...extra,
 ]);

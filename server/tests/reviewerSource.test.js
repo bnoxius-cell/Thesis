@@ -328,14 +328,14 @@ describe('sourceSlots', () => {
 });
 
 describe('bodyDeadlineMs', () => {
-    test('a small body gets little more than the floor, a bigger one time for its bytes, up to two minutes', () => {
+    test('a small body gets little more than the floor, a bigger one time for its bytes, up to four minutes', () => {
         expect(bodyDeadlineMs(0)).toBe(10_000);
         expect(bodyDeadlineMs(5000)).toBeLessThan(10_200);
         expect(bodyDeadlineMs(MIB)).toBe(10_000 + 32_000);
-        expect(bodyDeadlineMs(MAX_SOURCES_BYTES + MIB)).toBe(120_000);
+        expect(bodyDeadlineMs(MAX_SOURCES_BYTES + MIB)).toBe(240_000);
     });
 });
 
-test('the per-reviewer cap is 20 MB', () => {
-    expect(MAX_SOURCES_BYTES).toBe(20 * 1024 * 1024);
+test('the per-reviewer cap is 40 MB', () => {
+    expect(MAX_SOURCES_BYTES).toBe(40 * 1024 * 1024);
 });
