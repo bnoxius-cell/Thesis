@@ -52,7 +52,7 @@ export default function WellbeingPage() {
   });
   const setDone = useTaskDone(data.setTasks);
   const subjects = useMemo(() => [...data.subjectsById.values()], [data.subjectsById]);
-  const edit = useTaskEdit({ subjects, setTasks: data.setTasks });
+  const edit = useTaskEdit({ subjects, setTasks: data.setTasks, onSubjectCreated: data.reload });
   const detail = useItemDetail({
     subjects,
     onToggle: setDone,

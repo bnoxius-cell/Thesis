@@ -1,3 +1,4 @@
+import { NEW_SUBJECT, subjectNameError } from "@/features/study/subjectForm";
 import { taskDueIso, toISODate } from "@/utils/scheduleUtils";
 
 // The task form, new and edit. The limit matches TASK_LIMITS on the server, which checks it again. Sizes map
@@ -13,9 +14,11 @@ export const TASK_SIZES = [
 
 export const NO_SUBJECT = "";
 
+// `subject` is a subject id, NO_SUBJECT, or NEW_SUBJECT to make one from `newSubjectName`.
 export const emptyTaskForm = (today = new Date()) => ({
   title: "",
   subject: NO_SUBJECT,
+  newSubjectName: "",
   dueDate: toISODate(today),
   hours: 3,
   description: "",
@@ -30,6 +33,7 @@ export const sizeOf = (hours) => (hours <= 1.5 ? 1 : hours <= 4 ? 3 : 5);
 export const taskFormFrom = (task, subjectId = NO_SUBJECT) => ({
   title: task.title,
   subject: subjectId,
+  newSubjectName: "",
   dueDate: taskDueIso(task.dueDate),
   hours: Number(task.hours) || 3,
   description: task.description || "",
@@ -37,9 +41,10 @@ export const taskFormFrom = (task, subjectId = NO_SUBJECT) => ({
 
 const clean = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 
+// With NEW_SUBJECT picked it sends `newSubject` (the name) instead of `subject`; the server makes the subject.
 export const taskPayload = (form) => ({
   title: clean(form.title),
-  subject: form.subject || null,
+  ...(form.subject === NEW_SUBJECT ? { newSubject: clean(form.newSubjectName) } : { subject: form.subject || null }),
   dueDate: form.dueDate,
   hours: form.hours,
   description: form.description.trim(),
@@ -52,7 +57,8 @@ export function taskChanges(start, form) {
   const changes = {};
   if (clean(form.title) !== clean(start.title)) changes.title = clean(form.title);
   if (form.subject !== start.subject) {
-    if (form.subject) changes.subject = form.subject;
+    if (form.subject === NEW_SUBJECT) changes.newSubject = clean(form.newSubjectName);
+    else if (form.subject) changes.subject = form.subject;
     else Object.assign(changes, { subject: null, course: "" });
   }
   if (form.dueDate !== start.dueDate) changes.dueDate = form.dueDate;
@@ -66,6 +72,10 @@ export function taskErrors(form) {
   const errors = {};
   if (!clean(form.title)) errors.title = "Give the task a name.";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(form.dueDate)) errors.dueDate = "Pick a due date.";
+  if (form.subject === NEW_SUBJECT) {
+    const nameError = subjectNameError({ name: form.newSubjectName });
+    if (nameError) errors.newSubjectName = nameError;
+  }
   return errors;
 }
 

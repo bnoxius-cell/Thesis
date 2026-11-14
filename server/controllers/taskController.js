@@ -3,6 +3,7 @@ import taskShareModel from '../models/taskShareModel.js';
 import mongoose from 'mongoose';
 import { isId, serverError } from '../utils/httpErrors.js';
 import { resolveItemSubject, applyItemSubject } from '../utils/subjectMatch.js';
+import { readItemSubject, finishItemSubject } from '../utils/itemSubject.js';
 
 const generateShareTag = () => String(Math.floor(100000 + Math.random() * 900000));
 
@@ -175,9 +176,11 @@ export const createTask = async (req, res) => {
             return res.status(400).json({ success: false, message: error });
         }
 
-        const link = await resolveItemSubject(req.userId, { subject: req.body.subject, course: payload.course });
+        const link = await readItemSubject(req.userId, { subject: req.body.subject, course: payload.course, newSubject: req.body.newSubject });
         if (link.error) return res.status(400).json({ success: false, message: link.error });
-        applyItemSubject(payload, link.subject);
+        // A new subject is made last, once the task is sure to be saved; until then the task carries its name.
+        if (link.pending) payload.course = link.pending.name;
+        else applyItemSubject(payload, link.subject);
 
         let shareTag = null;
 
@@ -202,6 +205,7 @@ export const createTask = async (req, res) => {
             shareTag = template.shareTag;
         }
 
+        if (link.pending) applyItemSubject(payload, await finishItemSubject(req.userId, link));
         const newTask = new taskModel({ ...payload, owner: req.userId, shareTag });
         await newTask.save();
         res.json({ success: true, message: 'Task created', task: newTask });
@@ -273,9 +277,10 @@ export const updateTask = async (req, res) => {
         const task = await taskModel.findOne({ _id: req.params.taskId, owner: req.userId });
         if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
-        const link = await resolveItemSubject(req.userId, { subject: req.body.subject, course: updateFields.course });
+        const link = await readItemSubject(req.userId, { subject: req.body.subject, course: updateFields.course, newSubject: req.body.newSubject });
         if (link.error) return res.status(400).json({ success: false, message: link.error });
-        applyItemSubject(updateFields, link.subject);
+        if (link.pending) updateFields.course = link.pending.name;
+        else applyItemSubject(updateFields, link.subject);
 
         const wasCompleted = task.isCompleted;
         Object.assign(task, updateFields);
@@ -290,6 +295,7 @@ export const updateTask = async (req, res) => {
             task.shareTag = template.shareTag;
         }
 
+        if (link.pending) applyItemSubject(task, await finishItemSubject(req.userId, link));
         await task.save();
         res.json({ success: true, task });
     } catch (error) {

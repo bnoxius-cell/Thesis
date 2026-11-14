@@ -61,7 +61,7 @@ export default function PlanPage() {
   const monthData = useMonthData(month, view === "month");
   const setDone = useTaskDone(data.setTasks);
   const subjects = useMemo(() => [...data.subjectsById.values()], [data.subjectsById]);
-  const edit = useTaskEdit({ subjects, setTasks: data.setTasks });
+  const edit = useTaskEdit({ subjects, setTasks: data.setTasks, onSubjectCreated: data.reload });
   // R10: after an entry is edited or deleted the week and the month read again.
   const entryEdit = useEntryEdit({
     subjects,

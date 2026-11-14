@@ -3,7 +3,8 @@ import { TriangleAlert, Users } from "lucide-react";
 import { Button, Field, Modal, Segment, SelectButton } from "@/shared/ui";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import newSubjectOption from "@/features/study/newSubjectOption";
-import { NEW_SUBJECT, SUBJECT_LIMITS } from "@/features/study/subjectForm";
+import NewSubjectNameField from "@/features/study/NewSubjectNameField";
+import { NEW_SUBJECT } from "@/features/study/subjectForm";
 import { KIND_LABELS, WEEKDAYS } from "@/utils/scheduleUtils";
 import {
   ENTRY_LINK_MAX,
@@ -116,17 +117,7 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
     </Field>
   );
   const newSubjectField = creatingSubject && (
-    <Field
-      className="is-entering"
-      label="Subject name"
-      value={form.newSubjectName}
-      onChange={typeNewSubject}
-      error={errors.newSubject}
-      maxLength={SUBJECT_LIMITS.name}
-      autoComplete="off"
-      autoFocus
-      required
-    />
+    <NewSubjectNameField value={form.newSubjectName} onChange={typeNewSubject} error={errors.newSubject} />
   );
   const titleField = (
     <Field
