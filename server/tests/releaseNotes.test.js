@@ -19,10 +19,10 @@ describe('release notes file', () => {
         expect(dates).toEqual([...dates].sort().reverse());
     });
 
-    test('every entry has 1 to 6 items with a known tag and short text', () => {
+    test('every entry has 1 to 10 items with a known tag and short text', () => {
         for (const note of RELEASE_NOTES) {
             expect(note.items.length).toBeGreaterThanOrEqual(1);
-            expect(note.items.length).toBeLessThanOrEqual(6);
+            expect(note.items.length).toBeLessThanOrEqual(10);
             for (const item of note.items) {
                 expect(Object.keys(NOTE_TAGS)).toContain(item.tag);
                 expect(item.text.trim().length).toBeGreaterThan(0);

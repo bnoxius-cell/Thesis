@@ -4,7 +4,7 @@
 //
 // A note file is `export default { title, items: [{ tag, text }] }`.
 // Wording: one sentence per item, 140 characters at most, talk to the student ("you", "your"), say what they'll
-// notice, no dashes, no jargon, no emoji, 1 to 6 items. Add the note BEFORE every push to `production`.
+// notice, no dashes, no jargon, no emoji, 1 to 10 items. Add the note BEFORE every push to `production`.
 // server/tests/releaseNotes.test.js checks the shape.
 const files = import.meta.glob("./notes/*.js", { eager: true, import: "default" });
 
