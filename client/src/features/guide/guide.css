@@ -191,18 +191,15 @@
     .tour-step {
       gap: 20px;
     }
-    /* Beside the bar the sheet becomes a floating card: no handle, 12px side margins, 20px corners. */
+    /* Beside the bar the sheet becomes a floating card: no visible handle, 12px side margins, 20px corners.
+       The handle keeps its room and the padding stays as it is, so every step is the same height. */
     .welcome-tour[data-spot] {
       width: calc(100% - 24px);
-      padding: var(--space-3) 0 0;
       border-radius: var(--radius-xl);
       box-shadow: var(--shadow-3);
     }
     .welcome-tour[data-spot] > .ui-modal__handle {
-      display: none;
-    }
-    .welcome-tour[data-spot] .ui-modal__body {
-      padding-top: 0;
+      visibility: hidden;
     }
     .welcome-tour .ui-modal__actions {
       padding: var(--space-2) 20px var(--space-5);

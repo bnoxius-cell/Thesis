@@ -1,16 +1,20 @@
 import { useState } from "react";
 import { Users } from "lucide-react";
 import { ConfirmDialog } from "@/shared/ui";
-import { deleteTimetable, leaveTimetable } from "@/shared/api/schedules";
+import { deleteTimetable, isTimetableGone, leaveTimetable } from "@/shared/api/schedules";
 import "./timetable-menu.css";
 
+const NO_LONGER_EXISTS = "This timetable no longer exists.";
 const usedBy = (n, title) => `${n} ${n === 1 ? "person uses" : "people use"} ${title}. They lose it too.`;
 
 // Delete (owner, red) or Leave (member, primary), Figma D10. Both are real: the server removes the timetable or the
-// membership, and a failure keeps the dialog open with the server's message.
-export default function TimetableConfirmDialog({ mode, timetable, userId, onClose, onDone }) {
+// membership, and a failure keeps the dialog open with a plain message. When the timetable is already gone
+// (the owner deleted it), the dialog says so and the lists refresh through `onMissing` once it is closed:
+// refreshing sooner would unmount the menu and the dialog with it.
+export default function TimetableConfirmDialog({ mode, timetable, userId, onClose, onDone, onMissing }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [missing, setMissing] = useState(false);
   const deleting = mode === "delete";
   const count = timetable.collaboratorCount;
   const note = deleting ? (count > 0 ? usedBy(count, timetable.title) : "") : `Everyone else keeps ${timetable.title}.`;
@@ -18,10 +22,17 @@ export default function TimetableConfirmDialog({ mode, timetable, userId, onClos
   const confirm = async () => {
     setBusy(true);
     setError("");
-    const { error: failure } = deleting ? await deleteTimetable(timetable._id) : await leaveTimetable(timetable._id, userId);
+    const res = deleting ? await deleteTimetable(timetable._id) : await leaveTimetable(timetable._id, userId);
     setBusy(false);
-    if (failure) setError(failure);
+    if (isTimetableGone(res)) {
+      setMissing(true);
+      setError(NO_LONGER_EXISTS);
+    } else if (res.error) setError(res.error);
     else onDone();
+  };
+  const cancel = () => {
+    onClose();
+    if (missing) onMissing();
   };
 
   return (
@@ -33,7 +44,7 @@ export default function TimetableConfirmDialog({ mode, timetable, userId, onClos
       confirmLabel={deleting ? "Delete timetable" : "Leave timetable"}
       busy={busy}
       onConfirm={confirm}
-      onCancel={onClose}
+      onCancel={cancel}
     >
       <p className="timetable-menu__text">
         {deleting

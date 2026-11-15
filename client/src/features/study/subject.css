@@ -94,8 +94,9 @@
     z-index: 35;
     box-shadow: var(--shadow-3);
   }
-  /* The floating button leaves room to scroll past it. */
-  .subject-practice__panel--float {
+  /* The floating button leaves room to scroll past it. The room goes under the footer, which is the last thing
+     on the page: on a short page the footer sits right above the bar, where the button floats. */
+  .shell-main:has(.subject-practice__panel--float) .site-footer {
     padding-bottom: calc(44px + var(--space-4));
   }
 

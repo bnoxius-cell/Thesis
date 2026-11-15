@@ -123,7 +123,7 @@
 
   /* Phone top bar (the Plan phone frame, 40:387, is the pattern for every page): one 44px row at
      y16 holding the title, the "+", then the bell and the avatar side by side. No subtitle and no
-     search icon; a long greeting wraps onto as many lines as it needs. The frame's 16px gap to the first
+     search icon; a long title wraps onto two lines, then ends in an ellipsis. The frame's 16px gap to the first
      block is 8px of header padding plus 8px of body padding. */
   @media (max-width: 720px) {
     .shell-header {
@@ -136,6 +136,11 @@
     }
     .shell-header__title {
       overflow-wrap: break-word; /* a word stays whole while the row can wrap; "anywhere" let flex shrink it to one letter */
+      /* Two lines at most: a long greeting or subject name ends in an ellipsis (the h1 carries the full text as its title). */
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
     }
     @media (max-width: 359px) {
       .shell-header__title {
