@@ -137,6 +137,12 @@
     .shell-header__title {
       overflow-wrap: break-word; /* a word stays whole while the row can wrap; "anywhere" let flex shrink it to one letter */
     }
+    @media (max-width: 359px) {
+      .shell-header__title {
+        font-size: var(--text-xl); /* "Wellbeing" has to fit beside Add, the bell and the avatar at 320 without breaking */
+        line-height: 28px;
+      }
+    }
     .shell-header__subtitle {
       display: none;
     }
