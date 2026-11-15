@@ -276,9 +276,10 @@ export const updateSubject = async (req, res) => {
         if (labelChanged) {
             await relabelLinkedItems(subject);
             linked = await linkMatchingItems(subject);
-            // Classes in the owner's own timetables that now match, the same as when a subject is created.
-            await linkClassTimes(req.userId, subject);
         }
+        // Classes in the owner's own timetables that now match, as when a subject is created. It is safe to repeat, so
+        // it runs whenever a label was sent (a save that failed halfway is finished by sending it again), never for an archived subject.
+        if (!subject.archivedAt && (fields.name !== undefined || fields.code !== undefined)) await linkClassTimes(req.userId, subject);
         if (classTimesFailed) return bad(res, 'Renamed, but some class times could not be updated. Save again to finish.', 500);
         const counts = await countsFor(req.userId, [subject._id]);
         res.json({ success: true, subject: publicSubject(subject, counts.get(String(subject._id)), { withNotes: true }), linked });

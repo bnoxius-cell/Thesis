@@ -27,7 +27,7 @@ export const linkClassTimes = async (ownerId, subject) => {
         const before = await scheduleModel.findOneAndUpdate(
             { _id: schedule._id, owner: ownerId },
             { $set: { 'entries.$[e].subject': asId(subject._id) } },
-            { arrayFilters: [{ 'e._id': { $in: ids }, 'e.subject': null }], returnDocument: 'before' },
+            { arrayFilters: [{ 'e._id': { $in: ids }, 'e.kind': 'class', 'e.subject': null }], returnDocument: 'before' },
         ).select('entries').lean();
         if (!before) continue; // deleted since it was read
         const wanted = new Set(ids.map(String));
