@@ -8,5 +8,12 @@ export default {
     { tag: "new", text: "Delete a single notification: swipe it left on your phone, or use the X that shows when you point at it." },
     { tag: "improved", text: "On a subject's Tasks tab, tap a task to see its details, then edit or delete it right there." },
     { tag: "improved", text: "Searching for a task now takes you straight to that task." },
+    { tag: "improved", text: "A fresh blue look: soft blue menu, pale blue pages and one bright blue for buttons and links." },
+    { tag: "improved", text: "Other students' profiles have a new look and show their counts." },
+    { tag: "fixed", text: "Opening a subject from Files and pressing Back now takes you back to Files." },
+    { tag: "improved", text: "The About page has proper side margins when you're signed in." },
+    { tag: "improved", text: "Messages now pop up as one clean notice with a View or Undo button when there's something to do." },
+    { tag: "improved", text: "Small polish: the Add button is easier to tap on your phone, long titles wrap, and flashcard empty decks look tidier." },
+    { tag: "fixed", text: "Renaming a subject now keeps its classes linked, and a failed link no longer stops you creating a subject." },
   ],
 };
