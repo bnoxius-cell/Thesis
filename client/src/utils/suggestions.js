@@ -1,26 +1,27 @@
 import { buildWeek } from "./workload";
 import { toISODate, addDays, fromISODate } from "./scheduleUtils";
 
-// Suggests moving a task's due date when the coming week does not fit. It tries pushing each
-// open task back a day at a time, re-plans the week, and keeps the smallest move that takes the
-// most pressure off. Nothing is changed here: the dashboard shows the idea and the student
-// decides, since only they know whether a deadline can really move.
+// Suggests doing a task earlier when the coming week does not fit. Due dates never move: for each
+// open task it tries finishing it on an earlier day (today up to the day before the deadline, never a
+// day off), re-plans the week, and keeps the idea that takes the most pressure off, preferring a later
+// start. Nothing is changed here: the dashboard shows the idea and the student decides when to start.
 
-const MAX_SHIFT_DAYS = 10;
-// A move has to take at least this many hours of overload off the week to be worth suggesting.
+const WEEK_DAYS = 7;
+// An idea has to take at least this many hours of overload off the week to be worth suggesting.
 const MIN_RELIEF = 0.5;
-// Each day of delay costs a little, so a shorter move wins over a longer one with similar relief.
+// Each day earlier costs a little, so a later start wins over an earlier one with similar relief.
 const SHIFT_COST = 0.15;
-// Important tasks are the last ones to suggest moving.
+// Important tasks are the last ones to suggest changing.
 const IMPORTANCE_COST = 0.1;
 
 const round1 = (n) => Math.round(n * 10) / 10;
 const overloadOf = (days) => days.reduce((sum, d) => sum + Math.max(0, d.load - d.capacity), 0);
 const dateOnly = (value) => String(value).slice(0, 10);
+const dayDiff = (from, to) => Math.round((to - from) / 86400000);
 const weekday = (iso) => fromISODate(iso).toLocaleDateString("en-US", { weekday: "long" });
 
 // Someone who is stressed, low in well-being or looking at a heavy week gets help sooner and
-// more of it: a smaller overload is enough to speak up, and up to three moves are offered.
+// more of it: a smaller overload is enough to speak up, and up to three ideas are offered.
 export function isStrained({ band, pssScore, whoScore }) {
   return band === "Heavy Workload"
     || band === "Critical Overload"
@@ -56,17 +57,19 @@ export function suggestMoves({ tasks, fixedTasks = [], profile, overview, strain
       if (moved.has(task._id) || Number(task.hours) <= 0) continue;
       if (Number(task.importance) >= 5 && !strained) continue;
 
-      const from = fromISODate(task.dueDate);
-      const origin = from < today ? today : from;
-      for (let shift = 1; shift <= MAX_SHIFT_DAYS; shift += 1) {
-        const target = toISODate(addDays(origin, shift));
+      // Due today or overdue: there is no earlier day to offer.
+      const dueIndex = dayDiff(today, fromISODate(task.dueDate));
+      if (dueIndex <= 0) continue;
+      for (let i = 0; i < Math.min(dueIndex, WEEK_DAYS); i += 1) {
+        const doOn = toISODate(addDays(today, i));
         // Not onto a day off.
-        if (base.find((d) => d.key === target)?.holiday) continue;
-        const trial = current.map((t) => (t._id === task._id ? { ...t, dueDate: target } : t));
+        if (base.find((d) => d.key === doOn)?.holiday) continue;
+        const trial = current.map((t) => (t._id === task._id ? { ...t, dueDate: doOn } : t));
         const relief = baseOverload - overloadOf(layout(trial));
         if (relief < MIN_RELIEF) continue;
-        const score = relief - SHIFT_COST * shift - IMPORTANCE_COST * Number(task.importance || 3);
-        if (!best || score > best.score) best = { task, target, shift, relief, score };
+        const daysEarlier = dueIndex - i;
+        const score = relief - SHIFT_COST * daysEarlier - IMPORTANCE_COST * Number(task.importance || 3);
+        if (!best || score > best.score) best = { task, doOn, daysEarlier, relief, score };
       }
     }
     if (!best) break;
@@ -77,16 +80,31 @@ export function suggestMoves({ tasks, fixedTasks = [], profile, overview, strain
       taskId: best.task._id,
       title: best.task.title,
       course: best.task.course,
-      fromDate: best.task.dueDate,
-      toDate: best.target,
-      shift: best.shift,
+      dueDate: best.task.dueDate,
+      doOn: best.doOn,
+      daysEarlier: best.daysEarlier,
       relief: round1(best.relief),
       why: strained
-        ? `You're carrying a lot right now. More room on this one takes about ${round1(best.relief)}h of pressure off ${dayName}.`
-        : `${dayName} is ${over}h more than you can fit. Moving this deadline evens the week out.`,
+        ? `You're carrying a lot right now. Doing this one earlier takes about ${round1(best.relief)}h off ${dayName}. The deadline stays the same.`
+        : `${dayName} has ${over}h more than you can fit. Doing this one earlier evens it out. The deadline stays the same.`,
     });
     moved.add(best.task._id);
-    current = current.map((t) => (t._id === best.task._id ? { ...t, dueDate: best.target } : t));
+    current = current.map((t) => (t._id === best.task._id ? { ...t, dueDate: best.doOn } : t));
   }
   return suggestions;
+}
+
+// "Do "Report" today instead of Friday": the one place the words for an idea live. A deadline a week or
+// more away reads as a date ("Nov 24"), since a weekday name would be ambiguous.
+export function ideaTitle(idea, now = new Date()) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const doIndex = dayDiff(today, fromISODate(idea.doOn));
+  const dueIndex = dayDiff(today, fromISODate(idea.dueDate));
+  const when = doIndex <= 0 ? "today" : doIndex === 1 ? "tomorrow" : `on ${weekday(idea.doOn)}`;
+  const due = dueIndex === 1
+    ? "tomorrow"
+    : dueIndex >= WEEK_DAYS
+      ? fromISODate(idea.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+      : weekday(idea.dueDate);
+  return `Do "${idea.title}" ${when} instead of ${due}`;
 }

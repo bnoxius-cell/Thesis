@@ -22,7 +22,7 @@ export default function HowThisWorks() {
         <p>
           A stress check-in counts for {PSS_VALID_DAYS} days and a well-being check-in for {WHO_VALID_DAYS}.
           After that they stop affecting the estimate until you take them again. If you're stressed, low on
-          energy or facing a heavy week, the app speaks up sooner and offers more ideas for moving work.
+          energy or facing a heavy week, the app speaks up sooner and offers more ideas for doing work earlier.
         </p>
         <p className="wellbeing-how__sources">
           Stress: Perceived Stress Scale (PSS-10), Cohen, Kamarck and Mermelstein, 1983. Well-being: WHO-5

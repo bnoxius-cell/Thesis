@@ -64,7 +64,7 @@ export default function HomePage() {
   const moves = useMoveSuggestions({
     userId: userData?._id,
     tasks: data.tasks,
-    setTasks: data.setTasks,
+    onOpenTask: detail.openTask,
     fixedTasks: work.examTasks,
     profile: work.profile,
     overview: data.overview,

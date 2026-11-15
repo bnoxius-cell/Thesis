@@ -42,16 +42,6 @@ export default function WellbeingPage() {
   const now = useNow();
   const data = useWeekData();
   const work = useWorkload({ tasks: data.tasks, overview: data.overview, userData, now });
-  const moves = useMoveSuggestions({
-    userId: userData?._id,
-    tasks: data.tasks,
-    setTasks: data.setTasks,
-    fixedTasks: work.examTasks,
-    profile: work.profile,
-    overview: data.overview,
-    strained: work.strained,
-    now,
-  });
   const setDone = useTaskDone(data.setTasks);
   const subjects = useMemo(() => [...data.subjectsById.values()], [data.subjectsById]);
   const edit = useTaskEdit({ subjects, setTasks: data.setTasks, onSubjectCreated: data.reload });
@@ -61,6 +51,16 @@ export default function WellbeingPage() {
     context: "wellbeing",
     onEditTask: edit.onEditTask,
     onDeleteTask: edit.onDeleteTask,
+  });
+  const moves = useMoveSuggestions({
+    userId: userData?._id,
+    tasks: data.tasks,
+    onOpenTask: detail.openTask,
+    fixedTasks: work.examTasks,
+    profile: work.profile,
+    overview: data.overview,
+    strained: work.strained,
+    now,
   });
   const openWeekDay = useOpenWeekDay({ detail, overview: data.overview, tasks: data.tasks, subjects, profile: work.profile, now });
   const sleep = sleepSummary({ week: work.week, profile: work.profile, usualWakeTime: userData?.usualWakeTime });
@@ -92,7 +92,7 @@ export default function WellbeingPage() {
       )}
       {ready && (
         <div className="wellbeing-stack">
-          <LoadHero work={work} moves={moves} onOpenDay={openWeekDay} />
+          <LoadHero work={work} moves={moves} now={now} onOpenDay={openWeekDay} />
           <FeelingSection>
             <CheckInCards user={userData} now={now} />
           </FeelingSection>

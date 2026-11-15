@@ -1,14 +1,14 @@
 import { useLocation } from "react-router-dom";
 import { CalendarClock, ClipboardCheck, Lightbulb, Moon } from "lucide-react";
 import { Button, Card } from "@/shared/ui";
-import { shortDate } from "@/shared/lib/dates";
+import { ideaTitle } from "@/utils/suggestions";
 import { nextStepFor } from "./nextStep";
 
 const CHECKIN_NAME = { pss: "stress", who: "well-being" };
 const ICON = { checkin: ClipboardCheck, sleep: Moon, move: CalendarClock, tip: Lightbulb, empty: Lightbulb };
 
 // What to say for each kind of next step: a title, a line under it, and the buttons.
-function useContent(step, { moves, onLater, isNewUser }) {
+function useContent(step, { moves, onLater, isNewUser, now }) {
   const { pathname, search, hash } = useLocation();
 
   switch (step.kind) {
@@ -29,13 +29,14 @@ function useContent(step, { moves, onLater, isNewUser }) {
       return { title: "Aim for an earlier night", detail: step.sleep.text };
     case "move": {
       const { idea } = step;
+      const open = moves.openerFor(idea);
       return {
-        title: `Move "${idea.title}" to ${shortDate(idea.toDate)}`,
+        title: ideaTitle(idea, now),
         detail: idea.why,
         actions: (
           <>
-            <Button busy={moves.moving} onClick={() => moves.move(idea)}>Move it</Button>
-            <Button variant="ghost" disabled={moves.moving} onClick={() => moves.dismiss(idea)}>Not now</Button>
+            {open && <Button onClick={open}>Open task</Button>}
+            <Button variant="ghost" onClick={() => moves.dismiss(idea)}>Not now</Button>
           </>
         ),
       };
@@ -55,7 +56,7 @@ function useContent(step, { moves, onLater, isNewUser }) {
 // Next step (Figma 16:109): one suggestion, never a list.
 export default function NextStepCard({ prompt, onLater, moves, work, now }) {
   const step = nextStepFor({ prompt, work, moves, now });
-  const content = useContent(step, { moves, onLater, isNewUser: work.insights.isNewUser });
+  const content = useContent(step, { moves, onLater, isNewUser: work.insights.isNewUser, now });
   const Icon = ICON[step.kind];
 
   return (
