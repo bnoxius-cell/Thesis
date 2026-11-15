@@ -54,6 +54,8 @@ export const getUserData = async (req, res) => {
                 latestPSSScore: user.lastPSSSubmission ? user.latestPSSScore : null,
                 lastWHOSubmission: user.lastWHOSubmission,
                 latestWHOScore: user.lastWHOSubmission ? user.latestWHOScore : null,
+                checkInContext: user.checkInContext,
+                checkInContextAt: user.checkInContextAt,
                 // ✅ Added profileTag
                 profileTag: user.profileTag,
                 termsVersion: user.termsVersion,

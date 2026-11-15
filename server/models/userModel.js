@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { CHECKIN_CONTEXTS } from '../utils/checkinContext.js';
 
 const userSchema = new mongoose.Schema({
     name: { type: String, required: true },
@@ -32,6 +33,8 @@ const userSchema = new mongoose.Schema({
     latestPSSScore: { type: Number, default: null },
     lastWHOSubmission: { type: Date, default: null },
     latestWHOScore: { type: Number, default: null },
+    checkInContext: { type: String, enum: CHECKIN_CONTEXTS, default: null },
+    checkInContextAt: { type: Date, default: null },
     profileTag: { type: String, unique: true, sparse: true, default: null },
     // Which version of the Terms and Privacy Policy this user agreed to, and when.
     termsVersion: { type: String, default: '' },
