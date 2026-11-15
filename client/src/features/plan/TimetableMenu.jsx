@@ -60,7 +60,7 @@ export default function TimetableMenu({ timetable, userId, onChanged, onGone }) 
       </Menu>
       {dialog === "rename" && <RenameTimetableDialog timetable={timetable} onClose={close} onRenamed={renamed} />}
       {(dialog === "delete" || dialog === "leave") && (
-        <TimetableConfirmDialog mode={dialog} timetable={timetable} userId={userId} onClose={close} onDone={removed} />
+        <TimetableConfirmDialog mode={dialog} timetable={timetable} userId={userId} onClose={close} onDone={removed} onMissing={onGone} />
       )}
     </>
   );

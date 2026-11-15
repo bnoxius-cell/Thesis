@@ -24,7 +24,7 @@ export default function Page({ title, subtitle, action, back, children }) {
           {back && <IconButton to={back.to} icon={ArrowLeft} label={back.label} plain onClick={back.onClick} />}
           <div className="shell-header__main">
             <div className="shell-header__row">
-              <h1 className="shell-header__title">{title}</h1>
+              <h1 className="shell-header__title" title={title}>{title}</h1>
               {action}
             </div>
             {subtitle && <p className="shell-header__subtitle">{subtitle}</p>}

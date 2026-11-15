@@ -97,8 +97,9 @@ export default function FlashcardReviewPage() {
   }
   if (run.status === "empty") {
     return (
-      <Message icon={Layers} title="Nothing due right now" exit={exit}>
-        Your next cards are due tomorrow.
+      // The server falls back to every card in the deck (mode "all") when none is due, so an empty "all" run means the deck has no cards.
+      <Message icon={Layers} title={run.mode === "all" ? "This deck is empty" : "Nothing due right now"} exit={exit}>
+        {run.mode === "all" ? "No cards yet. Add some to start reviewing." : "Your next cards are due tomorrow."}
       </Message>
     );
   }
