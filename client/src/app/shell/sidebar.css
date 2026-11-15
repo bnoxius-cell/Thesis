@@ -1,4 +1,4 @@
-/* Sidebar v2 (Figma 16:3): 256px, --accent-soft panel, 36px pill rows, Eyebrow group titles.
+/* Sidebar v2 (Figma 16:3): 256px, --sidebar-bg panel, 36px pill rows, Eyebrow group titles.
    Hidden below 1024px, where the phone bars take over (F5). */
 @layer components {
   .shell-sidebar {
@@ -19,7 +19,8 @@
       padding: 20px var(--space-4);
       overflow-y: auto;
       overscroll-behavior: contain;
-      background: var(--accent-soft);
+      background: var(--sidebar-bg);
+      color: var(--sidebar-text);
     }
   }
 
@@ -30,7 +31,7 @@
     gap: var(--space-2);
     min-height: 44px;
     margin-block: -8px; /* a 44px hit area around the frame's 28px logo */
-    color: var(--text-primary);
+    color: var(--sidebar-text);
     font: 600 var(--text-lg) / 26px var(--font-ui);
     text-decoration: none;
   }
@@ -67,7 +68,7 @@
   .shell-nav__eyebrow {
     margin: 0;
     padding: var(--space-4) var(--space-3) var(--space-1);
-    color: var(--text-muted);
+    color: var(--sidebar-text-muted);
     font: 600 var(--text-xs) / 16px var(--font-ui);
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -89,7 +90,7 @@
     border: 0;
     border-radius: var(--radius-pill);
     background: transparent;
-    color: var(--text-secondary);
+    color: var(--sidebar-text);
     font: 600 var(--text-sm) / 20px var(--font-ui);
     text-align: left;
     text-decoration: none;
@@ -100,13 +101,13 @@
       transform var(--dur-1) var(--ease-out);
   }
   .shell-nav__link[aria-current="page"] {
-    color: var(--accent);
+    color: var(--sidebar-active-text);
   }
   .shell-nav__link:active {
     transform: scale(0.98);
   }
   .shell-nav__link:focus-visible {
-    outline: 2px solid var(--focus-ring);
+    outline: 2px solid var(--sidebar-text);
     outline-offset: 1px;
   }
   .shell-nav__label {
@@ -119,7 +120,7 @@
   }
   @media (hover: hover) and (pointer: fine) {
     .shell-nav__link:hover:not([aria-current="page"]) {
-      background: color-mix(in srgb, var(--surface) 55%, transparent);
+      background: var(--sidebar-hover);
     }
   }
   @media (pointer: coarse) {
@@ -136,7 +137,7 @@
     left: 0;
     right: 0;
     border-radius: var(--radius-pill);
-    background: var(--surface);
+    background: var(--sidebar-active-bg);
     box-shadow: var(--shadow-1);
     opacity: 0;
     pointer-events: none;
@@ -180,7 +181,7 @@
   .shell-sidebar[data-collapsed] .shell-nav__group + .shell-nav__group {
     margin-top: var(--space-3);
     padding-top: var(--space-3);
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--sidebar-border);
   }
   .shell-sidebar[data-collapsed] .shell-nav__link {
     justify-content: center;
@@ -199,7 +200,7 @@
     height: 8px;
     border-radius: var(--radius-pill);
     background: var(--accent);
-    box-shadow: 0 0 0 2px var(--accent-soft);
+    box-shadow: 0 0 0 2px var(--sidebar-bg);
   }
   .shell-nav__link--collapse {
     font-weight: 500;

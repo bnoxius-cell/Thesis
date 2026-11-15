@@ -78,6 +78,7 @@
     overflow-wrap: anywhere;
   }
   .practice-title--result {
+    color: var(--accent);
     font-size: var(--text-4xl);
     font-weight: 700;
     line-height: 48px;
