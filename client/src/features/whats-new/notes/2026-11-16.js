@@ -18,5 +18,6 @@ export default {
     { tag: "new", text: "Send feedback to the team from your profile menu or Settings > Help. Tell us what works and what doesn't." },
     { tag: "improved", text: "Change your wake time, sleep target and travel time right on the Tonight card. Your bedtime is worked out for you and saves as you go." },
     { tag: "new", text: "A short \"How the sleep plan works\" explainer on Wellbeing walks you through what your bedtime means and how to change it." },
+    { tag: "improved", text: "Next step ideas now only suggest doing a task earlier, never moving its deadline later. Tap Open task to see it, or Not now to hide the idea." },
   ],
 };
