@@ -29,7 +29,7 @@ export default function LoadHero({ work, moves, now, onOpenDay }) {
             <div className="wellbeing-hero__text">
               <p className="wellbeing-hero__title">{heaviest ? `${heaviest.name} looks heaviest.` : reading.headline}</p>
               {heaviestDay && (
-                <p className="wellbeing-hero__detail">{heaviestDetail(heaviestDay, heaviest.name, enrichedTasks)}</p>
+                <p className="wellbeing-hero__detail">{heaviestDetail(heaviestDay, enrichedTasks)}</p>
               )}
             </div>
             <div className="wellbeing-hero__chart">
