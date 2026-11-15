@@ -136,10 +136,10 @@
     }
     .shell-header__title {
       overflow-wrap: break-word; /* a word stays whole while the row can wrap; "anywhere" let flex shrink it to one letter */
-      /* Two lines at most: a long greeting or subject name ends in an ellipsis (the h1 carries the full text as its title). */
+      /* Three lines at most (a 100px column at 320 needs three for "Good afternoon, Name"): a long subject name or subject name ends in an ellipsis (the h1 carries the full text as its title). */
       display: -webkit-box;
       -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
+      -webkit-line-clamp: 3;
       overflow: hidden;
     }
     @media (max-width: 359px) {
