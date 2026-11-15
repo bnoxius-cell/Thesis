@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { UserRound } from "lucide-react";
 import { Button, EmptyState, Skeleton } from "@/shared/ui";
 import Page from "@/app/shell/Page";
@@ -9,11 +9,20 @@ import ProfileActions from "./ProfileActions";
 import useStudentProfile from "./useStudentProfile";
 import "./people-profile.css";
 
-const BACK = { to: "/people/friends", label: "Back to Friends" };
+const FRIENDS = "/people/friends";
 
 function ProfileView({ userId }) {
   const profile = useStudentProfile(userId);
   const { status, error, busy, add, accept, decline, remove } = profile;
+  const navigate = useNavigate();
+  // Back returns to wherever the student came from (Friends, a group, their own Profile preview);
+  // opened directly there is no history, so it goes to Friends.
+  const fromHere = useLocation().key !== "default";
+  const back = {
+    to: FRIENDS,
+    label: fromHere ? "Back" : "Back to Friends",
+    onClick: fromHere ? (event) => { event.preventDefault(); navigate(-1); } : undefined,
+  };
 
   let body;
   if (status === "loading") {
@@ -48,7 +57,7 @@ function ProfileView({ userId }) {
   }
 
   return (
-    <Page title="Profile" back={BACK}>
+    <Page title="Profile" back={back}>
       {body}
     </Page>
   );

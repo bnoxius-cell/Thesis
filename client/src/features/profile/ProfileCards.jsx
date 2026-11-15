@@ -49,7 +49,7 @@ export function GroupsCard({ groups }) {
 export function SharedGroupsCard({ groups }) {
   const id = useId();
   return (
-    <section className="profile-card" aria-labelledby={id}>
+    <section className="profile-card profile-card--wide" aria-labelledby={id}>
       <CardHead id={id} title="Shared groups" />
       <GroupLinks groups={groups} />
     </section>
