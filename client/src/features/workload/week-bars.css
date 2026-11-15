@@ -44,7 +44,7 @@
     width: 100%;
     height: calc(var(--level) * var(--bar-h, 64px));
     border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--text-muted) 32%, transparent);
+    background: var(--chart-busy);
     transform-origin: bottom;
     animation: workload-bar-grow var(--dur-4) var(--ease-out) backwards;
     animation-delay: calc(var(--i) * var(--stagger));

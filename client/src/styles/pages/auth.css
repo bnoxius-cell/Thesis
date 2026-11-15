@@ -35,7 +35,7 @@
     height: 100dvh;
     min-height: 560px;
     overflow: hidden;
-    background: linear-gradient(90deg, var(--bg-app), color-mix(in srgb, var(--accent) 16%, var(--bg-app)));
+    background: linear-gradient(90deg, var(--bg-app), var(--surface-2));
   }
   .auth-loading {
     display: grid;

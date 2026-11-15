@@ -10,7 +10,7 @@
      especially inside scrolling modals. Restyle it everywhere, in both themes. */
   :root {
     scrollbar-width: thin;
-    scrollbar-color: var(--accent) transparent;
+    scrollbar-color: var(--border-input) transparent;
   }
   *::-webkit-scrollbar {
     width: 9px;
@@ -20,7 +20,7 @@
     background: transparent;
   }
   *::-webkit-scrollbar-thumb {
-    background-color: var(--accent);
+    background-color: var(--border-input);
     border-radius: var(--radius-pill);
   }
   *::-webkit-scrollbar-thumb:hover {
