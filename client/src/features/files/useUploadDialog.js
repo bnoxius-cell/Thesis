@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { showActionToast } from "@/shared/ui";
 import { filesText } from "./fileKinds";
 import { placeOptions, placesText } from "./places";
 import { isBusy } from "./useUploads";
@@ -30,6 +32,7 @@ export default function useUploadDialog(uploads, locations) {
   );
   const close = useCallback(() => setState(null), []);
 
+  const navigate = useNavigate();
   const closed = state === null;
   const busy = items.some(isBusy);
   const doneItems = items.filter((item) => item.status === "done");
@@ -39,10 +42,16 @@ export default function useUploadDialog(uploads, locations) {
   useEffect(() => {
     if (wasBusy.current && !busy && closed && (doneItems.length > 0 || failed > 0)) {
       if (failed > 0) toast.error(`${filesText(failed)} didn't upload. Open Upload to try again.`);
-      else toast.success(`Uploaded ${filesText(doneItems.length)} to ${placesText(doneItems, locations ? placeOptions(locations) : [])}.`);
+      else {
+        // This hook runs inside the router; the toast container does not, so View brings this navigate.
+        showActionToast(`Uploaded ${filesText(doneItems.length)} to ${placesText(doneItems, locations ? placeOptions(locations) : [])}.`, {
+          label: "View",
+          onAction: () => navigate("/study/files"),
+        });
+      }
     }
     wasBusy.current = busy;
-  }, [busy, closed, doneItems, failed, locations]);
+  }, [busy, closed, doneItems, failed, locations, navigate]);
 
   const finished = !busy && doneItems.length > 0;
   useEffect(() => {
