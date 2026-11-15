@@ -31,5 +31,8 @@ export const markRead = (id) => put(`/api/notifications/${id}/read`);
 // Marks every notification read.
 export const markAllRead = () => put("/api/notifications/read-all");
 
+// Removes one notification for good. A stale or foreign id answers { error } ("Notification not found").
+export const deleteNotification = (id) => del(`/api/notifications/${id}`);
+
 // Removes every notification in the inbox for good.
 export const clearAllNotifications = () => del("/api/notifications/clear-all");

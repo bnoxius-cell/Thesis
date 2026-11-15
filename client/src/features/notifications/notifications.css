@@ -99,11 +99,12 @@
   .inbox-row[data-unread]:active {
     background: color-mix(in srgb, var(--accent) 12%, var(--accent-soft));
   }
+  /* Hover is on the slide, not the row button, so it stays lit while the pointer is on the X. */
   @media (hover: hover) and (pointer: fine) {
-    .inbox-row:hover {
+    .inbox-item__slide:hover > .inbox-row {
       background: var(--surface-2);
     }
-    .inbox-row[data-unread]:hover {
+    .inbox-item__slide:hover > .inbox-row[data-unread] {
       background: color-mix(in srgb, var(--accent) 8%, var(--accent-soft));
     }
   }
@@ -155,6 +156,128 @@
     color: var(--text-muted);
     font: 400 var(--text-sm) / 20px var(--font-ui);
     white-space: nowrap;
+    transition: opacity var(--hover-dur) var(--hover-ease);
+  }
+
+  /* ---- Deleting one (Figma 324:2596) ----
+     .inbox-item holds the slide (the row) over the red swipe action. Phone: the slide moves left with a
+     finger (useSwipeToDelete) and uncovers the action. Desktop: the X sits over the time, shown on hover
+     or keyboard focus. The X is always focusable, only hidden, so it is the keyboard and screen reader way. */
+  .inbox-item {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows var(--dur-2) var(--ease-out); /* the gap closing after a swipe */
+  }
+  .inbox-item[data-leaving] {
+    grid-template-rows: 0fr;
+    pointer-events: none;
+  }
+  .inbox-item__clip {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .inbox-item__slide {
+    position: relative;
+    background: var(--surface);
+    touch-action: pan-y; /* the page keeps vertical panning, the row takes sideways */
+  }
+  .inbox-item__action {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--danger);
+    color: var(--on-danger);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+    cursor: pointer;
+    visibility: hidden; /* off the page for everyone until a swipe uncovers it */
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .inbox-item[data-swipe] .inbox-item__action {
+    visibility: visible;
+  }
+  .inbox-item__action-face {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 88px;
+    transition: transform var(--dur-1) var(--ease-out);
+  }
+  .inbox-item__action:active .inbox-item__action-face {
+    transform: scale(0.96);
+  }
+  .inbox-item__action:focus-visible {
+    outline: 2px solid var(--on-danger);
+    outline-offset: -4px;
+  }
+
+  .inbox-row__delete {
+    position: absolute;
+    top: 8px;
+    right: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity var(--hover-dur) var(--hover-ease),
+      background-color var(--hover-dur) var(--hover-ease),
+      border-color var(--hover-dur) var(--hover-ease),
+      color var(--hover-dur) var(--hover-ease);
+  }
+  .inbox-row__delete::after {
+    content: "";
+    position: absolute;
+    inset: -8px; /* the 44px hit area around the 28px face */
+  }
+  /* Keyboard focus on the row or the X: the X replaces the time and the unread dot. */
+  .inbox-item__slide:has(:focus-visible) .inbox-row__delete {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .inbox-item__slide:has(:focus-visible) .inbox-row__meta {
+    opacity: 0;
+  }
+  .inbox-row__delete:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .inbox-row__delete:active {
+    transform: scale(0.96);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .inbox-item__slide:hover .inbox-row__delete {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .inbox-item__slide:hover .inbox-row__meta {
+      opacity: 0;
+    }
+    .inbox-row__delete:hover {
+      border-color: var(--danger);
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
   }
 
   /* ---- Loading, failed and empty ---- */

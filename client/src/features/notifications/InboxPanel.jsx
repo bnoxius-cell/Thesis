@@ -22,6 +22,7 @@ const NONE_FOR = { unread: "No unread notifications.", groups: "No group notific
 // The inbox body shared by the drawer and the page: filter, the day sections and every state (loading,
 // failed, empty, filtered empty), then the link to the settings. Opening a row marks it read and goes
 // to where it points (a row with no link only gets marked); `onLeave` then lets the drawer close itself.
+// A row can also be deleted on its own (hover X, Delete key or a swipe; see NotificationRow).
 // `toolbar` is for the page, where the actions sit above the filter instead of in the drawer's header.
 export default function InboxPanel({ inbox, onLeave, toolbar }) {
   const navigate = useNavigate();
@@ -70,7 +71,7 @@ export default function InboxPanel({ inbox, onLeave, toolbar }) {
               <ul className="inbox__list">
                 {section.items.map((n) => (
                   <li key={n._id}>
-                    <NotificationRow notification={n} now={now} onOpen={open} />
+                    <NotificationRow notification={n} now={now} onOpen={open} onRemove={inbox.remove} />
                   </li>
                 ))}
               </ul>
