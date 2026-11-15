@@ -1,5 +1,5 @@
 /* WeekBars (Figma 16:96): seven 24px bars 8px apart (a fixed 216px box), 12 to 64px tall, 6px radius,
-   grey, today in the accent and the heaviest day in the watch tone. The labels under them are an addition so the
+   grey, today in the accent and the heaviest day in navy. The labels under them are an addition so the
    days can be told apart. */
 @layer pages {
   .workload-bars {
@@ -87,24 +87,24 @@
       background: color-mix(in srgb, var(--accent) 88%, var(--text-primary));
     }
     button.workload-bars__col:hover .workload-bars__bar.is-heaviest {
-      background: color-mix(in srgb, var(--watch) 88%, var(--text-primary));
+      background: color-mix(in srgb, var(--text-primary) 88%, var(--accent));
     }
     button.workload-bars__col:hover .workload-bars__bar.is-today.is-heaviest {
       background: color-mix(in srgb, var(--accent) 88%, var(--text-primary));
     }
   }
-  /* Only today is blue and only the heaviest day is brown; every other day stays a quiet grey.
-     When today is also the heaviest it stays blue and gets a brown ring, so both still show.
+  /* Only today is blue and only the heaviest day is navy; every other day stays a quiet grey.
+     When today is also the heaviest it stays blue and gets a navy ring, so both still show.
      The outline is used, not a box-shadow, because nothing on the track clips it. */
   .workload-bars__bar.is-today {
     background: var(--accent);
   }
   .workload-bars__bar.is-heaviest {
-    background: var(--watch);
+    background: var(--text-primary);
   }
   .workload-bars__bar.is-today.is-heaviest {
     background: var(--accent);
-    outline: 2px solid var(--watch);
+    outline: 2px solid var(--text-primary);
     outline-offset: 2px;
   }
   .workload-bars__label {
@@ -181,6 +181,6 @@
   }
   .workload-bars__key.is-heaviest {
     background: transparent;
-    box-shadow: inset 0 0 0 2px var(--watch);
+    box-shadow: inset 0 0 0 2px var(--text-primary);
   }
 }
