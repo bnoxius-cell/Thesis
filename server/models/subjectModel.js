@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 // The colour keys match the --subject-<key> tokens in client/src/styles/tokens.css.
 export const SUBJECT_COLORS = ['blue', 'teal', 'green', 'olive', 'amber', 'orange', 'violet', 'slate'];
-export const SUBJECT_LIMITS = { name: 80, code: 20, term: 40, maxActive: 30 };
+export const SUBJECT_LIMITS = { name: 80, code: 20, term: 40, maxActive: 30, notes: 20000 };
 
 // A class the student studies for. Tasks and reviewers point at it with an optional `subject`
 // id; their `course` text stays as the display label and as the fallback for unlinked items.
@@ -13,6 +13,8 @@ const subjectSchema = new mongoose.Schema({
     term: { type: String, default: '', trim: true, maxlength: SUBJECT_LIMITS.term },
     color: { type: String, enum: SUBJECT_COLORS, default: 'blue' },
     order: { type: Number, default: 0 },
+    // One plain-text page of notes for the subject.
+    notes: { type: String, default: '', maxlength: SUBJECT_LIMITS.notes },
     // Set when a term ends (a later batch); archived subjects don't count toward the cap.
     archivedAt: { type: Date, default: null },
     canvasCourseId: { type: String, default: null },

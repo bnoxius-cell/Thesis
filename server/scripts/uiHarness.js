@@ -111,14 +111,24 @@ await liaApi('/api/friends/request', 'POST', { userId: String(maria._id) });
 
 // Two timetables Jose shares with Maria, one she can only read and one she can edit. Maria counts
 // both in her week so they show up in My week.
-const shareWithMaria = async (title, entry, role) => {
+const shareWithMaria = async (title, entries, role) => {
     const { schedule: shared } = await joseApi('/api/schedules', 'POST', { title });
-    await joseApi(`/api/schedules/${shared._id}/entries`, 'POST', entry);
+    for (const entry of entries) await joseApi(`/api/schedules/${shared._id}/entries`, 'POST', entry);
     await joseApi(`/api/schedules/${shared._id}/share`, 'POST', { userId: String(maria._id), role });
     await api(`/api/schedules/${shared._id}/membership`, 'PUT', { countInWorkload: true });
 };
-await shareWithMaria('Org officers', { title: 'Officers meeting', kind: 'event', days: [3], startTime: '17:00', endTime: '18:00' }, 'viewer');
-await shareWithMaria('Study group', { title: 'Group study', kind: 'activity', days: [6], startTime: '14:00', endTime: '16:00' }, 'editor');
+// Each also holds a class named like one of Maria's subjects, which her subject pages pick up by name.
+await shareWithMaria('Org officers', [
+    { title: 'Officers meeting', kind: 'event', days: [3], startTime: '17:00', endTime: '18:00' },
+    { title: 'Capstone Project', kind: 'class', days: [5], startTime: '15:00', endTime: '16:00' },
+], 'viewer');
+await shareWithMaria('Study group', [
+    { title: 'Group study', kind: 'activity', days: [6], startTime: '14:00', endTime: '16:00' },
+    { title: 'Information Assurance', kind: 'class', days: [4], startTime: '10:00', endTime: '11:00' },
+], 'editor');
+const webSystems = (await api('/api/subjects')).subjects.find((s) => s.name === 'Web Systems');
+await api(`/api/subjects/${webSystems._id}`, 'PATCH', { notes: 'Lab 3 is due next week.
+Ask Sir about the REST rubric.' });
 
 const groupIds = [];
 for (const name of ['Capstone Team 4', 'Study Buddies']) {

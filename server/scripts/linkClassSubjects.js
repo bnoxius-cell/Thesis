@@ -102,11 +102,12 @@ export const linkClassSubjects = async ({ apply = false, createMissing = false }
 const hasContent = async (subjectId) => {
     const models = [taskModel, reviewerModel, flashcardDeckModel, fileModel];
     const counts = await Promise.all(models.map((model) => model.countDocuments({ subject: subjectId })));
-    return counts.some((n) => n > 0);
+    if (counts.some((n) => n > 0)) return true;
+    return Boolean(await subjectModel.exists({ _id: subjectId, notes: /\S/ }));
 };
 
 // Reverts a report written by an --apply run: unsets the links it made, then deletes the subjects it
-// created unless they have gained tasks, reviewers, decks or files since.
+// created unless they have gained tasks, reviewers, decks, files or notes since.
 export const undoLinkClassSubjects = async (report) => {
     if (!report?.apply) throw new Error('That report is from a dry run, so there is nothing to undo.');
     const links = report.users.flatMap((user) => user.links);

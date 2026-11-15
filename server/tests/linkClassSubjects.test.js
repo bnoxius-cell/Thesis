@@ -124,6 +124,18 @@ describe('linkClassSubjects script', () => {
         expect(await subjectModel.exists({ _id: mining._id })).toBeTruthy();
     });
 
+    test('undo keeps a created subject that has gained notes', async () => {
+        const { owner } = await seed();
+        const report = await linkClassSubjects({ apply: true, createMissing: true });
+        const mining = await subjectModel.findOne({ owner, name: 'Data Mining' });
+        await subjectModel.updateOne({ _id: mining._id }, { notes: 'Exam is open notes.' });
+
+        const result = await undoLinkClassSubjects(report);
+
+        expect(result.deleted).toEqual([]);
+        expect(result.kept.map((s) => s.name)).toEqual(['Data Mining']);
+    });
+
     test('undo refuses a dry-run report', async () => {
         await seed();
         const report = await linkClassSubjects();

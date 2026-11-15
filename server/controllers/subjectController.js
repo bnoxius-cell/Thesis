@@ -9,6 +9,7 @@ import { isId, serverError } from '../utils/httpErrors.js';
 import { filesChoice, releasePlaceFiles, removePlaceFiles } from '../utils/placeFiles.js';
 import { courseKey, activeSubjects, matchesLabel } from '../utils/subjectMatch.js';
 import { linkMatchingItems, relabelLinkedItems, unlinkItems } from '../utils/subjectCascade.js';
+import { renameClassTimes, removeClassTimes } from './scheduleController.js';
 
 const MAX_SUGGESTIONS = 15;
 const SUGGESTED_ENTRY_KINDS = ['class', 'exam'];
@@ -16,30 +17,41 @@ const SUGGESTED_ENTRY_KINDS = ['class', 'exam'];
 const notFound = (res) => res.status(404).json({ success: false, message: 'Subject not found' });
 const bad = (res, message, status = 400) => res.status(status).json({ success: false, message });
 const text = (value) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '');
+const NOTES_TOO_LONG = `Notes can be up to ${SUBJECT_LIMITS.notes.toLocaleString('en-US')} characters.`;
+const EMPTY_COUNTS = { openTasks: 0, reviewers: 0, decks: 0, files: 0, classTimes: 0 };
 const asObjectId = (id) => new mongoose.Types.ObjectId(String(id));
 
-// Open tasks, reviewers, flashcard decks and ready library files per subject: one aggregate for each, not one query per subject.
+// Open tasks, reviewers, flashcard decks, ready library files and class times (in timetables the owner has)
+// per subject: one aggregate for each, not one query per subject.
 const countsFor = async (owner, subjectIds) => {
     if (!subjectIds.length) return new Map();
     const countBy = (model, extra = {}) => model.aggregate([
         { $match: { owner: asObjectId(owner), subject: { $in: subjectIds }, ...extra } },
         { $group: { _id: '$subject', n: { $sum: 1 } } },
     ]);
-    const [tasks, reviewers, decks, files] = await Promise.all([
+    const [tasks, reviewers, decks, files, classTimes] = await Promise.all([
         countBy(taskModel, { isCompleted: false }),
         countBy(reviewerModel),
         countBy(flashcardDeckModel),
         countBy(fileModel, { scope: 'library', state: 'ready' }),
+        scheduleModel.aggregate([
+            { $match: { owner: asObjectId(owner), 'entries.subject': { $in: subjectIds } } },
+            { $unwind: '$entries' },
+            { $match: { 'entries.kind': 'class', 'entries.subject': { $in: subjectIds } } },
+            { $group: { _id: '$entries.subject', n: { $sum: 1 } } },
+        ]),
     ]);
-    const counts = new Map(subjectIds.map((id) => [String(id), { openTasks: 0, reviewers: 0, decks: 0, files: 0 }]));
+    const counts = new Map(subjectIds.map((id) => [String(id), { ...EMPTY_COUNTS }]));
     tasks.forEach((row) => { counts.get(String(row._id)).openTasks = row.n; });
     reviewers.forEach((row) => { counts.get(String(row._id)).reviewers = row.n; });
     decks.forEach((row) => { counts.get(String(row._id)).decks = row.n; });
     files.forEach((row) => { counts.get(String(row._id)).files = row.n; });
+    classTimes.forEach((row) => { counts.get(String(row._id)).classTimes = row.n; });
     return counts;
 };
 
-export const publicSubject = (subject, counts) => ({
+// The notes page is left out of lists: it can be long, and only the subject's own page shows it.
+export const publicSubject = (subject, counts, { withNotes = false } = {}) => ({
     _id: subject._id,
     name: subject.name,
     code: subject.code,
@@ -47,7 +59,8 @@ export const publicSubject = (subject, counts) => ({
     color: subject.color,
     order: subject.order,
     archivedAt: subject.archivedAt,
-    counts: counts || { openTasks: 0, reviewers: 0, decks: 0, files: 0 },
+    counts: counts || { ...EMPTY_COUNTS },
+    ...(withNotes ? { notes: subject.notes || '' } : {}),
 });
 
 const sameNameTaken = async (owner, name, exceptId = null) => {
@@ -72,6 +85,12 @@ export const readFields = (body, { partial }) => {
         const value = text(body[key]);
         if (value.length > limits[key]) return { error: `The ${key} can be up to ${limits[key]} characters.` };
         fields[key] = value;
+    }
+    if (body.notes !== undefined) {
+        // Plain text: line breaks stay, only the ends are trimmed.
+        const notes = typeof body.notes === 'string' ? body.notes.trim() : '';
+        if (notes.length > SUBJECT_LIMITS.notes) return { error: NOTES_TOO_LONG };
+        fields.notes = notes;
     }
     if (body.color !== undefined) {
         if (!SUBJECT_COLORS.includes(body.color)) return { error: 'Pick one of the colours.' };
@@ -144,7 +163,7 @@ export const createSubject = async (req, res) => {
         const { subject, linked } = await insertSubject(req.userId, fields, subjects);
         res.status(201).json({
             success: true,
-            subject: publicSubject(subject, { openTasks: linked.tasks, reviewers: linked.reviewers, decks: 0, files: 0 }),
+            subject: publicSubject(subject, { ...EMPTY_COUNTS, openTasks: linked.tasks, reviewers: linked.reviewers }),
             linked,
         });
     } catch (error) {
@@ -214,7 +233,7 @@ export const getSubject = async (req, res) => {
         const subject = await findOwned(req);
         if (!subject) return notFound(res);
         const counts = await countsFor(req.userId, [subject._id]);
-        res.json({ success: true, subject: publicSubject(subject, counts.get(String(subject._id))) });
+        res.json({ success: true, subject: publicSubject(subject, counts.get(String(subject._id)), { withNotes: true }) });
     } catch (error) {
         serverError(res, 'getSubject error', error);
     }
@@ -231,17 +250,19 @@ export const updateSubject = async (req, res) => {
             return bad(res, `You already have a subject called ${fields.name}.`, 409);
         }
 
+        const renamed = fields.name !== undefined && fields.name !== subject.name;
         const labelChanged = ['name', 'code'].some((key) => fields[key] !== undefined && fields[key] !== subject[key]);
         Object.assign(subject, fields);
         await subject.save();
 
+        if (renamed) await renameClassTimes(req.userId, subject);
         let linked = { tasks: 0, reviewers: 0 };
         if (labelChanged) {
             await relabelLinkedItems(subject);
             linked = await linkMatchingItems(subject);
         }
         const counts = await countsFor(req.userId, [subject._id]);
-        res.json({ success: true, subject: publicSubject(subject, counts.get(String(subject._id))), linked });
+        res.json({ success: true, subject: publicSubject(subject, counts.get(String(subject._id)), { withNotes: true }), linked });
     } catch (error) {
         serverError(res, 'updateSubject error', error);
     }
@@ -256,10 +277,11 @@ export const deleteSubject = async (req, res) => {
 
         if (choice === 'delete') await removePlaceFiles('subject', subject._id, req.userId);
         await unlinkItems(subject);
+        const removedClassTimes = await removeClassTimes(req.userId, subject._id);
         await subject.deleteOne();
         // After a delete too: a file that landed while the removal ran goes to General, not nowhere.
         await releasePlaceFiles('subject', subject._id, req.userId);
-        res.json({ success: true });
+        res.json({ success: true, removedClassTimes });
     } catch (error) {
         serverError(res, 'deleteSubject error', error);
     }
