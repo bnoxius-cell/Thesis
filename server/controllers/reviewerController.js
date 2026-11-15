@@ -16,6 +16,7 @@ import {
 } from '../utils/reviewerContent.js';
 import { gradeTyped, gradeList } from '../utils/reviewerAnswers.js';
 import { resolveItemSubject, applyItemSubject, subjectLabel } from '../utils/subjectMatch.js';
+import { readItemSubject, finishItemSubject } from '../utils/itemSubject.js';
 import { computeProgress, summarizeAttempt, topicStatsFor, scorePercent } from '../utils/reviewerProgress.js';
 import { FileLimitError } from '../utils/fileBudget.js';
 import { sendFileError, takeBurst } from '../utils/fileResponse.js';
@@ -656,10 +657,12 @@ export const updateReviewer = async (req, res) => {
             reviewer.autoTitle = false;
         }
         const course = req.body.course === undefined ? undefined : cleanLine(req.body.course, COURSE_MAX);
-        const link = await resolveItemSubject(req.userId, { subject: req.body.subject, course });
+        const link = await readItemSubject(req.userId, { subject: req.body.subject, course, newSubject: req.body.newSubject });
         if (link.error) return res.status(400).json({ success: false, message: link.error });
         if (course !== undefined) reviewer.course = course;
-        applyItemSubject(reviewer, link.subject);
+        const subject = await finishItemSubject(req.userId, link);
+        applyItemSubject(reviewer, subject);
+        if (subject === null && course === undefined) reviewer.course = '';
         await reviewer.save();
         res.json({ success: true, reviewer: listItem(reviewer) });
     } catch (error) {
@@ -680,7 +683,7 @@ export const regenerateReviewer = async (req, res) => {
             return res.status(409).json({ success: false, message: 'Wait for the extra questions to finish first.' });
         }
         if (!reviewer.sourceText) {
-            return res.status(409).json({ success: false, message: NO_TEXT_TO_REUSE });
+            return res.status(409).json({ success: false, code: 'needs_files', message: NO_TEXT_TO_REUSE });
         }
         const questionTarget = req.body.questionCount === undefined ? reviewer.questionTarget : parseQuestionCount(req.body.questionCount);
         if (!questionTarget) {

@@ -98,6 +98,15 @@ describe('decks', () => {
         expect((await maria.agent.patch(`/api/flashcards/decks/${deck._id}`).send({ title: '' })).status).toBe(400);
     });
 
+    test('moving a deck to no subject clears its label', async () => {
+        const { maria } = await twoStudents();
+        const deck = await makeDeck(maria.id);
+        const subject = (await maria.agent.post('/api/subjects').send({ name: 'Networks' })).body.subject;
+        await maria.agent.patch(`/api/flashcards/decks/${deck._id}`).send({ subject: subject._id });
+        const res = await maria.agent.patch(`/api/flashcards/decks/${deck._id}`).send({ subject: null });
+        expect(res.body.deck).toMatchObject({ subject: null, course: '' });
+    });
+
     test('deleting a deck deletes its cards and only its cards', async () => {
         const { maria } = await twoStudents();
         const doomed = await makeDeck(maria.id);

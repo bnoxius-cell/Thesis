@@ -4,12 +4,17 @@
 //   node server/scripts/uiHarness.js
 //   VITE_BACKEND_URL=http://localhost:5070 npx vite --port 5174 --strictPort   (in client/)
 //
+// With --fake-ai, reviewers are made by a fake Gemini that answers after 4 seconds, so "Making it" shows
+// and a retry can finish. Without it there is no Gemini key and a retry answers 503.
+//
 // Accounts (password Password123): maria@student.fatima.edu.ph (full data),
 // ana@student.fatima.edu.ph (empty), jose@student.fatima.edu.ph (a friend).
 // Never use port 5000: that is the real dev server.
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import { startFakeGemini } from '../tests/helpers/fakeGemini.js';
+import { REVIEWER, TARGETED, isTargetedPrompt } from '../tests/helpers/reviewerAnswers.js';
 
 process.env.JWT_SECRET = 'ui-harness-secret';
 process.env.CLIENT_URL = 'http://localhost:5174';
@@ -19,6 +24,13 @@ delete process.env.GEMINI_API_KEY;
 
 const PORT = 5070;
 const base = `http://localhost:${PORT}`;
+
+if (process.argv.includes('--fake-ai')) {
+    const gemini = await startFakeGemini();
+    process.env.GOOGLE_GEMINI_BASE_URL = gemini.url;
+    process.env.GEMINI_API_KEY = 'harness';
+    gemini.reply(({ prompt }) => ({ json: isTargetedPrompt(prompt) ? TARGETED : REVIEWER, delayMs: 4000 }));
+}
 
 const mongod = await MongoMemoryServer.create();
 await mongoose.connect(mongod.getUri());
@@ -175,6 +187,22 @@ const networkNotes = await reviewerModel.create({
         enumeration('Encryption', 'Give the 3 parts of the CIA triad.', ['Confidentiality', 'Integrity', 'Availability']),
     ],
 });
+
+// Two failed reviewers for Maria, to check Try again. "Biology chapter 4" kept its notes, so a retry makes
+// new questions. "Shared lab notes" has no stored notes, so a retry asks for the files again.
+const BIOLOGY_NOTES = [
+    'Photosynthesis happens in the chloroplasts. Chlorophyll in the thylakoid membranes captures light energy and splits water, which releases oxygen. The energy is stored as ATP and NADPH and used in the Calvin cycle, in the stroma, to fix carbon dioxide into sugar.',
+    'Cellular respiration breaks glucose down to release energy. Glycolysis runs in the cytoplasm and makes a small amount of ATP. Pyruvate then enters the mitochondria, where the Krebs cycle and the electron transport chain make most of the ATP, with oxygen as the final electron acceptor.',
+    'Without oxygen, cells can still make a little ATP through fermentation, which regenerates NAD+ so that glycolysis can keep going.',
+].join('\n\n');
+const TOO_LONG = 'This took too long, so we stopped. Try again.';
+await reviewerModel.create([
+    {
+        owner: maria._id, title: 'Biology chapter 4', source: { fileName: 'biology-ch4.pdf', pages: 9, chars: BIOLOGY_NOTES.length },
+        status: 'failed', version: 0, error: TOO_LONG, sourceText: BIOLOGY_NOTES, questionTarget: 20,
+    },
+    { owner: maria._id, title: 'Shared lab notes', source: { type: 'notes' }, status: 'failed', version: 0, error: TOO_LONG, sourceText: '' },
+]);
 
 // Two decks for Maria: one from her reviewer through the real route, and a hand-made one where
 // half the cards were learned and come back in 2 days (so the tab shows due today and due later).

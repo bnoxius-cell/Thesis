@@ -5,6 +5,7 @@ import userModel from '../models/userModel.js';
 import subjectModel, { SUBJECT_LIMITS } from '../models/subjectModel.js';
 import taskModel from '../models/taskModel.js';
 import flashcardDeckModel, { FLASHCARD_LIMITS } from '../models/flashcardDeckModel.js';
+import reviewerModel from '../models/reviewerModel.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
 
@@ -220,6 +221,52 @@ describe('deck create and update with newSubject', () => {
         const jose = await signUp('jose@student.fatima.edu.ph');
         const deck = (await jose.post('/api/flashcards/decks').send({ title: 'Physics' })).body.deck;
         const res = await maria.patch(`/api/flashcards/decks/${deck.id}`).send({ newSubject: 'Ghost' });
+        expect(res.status).toBe(404);
+        expect(await subjectModel.countDocuments()).toBe(0);
+    });
+});
+
+describe('reviewer update with newSubject', () => {
+    const makeReviewer = async (email) => {
+        const owner = (await userModel.findOne({ email }))._id;
+        return reviewerModel.create({ owner, title: 'Week 2 notes', status: 'ready' });
+    };
+
+    test('makes the subject, links the reviewer and relabels it', async () => {
+        const maria = await signUp('maria@student.fatima.edu.ph');
+        const reviewer = await makeReviewer('maria@student.fatima.edu.ph');
+        const res = await maria.patch(`/api/reviewers/${reviewer._id}`).send({ newSubject: ' Data  Structures ' });
+        expect(res.status).toBe(200);
+        const [subject] = await subjectsOf(maria);
+        expect(subject.name).toBe('Data Structures');
+        expect(res.body.reviewer).toMatchObject({ subject: subject._id, course: 'Data Structures' });
+    });
+
+    test('a name that matches a subject in another case reuses it', async () => {
+        const maria = await signUp('maria@student.fatima.edu.ph');
+        const web = await makeSubject(maria, 'Web Systems', { code: 'IT 301' });
+        const reviewer = await makeReviewer('maria@student.fatima.edu.ph');
+        const res = await maria.patch(`/api/reviewers/${reviewer._id}`).send({ newSubject: 'web  systems' });
+        expect(res.body.reviewer).toMatchObject({ subject: web._id, course: 'IT 301' });
+        expect(await subjectsOf(maria)).toHaveLength(1);
+    });
+
+    test('a bad title or name makes no subject and leaves the reviewer alone', async () => {
+        const maria = await signUp('maria@student.fatima.edu.ph');
+        const reviewer = await makeReviewer('maria@student.fatima.edu.ph');
+        const blankTitle = await maria.patch(`/api/reviewers/${reviewer._id}`).send({ title: '  ', newSubject: 'Ghost' });
+        expect(blankTitle.status).toBe(400);
+        const blankName = await maria.patch(`/api/reviewers/${reviewer._id}`).send({ newSubject: ' ' });
+        expect(blankName.status).toBe(400);
+        expect(await subjectModel.countDocuments()).toBe(0);
+        expect((await reviewerModel.findById(reviewer._id)).title).toBe('Week 2 notes');
+    });
+
+    test("another student's reviewer is not found and makes no subject", async () => {
+        const maria = await signUp('maria@student.fatima.edu.ph');
+        await signUp('jose@student.fatima.edu.ph');
+        const reviewer = await makeReviewer('jose@student.fatima.edu.ph');
+        const res = await maria.patch(`/api/reviewers/${reviewer._id}`).send({ newSubject: 'Ghost' });
         expect(res.status).toBe(404);
         expect(await subjectModel.countDocuments()).toBe(0);
     });

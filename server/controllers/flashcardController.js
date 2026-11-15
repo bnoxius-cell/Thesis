@@ -281,7 +281,9 @@ export const updateDeck = async (req, res) => {
         }
         const link = await readItemSubject(req.userId, { subject: body.subject, newSubject: body.newSubject });
         if (link.error) return bad(res, link.error);
-        applyItemSubject(deck, await finishItemSubject(req.userId, link));
+        const subject = await finishItemSubject(req.userId, link);
+        applyItemSubject(deck, subject);
+        if (subject === null) deck.course = '';
         await deck.save();
         res.json({ success: true, deck: await publicDeckWithCounts(deck, new Date()) });
     } catch (error) {
