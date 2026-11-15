@@ -1,16 +1,18 @@
-import { Compass, LifeBuoy, LogOut, Settings, Sparkles, User } from "lucide-react";
+import { Compass, LifeBuoy, LogOut, MessageSquarePlus, Settings, Sparkles, User } from "lucide-react";
 import { useAuth } from "@/pages/authentication/AuthContext";
 import { Avatar, Badge, Menu, MenuDivider, MenuItem } from "@/shared/ui";
+import useFeedback from "@/features/feedback/useFeedback";
 import useWhatsNew from "@/features/whats-new/useWhatsNew";
 
 // The student's menu in the page header (Figma 20:68): who is signed in, then Profile, Settings,
-// Help and contacts, Take the tour (replays the welcome tour), What's new and Log out. Log out is a
+// Help and contacts, Send feedback, Take the tour (replays the welcome tour), What's new and Log out. Log out is a
 // plain row, not red: signing out is not a danger.
 // Focus returns to the picture when the menu closes by keyboard.
 export default function AvatarMenu() {
   const { userData, logout } = useAuth();
   const name = userData?.name || "Student";
   const { hasUnseen } = useWhatsNew();
+  const { openFeedback } = useFeedback();
 
   return (
     <Menu
@@ -34,6 +36,7 @@ export default function AvatarMenu() {
       <MenuItem to="/profile" icon={User}>Profile</MenuItem>
       <MenuItem to="/settings" icon={Settings}>Settings</MenuItem>
       <MenuItem to="/settings/help" icon={LifeBuoy}>Help and contacts</MenuItem>
+      <MenuItem icon={MessageSquarePlus} onSelect={openFeedback}>Send feedback</MenuItem>
       <MenuItem to="/home?tour=1" icon={Compass}>Take the tour</MenuItem>
       <MenuItem to="/settings/whats-new" icon={Sparkles} aria-label={hasUnseen ? "What's new, new updates" : undefined}>
         What's new

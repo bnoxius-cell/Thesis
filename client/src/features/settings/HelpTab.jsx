@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import GuideTopics from "@/features/guide/GuideTopics.jsx";
+import useFeedback from "@/features/feedback/useFeedback";
 import useGuide from "@/features/guide/useGuide";
 import useHashScroll from "@/shared/hooks/useHashScroll";
 import { SUPPORT_EMAILS } from "@/pages/legal/legalContent";
@@ -15,6 +16,7 @@ const EMAIL_HINTS = ["Questions about the app", "Report a problem"];
 export default function HelpTab() {
   const { guide, showSetup } = useGuide();
   const navigate = useNavigate();
+  const { openFeedback } = useFeedback();
   useHashScroll(); // /settings/help#guide-<key>: GuideTopics opens that topic, this scrolls to it
   const showAgain = () => {
     showSetup();
@@ -46,6 +48,11 @@ export default function HelpTab() {
             <Button variant="secondary" href={`mailto:${email}`} aria-label={`Email ${email}`}>Email</Button>
           </SettingsRow>
         ))}
+      </SettingsGroup>
+      <SettingsGroup title="Send feedback">
+        <SettingsRow label="Tell us what you think" hint="Ideas, problems or anything unclear. It goes straight to the team.">
+          <Button variant="secondary" onClick={openFeedback}>Send feedback</Button>
+        </SettingsRow>
       </SettingsGroup>
       <SettingsGroup title="About">
         <SettingsRow label="About StressCare" hint="What it does and how the numbers work.">
