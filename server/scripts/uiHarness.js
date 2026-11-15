@@ -127,8 +127,7 @@ await shareWithMaria('Study group', [
     { title: 'Information Assurance', kind: 'class', days: [4], startTime: '10:00', endTime: '11:00' },
 ], 'editor');
 const webSystems = (await api('/api/subjects')).subjects.find((s) => s.name === 'Web Systems');
-await api(`/api/subjects/${webSystems._id}`, 'PATCH', { notes: 'Lab 3 is due next week.
-Ask Sir about the REST rubric.' });
+await api(`/api/subjects/${webSystems._id}`, 'PATCH', { notes: 'Lab 3 is due next week.\nAsk Sir about the REST rubric.' });
 
 const groupIds = [];
 for (const name of ['Capstone Team 4', 'Study Buddies']) {
