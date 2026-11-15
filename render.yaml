@@ -22,6 +22,9 @@ services:
       # Brevo's HTTPS API when this is set (Brevo > SMTP & API > API Keys).
       - key: BREVO_API_KEY
         sync: false
+      # Where student feedback is emailed (comma-separated). Without it feedback is only stored.
+      - key: FEEDBACK_EMAIL
+        sync: false
       # Web Push (phone/PC notifications). Copy the same three values from server/.env.
       - key: VAPID_PUBLIC_KEY
         sync: false
