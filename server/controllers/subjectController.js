@@ -9,7 +9,7 @@ import { isId, serverError } from '../utils/httpErrors.js';
 import { filesChoice, releasePlaceFiles, removePlaceFiles } from '../utils/placeFiles.js';
 import { courseKey, activeSubjects, matchesLabel } from '../utils/subjectMatch.js';
 import { linkMatchingItems, relabelLinkedItems, unlinkItems } from '../utils/subjectCascade.js';
-import { renameClassTimes, removeClassTimes } from '../utils/subjectClassTimes.js';
+import { linkClassTimes, renameClassTimes, removeClassTimes } from '../utils/subjectClassTimes.js';
 
 const MAX_SUGGESTIONS = 15;
 const SUGGESTED_ENTRY_KINDS = ['class', 'exam'];
@@ -34,6 +34,7 @@ const countsFor = async (owner, subjectIds) => {
         countBy(reviewerModel),
         countBy(flashcardDeckModel),
         countBy(fileModel, { scope: 'library', state: 'ready' }),
+        // Owned timetables only, like rename and delete: a shared timetable's classes aren't the owner's to remove.
         scheduleModel.aggregate([
             { $match: { owner: asObjectId(owner), 'entries.subject': { $in: subjectIds } } },
             { $unwind: '$entries' },
@@ -108,8 +109,8 @@ const nextColor = (subjects) => {
 
 const capMessage = () => `You can have up to ${SUBJECT_LIMITS.maxActive} subjects. Delete one you no longer need first.`;
 
-// Creates a subject for the owner (colour and order come next in turn) and links the tasks and
-// reviewers whose course text matches it. `subjects` are the owner's active ones.
+// Creates a subject for the owner (colour and order come next in turn) and links the tasks, reviewers
+// and classes (in timetables the owner owns) that match it. `subjects` are the owner's active ones.
 const insertSubject = async (owner, fields, subjects) => {
     const subject = await subjectModel.create({
         ...fields,
@@ -117,7 +118,8 @@ const insertSubject = async (owner, fields, subjects) => {
         owner,
         order: subjects.length ? Math.max(...subjects.map((s) => s.order)) + 1 : 0,
     });
-    return { subject, linked: await linkMatchingItems(subject) };
+    const classTimes = await linkClassTimes(owner, subject);
+    return { subject, linked: await linkMatchingItems(subject), classTimes };
 };
 
 // A timetable entry asks for a subject by name. Checks it the way POST /api/subjects does and answers
@@ -162,10 +164,10 @@ export const createSubject = async (req, res) => {
             return bad(res, `You already have a subject called ${fields.name}.`, 409);
         }
 
-        const { subject, linked } = await insertSubject(req.userId, fields, subjects);
+        const { subject, linked, classTimes } = await insertSubject(req.userId, fields, subjects);
         res.status(201).json({
             success: true,
-            subject: publicSubject(subject, { ...EMPTY_COUNTS, openTasks: linked.tasks, reviewers: linked.reviewers }),
+            subject: publicSubject(subject, { ...EMPTY_COUNTS, openTasks: linked.tasks, reviewers: linked.reviewers, classTimes }),
             linked,
         });
     } catch (error) {

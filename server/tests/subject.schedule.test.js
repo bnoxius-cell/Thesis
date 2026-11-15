@@ -7,6 +7,7 @@ import scheduleModel from '../models/scheduleModel.js';
 import subjectModel, { SUBJECT_LIMITS } from '../models/subjectModel.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
+import { removeClassTimes } from '../utils/subjectClassTimes.js';
 
 vi.mock('../utils/emailService.js', () => ({
     sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
@@ -225,6 +226,85 @@ describe('subject rename and delete reach class times', () => {
         expect(liveDoc.entries).toEqual([]);
         expect(liveDoc.activity.map((a) => a.summary).slice(1)).toEqual(['removed "Web Systems"']);
         expect((await stored(bobMain._id)).entries).toHaveLength(1);
+    });
+
+    test('an edit saved from a copy loaded before a delete fails instead of landing on the wrong entry', async () => {
+        const { alice, web, mine } = await ownSetup();
+        const aliceId = await idOf('alice@student.fatima.edu.ph');
+        const exam = (await stored(mine._id)).entries[1];
+        // The subject is deleted (its class pulled, shifting the exam to position 0) while the edit is loaded.
+        const findById = scheduleModel.findById.bind(scheduleModel);
+        const spy = vi.spyOn(scheduleModel, 'findById').mockImplementationOnce(async (...args) => {
+            const doc = await findById(...args);
+            await removeClassTimes(aliceId, web._id);
+            return doc;
+        });
+        try {
+            const res = await alice.put(`/api/schedules/${mine._id}/entries/${exam._id}`)
+                .send({ title: 'Midterm: Web Systems', kind: 'exam', date: '2099-03-10', startTime: '09:00', endTime: '10:00', location: 'Room 5' });
+            expect(res.status).toBe(500);
+        } finally {
+            spy.mockRestore();
+        }
+        const after = await stored(mine._id);
+        expect(after.entries).toHaveLength(1);
+        expect(after.entries[0]).toMatchObject({ title: 'Midterm: Web Systems', subject: null });
+        expect(after.entries[0].location || '').toBe('');
+    });
+
+    test('delete skips a timetable that was deleted after it was read', async () => {
+        const { alice, web, live } = await ownSetup();
+        const aliceId = await idOf('alice@student.fatima.edu.ph');
+        const find = scheduleModel.find.bind(scheduleModel);
+        const spy = vi.spyOn(scheduleModel, 'find').mockImplementationOnce((...args) => {
+            const query = find(...args);
+            const lean = query.lean.bind(query);
+            query.lean = async () => {
+                const found = await lean();
+                await scheduleModel.deleteOne({ _id: live._id });
+                return found;
+            };
+            return query;
+        });
+        try {
+            expect(await removeClassTimes(aliceId, web._id)).toBe(1);
+        } finally {
+            spy.mockRestore();
+        }
+    });
+
+    test('a class added before its subject existed is linked when the subject is made', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const bob = await signUp('bob@student.fatima.edu.ph', 'Bob');
+        const mine = await newTimetable(alice, 'Mine');
+        await alice.post(`/api/schedules/${mine._id}/entries`).send(cls('Data Mining'));
+        await alice.post(`/api/schedules/${mine._id}/entries`).send(cls('Networks'));
+        const bobMain = await newTimetable(bob, 'Mine');
+        await bob.post(`/api/schedules/${bobMain._id}/entries`).send(cls('Data Mining'));
+        expect((await stored(mine._id)).entries.every((e) => e.subject === null)).toBe(true);
+
+        const subject = await makeSubject(alice, 'data-mining');
+        expect(subject.counts.classTimes).toBe(1);
+        const linked = await stored(mine._id);
+        expect(String(linked.entries[0].subject)).toBe(subject._id);
+        expect(linked.entries[1].subject).toBeNull();
+        expect((await stored(bobMain._id)).entries[0].subject).toBeNull();
+
+        await alice.patch(`/api/subjects/${subject._id}`).send({ name: 'Data Mining 2' });
+        expect((await stored(mine._id)).entries.map((e) => e.title)).toEqual(['Data Mining 2', 'Networks']);
+        const res = await alice.delete(`/api/subjects/${subject._id}?files=keep`);
+        expect(res.body).toMatchObject({ success: true, removedClassTimes: 1 });
+        expect((await stored(mine._id)).entries.map((e) => e.title)).toEqual(['Networks']);
+        expect((await stored(bobMain._id)).entries.map((e) => [e.title, e.subject])).toEqual([['Data Mining', null]]);
+    });
+
+    test('making a subject leaves a class that already has one alone', async () => {
+        const { alice, web, mine } = await ownSetup();
+        await subjectModel.updateOne({ _id: web._id }, { name: 'Old name' });
+        const other = await makeSubject(alice, 'Web Systems');
+        const entry = (await stored(mine._id)).entries[0];
+        expect(String(entry.subject)).toBe(web._id);
+        expect(other.counts.classTimes).toBe(0);
     });
 
     test('counts show class times in owned timetables', async () => {
