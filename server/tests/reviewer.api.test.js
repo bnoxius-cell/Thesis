@@ -204,6 +204,19 @@ describe('when the AI fails', () => {
         expect((await alice.get(`/api/reviewers/${id}`)).body.reviewer).toMatchObject({ status: 'ready', error: '', version: 1 });
     });
 
+    test('a retry sent with no body still works', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const user = await userModel.findOne({ email: 'alice@student.fatima.edu.ph' });
+        const failed = await reviewerModel.create({
+            owner: user._id, title: 'Kept notes', status: 'failed', error: 'Too slow.', sourceText: 'Some notes to study.', questionTarget: 20,
+        });
+        generateJson.mockResolvedValue({ data: aiOutput(), model: 'gemini-test' });
+        const retry = await alice.post(`/api/reviewers/${failed._id}/regenerate`);
+        expect(retry.status).toBe(200);
+        expect(retry.body.reviewer.status).toBe('processing');
+        await settleGenerationJobs();
+    });
+
     test('a failed reviewer with no stored text says its files are needed', async () => {
         const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
         const user = await userModel.findOne({ email: 'alice@student.fatima.edu.ph' });
