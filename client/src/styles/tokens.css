@@ -58,15 +58,15 @@
     --overlay: rgba(15, 19, 25, 0.45);
     --overlay-media: rgba(15, 20, 41, 0.97); /* Figma F11 photo preview scrim */
 
-    /* Structure (the 30%): the navy sidebar and cover bands */
-    --sidebar-bg: #152347;
-    --sidebar-text: #e8edf8;
-    --sidebar-text-muted: #aab6d3;
-    --sidebar-hover: rgba(255, 255, 255, 0.09);
-    --sidebar-active-bg: #ffffff;
-    --sidebar-active-text: #152347;
-    --sidebar-border: rgba(255, 255, 255, 0.14);
-    --band: #1b2e5c;
+    /* Structure (the 30%): a deeper sand sidebar and cover bands, one step below the body, navy ink, navy active pill */
+    --sidebar-bg: #ebe2cf;
+    --sidebar-text: #14213d;
+    --sidebar-text-muted: #4d566c;
+    --sidebar-hover: rgba(20, 33, 61, 0.07);
+    --sidebar-active-bg: #152347;
+    --sidebar-active-text: #ffffff;
+    --sidebar-border: rgba(20, 33, 61, 0.12);
+    --band: #e0d5bb;
 
     /* Charts */
     --chart-busy: #c9c1ae;
