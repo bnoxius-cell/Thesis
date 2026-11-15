@@ -15,5 +15,6 @@ export default {
     { tag: "improved", text: "Messages now pop up as one clean notice with a View or Undo button when there's something to do." },
     { tag: "improved", text: "Small polish: the Add button is easier to tap on your phone, long titles wrap, and flashcard empty decks look tidier." },
     { tag: "fixed", text: "Renaming a subject now keeps its classes linked, and a failed link no longer stops you creating a subject." },
+    { tag: "new", text: "Send feedback to the team from your profile menu or Settings > Help. Tell us what works and what doesn't." },
   ],
 };
