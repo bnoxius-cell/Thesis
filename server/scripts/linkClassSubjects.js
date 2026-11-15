@@ -153,7 +153,11 @@ const valueAfter = (flag) => {
     return value;
 };
 
+const KNOWN_FLAGS = ['--apply', '--create-missing', '--undo', '--report'];
+
 const runFromCommandLine = async () => {
+    const unknown = process.argv.slice(2).find((arg) => arg.startsWith('--') && !KNOWN_FLAGS.includes(arg));
+    if (unknown) throw new Error(`Unknown option ${unknown}. Use ${KNOWN_FLAGS.join(', ')}.`);
     await import('dotenv/config');
     if (!process.env.MONGO_URI) {
         throw new Error('MONGO_URI is not set in server/.env.');
