@@ -14,6 +14,9 @@ Main session: read this first after a `/clear` (state and rules), then `roadmap.
 - Domains: `stresscare.xyz` and `stresscare-art-8707.vercel.app` must both keep working; builds call their own `/api` so cookies stay first-party.
 - `staging` holds the OLD app for the professor to compare. Never merge it into `main` or `production`.
 
+## LATEST (2026-11-15, later)
+- 0b DELETE ONE NOTIFICATION built, tested (pass) and merged to `main`, NOT pushed to `production` (needs a What's new item in the newest note). Roadmap reordered (Now: plan 34 C6a next). Routing: builder-sonnet medium passed first time, one 2px hit-area slip fixed by the orchestrator.
+
 ## LATEST (2026-11-15, plan 37 done, supersedes the PLAN 37 bullet below)
 - PLAN 37 BUILT, TESTED AND MERGED to `main` (06ee842), NOT pushed to `production`: G0 server flags (`guide` in `/api/user/data`, `POST /api/user/guide`, `GET /api/user/setup`), G1 welcome tour WITH SPOTLIGHT (owner added it 2026-11-15: dimmed page, undimmed hole over the real sidebar item or bottom-bar tab, `data-tour-target` attributes), G2 Get started card, G3 Help > Guides and header search, G4 empty states. Take the tour is in Settings > Help and the avatar menu. Figma page "Guide and tutorials (37)" (314:168), node ids in design.md and plan 37 section 10. Owner approved the frames.
 - SHIPPED 2026-11-15: owner said "let's ship", `production` = `main` = cb368df (plan 37 plus What's new `2026-11-16.js`, dated a day ahead). Live checks owed: fresh sign-up sees the tour once on stresscare.xyz and the vercel.app link (phone and laptop), second device doesn't repeat it, Get started ticks, Help guides and search. Next work: roadmap item 0b (delete one notification), then plan 34 leftovers.
