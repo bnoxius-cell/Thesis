@@ -86,7 +86,7 @@ describe('subject CRUD', () => {
 
         const list = await alice.agent.get('/api/subjects');
         expect(list.body.subjects).toHaveLength(1);
-        expect(list.body.subjects[0].counts).toEqual({ openTasks: 1, reviewers: 1, decks: 0, files: 0 });
+        expect(list.body.subjects[0].counts).toEqual({ openTasks: 1, reviewers: 1, decks: 0, files: 0, classTimes: 0 });
 
         const one = await alice.agent.get(`/api/subjects/${id}`);
         expect(one.body.subject.name).toBe('Data Structures');

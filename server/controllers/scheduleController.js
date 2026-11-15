@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import scheduleModel, {
-    SCHEDULE_THEMES, MAX_ENTRIES, MAX_ACTIVITY, MAX_IMAGE_LENGTH, MAX_OWNED_SCHEDULES, ENTRY_KINDS, HOLIDAY_COUNTRY, MAX_MEETING_URL,
+    SCHEDULE_THEMES, MAX_ENTRIES, MAX_IMAGE_LENGTH, MAX_OWNED_SCHEDULES, ENTRY_KINDS, HOLIDAY_COUNTRY, MAX_MEETING_URL,
 } from '../models/scheduleModel.js';
 import Friend from '../models/Friend.js';
 import { notify } from '../utils/notify.js';
@@ -12,7 +12,8 @@ import { buildWeekOverview, addDaysIso, findUpcomingExams } from '../utils/weekO
 import groupModel from '../models/groupMode.js';
 import groupMessageModel from '../models/groupMessageModel.js';
 import { timetableLink } from '../utils/appLinks.js';
-import { serverError } from '../utils/httpErrors.js';
+import { isLive, recordChange, describeEntry } from '../utils/timetableChanges.js';
+import { isId, serverError } from '../utils/httpErrors.js';
 import { activeSubjects, entrySubjectFor, resolveItemSubject } from '../utils/subjectMatch.js';
 import { withViewerSubjects } from '../utils/entrySubjects.js';
 import { planNewSubject, createPlannedSubject, publicSubject } from './subjectController.js';
@@ -67,39 +68,6 @@ const canManageSharing = (schedule, role) => role === 'owner' || (role === 'edit
 
 // 'restricted' when only the people added can open it, otherwise the role the code gives.
 const linkAccess = (schedule) => (schedule.shareCode ? (schedule.shareRole === 'editor' ? 'editor' : 'viewer') : 'restricted');
-
-// A schedule is "live" once at least one person other than the owner can edit it. Only then
-// are changes logged and announced, so a plain copy-share stays quiet.
-const isLive = (schedule) => schedule.collaborators.some((c) => c.role === 'editor');
-
-const memberIds = (schedule) => [
-    (schedule.owner._id ?? schedule.owner).toString(),
-    ...schedule.collaborators.map((c) => (c.user._id ?? c.user).toString()),
-];
-
-// Logs a change on the schedule and tells everyone else on it. Call before `schedule.save()`.
-// Returns a function to run after the save (it sends the notifications), so a failed save
-// never announces something that didn't happen.
-const recordChange = async (schedule, actorId, summary) => {
-    if (!isLive(schedule)) return async () => {};
-    const actor = await userModel.findById(actorId).select('name');
-    const name = actor?.name || 'Someone';
-    schedule.activity.push({ user: actorId, userName: name, summary: summary.slice(0, 200) });
-    if (schedule.activity.length > MAX_ACTIVITY) schedule.activity.splice(0, schedule.activity.length - MAX_ACTIVITY);
-    return async () => {
-        await notify({
-            recipients: memberIds(schedule),
-            sender: actorId,
-            type: 'schedule_change',
-            title: `"${schedule.title}" was changed`,
-            message: `${name} ${summary}`,
-            link: timetableLink(schedule._id),
-            collapseLink: true,
-        });
-    };
-};
-
-const describeEntry = (entry) => `"${entry.title}"`;
 
 // Loads the schedule and checks the caller's access level. Sends the error response
 // itself and returns null when the caller should stop.
@@ -870,6 +838,44 @@ export const importSchedule = async (req, res) => {
     }
 };
 
+// The timetables that count in the caller's week, ready to read: holidays resolved, the caller's role and
+// their own subject on each entry, owned ones first. `startIso` to `endIso` is the range holidays are
+// looked up for; a failed lookup only means public holidays are missing.
+const countedSchedules = async (userId, startIso, endIso) => {
+    // The main schedule always counts. Extras count unless the student turned them off.
+    await ensureMainSchedule(userId);
+    const schedules = await scheduleModel
+        .find({
+            $or: [
+                { owner: userId, $or: [{ isMain: true }, { countInWorkload: { $ne: false } }] },
+                // Shared schedules the member chose to count (off unless they turn it on).
+                { collaborators: { $elemMatch: { user: userId, countInWorkload: true } } },
+            ],
+        })
+        .lean();
+
+    // One holiday lookup per year the range touches.
+    const publicByDate = {};
+    if (schedules.length) {
+        const years = [...new Set([startIso, endIso].map((iso) => Number(iso.slice(0, 4))))];
+        await Promise.all(years.map(async (year) => {
+            try {
+                (await fetchPublicHolidays(year, HOLIDAY_COUNTRY)).forEach((h) => { publicByDate[h.date] = h.name; });
+            } catch {
+                // Leave them out.
+            }
+        }));
+    }
+    const mySubjects = await activeSubjects(userId).lean();
+    schedules.forEach((s) => {
+        s.publicByDate = publicByDate;
+        s.role = roleOf(s, userId);
+        s.entries = withViewerSubjects(s, userId, mySubjects);
+    });
+    // Owned first, so a class copied into two timetables keeps the copy the student can edit.
+    return schedules.sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role));
+};
+
 // GET /api/schedules/week?start=YYYY-MM-DD
 // The next seven days of the caller's own timetables (the ones marked to count), with
 // holidays applied. The dashboard uses this to see how much time is already taken.
@@ -880,39 +886,7 @@ export const getWeekOverview = async (req, res) => {
         const dayCount = 7;
         const end = addDaysIso(start, dayCount - 1);
 
-        // The main schedule always counts. Extras count unless the student turned them off.
-        await ensureMainSchedule(req.userId);
-        const schedules = await scheduleModel
-            .find({
-                $or: [
-                    { owner: req.userId, $or: [{ isMain: true }, { countInWorkload: { $ne: false } }] },
-                    // Shared schedules the member chose to count (off unless they turn it on).
-                    { collaborators: { $elemMatch: { user: req.userId, countInWorkload: true } } },
-                ],
-            })
-            .lean();
-
-        // One holiday lookup per year the week touches. A failed lookup only means public
-        // holidays are missing; the timetable itself still counts.
-        const publicByDate = {};
-        if (schedules.length) {
-            const years = [...new Set([start, end].map((iso) => Number(iso.slice(0, 4))))];
-            await Promise.all(years.map(async (year) => {
-                try {
-                    (await fetchPublicHolidays(year, HOLIDAY_COUNTRY)).forEach((h) => { publicByDate[h.date] = h.name; });
-                } catch {
-                    // Leave them out.
-                }
-            }));
-        }
-        const mySubjects = await activeSubjects(req.userId).lean();
-        schedules.forEach((s) => {
-            s.publicByDate = publicByDate;
-            s.role = roleOf(s, req.userId);
-            s.entries = withViewerSubjects(s, req.userId, mySubjects);
-        });
-        // Owned first, so a class copied into two timetables keeps the copy the student can edit.
-        schedules.sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role));
+        const schedules = await countedSchedules(req.userId, start, end);
 
         res.json({
             success: true,
@@ -924,6 +898,51 @@ export const getWeekOverview = async (req, res) => {
         });
     } catch (error) {
         serverError(res, 'getWeekOverview error', error);
+    }
+};
+
+const SUBJECT_UPCOMING_DAYS = 14;
+const SUBJECT_EXAM_DAYS = 30;
+const CLASS_TIME_FIELDS = ['days', 'date', 'startDate', 'endDate', 'startTime', 'endTime', 'location', 'meetingUrl', 'notes'];
+
+// Class entries (patterns, not days) of a subject, from the timetables that count for the caller.
+const classTimesOf = (schedules, subjectId) => schedules
+    .flatMap((schedule) => schedule.entries
+        .filter((e) => e.kind === 'class' && e.subject === subjectId)
+        .map((e) => ({
+            entryId: String(e._id),
+            scheduleId: String(schedule._id),
+            scheduleTitle: schedule.title,
+            isMain: schedule.isMain === true,
+            canEdit: CAN.edit.includes(schedule.role),
+            live: isLive(schedule),
+            ...Object.fromEntries(CLASS_TIME_FIELDS.map((key) => [key, e[key] ?? (key === 'days' ? [] : '')])),
+        })))
+    .sort((a, b) => (a.days[0] ?? 7) - (b.days[0] ?? 7) || a.startTime.localeCompare(b.startTime));
+
+// GET /api/subjects/:id/schedule?start=YYYY-MM-DD
+// Everything the timetables say about one of the caller's subjects: its class times (each with where it
+// lives and whether the caller may edit it), the next two weeks of its classes and exams, and its exams.
+// Only timetables the caller owns or counts as a member are read, and the caller's own subject ids are used.
+export const getSubjectSchedule = async (req, res) => {
+    try {
+        const subject = isId(req.params.id) && await subjectModel.findOne({ _id: req.params.id, owner: req.userId });
+        if (!subject) return fail(res, 404, 'Subject not found');
+        const start = String(req.query.start || '');
+        if (!isRealDate(start)) return fail(res, 400, 'Pick a valid start date.');
+
+        const subjectId = String(subject._id);
+        const schedules = await countedSchedules(req.userId, start, addDaysIso(start, Math.max(SUBJECT_UPCOMING_DAYS, SUBJECT_EXAM_DAYS)));
+        const mine = (entry) => entry.subject === subjectId;
+        res.json({
+            success: true,
+            classTimes: classTimesOf(schedules, subjectId),
+            upcoming: buildWeekOverview(schedules, start, SUBJECT_UPCOMING_DAYS)
+                .flatMap((day) => day.entries.filter(mine).map((entry) => ({ iso: day.date, entry }))),
+            exams: findUpcomingExams(schedules, start, SUBJECT_EXAM_DAYS).filter(mine),
+        });
+    } catch (error) {
+        serverError(res, 'getSubjectSchedule error', error);
     }
 };
 
