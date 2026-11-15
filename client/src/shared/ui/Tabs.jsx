@@ -3,8 +3,8 @@ import Badge from "./Badge";
 import { selectOnArrowKey } from "./rovingKeys";
 import "./tabs.css";
 
-// A tab list in a pill track (Figma Tab 61:73). `items` is [{ value, label, count?, to?, id?,
-// panelId? }]. With `to` a tab is a router link (URL-driven tabs: derive `value` from the URL);
+// A tab list in a pill track (Figma Tab 61:73). `items` is [{ value, label, count?, to?, state?, id?,
+// panelId? }]. With `to` a tab is a router link (URL-driven tabs: derive `value` from the URL; `state` rides along);
 // without it, a button that calls onChange(value). Arrow keys, Home and End move and select.
 // `panelId` adds aria-controls: pass it only when that panel is in the page. `block` stretches the
 // track to its row and shares the width.
@@ -24,7 +24,7 @@ export default function Tabs({ items, value, onChange, label, block = false, cla
         return (
           <Tab
             key={item.value}
-            {...(item.to ? { to: item.to } : { type: "button" })}
+            {...(item.to ? { to: item.to, state: item.state } : { type: "button" })}
             role="tab"
             id={item.id}
             aria-selected={i === selectedIndex}

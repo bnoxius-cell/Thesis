@@ -8,6 +8,20 @@
     padding-bottom: var(--space-7);
     overflow-wrap: anywhere;
   }
+  /* Signed in there is no <Page> around About, so it brings the page gutters (see .shell-body) and the 720px column. */
+  .about--app {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: var(--space-5) max(var(--space-4), env(safe-area-inset-right)) var(--space-7)
+      max(var(--space-4), env(safe-area-inset-left));
+  }
+  @media (min-width: 721px) {
+    .about--app {
+      padding-inline: max(var(--space-6), env(safe-area-inset-left)) max(var(--space-6), env(safe-area-inset-right));
+    }
+  }
   .about__back {
     align-self: flex-start;
     margin-left: calc(-1 * var(--space-4));

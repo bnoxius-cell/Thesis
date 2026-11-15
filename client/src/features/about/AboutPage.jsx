@@ -52,7 +52,7 @@ export default function AboutPage() {
   useHashScroll();
 
   return (
-    <article className="about">
+    <article className={`about${isLoggedin ? " about--app" : ""}`}>
       <Button to={isLoggedin ? "/home" : "/"} variant="ghost" size="sm" icon={ArrowLeft} className="about__back">
         {isLoggedin ? "Back to Home" : "Back to sign in"}
       </Button>

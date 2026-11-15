@@ -4,10 +4,12 @@ import { Card } from "@/shared/ui";
 import { subjectTone } from "@/shared/lib/subjectTone";
 import { filesText } from "./fileKinds";
 
-function Tile({ to, name, count, leading }) {
+export const FILES_HOME = "/study/files"; // a subject opened from here goes Back here
+
+function Tile({ to, state, name, count, leading }) {
   return (
     <li>
-      <Card as={Link} to={to} interactive className="files-tile">
+      <Card as={Link} to={to} state={state} interactive className="files-tile">
         {leading}
         <span className="files-tile__text">
           <strong>{name}</strong>
@@ -35,6 +37,7 @@ export default function PlaceTiles({ locations, counts, onNewFolder }) {
         <Tile
           key={id}
           to={`/study/subjects/${id}?tab=files`}
+          state={{ from: FILES_HOME }}
           name={name}
           count={counts[`subject:${id}`] ?? 0}
           leading={<span className={`files-dot files-dot--${subjectTone(color)}`} aria-hidden="true" />}

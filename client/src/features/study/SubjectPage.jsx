@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { FileQuestion } from "lucide-react";
 import { Button, Chip, EmptyState, Skeleton, Tabs } from "@/shared/ui";
 import Page from "@/app/shell/Page";
 import { useGlobalAdd } from "@/app/shell/add/addContext";
 import useAddHere from "@/app/shell/add/useAddHere";
+import { FILES_HOME } from "@/features/files/PlaceTiles";
 import UploadDialog from "@/features/files/UploadDialog";
 import useFlashcards from "@/features/flashcards/useFlashcards";
 import useItemDetail from "@/features/details/useItemDetail";
@@ -30,6 +31,7 @@ import useSubjectFiles from "./useSubjectFiles";
 import "./subject.css";
 
 const BACK = { to: "/study", label: "Back to Study" };
+const BACK_TO_FILES = { to: FILES_HOME, label: "Back to Files" };
 const TAB_VALUES = ["overview", "tasks", "practice", "files"];
 
 // Overview is the bare path; the others add ?tab=. Each tab is a history step, so Back returns to
@@ -66,6 +68,9 @@ function SubjectSkeleton() {
 function SubjectView({ subjectId }) {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
+  const { state } = useLocation();
+  // Opened from a Files tile: the arrow returns there, and each tab keeps that (it is passed on below).
+  const back = state?.from === FILES_HOME ? BACK_TO_FILES : BACK;
   const now = useNow();
   const [dialog, setDialog] = useState(null); // edit or delete: { type, subject }
   const data = useSubject(subjectId);
@@ -107,7 +112,7 @@ function SubjectView({ subjectId }) {
 
   if (status !== "ready") {
     return (
-      <Page title="Subject" back={BACK}>
+      <Page title="Subject" back={back}>
         {status === "loading" && <SubjectSkeleton />}
         {status === "missing" && (
           <EmptyState
@@ -138,6 +143,7 @@ function SubjectView({ subjectId }) {
   ].map((item) => ({
     ...item,
     to: tabPath(subjectId, item.value),
+    state,
     id: `subject-tab-${item.value}`,
     panelId: "subject-panel",
   }));
@@ -149,7 +155,7 @@ function SubjectView({ subjectId }) {
       if (value === "reviewers") next.delete("show");
       else next.set("show", value);
       return next;
-    });
+    }, { state });
 
   const changed = () => (dialog.type === "delete" ? navigate("/study") : data.refresh());
   // The subject's count of files is from when the page loaded; once its files are here they are the
@@ -162,7 +168,7 @@ function SubjectView({ subjectId }) {
   return (
     <Page
       title={subject.name}
-      back={BACK}
+      back={back}
       action={
         <SubjectMenu
           subject={subject}
