@@ -262,7 +262,7 @@ export const acceptTerms = async (req, res) => {
 };
 
 // An entry's id, optionally followed by `.` and its item count ("2026-11-15.10").
-const NOTES_VERSION = /^\d{4}-\d{2}-\d{2}(-\d{1,2})?(\.\d{1,2})?$/;
+const NOTES_VERSION = /^\d{4}-\d{2}-\d{2}(-\d{1,2})?(\.\d{1,3})?$/;
 
 // POST /api/user/notes-seen
 // Records the newest "What's new" entry the student has seen. The server can't see the notes file,
