@@ -13,10 +13,17 @@ import groupModel from '../models/groupMode.js';
 import groupMessageModel from '../models/groupMessageModel.js';
 import { timetableLink } from '../utils/appLinks.js';
 import { isLive, recordChange, describeEntry } from '../utils/timetableChanges.js';
-import { isId, serverError } from '../utils/httpErrors.js';
+import { isId, isStaleSave, serverError } from '../utils/httpErrors.js';
 import { activeSubjects, entrySubjectFor, resolveItemSubject } from '../utils/subjectMatch.js';
 import { withViewerSubjects } from '../utils/entrySubjects.js';
 import { planNewSubject, createPlannedSubject, publicSubject } from './subjectController.js';
+
+// A save that lost a race with another edit answers 409 so the page can reload, not a generic 500.
+const scheduleError = (res, label, error) => {
+    if (!isStaleSave(error)) return serverError(res, label, error);
+    console.error(`${label} (stale save):`, error);
+    res.status(409).json({ success: false, message: 'This timetable changed. Reload and try again.' });
+};
 
 // How far ahead the dashboard looks for exams to plan study time around.
 const EXAM_LOOKAHEAD_DAYS = 30;
@@ -278,7 +285,7 @@ export const createSchedule = async (req, res) => {
         });
         res.status(201).json({ success: true, schedule: await serialize(schedule, 'owner') });
     } catch (error) {
-        serverError(res, 'createSchedule error', error);
+        scheduleError(res, 'createSchedule error', error);
     }
 };
 
@@ -294,7 +301,7 @@ export const getSchedules = async (req, res) => {
             schedules: schedules.map((s) => summarize(s, roleOf(s, req.userId), req.userId)),
         });
     } catch (error) {
-        serverError(res, 'getSchedules error', error);
+        scheduleError(res, 'getSchedules error', error);
     }
 };
 
@@ -307,7 +314,7 @@ export const getMainSchedule = async (req, res) => {
         const schedule = await scheduleModel.findById(id);
         res.json({ success: true, schedule: await serialize(schedule, 'owner') });
     } catch (error) {
-        serverError(res, 'getMainSchedule error', error);
+        scheduleError(res, 'getMainSchedule error', error);
     }
 };
 
@@ -317,7 +324,7 @@ export const getSchedule = async (req, res) => {
         if (!loaded) return;
         res.json({ success: true, schedule: await serialize(loaded.schedule, loaded.role, req.userId) });
     } catch (error) {
-        serverError(res, 'getSchedule error', error);
+        scheduleError(res, 'getSchedule error', error);
     }
 };
 
@@ -350,7 +357,7 @@ export const updateSchedule = async (req, res) => {
         await schedule.save();
         res.json({ success: true, schedule: await serialize(schedule, role) });
     } catch (error) {
-        serverError(res, 'updateSchedule error', error);
+        scheduleError(res, 'updateSchedule error', error);
     }
 };
 
@@ -375,7 +382,7 @@ export const deleteSchedule = async (req, res) => {
         }
         res.json({ success: true, message: 'Schedule deleted' });
     } catch (error) {
-        serverError(res, 'deleteSchedule error', error);
+        scheduleError(res, 'deleteSchedule error', error);
     }
 };
 
@@ -474,7 +481,7 @@ export const addEntry = async (req, res) => {
         const write = await readEntryWrite(req, res, loaded.schedule, { adding: true });
         if (write) await appendEntry(req, res, loaded.schedule, loaded.role, write);
     } catch (error) {
-        serverError(res, 'addEntry error', error);
+        scheduleError(res, 'addEntry error', error);
     }
 };
 
@@ -502,7 +509,7 @@ export const addMainEntry = async (req, res) => {
         const write = await readEntryWrite(req, res, { owner: req.userId }, { adding: true });
         if (write) await appendEntry(req, res, await mainScheduleOrNew(req.userId), 'owner', write);
     } catch (error) {
-        serverError(res, 'addMainEntry error', error);
+        scheduleError(res, 'addMainEntry error', error);
     }
 };
 
@@ -532,7 +539,7 @@ export const updateEntry = async (req, res) => {
             ...(created && { subject: publicSubject(created) }),
         });
     } catch (error) {
-        serverError(res, 'updateEntry error', error);
+        scheduleError(res, 'updateEntry error', error);
     }
 };
 
@@ -551,7 +558,7 @@ export const deleteEntry = async (req, res) => {
         await announce();
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
-        serverError(res, 'deleteEntry error', error);
+        scheduleError(res, 'deleteEntry error', error);
     }
 };
 
@@ -626,7 +633,7 @@ export const setHolidayOverride = async (req, res) => {
         await announce();
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
-        serverError(res, 'setHolidayOverride error', error);
+        scheduleError(res, 'setHolidayOverride error', error);
     }
 };
 
@@ -760,7 +767,7 @@ export const previewImport = async (req, res) => {
             schedules: owned.map((s) => ({ _id: s._id, title: s.title, isMain: Boolean(s.isMain), entryCount: s.entries.length })),
         });
     } catch (error) {
-        serverError(res, 'previewImport error', error);
+        scheduleError(res, 'previewImport error', error);
     }
 };
 
@@ -834,7 +841,7 @@ export const importSchedule = async (req, res) => {
 
         res.status(201).json({ success: true, added: cleaned.length, schedule: await serialize(schedule, 'owner') });
     } catch (error) {
-        serverError(res, 'importSchedule error', error);
+        scheduleError(res, 'importSchedule error', error);
     }
 };
 
@@ -897,7 +904,7 @@ export const getWeekOverview = async (req, res) => {
             upcomingExams: findUpcomingExams(schedules, start, EXAM_LOOKAHEAD_DAYS),
         });
     } catch (error) {
-        serverError(res, 'getWeekOverview error', error);
+        scheduleError(res, 'getWeekOverview error', error);
     }
 };
 
@@ -942,7 +949,7 @@ export const getSubjectSchedule = async (req, res) => {
             exams: findUpcomingExams(schedules, start, SUBJECT_EXAM_DAYS).filter(mine),
         });
     } catch (error) {
-        serverError(res, 'getSubjectSchedule error', error);
+        scheduleError(res, 'getSubjectSchedule error', error);
     }
 };
 
@@ -1016,7 +1023,7 @@ export const shareWithFriend = async (req, res) => {
         if (announcement) await notify(announcement);
         res.json({ success: true, schedule: await serialize(schedule, actorRole, req.userId) });
     } catch (error) {
-        serverError(res, 'shareWithFriend error', error);
+        scheduleError(res, 'shareWithFriend error', error);
     }
 };
 
@@ -1054,7 +1061,7 @@ export const removeCollaborator = async (req, res) => {
             ...(!leaving && { schedule: await serialize(schedule, role, req.userId) }),
         });
     } catch (error) {
-        serverError(res, 'removeCollaborator error', error);
+        scheduleError(res, 'removeCollaborator error', error);
     }
 };
 
@@ -1078,7 +1085,7 @@ export const updateShareCode = async (req, res) => {
         await schedule.save();
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
-        serverError(res, 'updateShareCode error', error);
+        scheduleError(res, 'updateShareCode error', error);
     }
 };
 
@@ -1104,7 +1111,7 @@ export const makePrivate = async (req, res) => {
         }
         res.json({ success: true, removed: removed.length, schedule: await serialize(schedule, 'owner') });
     } catch (error) {
-        serverError(res, 'makePrivate error', error);
+        scheduleError(res, 'makePrivate error', error);
     }
 };
 
@@ -1121,7 +1128,7 @@ export const getScheduleStamp = async (req, res) => {
         if (!role) return fail(res, 403, 'You do not have access to this schedule');
         res.json({ success: true, updatedAt: schedule.updatedAt, role });
     } catch (error) {
-        serverError(res, 'getScheduleStamp error', error);
+        scheduleError(res, 'getScheduleStamp error', error);
     }
 };
 
@@ -1138,7 +1145,7 @@ export const updateMembership = async (req, res) => {
         await schedule.save();
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
-        serverError(res, 'updateMembership error', error);
+        scheduleError(res, 'updateMembership error', error);
     }
 };
 
@@ -1171,7 +1178,7 @@ export const joinByCode = async (req, res) => {
         }
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
-        serverError(res, 'joinByCode error', error);
+        scheduleError(res, 'joinByCode error', error);
     }
 };
 
@@ -1205,6 +1212,6 @@ export const duplicateSchedule = async (req, res) => {
         });
         res.status(201).json({ success: true, schedule: await serialize(copy, 'owner') });
     } catch (error) {
-        serverError(res, 'duplicateSchedule error', error);
+        scheduleError(res, 'duplicateSchedule error', error);
     }
 };
