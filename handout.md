@@ -15,7 +15,7 @@ Main session: read this first after a `/clear` (state and rules), then `roadmap.
 - `staging` holds the OLD app for the professor to compare. Never merge it into `main` or `production`.
 
 ## LATEST (2026-11-15, later)
-- 0b DELETE ONE NOTIFICATION built, tested (pass) and merged to `main`, NOT pushed to `production` (needs a What's new item in the newest note). Roadmap reordered (Now: plan 34 C6a next). Routing: builder-sonnet medium passed first time, one 2px hit-area slip fixed by the orchestrator.
+- 0b DELETE ONE NOTIFICATION built, tested (pass) and merged to `main`, NOT pushed to `production` (needs a What's new item in the newest note). C6a (subject Tasks tab rows open the details window, Edit and Delete, search to `taskHref`) also built, tested (pass) and merged to `main`. Roadmap reordered. NEXT: the Atlas read-only main-timetable check, then the plan 34 release, then M1 (needs Q6 and an owner-read dry run). Routing: builder-sonnet medium passed first time, one 2px hit-area slip fixed by the orchestrator.
 
 ## LATEST (2026-11-15, plan 37 done, supersedes the PLAN 37 bullet below)
 - PLAN 37 BUILT, TESTED AND MERGED to `main` (06ee842), NOT pushed to `production`: G0 server flags (`guide` in `/api/user/data`, `POST /api/user/guide`, `GET /api/user/setup`), G1 welcome tour WITH SPOTLIGHT (owner added it 2026-11-15: dimmed page, undimmed hole over the real sidebar item or bottom-bar tab, `data-tour-target` attributes), G2 Get started card, G3 Help > Guides and header search, G4 empty states. Take the tour is in Settings > Help and the avatar menu. Figma page "Guide and tutorials (37)" (314:168), node ids in design.md and plan 37 section 10. Owner approved the frames.
