@@ -17,7 +17,7 @@ export const matchesLabel = (subject, label) => {
     return key !== '' && (courseKey(subject.name) === key || courseKey(subject.code) === key);
 };
 
-export const activeSubjects = (owner) => subjectModel.find({ owner, archivedAt: null }).sort({ order: 1, createdAt: 1 });
+export const activeSubjects = (owner) => subjectModel.find({ owner, archivedAt: null }).select('-notes').sort({ order: 1, createdAt: 1 });
 
 // Works out which subject a task or reviewer should carry from a request body.
 //  - `subject` is an id: it must be the caller's own, active subject (otherwise `error`).

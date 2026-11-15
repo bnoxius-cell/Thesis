@@ -9,7 +9,7 @@ import { isId, serverError } from '../utils/httpErrors.js';
 import { filesChoice, releasePlaceFiles, removePlaceFiles } from '../utils/placeFiles.js';
 import { courseKey, activeSubjects, matchesLabel } from '../utils/subjectMatch.js';
 import { linkMatchingItems, relabelLinkedItems, unlinkItems } from '../utils/subjectCascade.js';
-import { renameClassTimes, removeClassTimes } from './scheduleController.js';
+import { renameClassTimes, removeClassTimes } from '../utils/subjectClassTimes.js';
 
 const MAX_SUGGESTIONS = 15;
 const SUGGESTED_ENTRY_KINDS = ['class', 'exam'];
@@ -88,7 +88,8 @@ export const readFields = (body, { partial }) => {
     }
     if (body.notes !== undefined) {
         // Plain text: line breaks stay, only the ends are trimmed.
-        const notes = typeof body.notes === 'string' ? body.notes.trim() : '';
+        if (typeof body.notes !== 'string') return { error: 'Notes must be text.' };
+        const notes = body.notes.trim();
         if (notes.length > SUBJECT_LIMITS.notes) return { error: NOTES_TOO_LONG };
         fields.notes = notes;
     }
@@ -139,6 +140,7 @@ export const getSubjects = async (req, res) => {
         const archived = req.query.archived === '1';
         const subjects = await subjectModel
             .find({ owner: req.userId, archivedAt: archived ? { $ne: null } : null })
+            .select('-notes')
             .sort({ order: 1, createdAt: 1 });
         const counts = await countsFor(req.userId, subjects.map((s) => s._id));
         res.json({ success: true, subjects: subjects.map((s) => publicSubject(s, counts.get(String(s._id)))) });
@@ -250,17 +252,18 @@ export const updateSubject = async (req, res) => {
             return bad(res, `You already have a subject called ${fields.name}.`, 409);
         }
 
-        const renamed = fields.name !== undefined && fields.name !== subject.name;
         const labelChanged = ['name', 'code'].some((key) => fields[key] !== undefined && fields[key] !== subject[key]);
         Object.assign(subject, fields);
         await subject.save();
 
-        if (renamed) await renameClassTimes(req.userId, subject);
+        // Whenever a name was sent, not only when it changed: a save that failed halfway is finished by sending it again.
+        const classTimesFailed = fields.name !== undefined ? await renameClassTimes(req.userId, subject) : 0;
         let linked = { tasks: 0, reviewers: 0 };
         if (labelChanged) {
             await relabelLinkedItems(subject);
             linked = await linkMatchingItems(subject);
         }
+        if (classTimesFailed) return bad(res, 'Renamed, but some class times could not be updated. Save again to finish.', 500);
         const counts = await countsFor(req.userId, [subject._id]);
         res.json({ success: true, subject: publicSubject(subject, counts.get(String(subject._id)), { withNotes: true }), linked });
     } catch (error) {

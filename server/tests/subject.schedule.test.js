@@ -133,7 +133,34 @@ const ownSetup = async () => {
     await add(live._id, cls('Web Systems', { days: [3] }));
     const bobMain = await newTimetable(bob, 'Mine');
     await bob.post(`/api/schedules/${bobMain._id}/entries`).send(cls('Web Systems'));
-    return { alice, web, mine, live, bobMain };
+    // Bob's timetable that Alice edits, holding a class and an exam that carry Alice's subject id. It is not
+    // hers, so nothing she does to the subject may reach it.
+    const theirs = await scheduleModel.create({
+        title: 'Bob shared',
+        owner: bobId,
+        collaborators: [{ user: await idOf('alice@student.fatima.edu.ph'), role: 'editor' }],
+        entries: [
+            { ...cls('Web Systems'), subject: web._id },
+            { title: 'Quiz', kind: 'exam', date: '2099-03-10', startTime: '09:00', endTime: '10:00', subject: web._id },
+        ],
+    });
+    return { alice, web, mine, live, bobMain, theirs };
+};
+
+// Makes a concurrent edit land on `scheduleId` right after the timetables are read, the way a second
+// request would between a load and a write (it also bumps the document version).
+const editAfterLoad = (scheduleId) => {
+    const find = scheduleModel.find.bind(scheduleModel);
+    return vi.spyOn(scheduleModel, 'find').mockImplementation((...args) => {
+        const query = find(...args);
+        const lean = query.lean.bind(query);
+        query.lean = async () => {
+            const found = await lean();
+            await scheduleModel.updateOne({ _id: scheduleId }, { $inc: { __v: 1 }, $set: { 'entries.0.location': 'Lab 9' } });
+            return found;
+        };
+        return query;
+    });
 };
 
 describe('subject rename and delete reach class times', () => {
@@ -146,6 +173,39 @@ describe('subject rename and delete reach class times', () => {
         expect((await stored(live._id)).activity.map((a) => a.summary).slice(1)).toEqual(['renamed "Web Systems" to "Web Systems 2"']);
         expect((await stored(mine._id)).activity).toEqual([]); // not live, so nothing is logged
         expect((await stored(bobMain._id)).entries[0].title).toBe('Web Systems');
+    });
+
+    test('rename and delete never touch a timetable the caller does not own', async () => {
+        const { alice, web, theirs } = await ownSetup();
+        const before = await stored(theirs._id);
+        await alice.patch(`/api/subjects/${web._id}`).send({ name: 'Web Systems 2' });
+        expect(await stored(theirs._id)).toEqual(before);
+        await alice.delete(`/api/subjects/${web._id}?files=keep`);
+        expect(await stored(theirs._id)).toEqual(before);
+    });
+
+    test('rename and delete still work when a timetable changed after it was read', async () => {
+        const { alice, web, mine, live } = await ownSetup();
+        const spy = editAfterLoad(live._id);
+        try {
+            expect((await alice.patch(`/api/subjects/${web._id}`).send({ name: 'Web Systems 2' })).status).toBe(200);
+            const renamed = await stored(live._id);
+            expect(renamed.entries[0]).toMatchObject({ title: 'Web Systems 2', location: 'Lab 9' });
+            expect((await stored(mine._id)).entries[0].title).toBe('Web Systems 2');
+
+            const res = await alice.delete(`/api/subjects/${web._id}?files=keep`);
+            expect(res.body).toMatchObject({ success: true, removedClassTimes: 2 });
+            expect((await stored(live._id)).entries).toEqual([]);
+        } finally {
+            spy.mockRestore();
+        }
+    });
+
+    test('sending the name again finishes a rename that was cut short', async () => {
+        const { alice, web, mine } = await ownSetup();
+        await subjectModel.updateOne({ _id: web._id }, { name: 'Web Systems 2' });
+        expect((await alice.patch(`/api/subjects/${web._id}`).send({ name: 'Web Systems 2' })).status).toBe(200);
+        expect((await stored(mine._id)).entries[0].title).toBe('Web Systems 2');
     });
 
     test('changing only the code leaves class titles alone', async () => {
@@ -175,6 +235,20 @@ describe('subject rename and delete reach class times', () => {
 });
 
 describe('subject notes', () => {
+    test('notes that are not text are refused and not saved as empty', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const { _id } = await makeSubject(alice, 'Web Systems');
+        await alice.patch(`/api/subjects/${_id}`).send({ notes: 'keep me' });
+        for (const notes of [null, 123, ['a'], { a: 1 }]) {
+            const res = await alice.patch(`/api/subjects/${_id}`).send({ notes });
+            expect(res.status).toBe(400);
+            expect(res.body.message).toBe('Notes must be text.');
+        }
+        expect((await subjectModel.findById(_id).lean()).notes).toBe('keep me');
+        await alice.patch(`/api/subjects/${_id}`).send({ term: 'x' });
+        expect((await subjectModel.findById(_id).lean()).notes).toBe('keep me');
+    });
+
     test('20000 characters are kept, 20001 are refused, lists leave notes out', async () => {
         const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
         const { _id } = await makeSubject(alice, 'Web Systems');

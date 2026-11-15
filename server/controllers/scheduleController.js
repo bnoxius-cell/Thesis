@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import scheduleModel, {
-    SCHEDULE_THEMES, MAX_ENTRIES, MAX_ACTIVITY, MAX_IMAGE_LENGTH, MAX_OWNED_SCHEDULES, ENTRY_KINDS, HOLIDAY_COUNTRY, MAX_MEETING_URL,
+    SCHEDULE_THEMES, MAX_ENTRIES, MAX_IMAGE_LENGTH, MAX_OWNED_SCHEDULES, ENTRY_KINDS, HOLIDAY_COUNTRY, MAX_MEETING_URL,
 } from '../models/scheduleModel.js';
 import Friend from '../models/Friend.js';
 import { notify } from '../utils/notify.js';
@@ -12,6 +12,7 @@ import { buildWeekOverview, addDaysIso, findUpcomingExams } from '../utils/weekO
 import groupModel from '../models/groupMode.js';
 import groupMessageModel from '../models/groupMessageModel.js';
 import { timetableLink } from '../utils/appLinks.js';
+import { isLive, recordChange, describeEntry } from '../utils/timetableChanges.js';
 import { isId, serverError } from '../utils/httpErrors.js';
 import { activeSubjects, entrySubjectFor, resolveItemSubject } from '../utils/subjectMatch.js';
 import { withViewerSubjects } from '../utils/entrySubjects.js';
@@ -67,39 +68,6 @@ const canManageSharing = (schedule, role) => role === 'owner' || (role === 'edit
 
 // 'restricted' when only the people added can open it, otherwise the role the code gives.
 const linkAccess = (schedule) => (schedule.shareCode ? (schedule.shareRole === 'editor' ? 'editor' : 'viewer') : 'restricted');
-
-// A schedule is "live" once at least one person other than the owner can edit it. Only then
-// are changes logged and announced, so a plain copy-share stays quiet.
-const isLive = (schedule) => schedule.collaborators.some((c) => c.role === 'editor');
-
-const memberIds = (schedule) => [
-    (schedule.owner._id ?? schedule.owner).toString(),
-    ...schedule.collaborators.map((c) => (c.user._id ?? c.user).toString()),
-];
-
-// Logs a change on the schedule and tells everyone else on it. Call before `schedule.save()`.
-// Returns a function to run after the save (it sends the notifications), so a failed save
-// never announces something that didn't happen.
-const recordChange = async (schedule, actorId, summary) => {
-    if (!isLive(schedule)) return async () => {};
-    const actor = await userModel.findById(actorId).select('name');
-    const name = actor?.name || 'Someone';
-    schedule.activity.push({ user: actorId, userName: name, summary: summary.slice(0, 200) });
-    if (schedule.activity.length > MAX_ACTIVITY) schedule.activity.splice(0, schedule.activity.length - MAX_ACTIVITY);
-    return async () => {
-        await notify({
-            recipients: memberIds(schedule),
-            sender: actorId,
-            type: 'schedule_change',
-            title: `"${schedule.title}" was changed`,
-            message: `${name} ${summary}`,
-            link: timetableLink(schedule._id),
-            collapseLink: true,
-        });
-    };
-};
-
-const describeEntry = (entry) => `"${entry.title}"`;
 
 // Loads the schedule and checks the caller's access level. Sends the error response
 // itself and returns null when the caller should stop.
@@ -946,7 +914,7 @@ const classTimesOf = (schedules, subjectId) => schedules
             scheduleId: String(schedule._id),
             scheduleTitle: schedule.title,
             isMain: schedule.isMain === true,
-            canEdit: schedule.role === 'owner' || schedule.role === 'editor',
+            canEdit: CAN.edit.includes(schedule.role),
             live: isLive(schedule),
             ...Object.fromEntries(CLASS_TIME_FIELDS.map((key) => [key, e[key] ?? (key === 'days' ? [] : '')])),
         })))
@@ -976,46 +944,6 @@ export const getSubjectSchedule = async (req, res) => {
     } catch (error) {
         serverError(res, 'getSubjectSchedule error', error);
     }
-};
-
-// The caller's own timetables with a class or exam linked to this subject, as documents to edit.
-const ownedWithLinks = (ownerId, subjectId) => scheduleModel.find({ owner: ownerId, 'entries.subject': subjectId });
-
-// Runs the announcements `recordChange` handed back, once the timetable is saved.
-const saveAndAnnounce = async (schedule, announce) => {
-    await schedule.save();
-    await announce();
-};
-
-// A subject was renamed: its classes in timetables the caller owns take the new name. Exams keep their
-// titles. A live timetable logs one line. Other people's timetables are never touched.
-export const renameClassTimes = async (ownerId, subject) => {
-    for (const schedule of await ownedWithLinks(ownerId, subject._id)) {
-        const stale = schedule.entries.filter((e) => e.kind === 'class' && String(e.subject) === String(subject._id) && e.title !== subject.name);
-        if (!stale.length) continue;
-        const oldTitles = [...new Set(stale.map((e) => describeEntry(e)))];
-        stale.forEach((e) => { e.title = subject.name; });
-        await saveAndAnnounce(schedule, await recordChange(schedule, ownerId, `renamed ${oldTitles.join(', ')} to "${subject.name}"`));
-    }
-};
-
-// A subject was deleted: its classes in timetables the caller owns are removed (a live timetable logs one
-// line), its exams stay and lose the link. Returns how many class times were removed.
-export const removeClassTimes = async (ownerId, subjectId) => {
-    let removed = 0;
-    for (const schedule of await ownedWithLinks(ownerId, subjectId)) {
-        const linked = schedule.entries.filter((e) => String(e.subject) === String(subjectId));
-        const classes = linked.filter((e) => e.kind === 'class');
-        const titles = classes.map((e) => describeEntry(e));
-        linked.forEach((e) => {
-            if (e.kind === 'class') schedule.entries.pull(e._id);
-            else e.subject = null;
-        });
-        const announce = classes.length ? await recordChange(schedule, ownerId, `removed ${titles.join(', ')}`) : async () => {};
-        await saveAndAnnounce(schedule, announce);
-        removed += classes.length;
-    }
-    return removed;
 };
 
 const areFriends = async (a, b) => Boolean(await Friend.exists({
