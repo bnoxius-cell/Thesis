@@ -20,6 +20,7 @@ import HowThisWorks from "./HowThisWorks";
 import LoadHero from "./LoadHero";
 import RhythmCard from "./RhythmCard";
 import SleepCard from "./SleepCard";
+import SleepExplainer from "./SleepExplainer";
 import { sleepSummary } from "./sleepSummary";
 import "./wellbeing.css";
 
@@ -62,6 +63,7 @@ export default function WellbeingPage() {
     onDeleteTask: edit.onDeleteTask,
   });
   const openWeekDay = useOpenWeekDay({ detail, overview: data.overview, tasks: data.tasks, subjects, profile: work.profile, now });
+  const sleep = sleepSummary({ week: work.week, profile: work.profile, usualWakeTime: userData?.usualWakeTime });
   const { pathname, search, hash } = useLocation();
   const ready = data.status === "ready";
   // An add from the header or the empty hero changes the week, so fetch it again.
@@ -94,9 +96,8 @@ export default function WellbeingPage() {
           <FeelingSection>
             <CheckInCards user={userData} now={now} />
           </FeelingSection>
-          <SleepCard
-            summary={sleepSummary({ week: work.week, profile: work.profile, usualWakeTime: userData?.usualWakeTime })}
-          />
+          <SleepCard summary={sleep} user={userData} />
+          <SleepExplainer summary={sleep} />
           <RhythmCard profile={work.profile} user={userData} />
           <HowThisWorks />
         </div>
