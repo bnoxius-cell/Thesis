@@ -30,13 +30,13 @@
     color-scheme: light;
 
     /* Colour roles */
-    --bg-app: #f7f3ea;
+    --bg-app: #f3f6fc;
     --surface: #ffffff;
-    --surface-2: #efe8da;
-    --surface-3: #e4dccb;
+    --surface-2: #e8eef9;
+    --surface-3: #dbe4f4;
     --progress-track: var(--surface-2); /* Figma: an 8px --bg/surface-2 track */
-    --border: #e4dccb;
-    --border-input: #8a8472;
+    --border: #d9e1f0;
+    --border-input: #7f8aa3;
     --text-primary: #14213d;
     --text-secondary: #3d4963;
     --text-muted: #566078;
@@ -58,22 +58,22 @@
     --overlay: rgba(15, 19, 25, 0.45);
     --overlay-media: rgba(15, 20, 41, 0.97); /* Figma F11 photo preview scrim */
 
-    /* Structure (the 30%): a deeper sand sidebar and cover bands, one step below the body, navy ink, navy active pill */
-    --sidebar-bg: #ebe2cf;
+    /* Structure (the 30%): a soft blue-tinted sidebar and cover bands, one step below the pale blue body, navy ink, navy active pill */
+    --sidebar-bg: #dfe8f8;
     --sidebar-text: #14213d;
-    --sidebar-text-muted: #4d566c;
+    --sidebar-text-muted: #46536f;
     --sidebar-hover: rgba(20, 33, 61, 0.07);
     --sidebar-active-bg: #152347;
     --sidebar-active-text: #ffffff;
     --sidebar-border: rgba(20, 33, 61, 0.12);
-    --band: #e0d5bb;
+    --band: #cfdcf4;
 
     /* Charts */
-    --chart-busy: #c9c1ae;
+    --chart-busy: #b8c1ce;
     --chart-task: #7b90cc;
     --chart-over: #e0a63f;
     --chart-line: #566078;
-    --chart-track: #efe8da;
+    --chart-track: #e8eef9;
 
     /* Type */
     --font-ui: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
