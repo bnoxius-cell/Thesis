@@ -39,7 +39,7 @@
     position: absolute;
     inset: 0 0 auto;
     height: 120px;
-    background: var(--band);
+    background: var(--accent-soft);
   }
   .profile-hero__photo {
     position: absolute;

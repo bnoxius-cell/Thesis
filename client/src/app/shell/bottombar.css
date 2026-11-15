@@ -42,7 +42,7 @@
     -webkit-touch-callout: none;
   }
   .shell-tab[aria-current="page"] {
-    color: var(--accent);
+    color: var(--sidebar-active-bg); /* label matches the navy pill */
   }
   .shell-tab:focus-visible {
     outline: 2px solid var(--focus-ring);
@@ -72,7 +72,7 @@
     position: absolute;
     inset: 0;
     border-radius: var(--radius-pill);
-    background: var(--accent-soft);
+    background: var(--sidebar-active-bg); /* same navy pill as the desktop sidebar */
     opacity: 0;
     transform: scaleX(0.6);
     transition:
@@ -85,6 +85,9 @@
   }
   .shell-tab__pill > svg {
     position: relative; /* above the tint */
+  }
+  .shell-tab[aria-current="page"] .shell-tab__pill > svg {
+    color: var(--sidebar-active-text);
   }
   .shell-tab:active .shell-tab__pill {
     transform: scale(0.94);
