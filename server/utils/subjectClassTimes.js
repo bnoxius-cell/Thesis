@@ -22,12 +22,16 @@ export const linkClassTimes = async (ownerId, subject) => {
             .filter((e) => e.kind === 'class' && !e.subject && entrySubjectFor(e, [subject]))
             .map((e) => e._id);
         if (!ids.length) continue;
-        const { modifiedCount } = await scheduleModel.updateOne(
+        // The copy from before the update shows which of these classes this request really linked: a class that
+        // another request linked in between was no longer unlinked, so it isn't counted here.
+        const before = await scheduleModel.findOneAndUpdate(
             { _id: schedule._id, owner: ownerId },
             { $set: { 'entries.$[e].subject': asId(subject._id) } },
-            { arrayFilters: [{ 'e._id': { $in: ids }, 'e.subject': null }] },
-        );
-        if (modifiedCount) linked += ids.length;
+            { arrayFilters: [{ 'e._id': { $in: ids }, 'e.subject': null }], returnDocument: 'before' },
+        ).select('entries').lean();
+        if (!before) continue; // deleted since it was read
+        const wanted = new Set(ids.map(String));
+        linked += before.entries.filter((e) => wanted.has(String(e._id)) && !e.subject).length;
     }
     return linked;
 };

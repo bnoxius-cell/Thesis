@@ -109,6 +109,15 @@ const nextColor = (subjects) => {
 
 const capMessage = () => `You can have up to ${SUBJECT_LIMITS.maxActive} subjects. Delete one you no longer need first.`;
 
+const tryLinking = async (label, link, none) => {
+    try {
+        return await link();
+    } catch (error) {
+        console.error(`insertSubject ${label} error:`, error);
+        return none;
+    }
+};
+
 // Creates a subject for the owner (colour and order come next in turn) and links the tasks, reviewers
 // and classes (in timetables the owner owns) that match it. `subjects` are the owner's active ones.
 const insertSubject = async (owner, fields, subjects) => {
@@ -118,8 +127,11 @@ const insertSubject = async (owner, fields, subjects) => {
         owner,
         order: subjects.length ? Math.max(...subjects.map((s) => s.order)) + 1 : 0,
     });
-    const classTimes = await linkClassTimes(owner, subject);
-    return { subject, linked: await linkMatchingItems(subject), classTimes };
+    // The subject now exists, so a failed link can't be retried by creating it again (that answers 409). Log it
+    // and answer with what did link; saving the subject with a changed name or code links the rest.
+    const classTimes = await tryLinking('linkClassTimes', () => linkClassTimes(owner, subject), 0);
+    const linked = await tryLinking('linkMatchingItems', () => linkMatchingItems(subject), { tasks: 0, reviewers: 0 });
+    return { subject, linked, classTimes };
 };
 
 // A timetable entry asks for a subject by name. Checks it the way POST /api/subjects does and answers
@@ -264,6 +276,8 @@ export const updateSubject = async (req, res) => {
         if (labelChanged) {
             await relabelLinkedItems(subject);
             linked = await linkMatchingItems(subject);
+            // Classes in the owner's own timetables that now match, the same as when a subject is created.
+            await linkClassTimes(req.userId, subject);
         }
         if (classTimesFailed) return bad(res, 'Renamed, but some class times could not be updated. Save again to finish.', 500);
         const counts = await countsFor(req.userId, [subject._id]);

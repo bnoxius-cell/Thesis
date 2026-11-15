@@ -158,6 +158,49 @@ describe('entries', () => {
     });
 });
 
+describe('a stale save', () => {
+    const stale = () => Object.assign(new Error('No matching document'), { name: 'VersionError' });
+
+    test('answers 409 with a reload message and keeps the permission checks first', async () => {
+        const { alice, carol, schedule } = await setup();
+        const entry = (await alice.post(`/api/schedules/${schedule._id}/entries`).send(entryPayload())).body.schedule.entries[0];
+        const spy = vi.spyOn(scheduleModel.prototype, 'save').mockRejectedValue(stale());
+        const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            const calls = [
+                alice.post(`/api/schedules/${schedule._id}/entries`).send(entryPayload()),
+                alice.put(`/api/schedules/${schedule._id}/entries/${entry._id}`).send(entryPayload({ title: 'Renamed' })),
+                alice.delete(`/api/schedules/${schedule._id}/entries/${entry._id}`),
+                alice.put(`/api/schedules/${schedule._id}`).send({ theme: 'cute' }),
+            ];
+            for (const res of await Promise.all(calls)) {
+                expect(res.status).toBe(409);
+                expect(res.body).toEqual({ success: false, message: 'This timetable changed. Reload and try again.' });
+            }
+            expect(log).toHaveBeenCalled();
+            // A stranger still gets 403, not the stale message.
+            expect((await carol.post(`/api/schedules/${schedule._id}/entries`).send(entryPayload())).status).toBe(403);
+        } finally {
+            spy.mockRestore();
+            log.mockRestore();
+        }
+    });
+
+    test('any other save error is still a plain 500', async () => {
+        const { alice, schedule } = await setup();
+        const spy = vi.spyOn(scheduleModel.prototype, 'save').mockRejectedValue(new Error('db down'));
+        const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            const res = await alice.post(`/api/schedules/${schedule._id}/entries`).send(entryPayload());
+            expect(res.status).toBe(500);
+            expect(res.body.message).toMatch(/Something went wrong/);
+        } finally {
+            spy.mockRestore();
+            log.mockRestore();
+        }
+    });
+});
+
 describe('holidays', () => {
     test('always returns Philippine public holidays for a year', async () => {
         const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');

@@ -1,4 +1,5 @@
 import { describe, test, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
+import mongoose from 'mongoose';
 import request from 'supertest';
 import app from '../app.js';
 import userModel from '../models/userModel.js';
@@ -242,7 +243,8 @@ describe('subject rename and delete reach class times', () => {
         try {
             const res = await alice.put(`/api/schedules/${mine._id}/entries/${exam._id}`)
                 .send({ title: 'Midterm: Web Systems', kind: 'exam', date: '2099-03-10', startTime: '09:00', endTime: '10:00', location: 'Room 5' });
-            expect(res.status).toBe(500);
+            expect(res.status).toBe(409);
+            expect(res.body.message).toBe('This timetable changed. Reload and try again.');
         } finally {
             spy.mockRestore();
         }
@@ -305,6 +307,80 @@ describe('subject rename and delete reach class times', () => {
         const entry = (await stored(mine._id)).entries[0];
         expect(String(entry.subject)).toBe(web._id);
         expect(other.counts.classTimes).toBe(0);
+    });
+
+    test('renaming a subject links only unlinked classes in the owner timetables that now match', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const bob = await signUp('bob@student.fatima.edu.ph', 'Bob');
+        const mine = await newTimetable(alice, 'Mine');
+        await alice.post(`/api/schedules/${mine._id}/entries`).send(cls('Data Mining'));
+        await alice.post(`/api/schedules/${mine._id}/entries`).send(cls('Networks'));
+        const bobMain = await newTimetable(bob, 'Mine');
+        await bob.post(`/api/schedules/${bobMain._id}/entries`).send(cls('Data Mining'));
+        const subject = await makeSubject(alice, 'Capstone');
+        expect(subject.counts.classTimes).toBe(0);
+
+        const res = await alice.patch(`/api/subjects/${subject._id}`).send({ code: 'data-mining' });
+        expect(res.status).toBe(200);
+        expect(res.body.subject.counts.classTimes).toBe(1);
+        const linked = (await stored(mine._id)).entries;
+        expect(String(linked[0].subject)).toBe(subject._id);
+        expect(linked[1].subject).toBeNull();
+        expect((await stored(bobMain._id)).entries[0].subject).toBeNull();
+    });
+
+    test('renaming leaves a class that has another subject alone, and a rename to no match links nothing', async () => {
+        const { alice, web, mine } = await ownSetup();
+        const other = await makeSubject(alice, 'Capstone');
+        await alice.patch(`/api/subjects/${other._id}`).send({ name: 'Web Systems 3' });
+        expect(String((await stored(mine._id)).entries[0].subject)).toBe(web._id);
+        const res = await alice.patch(`/api/subjects/${other._id}`).send({ name: 'Elective' });
+        expect(res.body.subject.counts.classTimes).toBe(0);
+    });
+
+    test('a failed link after create still answers 201, so a retry is not needed', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const mine = await newTimetable(alice, 'Mine');
+        await alice.post(`/api/schedules/${mine._id}/entries`).send(cls('Data Mining'));
+        const spy = vi.spyOn(scheduleModel, 'find').mockRejectedValueOnce(new Error('boom'));
+        const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            const res = await alice.post('/api/subjects').send({ name: 'Data Mining' });
+            expect(res.status).toBe(201);
+            expect(res.body.subject.counts.classTimes).toBe(0);
+            expect(log).toHaveBeenCalled();
+        } finally {
+            spy.mockRestore();
+            log.mockRestore();
+        }
+        expect(await subjectModel.countDocuments({ name: 'Data Mining' })).toBe(1);
+        expect((await alice.post('/api/subjects').send({ name: 'Data Mining' })).status).toBe(409);
+    });
+
+    test('the created count only includes classes this request linked', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const mine = await newTimetable(alice, 'Mine');
+        await alice.post(`/api/schedules/${mine._id}/entries`).send(cls('Data Mining'));
+        await alice.post(`/api/schedules/${mine._id}/entries`).send(cls('Data Mining', { days: [2] }));
+        const other = new mongoose.Types.ObjectId();
+        // Another request links the first class after the list was read and before this update runs.
+        const realUpdate = scheduleModel.findOneAndUpdate.bind(scheduleModel);
+        const spy = vi.spyOn(scheduleModel, 'findOneAndUpdate').mockImplementationOnce((...args) => {
+            const query = realUpdate(...args);
+            const run = query.exec.bind(query);
+            query.exec = async () => {
+                await scheduleModel.updateOne({ _id: mine._id }, { $set: { 'entries.0.subject': other } });
+                return run();
+            };
+            return query;
+        });
+        try {
+            const res = await alice.post('/api/subjects').send({ name: 'Data Mining' });
+            expect(res.body.subject.counts.classTimes).toBe(1);
+        } finally {
+            spy.mockRestore();
+        }
+        expect(String((await stored(mine._id)).entries[0].subject)).toBe(String(other));
     });
 
     test('counts show class times in owned timetables', async () => {
