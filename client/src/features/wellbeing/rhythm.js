@@ -1,8 +1,6 @@
 import { formatTime } from "@/utils/scheduleUtils";
 import { profileFromUser } from "@/features/workload/useWorkload";
 
-const DEFAULT_WAKE = "07:00";
-
 export const PACE_OPTIONS = [
   { value: "catch-up", label: "Relaxed" },
   { value: "steady", label: "Balanced" },
@@ -25,35 +23,52 @@ const TIMES = range(0, 24 * 60 - 15, 15).map((minutes) => {
 
 // A saved value that isn't on the list (an older account, a different step) still shows and stays
 // selectable, instead of the picker looking empty.
+// An empty value (a wake time not picked yet) adds nothing: the picker shows its placeholder.
 const withCurrent = (options, value, label) =>
-  options.some((option) => option.value === value) ? options : [{ value, label: label(value) }, ...options];
+  value === undefined || value === "" || options.some((option) => option.value === value)
+    ? options
+    : [{ value, label: label(value) }, ...options];
 
-// The picker lists for a form's current values.
+// The picker lists for a form's current values: `rhythmForm` for the dialog, `sleepForm` for the Tonight card.
 export function rhythmOptions(form) {
   return {
     study: withCurrent(STUDY, form.studyHoursPerDay, hoursLabel),
     sleep: withCurrent(SLEEP, form.sleepHours, hoursLabel),
     travel: withCurrent(TRAVEL, form.travelMinutesPerDay, (n) => `${n} min`),
-    times: withCurrent(TIMES, form.usualSleepStart, (v) => formatTime(v).toLowerCase()),
     wakeTimes: withCurrent(TIMES, form.usualWakeTime, (v) => formatTime(v).toLowerCase()),
   };
 }
 
-// What the dialog starts from: the account's rhythm, with the same defaults the rest of the app uses.
+// What the Your rhythm dialog starts from: study hours and pace, with the app's usual defaults.
 export function rhythmForm(user) {
   const profile = profileFromUser(user);
+  return { studyHoursPerDay: profile.studyHoursPerDay, wellbeingGoal: profile.wellbeingGoal };
+}
+
+// What the Tonight card starts from. The wake time is empty until the student picks one.
+export function sleepForm(user) {
+  const profile = profileFromUser(user);
   return {
-    studyHoursPerDay: profile.studyHoursPerDay,
+    usualWakeTime: user?.usualWakeTime || "",
     sleepHours: profile.sleepHours,
-    usualSleepStart: profile.usualSleepStart,
-    usualWakeTime: user?.usualWakeTime || DEFAULT_WAKE,
     travelMinutesPerDay: profile.travelMinutesPerDay,
-    wellbeingGoal: profile.wellbeingGoal,
   };
 }
 
 export const rhythmChanged = (a, b) => Object.keys(a).some((key) => a[key] !== b[key]);
 
-// The PUT /api/user/profile body. Picking a bedtime and wake time means a regular schedule, which is
-// what the sleep plan needs to work from.
-export const rhythmPayload = (form) => ({ ...form, hasRegularSleepSchedule: true });
+// The bedtime that gives `sleepHours` of sleep before `wakeTime` ("HH:MM"; past midnight wraps).
+export function bedtimeFor(wakeTime, sleepHours) {
+  const [h, m] = wakeTime.split(":").map(Number);
+  const minutes = (((h * 60 + m - Math.round(sleepHours * 60)) % 1440) + 1440) % 1440;
+  return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
+}
+
+// The PUT /api/user/profile body for the Tonight card. A picked wake time means a regular schedule, and the
+// bedtime is worked out from it. Without one only the target and travel go, so nothing else is made up.
+// Fields left out are left alone by the server.
+export function sleepPayload({ usualWakeTime, sleepHours, travelMinutesPerDay }) {
+  const body = { sleepHours, travelMinutesPerDay };
+  if (!usualWakeTime) return body;
+  return { ...body, usualWakeTime, usualSleepStart: bedtimeFor(usualWakeTime, sleepHours), hasRegularSleepSchedule: true };
+}

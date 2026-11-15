@@ -5,8 +5,9 @@ import useSaveRhythm from "./useSaveRhythm";
 import { PACE_OPTIONS, rhythmChanged, rhythmForm, rhythmOptions } from "./rhythm";
 import "./rhythm-dialog.css";
 
-// Your rhythm dialog (Figma 53:909): the numbers the load and the sleep plan read. Nothing is saved
-// until Save; Cancel drops the edits, and closing with edits asks first (Modal's leave prompt).
+// Your rhythm dialog (Figma 53:909): study hours and pace, which the load reads. Sleep and travel are
+// edited on the Tonight card, and this form leaves them alone. Nothing is saved until Save; Cancel drops
+// the edits, and closing with edits asks first (Modal's leave prompt).
 export default function RhythmDialog({ user, onClose }) {
   const [start] = useState(() => rhythmForm(user));
   const [form, setForm] = useState(start);
@@ -22,22 +23,13 @@ export default function RhythmDialog({ user, onClose }) {
     if (await save(form)) onClose();
   };
 
-  // Native pickers on phones: the long lists (times, travel) are far easier in the system sheet.
-  const picker = (label, key, list) => (
-    <Field label={label}>
-      {(control) => (
-        <SelectButton block native={phone} options={list} value={form[key]} onChange={set(key)} label={label} {...control} />
-      )}
-    </Field>
-  );
-
   return (
     <Modal
       as="form"
       onSubmit={submit}
       className="rhythm-dialog"
       title="Your rhythm"
-      subtitle="These numbers shape your load and your sleep plan."
+      subtitle="These numbers shape your load."
       busy={saving}
       onClose={onClose}
       confirmClose={() => changed}
@@ -48,13 +40,19 @@ export default function RhythmDialog({ user, onClose }) {
         </>
       )}
     >
-      {picker("Study hours a day", "studyHoursPerDay", options.study)}
-      {picker("Sleep target", "sleepHours", options.sleep)}
-      <div className="rhythm-dialog__times">
-        {picker("Usual bedtime", "usualSleepStart", options.times)}
-        {picker("Usual wake time", "usualWakeTime", options.wakeTimes)}
-      </div>
-      {picker("Travel time to campus", "travelMinutesPerDay", options.travel)}
+      <Field label="Study hours a day">
+        {(control) => (
+          <SelectButton
+            block
+            native={phone}
+            options={options.study}
+            value={form.studyHoursPerDay}
+            onChange={set("studyHoursPerDay")}
+            label="Study hours a day"
+            {...control}
+          />
+        )}
+      </Field>
       <Field label="Pace">
         {({ labelId }) => (
           <Segment labelId={labelId} options={PACE_OPTIONS} value={form.wellbeingGoal} onChange={set("wellbeingGoal")} />
