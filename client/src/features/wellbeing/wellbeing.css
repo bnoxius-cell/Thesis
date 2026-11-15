@@ -510,9 +510,13 @@
     gap: var(--space-4);
     min-height: 0;
     margin: 0;
-    padding: 0 var(--space-5) var(--space-5);
+    padding: 0 var(--space-5);
     overflow: hidden;
     list-style: none;
+  }
+  /* The bottom room lives on the last point so a closed panel (0fr) adds no height. */
+  .wellbeing-explainer__point:last-child {
+    margin-bottom: var(--space-5);
   }
   .wellbeing-explainer__point {
     display: grid;
