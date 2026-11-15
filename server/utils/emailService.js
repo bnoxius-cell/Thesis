@@ -132,7 +132,7 @@ export const sendPasswordResetSuccessEmail = async (email) => {
     await sendMail({ fromName: 'Stress Care Security', to: email, subject: 'Password successfully updated', html: baseHtmlTemplate(content) });
 };
 
-const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
+export const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 
 // Plain-text warnings to the site owner (file usage alerts). Each line becomes a paragraph.
 export const sendOwnerAlertEmail = async (to, subject, text) => {
@@ -140,4 +140,34 @@ export const sendOwnerAlertEmail = async (to, subject, text) => {
         .map((line) => `<p style="margin: 0 0 12px 0; color: #475569; font-size: 15px; line-height: 1.5;">${escapeHtml(line)}</p>`)
         .join('');
     await sendMail({ fromName: 'Stress Care', to, subject, html: baseHtmlTemplate(content) });
+};
+
+const feedbackRow = (label, value) => `<p style="margin: 0 0 8px 0; color: #475569; font-size: 14px; line-height: 1.5;"><strong>${label}:</strong> ${escapeHtml(value)}</p>`;
+
+// The message and the student's name are typed by users, so every value is escaped.
+export const feedbackEmailHtml = ({ kind, message, page, device, name, email, canContact, createdAt }) => {
+    const rows = [
+        feedbackRow('From', name),
+        feedbackRow('Email', canContact ? email : 'Not shared (the student did not allow contact)'),
+        feedbackRow('Kind', kind),
+        feedbackRow('Page', page || 'Unknown'),
+        feedbackRow('Device', device || 'Unknown'),
+        feedbackRow('Sent', new Date(createdAt).toISOString()),
+    ].join('');
+    const body = escapeHtml(message).replace(/\n/g, '<br>');
+    return baseHtmlTemplate(`
+        <h2 style="margin: 0 0 16px 0; color: #0f172a; font-size: 20px; font-weight: 600;">New feedback</h2>
+        ${rows}
+        <p style="margin: 16px 0 0 0; color: #0f172a; font-size: 15px; line-height: 1.5;">${body}</p>
+    `);
+};
+
+export const sendFeedbackEmail = async ({ to, ...feedback }) => {
+    const kind = feedback.kind.charAt(0).toUpperCase() + feedback.kind.slice(1);
+    await sendMail({
+        fromName: 'Stress Care',
+        to,
+        subject: `StressCare feedback: ${kind}`,
+        html: feedbackEmailHtml(feedback),
+    });
 };

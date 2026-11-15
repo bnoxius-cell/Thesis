@@ -1,0 +1,41 @@
+/* Feedback dialog: the shell, fields, segment and switch come from shared/ui; this is the counter,
+   the contact row, the privacy note and the failed-send line. */
+@layer pages {
+  .ui-modal.feedback-dialog {
+    max-width: 480px;
+  }
+  .feedback-dialog__message .ui-field__hint {
+    text-align: end;
+  }
+  /* Explicit row: global CSS styles bare labels and inputs as columns. */
+  .feedback-dialog__contact {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    min-height: 44px;
+  }
+  .feedback-dialog__contact-label {
+    min-width: 0;
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+  .feedback-dialog__note {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / var(--text-xs-lh) var(--font-ui);
+  }
+  .feedback-dialog__note a {
+    display: inline-block;
+    padding-block: var(--space-2);
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .feedback-dialog__error {
+    margin: 0;
+    color: var(--danger);
+    font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+  }
+}

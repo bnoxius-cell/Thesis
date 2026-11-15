@@ -3,7 +3,7 @@
 // should re-accept, bump LEGAL_VERSION in server/utils/legal.js as well, so everyone
 // sees the consent prompt again.
 
-export const LEGAL_UPDATED = "November 14, 2026";
+export const LEGAL_UPDATED = "November 15, 2026";
 export const SUPPORT_EMAILS = [
   "tkishore1434val@student.fatima.edu.ph",
   "amreniva0131val@student.fatima.edu.ph",
@@ -158,6 +158,7 @@ export const PRIVACY = {
           "Reviewers: the text taken from the files, photos or notes you give us (we don't keep the file or photo you upload for a reviewer, only files you save in your Study files), the reviewer and questions made from it, and your Learning Mode answers and scores.",
           "Flashcards: the decks and cards you make, and when you last reviewed each card.",
           "Notifications: your inbox and your notification preferences. If you turn on phone or computer alerts, we keep the address your browser gives us for sending them.",
+          "Feedback you send: what you write, the kind you picked, the page you were on, whether you're on a phone or computer, and whether we may email you about it.",
           "Technical basics: a login cookie, plus a few settings saved in your browser (see Cookies and storage).",
         ] },
       ],
@@ -179,6 +180,7 @@ export const PRIVACY = {
           "To work out your workload score, weekly plan and guidance, using your tasks, schedule and check-ins.",
           "To make reviewers and practice questions from the files, photos and notes you give us, and to show you which topics you know well and which need more review.",
           "To send the emails and notifications the app needs, like verification codes, password resets and deadline reminders.",
+          "To read your feedback and make StressCare better.",
           "To keep the service secure and fix problems.",
         ] },
         { p: "StressCare was built for a thesis. If results are reported, they'll be combined and anonymized, and they won't name you or show your individual answers." },
@@ -216,6 +218,7 @@ export const PRIVACY = {
       title: "How long we keep it",
       blocks: [
         { p: "We keep your information while your account exists. When you ask us to delete your account, we delete your account and the data tied to it. Copies in backups may take a little longer to disappear." },
+        { p: "Feedback you send is deleted with your account." },
         { p: "Deleting a reviewer deletes its text, its questions and your scores on it straight away." },
       ],
     },

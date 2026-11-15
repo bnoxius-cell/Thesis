@@ -10,6 +10,7 @@ import Sidebar from "./shell/Sidebar";
 import SiteFooter from "./shell/SiteFooter";
 import UnreadProvider from "./shell/UnreadProvider";
 import useSidebarCollapsed from "./shell/useSidebarCollapsed";
+import FeedbackProvider from "@/features/feedback/FeedbackProvider";
 import WelcomeTour from "@/features/guide/WelcomeTour";
 import WhatsNewWindow from "@/features/whats-new/WhatsNewWindow";
 import "./layout.css";
@@ -30,17 +31,19 @@ export default function AppLayout() {
     <UnreadProvider>
       <FocusViewProvider>
         <AddProvider>
-          <div className="shell-app" data-sidebar={collapsed ? "rail" : undefined}>
-            <a className="skip-link" href="#main">Skip to content</a>
-            <Sidebar collapsed={collapsed} onToggle={toggleCollapsed} />
-            <main id="main" ref={main} tabIndex={-1} className="shell-main shell-main--app">
-              <PageArrival />
-              <SiteFooter />
-            </main>
-            <BottomBar />
-            <WelcomeTour />
-            <WhatsNewWindow />
-          </div>
+          <FeedbackProvider>
+            <div className="shell-app" data-sidebar={collapsed ? "rail" : undefined}>
+              <a className="skip-link" href="#main">Skip to content</a>
+              <Sidebar collapsed={collapsed} onToggle={toggleCollapsed} />
+              <main id="main" ref={main} tabIndex={-1} className="shell-main shell-main--app">
+                <PageArrival />
+                <SiteFooter />
+              </main>
+              <BottomBar />
+              <WelcomeTour />
+              <WhatsNewWindow />
+            </div>
+          </FeedbackProvider>
         </AddProvider>
       </FocusViewProvider>
     </UnreadProvider>
