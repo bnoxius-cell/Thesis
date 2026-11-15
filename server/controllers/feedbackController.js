@@ -56,11 +56,12 @@ export const sendFeedback = async (req, res) => {
         if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
         if (!user.isAccountVerified) return res.status(403).json({ success: false, message: 'Verify your email first.' });
 
-        const { kind, device, canContact } = req.body;
+        const body = req.body ?? {};
+        const { kind, device, canContact } = body;
         if (!FEEDBACK_KINDS.includes(kind)) {
             return res.status(400).json({ success: false, message: 'Pick what kind of feedback this is.' });
         }
-        const message = cleanMessage(req.body.message);
+        const message = cleanMessage(body.message);
         if (message.length < FEEDBACK_LIMITS.min) {
             return res.status(400).json({ success: false, message: 'Tell us a little more (at least 10 characters).' });
         }
@@ -89,7 +90,7 @@ export const sendFeedback = async (req, res) => {
             user: req.userId,
             kind,
             message,
-            page: cleanPage(req.body.page),
+            page: cleanPage(body.page),
             device: FEEDBACK_DEVICES.includes(device) ? device : '',
             canContact: canContact === true,
         });
