@@ -1,5 +1,6 @@
 import { Chip } from "@/shared/ui";
 import TaskCheck from "@/features/tasks/TaskCheck";
+import ItemOpenButton from "@/features/details/ItemOpenButton";
 import { lower } from "@/features/plan/entryTime";
 import { dueWords } from "@/shared/lib/dueChip";
 import { daysAgoText, shortDate } from "@/shared/lib/dates";
@@ -24,14 +25,17 @@ function rowFor({ kind, iso, task, entry }, now) {
 
 // One row of a Subject list. `item.kind` is "task", "done" (a task ticked off this week), "exam" or
 // "class". Task and done rows lead with the done box (TaskCheck); onToggle is useTaskDone's setDone.
-export default function SubjectRow({ item, now, onToggle }) {
+// With `onOpen(task)` their title opens the task's details window and the whole row is the target.
+export default function SubjectRow({ item, now, onToggle, onOpen }) {
   const row = rowFor(item, now);
   const hasCheck = item.kind === "task" || item.kind === "done";
   return (
-    <li className={`subject-row${hasCheck ? " subject-row--task" : ""}`}>
+    <li className={`subject-row${hasCheck ? " subject-row--task" : ""}${hasCheck && onOpen ? " item-row" : ""}`}>
       {hasCheck && <TaskCheck task={item.task} onChange={onToggle} />}
       <span className="subject-row__text">
-        <strong className="subject-row__title">{row.title}</strong>
+        <strong className="subject-row__title">
+          {hasCheck && onOpen ? <ItemOpenButton onClick={() => onOpen(item.task)}>{row.title}</ItemOpenButton> : row.title}
+        </strong>
         <span className="subject-row__meta">{row.meta}</span>
       </span>
       {row.chip && <Chip tone={row.chip.tone}>{row.chip.label}</Chip>}

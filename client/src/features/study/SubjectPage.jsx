@@ -7,7 +7,9 @@ import { useGlobalAdd } from "@/app/shell/add/addContext";
 import useAddHere from "@/app/shell/add/useAddHere";
 import UploadDialog from "@/features/files/UploadDialog";
 import useFlashcards from "@/features/flashcards/useFlashcards";
+import useItemDetail from "@/features/details/useItemDetail";
 import useTaskDone from "@/features/tasks/useTaskDone";
+import useTaskEdit from "@/features/tasks/useTaskEdit";
 import useNow from "@/shared/hooks/useNow";
 import useSelectedTabInView from "@/shared/hooks/useSelectedTabInView";
 import { subjectMeta } from "@/utils/subjectColors";
@@ -23,6 +25,7 @@ import SubjectTasks from "./SubjectTasks";
 import { classesThisWeek, examChipText, upcomingEntries } from "./subjectClasses";
 import useReviewers from "./useReviewers";
 import useSubject from "./useSubject";
+import useSubjects from "./useSubjects";
 import useSubjectFiles from "./useSubjectFiles";
 import "./subject.css";
 
@@ -70,6 +73,16 @@ function SubjectView({ subjectId }) {
   const { subject, status } = data;
   const files = useSubjectFiles(subjectId, Boolean(subject?.archivedAt));
   const setDone = useTaskDone(data.setTasks);
+  // Edit and Delete in a task's details window. The edit form's subject picker needs every subject.
+  const { subjects } = useSubjects();
+  const edit = useTaskEdit({ subjects, setTasks: data.setTasks, onSubjectCreated: data.refresh });
+  const detail = useItemDetail({
+    subjects,
+    onToggle: setDone,
+    context: `subject:${subjectId}`,
+    onEditTask: edit.onEditTask,
+    onDeleteTask: edit.onDeleteTask,
+  });
   const tab = tabFromParams(params);
   const show = params.get("show") === "flashcards" ? "flashcards" : "reviewers";
   // Decks load only while the Flashcards side is showing: the Reviewers side and the other tabs never ask.
@@ -197,6 +210,7 @@ function SubjectView({ subjectId }) {
               doneTasks={data.doneTasks}
               now={now}
               onToggle={setDone}
+              onOpen={detail.openTask}
               onNew={() => openAdd("task")}
             />
           )}
@@ -216,6 +230,8 @@ function SubjectView({ subjectId }) {
           {tab === "files" && <SubjectFiles subject={subject} library={files.library} block={files.block} uploadStatus={files.dialog.status} openUpload={files.openUpload} />}
         </div>
       </div>
+      {detail.dialog}
+      {edit.dialog}
       <SubjectDialogs dialog={dialog} onClose={() => setDialog(null)} onChanged={changed} />
       {files.dialog.isOpen && library.status === "ready" && (
         <UploadDialog
