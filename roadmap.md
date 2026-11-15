@@ -7,7 +7,7 @@ Every batch: branch off `main`, builder runs `npm test` in `server/` and `npm ru
 ## Open work, in order (reorganized 2026-11-15, owner 2026-11-14 order still wins)
 
 **Now**
-1. **0b Delete one notification**: frame `324:2596` approved 2026-11-15. Client only (the server route exists): `deleteNotification` in `shared/api/notifications.js`, `remove` in `useInbox.js`, hover X and Delete key on desktop, swipe-to-reveal on phone, More > Delete for keyboard, reverse the "no per-row delete" note in `InboxActions.jsx`. Branch `feature/notification-delete`, builder-sonnet medium, then tester.
+1. ~~0b Delete one notification~~ DONE 2026-11-15, merged to `main` (`feature/notification-delete`, tested). Not pushed to `production`: needs a What's new item first. Live checks owed: real-phone swipe feel (thresholds, click suppression, iOS), keyboard focus showing the X after a real Shift+Tab. Small left: no row More > Delete menu (Delete key and the always-focusable X cover keyboard).
 2. **Plan 34, a class is a subject** (`.claude/docs/plans/34-class-is-subject-plan.md`). Done: S1a, C5 (cf61cce). Left in order: C6a, release, M1 migration (needs plan 34 Q6, dry run on Atlas first), S1b, C1, C2, C3 subject Overview redesign (needs the CT, NT and OV frames approved), release. Before the release, read-only Atlas check for owners with more than one main timetable: `db.schedules.aggregate([{ $match: { isMain: true } }, { $group: { _id: "$owner", n: { $sum: 1 } } }, { $match: { n: { $gt: 1 } } }])`. Empty: go. Rows: owner OKs a one-off repair (keep one main, demote the rest) first.
 
 **Next: features waiting on a plan or frames**

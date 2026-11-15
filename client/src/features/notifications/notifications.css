@@ -248,7 +248,7 @@
   .inbox-row__delete::after {
     content: "";
     position: absolute;
-    inset: -8px; /* the 44px hit area around the 28px face */
+    inset: -9px; /* 44px hit area: the 28px face minus its 1px border, plus 9px each side */
   }
   /* Keyboard focus on the row or the X: the X replaces the time and the unread dot. */
   .inbox-item__slide:has(:focus-visible) .inbox-row__delete {
