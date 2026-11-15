@@ -5,8 +5,8 @@ import SubjectRow from "./SubjectRow";
 
 // The Tasks tab: every open task of this subject, soonest first, then the ones ticked off this week
 // (unticking one puts it back). Both lists come from the page's one task state, so a tick here also
-// leaves Overview's Next up. `onNew` opens New task on this subject.
-export default function SubjectTasks({ tasks, doneTasks, now, onToggle, onNew }) {
+// leaves Overview's Next up. `onNew` opens New task on this subject; a row's title opens its details window through `onOpen(task)`.
+export default function SubjectTasks({ tasks, doneTasks, now, onToggle, onOpen, onNew }) {
   return (
     <div className="subject-stack">
       {tasks.length === 0 ? (
@@ -30,6 +30,7 @@ export default function SubjectTasks({ tasks, doneTasks, now, onToggle, onNew })
                 item={{ kind: "task", iso: taskDueIso(task.dueDate), task }}
                 now={now}
                 onToggle={onToggle}
+                onOpen={onOpen}
               />
             ))}
           </ul>
@@ -40,7 +41,7 @@ export default function SubjectTasks({ tasks, doneTasks, now, onToggle, onNew })
           <h2 id="subject-done-title" className="subject-card__title">Done recently</h2>
           <ul className="subject-rows">
             {doneTasks.map((task) => (
-              <SubjectRow key={task._id} item={{ kind: "done", task }} now={now} onToggle={onToggle} />
+              <SubjectRow key={task._id} item={{ kind: "done", task }} now={now} onToggle={onToggle} onOpen={onOpen} />
             ))}
           </ul>
         </Card>

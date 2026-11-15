@@ -1,5 +1,6 @@
 // What the header search can find, built from lists the app already loads. Each entry goes to a
 // route that exists today. Relative import: a server test loads this file.
+import { taskHref } from "../../features/details/itemLinks.js";
 import { GUIDE_TOPICS, guideId } from "../../features/guide/guideTopics.js";
 
 export const SEARCH_KINDS = { subject: "Subject", reviewer: "Reviewer", task: "Task", guide: "Guide" };
@@ -29,7 +30,7 @@ export function buildSearchIndex({ subjects = [], reviewers = [], tasks = [] }) 
         kind: "task",
         label: t.title,
         sub: t.course || "",
-        to: "/plan?view=tasks",
+        to: taskHref(t._id),
       })),
     ...GUIDE_TOPICS.map((topic) => ({
       key: guideId(topic.key),
