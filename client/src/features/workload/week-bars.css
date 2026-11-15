@@ -1,6 +1,6 @@
 /* WeekBars (Figma 16:96, 348:4956): seven 24px columns 8px apart (a fixed 216px box), bars 3px in from
    each side, 12 to 64px tall, 6px radius, grey, today in the accent and the heaviest day in navy. Prep for
-   a later deadline is a 1.5px dashed outline in the bar's own tone, the full column wide, rising from the
+   a later deadline is a 1.5px dashed outline in the bar's own tone, 3px out from the bar, rising from the
    baseline with a 9px rounded top and open at the bottom. The labels under them are an addition so the
    days can be told apart. */
 @layer pages {
@@ -40,6 +40,7 @@
   .workload-bars__track {
     display: flex;
     align-items: flex-end;
+    justify-content: center;
     box-sizing: border-box;
     width: 100%;
     height: var(--bar-h, 64px);
@@ -50,6 +51,7 @@
     position: relative;
     display: block;
     width: 100%;
+    max-width: var(--bar-w, none);
     height: calc(var(--level) * var(--bar-h, 64px));
     border-radius: var(--radius-sm);
     background: var(--bar-tone);
@@ -98,6 +100,17 @@
       transform: translateX(-50%);
       transition: opacity 120ms var(--ease-out);
     }
+    /* The tips of the outer columns line up with the chart's edge instead of their column's middle, so a
+       hidden one never runs past the card and scrolls the page sideways on a narrow window. */
+    .workload-bars__col:nth-child(-n + 2) .workload-bars__tip {
+      left: 0;
+      transform: none;
+    }
+    .workload-bars__col:nth-last-child(-n + 2) .workload-bars__tip {
+      left: auto;
+      right: 0;
+      transform: none;
+    }
     button.workload-bars__col:hover .workload-bars__tip,
     button.workload-bars__col:focus-visible .workload-bars__tip {
       opacity: 1;
@@ -140,10 +153,11 @@
     color: var(--text-primary);
   }
 
-  /* The Wellbeing chart (Figma 51:2, 52:117): 44px bars up to 120px tall at full strength, today's
+  /* The Wellbeing chart (Figma 51:2, 52:117, 348:4956): 44px columns with 30px bars up to 120px tall, today's
      label as an accent pill, and the key underneath. On phones the seven columns share the width. */
   .workload-bars--lg {
     --bar-h: 120px;
+    --bar-w: 30px;
     grid-template-columns: repeat(7, 44px);
     gap: var(--space-3);
     max-width: none;

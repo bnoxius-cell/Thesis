@@ -65,8 +65,8 @@ export default function WeekBars({ days, heaviestKey = null, size = "md", legend
       </div>
       {legend && (
         <ul className="workload-bars__legend" aria-hidden="true">
-          <li><span className="workload-bars__key is-heaviest" />Heaviest</li>
           <li><span className="workload-bars__key is-today" />Today</li>
+          <li><span className="workload-bars__key is-heaviest" />Heaviest</li>
           <li><span className="workload-bars__key is-prep" />{size === "lg" ? "Prep for a later deadline" : "Prep"}</li>
         </ul>
       )}

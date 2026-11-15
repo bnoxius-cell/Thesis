@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { buildWeek, heaviestDay, hoursLeftToday, REST_BUFFER } from '../../client/src/utils/workload.js';
+import { buildWeek, computeWorkload, heaviestDay, hoursLeftToday, REST_BUFFER } from '../../client/src/utils/workload.js';
 
 // Roadmap 13b: a task's weight shows on its due day, prep for a later deadline is kept apart, today only
 // counts the hours left before bed, and ties for "heaviest" go to the day with more work due on it.
@@ -106,5 +106,39 @@ describe('hours left today', () => {
         expect(hoursLeftToday(profile, day, at(16))).toBe(6 - REST_BUFFER);
         // Halfway through the class only the rest of it counts.
         expect(hoursLeftToday(profile, day, at(17, 30))).toBe(5 - REST_BUFFER);
+    });
+});
+
+describe('a day with no room left', () => {
+    test('today takes no prep once its hours are gone, and later deadlines spread over the days before them', () => {
+        const tasks = [task('a', 1, 5), task('b', 2, 5), task('c', 3, 5), task('d', 6, 3)];
+        const week = buildWeek(tasks, profile, null, at(21, 30));
+        expect(week[0].capacity).toBe(0);
+        expect(week[0].load).toBe(0);
+        expect(week[0].items).toEqual([]);
+        expect(week.reduce((sum, d) => sum + d.load, 0)).toBeCloseTo(18, 0);
+    });
+
+    test('today takes no more prep than the hours left in it', () => {
+        const tasks = [task('a', 1, 5), task('b', 2, 5), task('c', 3, 5)];
+        const [today] = buildWeek(tasks, profile, null, at(20, 30));
+        expect(today.capacity).toBe(0.5);
+        expect(today.prep).toBeLessThanOrEqual(0.5);
+    });
+
+    const workload = (tasks, now) => computeWorkload({ tasks, profile, days: buildWeek(tasks, profile, null, now), now });
+
+    test('a small task due tomorrow is not an emergency late in the evening', () => {
+        const result = workload([task('small', 1, 1)], at(21, 30));
+        expect(result.tips.some((tip) => /packed/.test(tip.title))).toBe(false);
+        expect(result.values.peak).toBeLessThan(100);
+    });
+
+    test('real overload today is called Today and says there is no time left', () => {
+        const result = workload([task('a', 0, 3)], at(21, 30));
+        const packed = result.tips.find((tip) => /packed/.test(tip.title));
+        expect(packed.title).toBe('Today is packed');
+        expect(packed.text).toMatch(/no time left today/);
+        expect(packed.text).not.toMatch(/room for 0h/);
     });
 });

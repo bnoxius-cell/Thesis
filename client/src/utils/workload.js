@@ -15,6 +15,10 @@ export const USABLE_HOURS = 14;
 // Kept free every day for downtime, so a student is never "capable" of studying
 // right up to bedtime.
 export const REST_BUFFER = 2;
+// A day with less room than this is measured against this much, so a few minutes of work on a day
+// with no room left (late in the evening, say) never reads as an overloaded day.
+const MIN_DAY_ROOM = 0.5;
+const fullnessOf = (day) => day.load / Math.max(day.capacity, MIN_DAY_ROOM);
 // Committed hours in a day that count as a completely full day for the schedule score.
 const FULL_DAY_COMMITMENT = 8;
 // Never plan further out than this many days when spreading a task.
@@ -221,16 +225,29 @@ export function buildWeek(tasks, profile, overview, now = new Date()) {
   ordered.forEach(({ task, daysLeft }) => {
     const hours = clampHours(task.hours);
     if (hours <= 0) return;
-    // Overdue work lands today. Otherwise it is spread over every day up to the due
-    // date (never past it), leaning toward the days with the most room left. The share on
-    // the due day is due work; shares on earlier days are prep for it.
+    // Overdue work and work due today land today, whatever room is left. Otherwise it is spread
+    // over every day up to the due date (never past it), leaning toward the days with the most
+    // room left. Full later days keep a small share, so an overloaded week still shows where it
+    // hurts; today only takes what still fits before bed. The share on the due day is due work;
+    // shares on earlier days are prep for it.
     const last = clamp(daysLeft, 0, MAX_HORIZON - 1);
-    const room = (i) => (i < WEEK ? Math.max(days[i].capacity - days[i].load, 0.25) : base);
+    const room = (i) => {
+      if (i >= WEEK) return base;
+      const left = days[i].capacity - days[i].load;
+      return i === 0 ? Math.max(left, 0) : Math.max(left, 0.25);
+    };
     let totalRoom = 0;
     for (let i = 0; i <= last; i += 1) totalRoom += room(i);
 
     const shares = [];
-    for (let i = 0; i <= Math.min(last, WEEK - 1); i += 1) shares.push([i, (hours * room(i)) / totalRoom]);
+    if (last === 0) shares.push([0, hours]);
+    else {
+      // Today never takes more than it has left; what it can't take goes to the later days.
+      const todayShare = Math.min((hours * room(0)) / totalRoom, room(0));
+      const laterRoom = totalRoom - room(0);
+      shares.push([0, todayShare]);
+      for (let i = 1; i <= Math.min(last, WEEK - 1); i += 1) shares.push([i, ((hours - todayShare) * room(i)) / laterRoom]);
+    }
     shares.forEach(([i, share]) => {
       if (share < 0.05) return;
       const prep = i < last;
@@ -295,7 +312,7 @@ export function computeWorkload({
   const values = {
     time: capacityHours > 0 ? clamp((studyHours / capacityHours) * 100, 0, 100) : studyHours > 0 ? 100 : 0,
     peak: clamp(
-      Math.max(0, ...days.map((d) => (d.capacity > 0 ? d.load / d.capacity : d.load > 0 ? 1 : 0))) * 100,
+      Math.max(0, ...days.map(fullnessOf)) * 100,
       0,
       100
     ),
@@ -433,7 +450,7 @@ function buildTips({
 
   // The most overloaded day, and a lighter earlier day to borrow from.
   const over = days
-    .map((d, i) => ({ d, i, ratio: d.capacity > 0 ? d.load / d.capacity : d.load > 0 ? 2 : 0 }))
+    .map((d, i) => ({ d, i, ratio: fullnessOf(d) }))
     .filter(({ ratio }) => ratio > 1.05)
     .sort((a, b) => b.ratio - a.ratio)[0];
   if (over) {
@@ -441,9 +458,9 @@ function buildTips({
     const lighter = days.slice(0, i).map((x, j) => ({ x, j, room: x.capacity - x.load })).filter(({ room }) => room >= 1).sort((a, b) => b.room - a.room)[0];
     const detail = d.busyHours > 0
       ? `${round1(d.busyHours)}h of classes and activities leave room for about ${d.capacity}h of study, but ${d.load}h of tasks land there.`
-      : `About ${d.load}h of tasks land there, and you have room for ${d.capacity}h.`;
-    add("alert", `${weekdayLong(d.key)} is packed`,
-      `${detail}${lighter ? ` ${weekdayLong(lighter.x.key)} is lighter, so starting then would help.` : " No day before it has room, so start with the most urgent one. If it still won't fit, ask your teacher early."}`);
+      : `About ${d.load}h of tasks land there, ${d.capacity > 0 ? `and you have room for ${d.capacity}h` : i === 0 ? "and there's no time left today" : "and there's no room for them"}.`;
+    add("alert", `${dayName(d, i)} is packed`,
+      `${detail}${lighter ? ` ${dayName(lighter.x, lighter.j)} is lighter, so starting then would help.` : " No day before it has room, so start with the most urgent one. If it still won't fit, ask your teacher early."}`);
   } else if (hasTasks && fullness > 0.7) {
     add("watch", "Your week is nearly full", "Protect your study blocks and try not to take on anything extra until the next deadline passes.");
   }
