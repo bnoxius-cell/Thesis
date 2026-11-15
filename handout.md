@@ -15,6 +15,7 @@ Main session: read this first after a `/clear` (state and rules), then `roadmap.
 - `staging` holds the OLD app for the professor to compare. Never merge it into `main` or `production`.
 
 ## LATEST (2026-11-15, later)
+- SHIPPED: owner pushed `production` = `main` = 605bccd (0b delete one notification, C6a subject task rows, What's new items added to `2026-11-16.js`, 7 items). Live checks owed: real-phone swipe-to-delete, desktop X on the drawer, subject Tasks tab rows and Edit/Delete, search to a task.
 - 0b DELETE ONE NOTIFICATION built, tested (pass) and merged to `main`, NOT pushed to `production` (needs a What's new item in the newest note). C6a (subject Tasks tab rows open the details window, Edit and Delete, search to `taskHref`) also built, tested (pass) and merged to `main`. Roadmap reordered. NEXT: the Atlas read-only main-timetable check, then the plan 34 release, then M1 (needs Q6 and an owner-read dry run). Routing: builder-sonnet medium passed first time, one 2px hit-area slip fixed by the orchestrator.
 
 ## LATEST (2026-11-15, plan 37 done, supersedes the PLAN 37 bullet below)
