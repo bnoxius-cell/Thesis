@@ -5,7 +5,7 @@ const BAR_MIN = 0.12;
 const hours = (n) => `${Math.round(n * 10) / 10}h`;
 
 // Seven bars, one per day from today: classes plus study work, tallest day flagged. Today's label is
-// stressed and the heaviest day takes the watch tone, never red. Bars draw in once on arrival.
+// stressed and the heaviest day takes a navy tone, never red. Bars draw in once on arrival.
 // `days` is the week from buildWeek; `heaviestKey` is the day to flag, or null. `size="lg"` is the
 // Wellbeing chart (taller bars, today as a pill); `legend` adds the Heaviest day and Today key under it.
 // With `onOpenDay(dayKey)` every column is a button that opens that day's window and shows a desktop hover tip.

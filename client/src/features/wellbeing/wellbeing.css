@@ -84,6 +84,18 @@
     align-items: center;
     gap: var(--space-3);
   }
+  /* Phones: the band chip sits under the title so the title keeps two lines at most at 320. */
+  @media (max-width: 479px) {
+    .wellbeing-hero__head {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+    }
+    .wellbeing-hero__band {
+      grid-column: 2;
+      justify-self: start;
+    }
+  }
   .wellbeing-hero__heading {
     margin: 0;
     font: 600 var(--text-lg) / 26px var(--font-ui);

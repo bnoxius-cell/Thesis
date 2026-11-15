@@ -131,7 +131,7 @@
 }
 .metric-card.accent {
   background: linear-gradient(135deg, var(--sage-deep), var(--sage));
-  color: #f3efe1;
+  color: var(--on-accent);
 }
 .metric-card span {
   display: block;
@@ -708,7 +708,7 @@ input[type="range"] {
 }
 .survey-score-label {
   font-size: var(--text-sm);
-  color: #dc2626;
+  color: var(--danger);
 }
 .survey-card-actions {
   margin-top: 1rem;
@@ -931,7 +931,7 @@ input[type="range"] {
 }
 .pref-switch:checked::after {
   transform: translateX(1.2rem);
-  background: #fff;
+  background: var(--on-accent);
 }
 .pref-switch:focus-visible {
   outline: 2px solid var(--sage);
@@ -1257,7 +1257,7 @@ input[type="range"] {
   color: var(--s-muted, var(--text-secondary));
   cursor: pointer;
 }
-.sched-segment button.active { background: var(--s-accent, var(--sage-deep)); color: var(--s-on-accent, #f3efe1); }
+.sched-segment button.active { background: var(--s-accent, var(--sage-deep)); color: var(--s-on-accent, var(--on-accent)); }
 .sched-check { flex-direction: row; align-items: center; gap: 10px; font-weight: 500; }
 .sched-check input { width: 18px; height: 18px; padding: 0; accent-color: var(--s-accent, var(--sage)); }
 

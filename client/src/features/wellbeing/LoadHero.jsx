@@ -18,7 +18,7 @@ export default function LoadHero({ work, moves, onOpenDay }) {
       <header className="wellbeing-hero__head">
         <span className="wellbeing-chip wellbeing-chip--surface" aria-hidden="true"><ChartColumn size={18} /></span>
         <h2 id="wellbeing-load" className="wellbeing-hero__heading">This week's load</h2>
-        {!insights.isNewUser && <Chip tone={BAND_TONE[reading.band]}>{reading.label}</Chip>}
+        {!insights.isNewUser && <Chip tone={BAND_TONE[reading.band]} className="wellbeing-hero__band">{reading.label}</Chip>}
       </header>
 
       {insights.isNewUser ? (

@@ -504,7 +504,7 @@
     background: color-mix(in srgb, var(--good) 22%, var(--surface));
   }
   .auth-week-day > .is-watch {
-    background: color-mix(in srgb, var(--watch) 26%, var(--surface));
+    background: color-mix(in srgb, var(--accent) 45%, var(--surface));
   }
 
   /* Workload card */
@@ -529,7 +529,7 @@
     background: color-mix(in srgb, var(--accent) 40%, var(--surface-2));
   }
   .auth-bars i.is-heavy {
-    background: var(--chart-over);
+    background: var(--accent);
   }
   .auth-score {
     display: flex;
