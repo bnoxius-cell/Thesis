@@ -1,10 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
-import { toast } from "react-toastify";
-import { updateTask } from "@/shared/api/tasks";
-import { shortDate } from "@/shared/lib/dates";
 import { fromISODate, toISODate } from "@/utils/scheduleUtils";
 import { suggestMoves } from "@/utils/suggestions";
-import { showUndoToast } from "./doneToast";
 
 const storageKey = (userId) => `stresscare:dismissed-moves:${userId || "anonymous"}`;
 
@@ -26,15 +22,13 @@ function writeDismissed(userId, dismissed) {
   }
 }
 
-// Ideas for lightening a week that doesn't fit: each is a due date the student could move. Nothing changes
-// until they tap "Move it", which saves the new date and offers Undo.
+// Ideas for lightening a week that doesn't fit: each is a task the student could start earlier. Due dates
+// never change here; "Open task" shows the task so they can plan it.
 //   visible          the ideas not dismissed today, best first
-//   move(idea)       saves the new date into the list that `setTasks` owns
+//   openerFor(idea)  a function that opens the idea's task window, or null when the task isn't in the list
 //   dismiss(idea)    hides the idea until tomorrow
-//   moving           true while a move is saving
-export default function useMoveSuggestions({ userId, tasks, setTasks, fixedTasks, profile, overview, strained, now }) {
+export default function useMoveSuggestions({ userId, tasks, onOpenTask, fixedTasks, profile, overview, strained, now }) {
   const [dismissed, setDismissed] = useState(() => readDismissed(userId));
-  const [moving, setMoving] = useState(false);
 
   // The ideas only depend on the day, so a clock tick doesn't redo the search.
   const day = toISODate(now);
@@ -42,33 +36,21 @@ export default function useMoveSuggestions({ userId, tasks, setTasks, fixedTasks
     () => suggestMoves({ tasks, fixedTasks, profile, overview, strained, now: fromISODate(day) }),
     [tasks, fixedTasks, profile, overview, strained, day],
   );
-  const visible = suggestions.filter((idea) => !dismissed[`${idea.taskId}:${idea.toDate}`]);
+  const visible = suggestions.filter((idea) => !dismissed[`${idea.taskId}:${idea.doOn}`]);
 
-  const save = useCallback(async (idea, dueDate) => {
-    const { data, error } = await updateTask(idea.taskId, { dueDate });
-    if (error) {
-      toast.error(error);
-      return false;
-    }
-    setTasks((list) => list.map((task) => (task._id === data.task._id ? data.task : task)));
-    return true;
-  }, [setTasks]);
-
-  const move = useCallback(async (idea) => {
-    setMoving(true);
-    const saved = await save(idea, idea.toDate);
-    setMoving(false);
-    if (saved) showUndoToast(`Moved "${idea.title}" to ${shortDate(idea.toDate)}.`, () => save(idea, idea.fromDate));
-  }, [save]);
+  const openerFor = useCallback((idea) => {
+    const task = tasks.find((t) => t._id === idea.taskId);
+    return task ? () => onOpenTask(task) : null;
+  }, [tasks, onOpenTask]);
 
   const dismiss = useCallback((idea) => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
-    const next = { ...dismissed, [`${idea.taskId}:${idea.toDate}`]: tomorrow.getTime() };
+    const next = { ...dismissed, [`${idea.taskId}:${idea.doOn}`]: tomorrow.getTime() };
     setDismissed(next);
     writeDismissed(userId, next);
   }, [dismissed, userId]);
 
-  return { visible, move, dismiss, moving };
+  return { visible, openerFor, dismiss };
 }

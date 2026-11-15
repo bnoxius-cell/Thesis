@@ -405,7 +405,7 @@ function buildTips({
       ? `${round1(d.busyHours)}h of classes and activities leave room for about ${d.capacity}h of study, but ${d.load}h of tasks land there.`
       : `About ${d.load}h of tasks land there, and you have room for ${d.capacity}h.`;
     add("alert", `${weekdayLong(d.key)} is packed`,
-      `${detail}${lighter ? ` ${weekdayLong(lighter.x.key)} is lighter, so starting then would help.` : " Try moving something or asking for more time."}`);
+      `${detail}${lighter ? ` ${weekdayLong(lighter.x.key)} is lighter, so starting then would help.` : " No day before it has room, so start with the most urgent one. If it still won't fit, ask your teacher early."}`);
   } else if (hasTasks && fullness > 0.7) {
     add("watch", "Your week is nearly full", "Protect your study blocks and try not to take on anything extra until the next deadline passes.");
   }

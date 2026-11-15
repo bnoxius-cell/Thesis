@@ -2,7 +2,7 @@ import { describe, test, expect } from 'vitest';
 import {
     buildWeek, computeWorkload, examsToTasks, examPressure,
 } from '../../client/src/utils/workload.js';
-import { suggestMoves, isStrained } from '../../client/src/utils/suggestions.js';
+import { suggestMoves, isStrained, ideaTitle } from '../../client/src/utils/suggestions.js';
 
 const NOW = new Date(2026, 8, 30, 10, 0); // Wed 30 Sep 2026
 const iso = (offset) => {
@@ -23,67 +23,91 @@ const overview = (busyByOffset = {}, holidays = {}) => ({
 });
 const run = (opts) => suggestMoves({ profile, now: NOW, ...opts });
 
-describe('move suggestions', () => {
+// Earlier days only help when the week is jammed from today until the deadline, so the fixture is crowded:
+// hardly any room on days 1 to 3, and a small task due on day 6 whose hours land on the packed days.
+const crowded = (smallOverrides = {}) => ({
+    overview: overview({ 1: 12, 2: 15, 3: 6 }),
+    tasks: [
+        task('t0', { hours: 11, dueDate: iso(3) }), task('t1', { hours: 11, dueDate: iso(2) }),
+        task('t2', { hours: 12, dueDate: iso(3) }), task('t3', { hours: 13, dueDate: iso(6) }),
+        task('t4', { hours: 11, dueDate: iso(6) }), task('small', { hours: 2, dueDate: iso(6), ...smallOverrides }),
+    ],
+});
+
+describe('earlier-day suggestions', () => {
     test('a week that fits gets none', () => {
         expect(run({ tasks: [task('a', { hours: 2, dueDate: iso(5) })], overview: overview() })).toEqual([]);
     });
 
-    test('an overloaded stretch suggests moving one deadline later, and shows the gain', () => {
-        const tasks = [task('a', { hours: 8, dueDate: iso(1) }), task('b', { hours: 8, dueDate: iso(1) })];
-        const out = run({ tasks, overview: overview() });
+    test('an overloaded week suggests starting a task earlier, and shows the gain', () => {
+        const out = run({ ...crowded(), strained: true });
         expect(out.length).toBeGreaterThan(0);
-        expect(out[0].toDate > out[0].fromDate).toBe(true);
+        expect(out[0]).toMatchObject({ taskId: 'small', doOn: iso(5), dueDate: iso(6), daysEarlier: 1 });
         expect(out[0].relief).toBeGreaterThanOrEqual(0.5);
-        expect(out[0].why).toMatch(/more than you can fit/);
+        expect(out[0].why).toMatch(/Doing this one earlier/);
     });
 
-    test('it prefers to move the less important task', () => {
-        const tasks = [
-            task('vital', { hours: 8, dueDate: iso(1), importance: 4 }),
-            task('minor', { hours: 8, dueDate: iso(1), importance: 1 }),
-        ];
-        expect(run({ tasks, overview: overview() })[0].taskId).toBe('minor');
+    test('every idea starts between today and the day before the deadline, and never moves it', () => {
+        const out = run({ ...crowded(), strained: true });
+        expect(out.length).toBeGreaterThan(0);
+        out.forEach((s) => {
+            expect(s.doOn >= iso(0) && s.doOn < s.dueDate).toBe(true);
+            expect(s).not.toHaveProperty('toDate');
+            expect(s).not.toHaveProperty('fromDate');
+        });
+    });
+
+    test('tasks due today or overdue get no idea', () => {
+        const tasks = [task('a', { hours: 9, dueDate: iso(0) }), task('b', { hours: 9, dueDate: iso(-2) })];
+        expect(run({ tasks, overview: overview(), strained: true })).toEqual([]);
+    });
+
+    test('when every earlier day is already full there is no idea', () => {
+        const tasks = [task('a', { hours: 8, dueDate: iso(1) }), task('b', { hours: 8, dueDate: iso(1) })];
+        expect(run({ tasks, overview: overview({ 0: 10 }), strained: true })).toEqual([]);
     });
 
     test('top-importance tasks are left alone unless the student is strained', () => {
-        const tasks = [task('big', { hours: 14, dueDate: iso(1), importance: 5 })];
-        expect(run({ tasks, overview: overview() })).toEqual([]);
-        expect(run({ tasks, overview: overview(), strained: true }).length).toBeGreaterThan(0);
+        const input = crowded({ importance: 5 });
+        expect(run(input)).toEqual([]);
+        expect(run({ ...input, strained: true }).map((s) => s.taskId)).toContain('small');
     });
 
-    test('a strained student gets help sooner and the wording changes', () => {
-        // A small overload: under the normal threshold, over the strained one.
-        const tasks = [task('a', { hours: 6, dueDate: iso(0) })];
-        const calm = run({ tasks, overview: overview({ 0: 5 }) });
-        const strained = run({ tasks, overview: overview({ 0: 5 }), strained: true });
-        expect(strained.length).toBeGreaterThanOrEqual(calm.length);
-        if (strained.length) expect(strained[0].why).toMatch(/carrying a lot/);
+    test('never suggests a day off', () => {
+        const input = { ...crowded(), overview: overview({ 1: 12, 2: 15, 3: 6 }, { 5: 'Holiday' }) };
+        const out = run({ ...input, strained: true });
+        out.forEach((s) => expect(s.doOn).not.toBe(iso(5)));
     });
 
-    test('never suggests more than two moves, or three when strained', () => {
-        const tasks = ['a', 'b', 'c', 'd', 'e'].map((id) => task(id, { hours: 9, dueDate: iso(1), importance: 2 }));
-        expect(run({ tasks, overview: overview() }).length).toBeLessThanOrEqual(2);
-        expect(run({ tasks, overview: overview(), strained: true }).length).toBeLessThanOrEqual(3);
-    });
-
-    test('never lands a task on a day off in the visible week', () => {
-        const tasks = [task('a', { hours: 9, dueDate: iso(1), importance: 1 }), task('b', { hours: 9, dueDate: iso(1), importance: 1 })];
-        const out = run({ tasks, overview: overview({}, { 2: 'Holiday', 3: 'Holiday' }) });
-        out.forEach((s) => expect([iso(2), iso(3)]).not.toContain(s.toDate));
-    });
-
-    test('each task is only suggested once', () => {
-        const tasks = [task('a', { hours: 12, dueDate: iso(1), importance: 1 }), task('b', { hours: 12, dueDate: iso(1), importance: 1 })];
-        const ids = run({ tasks, overview: overview(), strained: true }).map((s) => s.taskId);
+    test('never suggests more than two ideas, or three when strained, and each task once', () => {
+        expect(run(crowded()).length).toBeLessThanOrEqual(2);
+        const ids = run({ ...crowded(), strained: true }).map((s) => s.taskId);
+        expect(ids.length).toBeLessThanOrEqual(3);
         expect(new Set(ids).size).toBe(ids.length);
     });
 
-    test('exam preparation is planned around but never moved', () => {
+    test('exam preparation is planned around but never suggested', () => {
         const fixed = examsToTasks([{ title: 'Finals', date: iso(2), prepHours: 12 }]);
-        const tasks = [task('a', { hours: 6, dueDate: iso(2), importance: 2 })];
-        const out = run({ tasks, fixedTasks: fixed, overview: overview(), strained: true });
+        const out = run({ ...crowded(), fixedTasks: fixed, strained: true });
         out.forEach((s) => expect(s.title).not.toMatch(/Prepare for/));
-        expect(out.length).toBeGreaterThan(0);
+    });
+
+    test('ideaTitle names the day to do it and the deadline', () => {
+        const idea = { title: 'ye', doOn: iso(0), dueDate: iso(2) };
+        expect(ideaTitle(idea, NOW)).toBe('Do "ye" today instead of Friday');
+        expect(ideaTitle({ ...idea, doOn: iso(1) }, NOW)).toBe('Do "ye" tomorrow instead of Friday');
+        expect(ideaTitle({ ...idea, dueDate: iso(1) }, NOW)).toBe('Do "ye" today instead of tomorrow');
+        expect(ideaTitle({ ...idea, doOn: iso(2), dueDate: iso(8) }, NOW)).toBe('Do "ye" on Friday instead of Oct 8');
+    });
+
+    test('the words never talk about moving a deadline', () => {
+        [false, true].forEach((strained) => {
+            run({ ...crowded(), strained }).forEach((s) => {
+                expect(s.why).not.toMatch(/Moving this deadline|Move/);
+                expect(ideaTitle(s, NOW)).not.toMatch(/Move/);
+            });
+        });
+        expect(run({ ...crowded(), strained: true })[0].why).toMatch(/The deadline stays the same/);
     });
 
     test('isStrained looks at the band and at fresh check-in scores', () => {

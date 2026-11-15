@@ -1,13 +1,12 @@
 import { useMemo } from "react";
 import { useAuth } from "@/pages/authentication/AuthContext";
 import useNow from "@/shared/hooks/useNow";
-import { shortDate } from "@/shared/lib/dates";
 import useWeekData from "@/features/workload/useWeekData";
 import useWorkload from "@/features/workload/useWorkload";
 import { finishedRecently } from "@/features/tasks/finishedRecently";
 import { sleepSummary } from "@/features/wellbeing/sleepSummary";
 import { buildCheckInResult } from "@/utils/checkinResult";
-import { isStrained, suggestMoves } from "@/utils/suggestions";
+import { ideaTitle, isStrained, suggestMoves } from "@/utils/suggestions";
 import { surveyStatus } from "@/utils/workload";
 import { QUESTIONNAIRES } from "./questionnaires";
 
@@ -17,8 +16,8 @@ function freshScore(kind, user, now) {
   return surveyStatus(user?.[scoreField] ?? null, user?.[lastField] || null, validDays, now).score;
 }
 
-function planLine(plan, idea) {
-  if (plan.suggestion) return `Moving "${idea.title}" to ${shortDate(idea.toDate)} would lighten your week.`;
+function planLine(plan, idea, now) {
+  if (plan.suggestion) return `${ideaTitle(idea, now)} to lighten your week.`;
   if (plan.warnSooner) return "We'll warn you sooner when a day gets full.";
   return "Your week fits as it is. We'll keep an eye on it.";
 }
@@ -50,7 +49,7 @@ export default function useCheckInResult(kind, score) {
     });
     const sleep = sleepSummary({ week: work.week, profile: work.profile, usualWakeTime: userData?.usualWakeTime });
     return {
-      plan: planLine(result.plan, idea),
+      plan: planLine(result.plan, idea, now),
       sleep: sleep.note || sleep.headline,
       tip: result.today.text,
       encouragement: result.encouragement.join(" "),

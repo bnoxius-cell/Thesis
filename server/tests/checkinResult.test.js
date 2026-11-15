@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { buildCheckInResult, meaningOf, directionOf } from '../../client/src/utils/checkinResult.js';
 
-const sug = { taskId: 't1', title: 'Report' };
+const sug = { taskId: 't1', title: 'Report', doOn: '2026-10-01', dueDate: '2026-10-03' };
 const sleep = { text: 'Be in bed by 10:30 PM.' };
 
 describe('meaning', () => {
