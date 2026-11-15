@@ -16,7 +16,7 @@ export const ADD_OPTIONS = [
   { kind: "file", title: "File", hint: "Upload a file to your library", icon: "file", group: "study" },
   { kind: "group", title: "New group", hint: "Start a space for a class or club", icon: "people", group: "people" },
   { kind: "join", title: "Join a group", hint: "Use a code someone sent you", icon: "link", group: "people" },
-  { kind: "friend", title: "Add a friend", hint: "Find them by email or name", icon: "friends", group: "people" },
+  { kind: "friend", title: "Add a friend", hint: "Add them with their friend code", icon: "friends", group: "people" },
 ];
 
 const GROUP_HEADINGS = { plan: "Plan", study: "Study", people: "People" };

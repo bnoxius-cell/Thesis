@@ -34,7 +34,7 @@
   .ui-menu.timetable-menu__popover[data-opened-by="keyboard"] {
     animation: none;
   }
-  .timetable-menu__popover .global-add__item {
+  .ui-menu.timetable-menu__popover .global-add__item {
     min-height: 52px;
   }
   .ui-menu__item--danger .global-add__title {
