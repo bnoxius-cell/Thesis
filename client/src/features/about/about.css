@@ -12,8 +12,8 @@
   .about--app {
     box-sizing: border-box;
     width: 100%;
-    max-width: 720px;
-    margin: 0 auto;
+    max-width: calc(720px + 2 * var(--space-6)); /* frame 298:18491: a 720 column, left-aligned like other pages */
+    margin: 0;
     padding: var(--space-5) max(var(--space-4), env(safe-area-inset-right)) var(--space-7)
       max(var(--space-4), env(safe-area-inset-left));
   }
