@@ -132,6 +132,10 @@
     }
     .shell-header__row {
       gap: var(--space-2);
+      flex-wrap: wrap; /* on a narrow phone an action (Add, Check in) drops under the title rather than squeezing it to one letter a line */
+    }
+    .shell-header__title {
+      overflow-wrap: break-word; /* a word stays whole while the row can wrap; "anywhere" let flex shrink it to one letter */
     }
     .shell-header__subtitle {
       display: none;

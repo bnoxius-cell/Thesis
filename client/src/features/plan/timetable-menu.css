@@ -36,6 +36,7 @@
   }
   .ui-menu.timetable-menu__popover .global-add__item {
     min-height: 52px;
+    padding-block: var(--space-1); /* the 36px tile and the text fit in 52px; the base padding made it 54 */
   }
   .ui-menu__item--danger .global-add__title {
     color: var(--danger);
