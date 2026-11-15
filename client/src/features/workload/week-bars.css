@@ -1,8 +1,12 @@
-/* WeekBars (Figma 16:96): seven 24px bars 8px apart (a fixed 216px box), 12 to 64px tall, 6px radius,
-   grey, today in the accent and the heaviest day in navy. The labels under them are an addition so the
+/* WeekBars (Figma 16:96, 348:4956): seven 24px columns 8px apart (a fixed 216px box), bars 3px in from
+   each side, 12 to 64px tall, 6px radius, grey, today in the accent and the heaviest day in navy. Prep for
+   a later deadline is a 1.5px dashed outline in the bar's own tone, 3px out from the bar, rising from the
+   baseline with a 9px rounded top and open at the bottom. The labels under them are an addition so the
    days can be told apart. */
 @layer pages {
   .workload-bars {
+    --prep-gap: 3px;
+    --prep-line: 1.5px;
     display: grid;
     grid-template-columns: repeat(7, 24px);
     gap: var(--space-2);
@@ -36,19 +40,40 @@
   .workload-bars__track {
     display: flex;
     align-items: flex-end;
+    justify-content: center;
+    box-sizing: border-box;
     width: 100%;
     height: var(--bar-h, 64px);
+    padding-inline: var(--prep-gap);
   }
   .workload-bars__bar {
+    --bar-tone: var(--chart-busy);
+    position: relative;
     display: block;
     width: 100%;
+    max-width: var(--bar-w, none);
     height: calc(var(--level) * var(--bar-h, 64px));
     border-radius: var(--radius-sm);
-    background: var(--chart-busy);
+    background: var(--bar-tone);
     transform-origin: bottom;
     animation: workload-bar-grow var(--dur-4) var(--ease-out) backwards;
     animation-delay: calc(var(--i) * var(--stagger));
     transition: background-color var(--hover-dur) var(--hover-ease);
+  }
+  /* Prep wraps the bar, so the column reads as one bar growing taller. It is part of the bar, so it
+     draws in with it. */
+  .workload-bars__bar.has-prep::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: calc(-1 * var(--prep-gap));
+    right: calc(-1 * var(--prep-gap));
+    box-sizing: border-box;
+    height: calc(var(--prep-level) * var(--bar-h, 64px));
+    border: var(--prep-line) dashed var(--bar-tone);
+    border-bottom: 0;
+    border-radius: 9px 9px 0 0;
+    pointer-events: none;
   }
   /* The tip is a desktop extra: the button's own name already carries the day and hours. */
   .workload-bars__tip {
@@ -75,6 +100,17 @@
       transform: translateX(-50%);
       transition: opacity 120ms var(--ease-out);
     }
+    /* The tips of the outer columns line up with the chart's edge instead of their column's middle, so a
+       hidden one never runs past the card and scrolls the page sideways on a narrow window. */
+    .workload-bars__col:nth-child(-n + 2) .workload-bars__tip {
+      left: 0;
+      transform: none;
+    }
+    .workload-bars__col:nth-last-child(-n + 2) .workload-bars__tip {
+      left: auto;
+      right: 0;
+      transform: none;
+    }
     button.workload-bars__col:hover .workload-bars__tip,
     button.workload-bars__col:focus-visible .workload-bars__tip {
       opacity: 1;
@@ -97,13 +133,13 @@
      When today is also the heaviest it stays blue and gets a navy ring, so both still show.
      The outline is used, not a box-shadow, because nothing on the track clips it. */
   .workload-bars__bar.is-today {
-    background: var(--accent);
+    --bar-tone: var(--accent);
   }
   .workload-bars__bar.is-heaviest {
-    background: var(--text-primary);
+    --bar-tone: var(--text-primary);
   }
   .workload-bars__bar.is-today.is-heaviest {
-    background: var(--accent);
+    --bar-tone: var(--accent);
     outline: 2px solid var(--text-primary);
     outline-offset: 2px;
   }
@@ -117,10 +153,11 @@
     color: var(--text-primary);
   }
 
-  /* The Wellbeing chart (Figma 51:2, 52:117): 44px bars up to 120px tall at full strength, today's
+  /* The Wellbeing chart (Figma 51:2, 52:117, 348:4956): 44px columns with 30px bars up to 120px tall, today's
      label as an accent pill, and the key underneath. On phones the seven columns share the width. */
   .workload-bars--lg {
     --bar-h: 120px;
+    --bar-w: 30px;
     grid-template-columns: repeat(7, 44px);
     gap: var(--space-3);
     max-width: none;
@@ -158,6 +195,7 @@
   }
 
   .workload-bars__legend {
+    --prep-line: 1.5px;
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-4);
@@ -182,5 +220,18 @@
   .workload-bars__key.is-heaviest {
     background: transparent;
     box-shadow: inset 0 0 0 2px var(--text-primary);
+  }
+  .workload-bars__key.is-prep {
+    box-sizing: border-box;
+    border: var(--prep-line) dashed var(--chart-busy);
+    border-radius: 2px;
+    background: transparent;
+  }
+  /* The dotted prep line gets heavier when more contrast is asked for. Last, so it wins. */
+  @media (prefers-contrast: more) {
+    .workload-bars,
+    .workload-bars__legend {
+      --prep-line: 2px;
+    }
   }
 }

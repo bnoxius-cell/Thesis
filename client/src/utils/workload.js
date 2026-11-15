@@ -1,4 +1,4 @@
-import { toISODate, addDays, formatTime } from "./scheduleUtils";
+import { toISODate, addDays, formatTime, fromISODate } from "./scheduleUtils";
 
 // ---------------------------------------------------------------------------
 // Workload model
@@ -15,6 +15,10 @@ export const USABLE_HOURS = 14;
 // Kept free every day for downtime, so a student is never "capable" of studying
 // right up to bedtime.
 export const REST_BUFFER = 2;
+// A day with less room than this is measured against this much, so a few minutes of work on a day
+// with no room left (late in the evening, say) never reads as an overloaded day.
+const MIN_DAY_ROOM = 0.5;
+const fullnessOf = (day) => day.load / Math.max(day.capacity, MIN_DAY_ROOM);
 // Committed hours in a day that count as a completely full day for the schedule score.
 const FULL_DAY_COMMITMENT = 8;
 // Never plan further out than this many days when spreading a task.
@@ -60,6 +64,10 @@ export const bandFor = (score) => BANDS.find((b) => score <= b.max).name;
 
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 const round1 = (n) => Math.round(n * 10) / 10;
+const toMinutes = (hhmm) => {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+};
 const weekdayLong = (iso) => {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "long" });
@@ -151,9 +159,29 @@ export const studyCapacity = (studyHoursPerDay, busyHours, sleepHours = 8, trave
   return round1(Math.max(0, Math.min(studyHoursPerDay * factor, free)));
 };
 
+// The bedtime used when the student has no regular one.
+const DEFAULT_BEDTIME = "23:00";
+const DAY_MINUTES = 24 * 60;
+
+// Study hours still open today, from the clock: the time until bed, minus classes still ahead and the
+// rest buffer. A bedtime before noon is after midnight, so it still ends tonight. Late in the evening
+// this is close to nothing, and past bedtime it is zero. `day` is today from buildWeek (entries, busyHours).
+export function hoursLeftToday(profile, day, now = new Date()) {
+  const regular = profile.hasRegularSleepSchedule !== false && /^\d{1,2}:\d{2}$/.test(profile.usualSleepStart || "");
+  const bedtime = toMinutes(regular ? profile.usualSleepStart : DEFAULT_BEDTIME);
+  const bed = bedtime < DAY_MINUTES / 2 ? bedtime + DAY_MINUTES : bedtime;
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const classesAhead = Math.min(
+    day.entries.reduce((sum, e) => sum + Math.max(0, Math.min(toMinutes(e.endTime), bed) - Math.max(toMinutes(e.startTime), nowMinutes)), 0),
+    day.busyHours * 60
+  );
+  return round1(Math.max(0, (bed - nowMinutes - classesAhead) / 60 - REST_BUFFER));
+}
+
 // Lays the next seven days out: what the timetable already takes, how many study hours
 // are left, and where each task's hours land. `overview` is the server's week
-// overview (or null when there is no timetable).
+// overview (or null when there is no timetable). Each day's `load` is `due` (work due that
+// day, done on the day) plus `prep` (earlier work for a later deadline).
 export function buildWeek(tasks, profile, overview, now = new Date()) {
   const base = Math.max(Number(profile.studyHoursPerDay) || 0, 1);
   const travelHours = Math.max(0, Math.min(Number(profile.travelMinutesPerDay) || 0, 240)) / 60;
@@ -167,7 +195,7 @@ export function buildWeek(tasks, profile, overview, now = new Date()) {
     const key = toISODate(date);
     const o = byDate.get(key);
     const busyHours = o?.busyHours ?? 0;
-    return {
+    const day = {
       key,
       label: date.toLocaleDateString("en-US", { weekday: "short" }),
       dateLabel: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
@@ -180,8 +208,13 @@ export function buildWeek(tasks, profile, overview, now = new Date()) {
         ? studyCapacity(base, busyHours, profile.sleepHours, travelHours)
         : Math.max(0, Math.min(base, 24 - clamp(Number(profile.sleepHours) || 8, 6, 12) - 2 - REST_BUFFER - travelHours)),
       load: 0,
+      due: 0,
+      prep: 0,
       items: [],
     };
+    // Today only has the hours still ahead of the clock.
+    if (i === 0) day.capacity = Math.min(day.capacity, hoursLeftToday(profile, day, now));
+    return day;
   });
 
   // Earliest deadline first, so tight tasks claim room before relaxed ones do.
@@ -192,25 +225,51 @@ export function buildWeek(tasks, profile, overview, now = new Date()) {
   ordered.forEach(({ task, daysLeft }) => {
     const hours = clampHours(task.hours);
     if (hours <= 0) return;
-    // Overdue work lands today. Otherwise it is spread over every day up to the due
-    // date, leaning toward the days with the most room left.
+    // Overdue work and work due today land today, whatever room is left. Otherwise it is spread
+    // over every day up to the due date (never past it), leaning toward the days with the most
+    // room left. Full later days keep a small share, so an overloaded week still shows where it
+    // hurts; today only takes what still fits before bed. The share on the due day is due work;
+    // shares on earlier days are prep for it.
     const last = clamp(daysLeft, 0, MAX_HORIZON - 1);
-    const room = (i) => (i < WEEK ? Math.max(days[i].capacity - days[i].load, 0.25) : base);
+    const room = (i) => {
+      if (i >= WEEK) return base;
+      const left = days[i].capacity - days[i].load;
+      return i === 0 ? Math.max(left, 0) : Math.max(left, 0.25);
+    };
     let totalRoom = 0;
     for (let i = 0; i <= last; i += 1) totalRoom += room(i);
 
     const shares = [];
-    for (let i = 0; i <= Math.min(last, WEEK - 1); i += 1) shares.push([i, (hours * room(i)) / totalRoom]);
+    if (last === 0) shares.push([0, hours]);
+    else {
+      // Today never takes more than it has left; what it can't take goes to the later days.
+      const todayShare = Math.min((hours * room(0)) / totalRoom, room(0));
+      const laterRoom = totalRoom - room(0);
+      shares.push([0, todayShare]);
+      for (let i = 1; i <= Math.min(last, WEEK - 1); i += 1) shares.push([i, ((hours - todayShare) * room(i)) / laterRoom]);
+    }
     shares.forEach(([i, share]) => {
       if (share < 0.05) return;
+      const prep = i < last;
       days[i].load += share;
-      days[i].items.push({ title: task.title, course: task.course, hours: round1(share) });
+      days[i][prep ? "prep" : "due"] += share;
+      days[i].items.push({ title: task.title, course: task.course, hours: round1(share), prep });
     });
   });
 
-  return days.map((d) => ({ ...d, load: round1(d.load) }));
+  return days.map((d) => ({ ...d, load: round1(d.load), due: round1(d.due), prep: round1(d.prep) }));
 }
 
+// The day the week looks heaviest (classes plus study work), or null when nothing is on it. Ties go
+// to the day with more work due on it, then to the earlier day. `week` is from buildWeek.
+export function heaviestDay(week) {
+  const total = (d) => round1(d.busyHours + d.load);
+  const heavier = (d, best) => total(d) > total(best) || (total(d) === total(best) && d.due > best.due);
+  const top = week.reduce((best, d) => (heavier(d, best) ? d : best), week[0]);
+  if (!top || total(top) <= 0) return null;
+  const name = top.key === week[0].key ? "Today" : fromISODate(top.key).toLocaleDateString("en-US", { weekday: "long" });
+  return { key: top.key, name };
+}
 
 const level = (value) => (value < 34 ? "low" : value < 67 ? "moderate" : "high");
 
@@ -253,7 +312,7 @@ export function computeWorkload({
   const values = {
     time: capacityHours > 0 ? clamp((studyHours / capacityHours) * 100, 0, 100) : studyHours > 0 ? 100 : 0,
     peak: clamp(
-      Math.max(0, ...days.map((d) => (d.capacity > 0 ? d.load / d.capacity : d.load > 0 ? 1 : 0))) * 100,
+      Math.max(0, ...days.map(fullnessOf)) * 100,
       0,
       100
     ),
@@ -336,10 +395,6 @@ const EARLY_START_MINUTES = 8 * 60;
 // Classes plus activities in one day past this many hours make it a long day.
 const LONG_DAY_HOURS = 6;
 
-const toMinutes = (hhmm) => {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
-};
 const durationText = (minutes) => {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
@@ -395,7 +450,7 @@ function buildTips({
 
   // The most overloaded day, and a lighter earlier day to borrow from.
   const over = days
-    .map((d, i) => ({ d, i, ratio: d.capacity > 0 ? d.load / d.capacity : d.load > 0 ? 2 : 0 }))
+    .map((d, i) => ({ d, i, ratio: fullnessOf(d) }))
     .filter(({ ratio }) => ratio > 1.05)
     .sort((a, b) => b.ratio - a.ratio)[0];
   if (over) {
@@ -403,9 +458,9 @@ function buildTips({
     const lighter = days.slice(0, i).map((x, j) => ({ x, j, room: x.capacity - x.load })).filter(({ room }) => room >= 1).sort((a, b) => b.room - a.room)[0];
     const detail = d.busyHours > 0
       ? `${round1(d.busyHours)}h of classes and activities leave room for about ${d.capacity}h of study, but ${d.load}h of tasks land there.`
-      : `About ${d.load}h of tasks land there, and you have room for ${d.capacity}h.`;
-    add("alert", `${weekdayLong(d.key)} is packed`,
-      `${detail}${lighter ? ` ${weekdayLong(lighter.x.key)} is lighter, so starting then would help.` : " No day before it has room, so start with the most urgent one. If it still won't fit, ask your teacher early."}`);
+      : `About ${d.load}h of tasks land there, ${d.capacity > 0 ? `and you have room for ${d.capacity}h` : i === 0 ? "and there's no time left today" : "and there's no room for them"}.`;
+    add("alert", `${dayName(d, i)} is packed`,
+      `${detail}${lighter ? ` ${dayName(lighter.x, lighter.j)} is lighter, so starting then would help.` : " No day before it has room, so start with the most urgent one. If it still won't fit, ask your teacher early."}`);
   } else if (hasTasks && fullness > 0.7) {
     add("watch", "Your week is nearly full", "Protect your study blocks and try not to take on anything extra until the next deadline passes.");
   }

@@ -23,15 +23,14 @@ const overview = (busyByOffset = {}, holidays = {}) => ({
 });
 const run = (opts) => suggestMoves({ profile, now: NOW, ...opts });
 
-// Earlier days only help when the week is jammed from today until the deadline, so the fixture is crowded:
-// hardly any room on days 1 to 3, and a small task due on day 6 whose hours land on the packed days.
+// Earlier days only help when the days before the deadline are packed: no room at all on days 1 to 6,
+// so a task due on day 6 leaves part of its hours on those packed days, while today still has room. The
+// best idea is the latest start that clears enough: tomorrow, which leaves only a sliver on a packed day.
+// (Until 13b this fixture leaned on days 1 to 3 only, and its relief came from rounding: once today
+// stopped taking a share it had no room for, that relief went away.)
 const crowded = (smallOverrides = {}) => ({
-    overview: overview({ 1: 12, 2: 15, 3: 6 }),
-    tasks: [
-        task('t0', { hours: 11, dueDate: iso(3) }), task('t1', { hours: 11, dueDate: iso(2) }),
-        task('t2', { hours: 12, dueDate: iso(3) }), task('t3', { hours: 13, dueDate: iso(6) }),
-        task('t4', { hours: 11, dueDate: iso(6) }), task('small', { hours: 2, dueDate: iso(6), ...smallOverrides }),
-    ],
+    overview: overview({ 1: 15, 2: 15, 3: 15, 4: 15, 5: 15, 6: 15 }),
+    tasks: [task('small', { hours: 3, dueDate: iso(6), ...smallOverrides })],
 });
 
 describe('earlier-day suggestions', () => {
@@ -42,7 +41,7 @@ describe('earlier-day suggestions', () => {
     test('an overloaded week suggests starting a task earlier, and shows the gain', () => {
         const out = run({ ...crowded(), strained: true });
         expect(out.length).toBeGreaterThan(0);
-        expect(out[0]).toMatchObject({ taskId: 'small', doOn: iso(5), dueDate: iso(6), daysEarlier: 1 });
+        expect(out[0]).toMatchObject({ taskId: 'small', doOn: iso(1), dueDate: iso(6), daysEarlier: 5 });
         expect(out[0].relief).toBeGreaterThanOrEqual(0.5);
         expect(out[0].why).toMatch(/Doing this one earlier/);
     });
@@ -74,9 +73,9 @@ describe('earlier-day suggestions', () => {
     });
 
     test('never suggests a day off', () => {
-        const input = { ...crowded(), overview: overview({ 1: 12, 2: 15, 3: 6 }, { 5: 'Holiday' }) };
+        const input = { ...crowded(), overview: overview({ 1: 15, 2: 15, 3: 15, 4: 15, 5: 15, 6: 15 }, { 0: 'Holiday' }) };
         const out = run({ ...input, strained: true });
-        out.forEach((s) => expect(s.doOn).not.toBe(iso(5)));
+        out.forEach((s) => expect(s.doOn).not.toBe(iso(0)));
     });
 
     test('never suggests more than two ideas, or three when strained, and each task once', () => {

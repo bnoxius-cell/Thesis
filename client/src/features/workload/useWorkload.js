@@ -1,7 +1,6 @@
 import { useMemo } from "react";
-import { fromISODate } from "@/utils/scheduleUtils";
 import {
-  buildWeek, computeWorkload, getTaskMetrics, surveyStatus, examsToTasks, examPressure,
+  buildWeek, computeWorkload, getTaskMetrics, surveyStatus, examsToTasks, examPressure, heaviestDay,
   PSS_VALID_DAYS, WHO_VALID_DAYS,
 } from "@/utils/workload";
 import { buildFocus } from "@/utils/todayFocus";
@@ -28,15 +27,6 @@ export function profileFromUser(u) {
     usualSleepStart: u.usualSleepStart || DEFAULT_PROFILE.usualSleepStart,
     wellbeingGoal: u.wellbeingGoal || "steady",
   };
-}
-
-// The day the week looks heaviest, or null when nothing is on it. Ties go to the earlier day.
-function heaviestDay(week) {
-  const total = (d) => d.busyHours + d.load;
-  const top = week.reduce((best, d) => (total(d) > total(best) ? d : best), week[0]);
-  if (!top || total(top) <= 0) return null;
-  const name = top.key === week[0].key ? "Today" : fromISODate(top.key).toLocaleDateString("en-US", { weekday: "long" });
-  return { key: top.key, name };
 }
 
 // Turns the loaded tasks, timetable and account into what the pages show. Pure maths on its inputs:
