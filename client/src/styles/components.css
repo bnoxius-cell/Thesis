@@ -252,30 +252,87 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* A toast with one action (Undo after ticking a task off) */
+  /* ---- Site toast (plan 29 T1; Figma 221:4875, 221:4876 desktop, 223:715 phone) ----
+     One look for every toast: a dark pill (text-primary on surface, inverted) with the type shown by
+     its icon. react-toastify injects unlayered CSS, which beats any layered rule, so colours, radius
+     and padding go through its own variables set on its wrapper, and the few properties it also
+     hard-codes (width, margin, radius, container position) take !important. */
+  .Toastify {
+    --toastify-color-light: var(--text-primary);
+    --toastify-text-color-light: var(--surface);
+    --toastify-font-family: var(--font-ui);
+    --toastify-toast-bd-radius: var(--radius-lg);
+    --toastify-toast-shadow: var(--shadow-3);
+    --toastify-toast-min-height: 48px;
+    --toastify-toast-padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+    --toastify-z-index: 1050; /* above dialogs (1000), under menus (1100) */
+    --toast-in: toast-in;
+    --toast-out: toast-out;
+    --toast-in-dur: var(--dur-2);
+  }
+  .Toastify__toast {
+    width: max-content !important;
+    max-width: min(480px, calc(100vw - 2 * var(--space-4)));
+    margin-bottom: var(--space-2) !important;
+    border-radius: var(--radius-lg) !important;
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+  .Toastify__toast:focus-visible {
+    outline: 2px solid var(--surface);
+    outline-offset: 2px;
+  }
+  .Toastify__toast-icon {
+    width: 20px !important;
+    margin-inline-end: var(--space-3) !important;
+  }
+  .Toastify__toast--error .Toastify__toast-icon {
+    color: var(--danger-soft);
+  }
+  .Toastify__toast-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* A toast with one action (View after an add, Undo after ticking a task off) */
   .toast-with-action {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
   }
+  .toast-with-action > span {
+    min-width: 0;
+  }
   .toast-action {
+    position: relative;
     flex: none;
-    min-height: 44px;
-    margin: -8px calc(var(--space-2) * -1) -8px 0;
-    padding: 0 var(--space-3);
+    min-height: 36px;
+    padding: 6px var(--space-4);
     border: 0;
-    border-radius: var(--radius-sm);
-    background: none;
-    color: var(--accent);
-    font: inherit;
-    font-size: var(--text-sm);
-    font-weight: 600;
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
     cursor: pointer;
+    transition: transform var(--dur-1) var(--ease-out);
+  }
+  /* The pill is 36px; the tap area is 44px. */
+  .toast-action::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+  }
+  .toast-action:active {
+    transform: scale(0.97);
   }
   .toast-action:focus-visible {
-    outline: 2px solid var(--focus-ring);
+    outline: 2px solid var(--surface);
     outline-offset: 2px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .toast-action:hover {
+      background: var(--accent-soft);
+    }
   }
 
   /* With reduced motion the toast still times out on its progress bar, which just isn't drawn. */
@@ -285,58 +342,67 @@
     }
   }
 
-  /* ---- Toasts: react-toastify styled through its own variables ----
-     toastify injects unlayered CSS, which beats any layered :root rule, so the
-     variables are set on its wrapper element instead (closer than :root, so they win). */
-  .Toastify {
-    --toastify-color-light: var(--surface);
-    --toastify-color-dark: var(--surface);
-    --toastify-text-color-light: var(--text-primary);
-    --toastify-text-color-dark: var(--text-primary);
-    --toastify-toast-background: var(--surface);
-    --toastify-font-family: var(--font-ui);
-    --toastify-toast-bd-radius: var(--radius-md);
-    --toastify-toast-shadow: var(--shadow-2);
-    --toastify-toast-min-height: 48px;
-    --toastify-toast-padding: var(--space-3) var(--space-4);
-    --toastify-color-info: var(--accent);
-    --toastify-color-success: var(--good);
-    --toastify-color-warning: var(--watch);
-    --toastify-color-error: var(--danger);
-    --toastify-icon-color-info: var(--accent);
-    --toastify-icon-color-success: var(--good);
-    --toastify-icon-color-warning: var(--watch);
-    --toastify-icon-color-error: var(--danger);
-    --toastify-color-progress-light: var(--accent);
-    --toastify-color-progress-dark: var(--accent);
-    --toastify-color-progress-info: var(--accent);
-    --toastify-color-progress-success: var(--good);
-    --toastify-color-progress-warning: var(--watch);
-    --toastify-color-progress-error: var(--danger);
+  /* ---- Toast position ----
+     Bottom centre of the content column on desktop (beside the sidebar, or its rail), centred on the
+     window on signed-out pages. Under 1024px it clears the phone tab bar, and the floating Upload
+     pill on Files. While a dialog is open it moves to the top so Save stays clear. */
+  :root {
+    --toast-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
   }
-  .Toastify__toast {
-    border: 1px solid var(--border);
-    font-size: var(--text-sm);
-    line-height: var(--text-sm-lh);
+  :root:has(.shell-app) {
+    --toast-bottom: calc(var(--bottombar-h) + env(safe-area-inset-bottom, 0px) + var(--space-3));
   }
-  /* Toastify's own animation classes are unlayered and hard-code 500ms and ease-in, which beat
-     any layered rule. !important in a layer beats unlayered normal rules, so the entrance and
-     exit take --dur-3 with the app's ease-out. Reduced motion (base layer) still wins: it is
-     important in an earlier layer. */
-  .Toastify--animate,
-  .Toastify__toast[class*="-enter-"],
-  .Toastify__toast[class*="-exit-"] {
-    animation-duration: var(--dur-3) !important;
-    animation-timing-function: var(--ease-out) !important;
-  }
-  /* On phones toastify makes toasts full-bleed and square: inset them and keep the radius */
-  @media (max-width: 480px) {
-    .Toastify__toast-container {
-      padding: 0 var(--space-3);
+  @media (max-width: 1023px) {
+    :root:has(.files-upload--floating) {
+      --toast-bottom: calc(var(--files-above-bar) + 44px + var(--space-3));
     }
-    .Toastify__toast {
-      border-radius: var(--radius-md) !important;
+  }
+  @media (min-width: 1024px) {
+    :root,
+    :root:has(.shell-app) {
+      --toast-bottom: var(--space-5);
     }
+    /* The sidebar column, as in layout.css (--shell-sidebar-w: 256px, 72px collapsed). */
+    :root:has(.shell-app) {
+      --toast-left: 256px;
+    }
+    :root:has(.shell-app[data-sidebar="rail"]) {
+      --toast-left: 72px;
+    }
+  }
+  .Toastify__toast-container--bottom-center {
+    /* The toast's own bottom margin sits below it, so take it off. */
+    bottom: calc(var(--toast-bottom) - var(--space-2)) !important;
+    left: calc(var(--toast-left, 0px) + (100% - var(--toast-left, 0px)) / 2) !important;
+    width: max-content !important;
+    transform: translateX(-50%) !important;
+  }
+  :root:has(.ui-modal-overlay) .Toastify__toast-container--bottom-center {
+    top: max(var(--space-4), env(safe-area-inset-top)) !important;
+    bottom: auto !important;
+  }
+
+  /* ---- Toast motion: rises 8px and fades in over --dur-2, leaves in 100ms (motion.md). The
+     transition (toastify.cssTransition in shared/ui/toast.jsx) adds .toast-enter / .toast-exit; toastify's
+     own .Toastify--animate sets 0.5s, so the shorthand takes !important. With reduced motion or
+     Animations Off it is a plain 100ms fade (the toast is left out of base.css's squash for that). */
+  .Toastify__toast.toast-enter {
+    animation: var(--toast-in) var(--toast-in-dur) var(--ease-out) both !important;
+  }
+  .Toastify__toast.toast-exit {
+    animation: var(--toast-out) 100ms var(--ease-out) both !important;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html:not([data-motion="on"]) .Toastify {
+      --toast-in: ui-fade-in;
+      --toast-out: toast-fade-out;
+      --toast-in-dur: 100ms;
+    }
+  }
+  html[data-motion="off"] .Toastify {
+    --toast-in: ui-fade-in;
+    --toast-out: toast-fade-out;
+    --toast-in-dur: 100ms;
   }
 
   /* ==========================================================================

@@ -35,6 +35,25 @@
       transform: scale(0.98);
     }
   }
+  /* Site toast (components.css): rises 8px as it fades in, and leaves the same way. The reduced-motion
+     version fades only (ui-fade-in to come in). */
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  @keyframes toast-out {
+    to {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  @keyframes toast-fade-out {
+    to {
+      opacity: 0;
+    }
+  }
   /* The global Add popover grows out of its button. */
   @keyframes add-pop-in {
     from {
