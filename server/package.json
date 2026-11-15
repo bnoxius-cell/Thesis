@@ -7,7 +7,8 @@
     "start": "node server.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke:gemini": "node scripts/geminiSmoke.js"
+    "smoke:gemini": "node scripts/geminiSmoke.js",
+    "env:hash": "node scripts/envHash.js"
   },
   "keywords": [],
   "author": "",
