@@ -200,7 +200,7 @@
     background: var(--good);
   }
   .home-dot--watch {
-    background: var(--watch);
+    background: var(--text-primary); /* navy, like the heaviest-day bar: no brown anywhere in the blue palette */
   }
 
   /* ---- This week ---- */
