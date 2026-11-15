@@ -230,6 +230,12 @@ describe('viewing another profile', () => {
         expect(res.body.profile.sharedGroups).toHaveLength(1);
     });
 
+    test('includes counts for friends, groups, reviewers and flashcards', async () => {
+        const { alice, bob } = await setup();
+        const res = await alice.get(`/api/user/profile/${bob.id}`);
+        expect(res.body.profile.counts).toEqual({ friends: 0, groups: 1, reviewers: 0, flashcards: 0 });
+    });
+
     test('never includes email or check-in results', async () => {
         const { alice, bob } = await setup();
         const res = await alice.get(`/api/user/profile/${bob.id}`);

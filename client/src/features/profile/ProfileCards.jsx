@@ -7,7 +7,7 @@ function CardHead({ id, title, to, seeAll }) {
   return (
     <div className="profile-card__head">
       <h2 id={id} className="profile-card__title">{title}</h2>
-      <Button variant="ghost" to={to} aria-label={seeAll}>See all</Button>
+      {to && <Button variant="ghost" to={to} aria-label={seeAll}>See all</Button>}
     </div>
   );
 }
@@ -34,29 +34,47 @@ export function RhythmCard({ user }) {
 // Your groups (Figma 295:2242): up to three, each opening its chat. `groups` is null until loaded.
 export function GroupsCard({ groups }) {
   const id = useId();
-  const shown = (groups ?? []).slice(0, 3);
   return (
     <section className="profile-card" aria-labelledby={id}>
       <CardHead id={id} title="Your groups" to="/people" seeAll="See all of your groups" />
       {groups === null && <p className="profile-card__note">Loading your groups...</p>}
       {groups?.length === 0 && <p className="profile-card__note">You're not in a group yet.</p>}
-      {shown.length > 0 && (
-        <ul className="profile-card__list">
-          {shown.map((group) => (
-            <li key={group._id}>
-              <Link to={`/people/groups/${group._id}`} className="profile-group">
-                <Avatar name={group.name} src={group.icon} size="row" />
-                <span className="profile-group__text">
-                  <span className="profile-group__name">{group.name}</span>
-                  <span className="profile-group__meta">
-                    {group.members.length} {group.members.length === 1 ? "member" : "members"}
-                  </span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+      <GroupLinks groups={(groups ?? []).slice(0, 3)} />
     </section>
+  );
+}
+
+// Shared groups (Figma 326:2598) on another student's page: every group you're both in, no See
+// all. The profile answer has names only, so rows carry no member count.
+export function SharedGroupsCard({ groups }) {
+  const id = useId();
+  return (
+    <section className="profile-card" aria-labelledby={id}>
+      <CardHead id={id} title="Shared groups" />
+      <GroupLinks groups={groups} />
+    </section>
+  );
+}
+
+function GroupLinks({ groups }) {
+  if (groups.length === 0) return null;
+  return (
+    <ul className="profile-card__list">
+      {groups.map((group) => (
+        <li key={group._id}>
+          <Link to={`/people/groups/${group._id}`} className="profile-group">
+            <Avatar name={group.name} src={group.icon} size="row" />
+            <span className="profile-group__text">
+              <span className="profile-group__name">{group.name}</span>
+              {group.members && (
+                <span className="profile-group__meta">
+                  {group.members.length} {group.members.length === 1 ? "member" : "members"}
+                </span>
+              )}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }

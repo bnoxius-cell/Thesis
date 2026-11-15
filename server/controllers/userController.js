@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import userModel from '../models/userModel.js';
 import Friend from '../models/Friend.js';
 import groupModel from '../models/groupMode.js';
+import reviewerModel from '../models/reviewerModel.js';
+import flashcardModel from '../models/flashcardModel.js';
 import { LEGAL_VERSION } from '../utils/legal.js';
 import { isValidPicture } from '../utils/images.js';
 import { serverError } from '../utils/httpErrors.js';
@@ -178,7 +180,18 @@ export const updateAvatar = async (req, res) => {
 };
 
 // GET /api/user/profile/:userId
-// What another student sees: name, picture, program, bio and how you are connected. Only
+// The numbers on the profile's stats strip: counts only, never the things themselves.
+const profileCounts = async (userId) => {
+    const [friends, groups, reviewers, flashcards] = await Promise.all([
+        Friend.countDocuments({ $or: [{ user: userId }, { friend: userId }], status: 'accepted' }),
+        groupModel.countDocuments({ members: userId }),
+        reviewerModel.countDocuments({ owner: userId }),
+        flashcardModel.countDocuments({ owner: userId }),
+    ]);
+    return { friends, groups, reviewers, flashcards };
+};
+
+// What another student sees: name, picture, program, bio, counts and how you are connected. Only
 // friends and people you share a group with can be looked up, so ids can't be used to browse
 // everyone. Email, check-in results and study habits stay private.
 export const getPublicProfile = async (req, res) => {
@@ -188,12 +201,13 @@ export const getPublicProfile = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Profile not found.' });
         }
 
-        const [target, friendship, sharedGroups] = await Promise.all([
+        const [target, friendship, sharedGroups, counts] = await Promise.all([
             userModel.findById(userId).select('name avatar program bio profileTag createdAt'),
             Friend.findOne({
                 $or: [{ user: req.userId, friend: userId }, { user: userId, friend: req.userId }],
             }),
             groupModel.find({ members: { $all: [req.userId, userId] } }).select('name'),
+            profileCounts(userId),
         ]);
         if (!target) return res.status(404).json({ success: false, message: 'Profile not found.' });
 
@@ -220,6 +234,7 @@ export const getPublicProfile = async (req, res) => {
                 bio: target.bio,
                 profileTag: target.profileTag,
                 memberSince: target.createdAt,
+                counts,
                 relation,
                 requestId,
                 sharedGroups: sharedGroups.map((g) => ({ _id: g._id, name: g.name })),

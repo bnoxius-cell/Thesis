@@ -2,10 +2,11 @@ import { useParams } from "react-router-dom";
 import { UserRound } from "lucide-react";
 import { Button, EmptyState, Skeleton } from "@/shared/ui";
 import Page from "@/app/shell/Page";
-import ProfileCard from "./ProfileCard";
-import ProfileGroups from "./ProfileGroups";
+import ProfileHero from "@/features/profile/ProfileHero";
+import { SharedGroupsCard } from "@/features/profile/ProfileCards";
+import "@/features/profile/profile.css";
+import ProfileActions from "./ProfileActions";
 import useStudentProfile from "./useStudentProfile";
-import "./people.css"; // the picture's rules (.people-avatar)
 import "./people-profile.css";
 
 const BACK = { to: "/people/friends", label: "Back to Friends" };
@@ -16,13 +17,17 @@ function ProfileView({ userId }) {
 
   let body;
   if (status === "loading") {
-    body = <Skeleton height="301px" className="people-profile__skeleton" />;
+    body = <Skeleton height="420px" className="people-profile__skeleton" />;
   } else if (status === "ready") {
     const person = profile.profile;
     body = (
-      <div className="people-profile">
-        <ProfileCard person={person} isSelf={profile.isSelf} actions={{ busy, add, accept, decline, remove }} />
-        {!profile.isSelf && person.sharedGroups.length > 0 && <ProfileGroups groups={person.sharedGroups} />}
+      <div className="profile stagger people-profile">
+        <ProfileHero
+          user={{ ...person, createdAt: person.memberSince }}
+          counts={person.counts ?? {}}
+          actions={!profile.isSelf && <ProfileActions person={person} {...{ busy, add, accept, decline, remove }} />}
+        />
+        {!profile.isSelf && person.sharedGroups.length > 0 && <SharedGroupsCard groups={person.sharedGroups} />}
       </div>
     );
   } else {
@@ -49,7 +54,7 @@ function ProfileView({ userId }) {
   );
 }
 
-// Another student's profile (Figma 66:759, no phone frame: the card and the groups stack). Reached
+// Another student's profile (Figma 326:2598, phone 292:2586 without the edit parts): the own page's hero, read-only, then Shared groups. Reached
 // from the friends list, requests and group members at /people/:userId.
 export default function ProfilePage() {
   const { userId } = useParams();
