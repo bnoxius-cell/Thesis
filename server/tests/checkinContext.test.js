@@ -69,6 +69,8 @@ describe('check-in context label', () => {
         expect((await tag(agent, 'pss', body.id, 'exams')).status).toBe(400);
         expect((await tag(agent, 'pss', body.id, 5)).status).toBe(400);
         expect((await agent.patch(`/api/surveys/pss/${body.id}/context`).send({})).status).toBe(400);
+        // no body at all
+        expect((await agent.patch(`/api/surveys/pss/${body.id}/context`)).status).toBe(400);
         expect((await PSSResponse.findById(body.id)).context).toBeNull();
     });
 
@@ -78,6 +80,7 @@ describe('check-in context label', () => {
         expect((await tag(agent, 'pss', 'nope', 'deadlines')).status).toBe(404);
         expect((await tag(agent, 'pss', new mongoose.Types.ObjectId().toString(), 'deadlines')).status).toBe(404);
         expect((await tag(agent, 'foo', body.id, 'deadlines')).status).toBe(404);
+        expect((await tag(agent, 'constructor', body.id, 'deadlines')).status).toBe(404);
         // a PSS id is not a WHO row
         expect((await tag(agent, 'who', body.id, 'deadlines')).status).toBe(404);
     });

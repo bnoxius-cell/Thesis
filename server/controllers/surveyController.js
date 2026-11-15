@@ -71,10 +71,10 @@ const syncUserContext = async (userId) => {
 export const setContext = async (req, res) => {
     try {
         const { kind, id } = req.params;
-        const Model = MODELS[kind];
+        const Model = Object.hasOwn(MODELS, kind) ? MODELS[kind] : null;
         if (!Model || !isId(id)) return res.status(404).json({ success: false, message: 'Check-in not found.' });
 
-        const { context } = req.body;
+        const { context } = req.body ?? {};
         if (context !== null && !isCheckinContext(context)) {
             return res.status(400).json({ success: false, message: 'Pick one of the options.' });
         }
