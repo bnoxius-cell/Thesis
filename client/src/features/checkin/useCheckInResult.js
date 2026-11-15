@@ -17,7 +17,7 @@ function freshScore(kind, user, now) {
 }
 
 function planLine(plan, idea, now) {
-  if (plan.suggestion) return `${ideaTitle(idea, now)} would lighten your week.`;
+  if (plan.suggestion) return `${ideaTitle(idea, now)} to lighten your week.`;
   if (plan.warnSooner) return "We'll warn you sooner when a day gets full.";
   return "Your week fits as it is. We'll keep an eye on it.";
 }
