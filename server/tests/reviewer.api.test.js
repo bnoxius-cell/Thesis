@@ -204,6 +204,28 @@ describe('when the AI fails', () => {
         expect((await alice.get(`/api/reviewers/${id}`)).body.reviewer).toMatchObject({ status: 'ready', error: '', version: 1 });
     });
 
+    test('a retry sent with no body still works', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const user = await userModel.findOne({ email: 'alice@student.fatima.edu.ph' });
+        const failed = await reviewerModel.create({
+            owner: user._id, title: 'Kept notes', status: 'failed', error: 'Too slow.', sourceText: 'Some notes to study.', questionTarget: 20,
+        });
+        generateJson.mockResolvedValue({ data: aiOutput(), model: 'gemini-test' });
+        const retry = await alice.post(`/api/reviewers/${failed._id}/regenerate`);
+        expect(retry.status).toBe(200);
+        expect(retry.body.reviewer.status).toBe('processing');
+        await settleGenerationJobs();
+    });
+
+    test('a failed reviewer with no stored text says its files are needed', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const user = await userModel.findOne({ email: 'alice@student.fatima.edu.ph' });
+        const shared = await reviewerModel.create({ owner: user._id, title: 'Shared', status: 'failed', error: 'Gone.' });
+        const retry = await alice.post(`/api/reviewers/${shared._id}/regenerate`).send({});
+        expect(retry.status).toBe(409);
+        expect(retry.body).toMatchObject({ code: 'needs_files', message: 'Add the files again to make new questions.' });
+    });
+
     test('a reviewer stuck processing (server restarted) is marked failed', async () => {
         const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
         const user = await userModel.findOne({ email: 'alice@student.fatima.edu.ph' });
@@ -258,6 +280,16 @@ describe('who can see a reviewer', () => {
         expect((await alice.delete(`/api/reviewers/${id}`)).body.success).toBe(true);
         expect(await reviewerModel.countDocuments()).toBe(0);
         expect(await reviewerAttemptModel.countDocuments()).toBe(0);
+    });
+
+    test('a subject can be set on a reviewer, and clearing it clears the label', async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const id = await makeReady(alice);
+        const subject = (await alice.post('/api/subjects').send({ name: 'Biology', code: 'BIO 101' })).body.subject;
+        const linked = await alice.patch(`/api/reviewers/${id}`).send({ subject: subject._id });
+        expect(linked.body.reviewer).toMatchObject({ subject: subject._id, course: 'BIO 101' });
+        const cleared = await alice.patch(`/api/reviewers/${id}`).send({ subject: null });
+        expect(cleared.body.reviewer).toMatchObject({ subject: null, course: '' });
     });
 });
 
