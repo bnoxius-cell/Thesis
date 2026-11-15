@@ -3,7 +3,7 @@ import { MoreHorizontal, Trash2 } from "lucide-react";
 import { Button, ConfirmDialog, IconButton, Menu, MenuItem } from "@/shared/ui";
 
 // The inbox's two actions: Mark all read (off when nothing is unread) and a More menu holding Clear all,
-// which asks first. There is no per-row delete on purpose.
+// which asks first. Deleting one notification lives on the row itself (NotificationRow) and never asks.
 export default function InboxActions({ inbox }) {
   const [confirming, setConfirming] = useState(false);
   const [clearing, setClearing] = useState(false);
