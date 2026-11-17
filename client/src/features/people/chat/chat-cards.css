@@ -1,4 +1,4 @@
-/* What sits in the chat besides bubbles: the pinned note and a shared timetable (Figma 64:302). */
+/* What sits in the chat besides bubbles: the pinned note and the shared cards (Figma SH-2 377:1584; the timetable keeps 64:302). */
 @layer pages {
   .people-pinned {
     display: flex;
@@ -99,6 +99,81 @@
     color: var(--text-muted);
     font: 400 var(--text-xs) / 18px var(--font-ui);
   }
+  /* The newer layout (task, reviewer): a small tile and the kind in capitals, then the name. */
+  .people-card__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .people-card__tile {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .people-card__eyebrow {
+    color: var(--text-muted);
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .people-card > .people-card__text {
+    width: 100%;
+  }
+  .people-card__note,
+  .people-card__own {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .people-card__own {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  .people-card__own > svg {
+    flex: none;
+  }
+  /* The done row: the green panel with its tick (and "Open" for a saved reviewer). */
+  .people-card__added {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    padding: var(--space-1) var(--space-4);
+    border-radius: var(--radius-lg);
+    background: var(--good-soft);
+    color: var(--good);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+  }
+  .people-card__added > svg {
+    flex: none;
+  }
+  .people-card__added > span {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .people-card__added > .ui-btn {
+    flex: none;
+    width: auto;
+    margin-right: calc(-1 * var(--space-3));
+  }
+  /* The tick settles in once, only on the card that was just added (not every card on a reload). */
+  .people-card__added.is-settling > svg {
+    animation: check-pop var(--dur-2) var(--ease-out);
+  }
+  .people-card .share-error {
+    width: 100%;
+  }
+
   /* The card is the run's column width at most, so it never pushes the phone sideways. */
   .people-run__col > .people-card {
     width: min(360px, 100%);

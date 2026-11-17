@@ -25,12 +25,12 @@ export default function ItemDetailDialog({ title, subtitle, onClose, onBack, foo
   );
 }
 
-// The buttons under the details, in the same order everywhere (plan 25 R3): Delete at the left, then Edit,
+// The buttons under the details, in the same order everywhere (plan 25 R3): Delete at the left, then Share, Edit,
 // then the go-to button. Each one is passed in only when the student may use it, so a missing one just
 // isn't drawn. `note` is the muted line that takes the place of Edit and Delete on a read-only item.
-// On a phone the go-to button goes on top at full width, with Delete and Edit as two halves under it.
-export function DetailFooter({ note, remove, edit, primary }) {
-  if (!note && !remove && !edit && !primary) return null;
+// On a phone the go-to button goes on top at full width, then Share, with Delete and Edit as two halves under it.
+export function DetailFooter({ note, remove, share, edit, primary }) {
+  if (!note && !remove && !share && !edit && !primary) return null;
   return (
     <div className="item-footer">
       {note && (
@@ -40,6 +40,7 @@ export function DetailFooter({ note, remove, edit, primary }) {
         </p>
       )}
       {remove}
+      {share}
       {edit}
       {primary}
     </div>

@@ -1,0 +1,210 @@
+/* "Share to a group" (Figma SH-1: desktop 376:1220, empty 376:1438, error 376:1627, phone 376:2012).
+   The dialog is Modal; the rows here are the item box, the group radio list and the error callout. */
+@layer pages {
+  .ui-modal.share-dialog {
+    max-width: 520px;
+  }
+
+  /* The item being shared: a soft box with its icon, name and kind. */
+  .share-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    padding: var(--space-3) 14px;
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+  }
+  .share-item__tile {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .share-item__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .share-item__title {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .share-item__line {
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+
+  /* The groups: one radio row each. A native radio is the control, so arrow keys and the focus ring
+     come for free; its row is the 60px hit area. The chosen row gets a second pixel of border from a
+     shadow, so nothing shifts when the choice moves. */
+  .share-groups {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .share-groups__legend {
+    margin-bottom: var(--space-2);
+    padding: 0;
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+  .share-groups__skeleton {
+    border-radius: var(--radius-lg);
+  }
+  .share-group {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 60px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    color: var(--text-primary);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out),
+      box-shadow var(--dur-2) var(--ease-out);
+  }
+  .share-group:has(.share-group__radio:checked) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .share-group:has(.share-group__radio:focus-visible) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .share-groups:disabled .share-group {
+    cursor: default;
+    opacity: 0.6;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .share-group:not(:has(:checked)):hover {
+      background: var(--surface-2);
+    }
+  }
+  .share-group__avatar {
+    --people-avatar: 36px;
+    --people-avatar-font: var(--text-sm);
+  }
+  .share-group__text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .share-group__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+  }
+  .share-group__meta {
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  /* A 22px ring with a 10px dot. The bare input rules (width, min-height, padding, focus shadow) are
+     declared again so none of them leak in; the row shows the focus ring instead. */
+  .share-group__radio {
+    position: relative;
+    flex: none;
+    box-sizing: border-box;
+    width: 22px;
+    height: 22px;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 2px solid var(--border-input);
+    border-radius: 50%;
+    background: var(--surface);
+    box-shadow: none;
+    cursor: inherit;
+    appearance: none;
+    transition: border-color var(--dur-2) var(--ease-out);
+  }
+  .share-group__radio::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    transform: scale(0.5);
+    opacity: 0;
+    transition:
+      transform var(--dur-2) var(--ease-out),
+      opacity var(--dur-2) var(--ease-out);
+  }
+  .share-group__radio:checked {
+    border-color: var(--accent);
+  }
+  .share-group__radio:checked::after {
+    transform: none;
+    opacity: 1;
+  }
+  .share-group__radio:focus,
+  .share-group__radio:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+
+  /* A refusal or a failed load, in the server's words (the same callout the chat cards use). */
+  .share-error {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 10px;
+    box-sizing: border-box;
+    padding: 10px var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--danger-soft);
+    color: var(--text-primary);
+  }
+  .share-error > svg {
+    flex: none;
+    color: var(--danger);
+  }
+  .share-error > p {
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .share-error > .ui-btn {
+    flex: none;
+  }
+
+  /* "You're not in a group yet": the shared empty state without its page padding. */
+  .share-empty.ui-empty {
+    padding: var(--space-3) 0 var(--space-2);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .share-group,
+    .share-group__radio,
+    .share-group__radio::after {
+      transition: none;
+    }
+  }
+}

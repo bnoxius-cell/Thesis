@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { LogOut, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { LogOut, MoreHorizontal, Pencil, Share, Trash2 } from "lucide-react";
 import { IconButton, Menu, MenuItem } from "@/shared/ui";
 import "@/app/shell/add/global-add.css";
+import { useShareToGroup } from "@/features/share";
 import RenameTimetableDialog from "./RenameTimetableDialog";
 import TimetableConfirmDialog from "./TimetableConfirmDialog";
 import "./timetable-menu.css";
@@ -20,10 +21,11 @@ function Row({ icon: Icon, title, hint, tone, onSelect }) {
   );
 }
 
-// The More button beside the switcher (Figma D10). The owner renames or deletes; anyone else on the
-// timetable can leave. `onChanged` reloads the lists; `onGone` sends the student back to My week.
+// The More button beside the switcher (Figma D10). The owner renames, shares it to a group (a personal timetable
+// only: a group's own timetable is never posted as a card) or deletes; anyone else on the timetable can leave. `onChanged` reloads the lists; `onGone` sends the student back to My week.
 export default function TimetableMenu({ timetable, userId, onChanged, onGone }) {
   const [dialog, setDialog] = useState(null); // "rename" | "delete" | "leave"
+  const sharing = useShareToGroup();
   const owner = timetable.role === "owner";
   const close = () => setDialog(null);
 
@@ -50,6 +52,9 @@ export default function TimetableMenu({ timetable, userId, onChanged, onGone }) 
         {owner ? (
           <>
             <Row icon={Pencil} title="Rename timetable" hint="Change its name" onSelect={() => setDialog("rename")} />
+            {!timetable.group && (
+              <Row icon={Share} title="Share to a group" hint="Post a copy in a group chat" onSelect={() => sharing.open("timetable", timetable)} />
+            )}
             {!timetable.isMain && (
               <Row icon={Trash2} tone="danger" title="Delete timetable" hint="Removes it for everyone on it" onSelect={() => setDialog("delete")} />
             )}
@@ -58,6 +63,7 @@ export default function TimetableMenu({ timetable, userId, onChanged, onGone }) 
           <Row icon={LogOut} title="Leave timetable" hint="You keep your own items" onSelect={() => setDialog("leave")} />
         )}
       </Menu>
+      {sharing.dialog}
       {dialog === "rename" && <RenameTimetableDialog timetable={timetable} onClose={close} onRenamed={renamed} />}
       {(dialog === "delete" || dialog === "leave") && (
         <TimetableConfirmDialog mode={dialog} timetable={timetable} userId={userId} onClose={close} onDone={removed} onMissing={onGone} />

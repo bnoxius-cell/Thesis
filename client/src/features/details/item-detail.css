@@ -291,7 +291,7 @@
     }
   }
 
-  /* ---- Footer: Delete at the left, then Edit, then the go-to button (plan 25 R3) ---- */
+  /* ---- Footer: Delete at the left, then Share, Edit, then the go-to button (plan 25 R3) ---- */
   .item-footer {
     display: flex;
     flex-direction: row;
@@ -326,8 +326,8 @@
   .item-footer__note svg {
     flex: none;
   }
-  /* Phones: the go-to button on top at full width, Delete and Edit as two halves under it, a read-only
-     line above the button. */
+  /* Phones: the go-to button on top at full width, then Share, Delete and Edit as two halves under them, a
+     read-only line above the button. */
   @media (max-width: 719.98px) {
     .item-footer {
       display: grid;
@@ -337,10 +337,14 @@
       margin-inline-end: 0; /* the auto margin would shrink it to its text inside the grid */
     }
     .item-footer__note {
-      order: -2;
+      order: -3;
       grid-column: 1 / -1;
     }
     .item-footer__go {
+      order: -2;
+      grid-column: 1 / -1;
+    }
+    .item-footer__share {
       order: -1;
       grid-column: 1 / -1;
     }

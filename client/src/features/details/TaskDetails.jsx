@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
-import { Circle, CircleCheck, FileText, Flag, RotateCcw, Shapes, Timer } from "lucide-react";
+import { Circle, CircleCheck, FileText, Flag, RotateCcw, Shapes, Share, Timer } from "lucide-react";
 import { Button, Chip } from "@/shared/ui";
 import useNow from "@/shared/hooks/useNow";
 import ItemDetailDialog, { DetailFooter } from "./ItemDetailDialog";
@@ -9,10 +9,10 @@ import { doneOnText, sizeText, taskChip, taskDueText } from "./detailText";
 import { subjectHref, taskHref, taskSubject } from "./itemLinks";
 
 // A task in the details window (Figma D1): the due chip and a "Mark as done" row (or "Done on" and Reopen
-// once it's done), then the subject, due day, size and notes. `onEdit` and `onDelete` are passed only when
-// the student can use them, and a missing one draws no button. `focus` ("edit" or "delete") puts focus on
+// once it's done), then the subject, due day, size and notes. `onShare`, `onEdit` and `onDelete` are passed only
+// when the student can use them, and a missing one draws no button. `focus` ("edit" or "delete") puts focus on
 // that button when the window comes back from its dialog.
-export default function TaskDetails({ task, subjects, context, onClose, onBack, returnFocusRef, focus, onToggle, onEdit, onDelete }) {
+export default function TaskDetails({ task, subjects, context, onClose, onBack, returnFocusRef, focus, onToggle, onShare, onEdit, onDelete }) {
   const editRef = useRef(null);
   const deleteRef = useRef(null);
   const now = useNow();
@@ -41,6 +41,9 @@ export default function TaskDetails({ task, subjects, context, onClose, onBack, 
         <Button ref={deleteRef} variant="ghost" className="item-footer__delete" onClick={() => onDelete(task, handlers)}>
           Delete
         </Button>
+      )}
+      share={onShare && (
+        <Button variant="secondary" icon={Share} className="item-footer__share" onClick={() => onShare(task)}>Share</Button>
       )}
       edit={onEdit && (
         <Button ref={editRef} variant="secondary" className="item-footer__edit" onClick={() => onEdit(task, handlers)}>
