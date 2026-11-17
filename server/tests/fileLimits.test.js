@@ -34,7 +34,7 @@ describe('limits', () => {
         expect(limits.classBMonthlyCap).toBe(1_000_000);
         expect(limits.uploadMonthlyBytes).toBe(1000 * MIB);
         expect(limits.linkTtlSeconds).toBe(60);
-        expect(limits.userStorageBytes).toBe(100 * MIB);
+        expect(limits.userStorageBytes).toBe(200 * MIB);
         expect(limits.maxFileBytes).toBe(10 * MIB);
         expect(warn).not.toHaveBeenCalled();
     });

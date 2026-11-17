@@ -43,7 +43,7 @@ describe('errors', () => {
     });
 
     test('the quota message follows the per-student limit', () => {
-        expect(fileError('quota_full').message).toBe("You've used your 100 MB. Delete a file to make room.");
+        expect(fileError('quota_full').message).toBe("You've used your 200 MB. Delete a file to make room.");
         setFileLimitsForTests({ userStorageBytes: 50 * MIB });
         expect(fileError('quota_full').message).toContain('50 MB');
     });
@@ -55,11 +55,11 @@ describe('errors', () => {
 
 describe('student storage', () => {
     test('refuses past the quota and leaves the counter unchanged', async () => {
-        await reserveUserStorage(user._id, 90 * MIB);
+        await reserveUserStorage(user._id, 190 * MIB);
         await expect(reserveUserStorage(user._id, 11 * MIB)).rejects.toMatchObject({ status: 413, code: 'quota_full' });
-        expect(await usedBytes()).toBe(90 * MIB);
+        expect(await usedBytes()).toBe(190 * MIB);
         await reserveUserStorage(user._id, 10 * MIB);
-        expect(await usedBytes()).toBe(100 * MIB);
+        expect(await usedBytes()).toBe(200 * MIB);
     });
 
     test('a student from before files existed starts at 0', async () => {

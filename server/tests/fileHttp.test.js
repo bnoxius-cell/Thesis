@@ -251,10 +251,10 @@ describe('uploading', () => {
     });
 
     test('a student who is out of room is turned away before the body is read', async () => {
-        await userModel.updateOne({ _id: member._id }, { $set: { storageUsedBytes: 100 * MIB - 100 } });
+        await userModel.updateOne({ _id: member._id }, { $set: { storageUsedBytes: 200 * MIB - 100 } });
         const res = await upload(member, [['file', pdfBytes(1000), 'notes.pdf']]);
         expect(res.status).toBe(413);
-        expect(res.body).toMatchObject({ code: 'quota_full', message: "You've used your 100 MB. Delete a file to make room." });
+        expect(res.body).toMatchObject({ code: 'quota_full', message: "You've used your 200 MB. Delete a file to make room." });
         expect(await month()).toEqual({});
     });
 
