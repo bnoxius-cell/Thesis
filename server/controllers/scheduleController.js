@@ -552,7 +552,8 @@ export const updateEntry = async (req, res) => {
         // `entry` carries no subject, so `set` keeps the stored link unless the owner changed it above.
         existing.set(entry);
         if (link !== undefined) existing.subject = linkId(link);
-        const audience = await changeAudience(schedule, existing);
+        // Only a live timetable announces changes, so only then is it worth working out who hears.
+        const audience = isLive(schedule) ? await changeAudience(schedule, existing) : null;
         const announce = await recordChange(schedule, req.userId, `edited ${describeEntry(entry)}${renamed}`, { audience });
         await schedule.save();
         await announce();
@@ -575,7 +576,7 @@ export const deleteEntry = async (req, res) => {
         const existing = schedule.entries.id(req.params.entryId);
         if (!existing) return fail(res, 404, 'Entry not found');
         const removedTitle = existing.title;
-        const audience = await changeAudience(schedule, existing, { removed: true });
+        const audience = isLive(schedule) ? await changeAudience(schedule, existing, { removed: true }) : null;
         existing.deleteOne();
         const announce = await recordChange(schedule, req.userId, `removed ${describeEntry({ title: removedTitle })}`, { audience });
         await schedule.save();

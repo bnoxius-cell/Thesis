@@ -6,6 +6,8 @@ import subjectModel from '../models/subjectModel.js';
 import classChoiceModel from '../models/classChoiceModel.js';
 import notificationModel from '../models/notificationModel.js';
 import Friend from '../models/Friend.js';
+import groupModel from '../models/groupMode.js';
+import { syncGroupTimetable } from '../utils/groupPlan.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
 import { resetRateLimits } from '../utils/rateLimit.js';
@@ -540,5 +542,159 @@ describe('everyone else', () => {
         expect(stored.activity).toHaveLength(1);
         expect((await changeLines(bob)).map((n) => n.message)).toEqual(['Alice added "Ethics"']);
         expect((await bob.get(base(timetable))).body.schedule.live).toBe(true);
+    });
+});
+
+describe('copies are marked, and only marked copies are ever reused or removed', () => {
+    test("Cy's own identical class stays his: customize adds a marked copy, Use the group's removes only that", async () => {
+        const { cy, timetable, ids } = await setup();
+        await countIt(cy, timetable);
+        const own = (await cy.post('/api/schedules/main/entries').send(classBody({ title: 'Web Systems', days: [1] }))).body.schedule.entries[0];
+        const copy = await customize(cy, timetable, ids['Web Systems']);
+        expect(copy.entryId).not.toBe(String(own._id));
+        const webs = named((await mainOf(cy)).entries, 'Web Systems');
+        expect(webs).toHaveLength(2);
+        expect(String(webs.find((e) => String(e._id) === copy.entryId).copyOf)).toBe(ids['Web Systems']);
+        expect(webs.find((e) => String(e._id) === String(own._id)).copyOf).toBeNull();
+        // The week counts the same class once.
+        expect(named(await weekOf(cy), 'Web Systems')).toHaveLength(1);
+
+        await cy.put(onClass(timetable, ids['Web Systems'])).send({ choice: 'follow' });
+        const left = named((await mainOf(cy)).entries, 'Web Systems');
+        expect(left.map((e) => String(e._id))).toEqual([String(own._id)]);
+    });
+
+    test('a choice pointing at an unmarked class never deletes it', async () => {
+        const { cy, timetable, ids } = await setup();
+        const own = (await cy.post('/api/schedules/main/entries').send(classBody({ title: 'Ethics', days: [4] }))).body.schedule.entries[0];
+        const main = await mainOf(cy);
+        // A choice that (wrongly) names Cy's own class as its copy.
+        await classChoiceModel.create({
+            schedule: timetable._id,
+            user: cy.id,
+            choices: [{
+                entry: ids.Ethics, choice: 'custom', copy: { schedule: main._id, entry: own._id },
+                base: { days: [4], startTime: '08:00', endTime: '10:00' },
+            }],
+        });
+        await cy.put(onClass(timetable, ids.Ethics)).send({ choice: 'follow' });
+        expect(named((await mainOf(cy)).entries, 'Ethics')).toHaveLength(1);
+    });
+
+    test('"Not taking this" on a customized class removes the copy, and so does unticking it in the checklist', async () => {
+        const { cy, timetable, ids } = await setup();
+        await countIt(cy, timetable);
+        await customize(cy, timetable, ids['Web Systems']);
+        await customize(cy, timetable, ids.Networking);
+
+        await cy.put(onClass(timetable, ids['Web Systems'])).send({ choice: 'hidden' });
+        expect(named((await mainOf(cy)).entries, 'Web Systems')).toHaveLength(0);
+        expect((await sharedEntry(cy, timetable, ids['Web Systems'])).myChoice).toBe('hidden');
+
+        await cy.put(`${mine(timetable)}/setup`).send({ taking: [ids.Database, ids.Ethics] });
+        expect(named((await mainOf(cy)).entries, 'Networking')).toHaveLength(0);
+        expect(titles(await weekOf(cy))).toEqual(['Database', 'Ethics']);
+    });
+});
+
+describe('a refused customize writes nothing', () => {
+    test('a full main timetable (80 entries) refuses with the cap message, and no subject is made', async () => {
+        const { cy, timetable, ids } = await setup();
+        const main = (await cy.post('/api/schedules').send({ title: 'My timetable' })).body.schedule;
+        const slots = Array.from({ length: 80 }, (_, i) => ({ title: `Slot ${i}`, kind: 'activity', days: [0], startTime: '06:00', endTime: '07:00' }));
+        await scheduleModel.updateOne({ _id: main._id }, { $push: { entries: { $each: slots } } });
+
+        const answers = [
+            await cy.post(`${onClass(timetable, ids['Web Systems'])}/customize`),
+            await cy.post(`${mine(timetable)}/customize-all`),
+        ];
+        for (const res of answers) {
+            expect(res.status).toBe(400);
+            expect(res.body.message).toBe('A schedule can hold up to 80 entries.');
+        }
+        expect(await subjectModel.countDocuments({ owner: cy.id })).toBe(0);
+        expect(await choiceDoc(cy, timetable)).toBeNull();
+        expect((await mainOf(cy)).entries).toHaveLength(80);
+    });
+});
+
+describe('customizes at the same moment', () => {
+    const copiesIn = async (agent) => (await mainOf(agent)).entries.filter((e) => e.copyOf);
+
+    test('three "Make it all mine" at once give exactly 4 subjects and 4 copies', async () => {
+        const { cy, timetable } = await setup();
+        const answers = await Promise.all([1, 2, 3].map(() => cy.post(`${mine(timetable)}/customize-all`)));
+        expect(answers.every((r) => [200, 201].includes(r.status))).toBe(true);
+        expect(await subjectModel.countDocuments({ owner: cy.id })).toBe(4);
+        expect(await copiesIn(cy)).toHaveLength(4);
+        expect((await choiceDoc(cy, timetable)).choices).toHaveLength(4);
+    });
+
+    test('customizing four different classes at once gives 4 subjects, 4 copies and 4 choices', async () => {
+        const { cy, timetable, ids } = await setup();
+        const answers = await Promise.all(Object.values(ids).map((id) => cy.post(`${onClass(timetable, id)}/customize`)));
+        expect(answers.map((r) => r.status)).toEqual([201, 201, 201, 201]);
+        expect(await subjectModel.countDocuments({ owner: cy.id })).toBe(4);
+        expect(await copiesIn(cy)).toHaveLength(4);
+        expect((await choiceDoc(cy, timetable)).choices).toHaveLength(4);
+    });
+});
+
+describe('publishing, counting and cleanup details', () => {
+    test('publish works on a class saved without a meeting link field', async () => {
+        const { ann, timetable, ids } = await setup();
+        await scheduleModel.updateOne({ _id: timetable._id }, { $unset: { 'entries.$[].meetingUrl': '' } });
+        const copy = await customize(ann, timetable, ids.Database);
+        await moveClass(ann, copy.scheduleId, copy.entryId, 'Database', { startTime: '15:00', endTime: '17:00' }, [3]);
+        expect((await ann.post(`${onClass(timetable, ids.Database)}/publish`)).status).toBe(200);
+        const shared = (await scheduleModel.findById(timetable._id).lean()).entries.find((e) => String(e._id) === ids.Database);
+        expect(shared.startTime).toBe('15:00');
+    });
+
+    test('who hears about a publish: followers the usual line, the customizer his own, the one who hid it and the publisher nothing', async () => {
+        const { alice, ann, bob, iris, cy, timetable, ids } = await setup();
+        await iris.put(onClass(timetable, ids['Web Systems'])).send({ choice: 'hidden' });
+        await customize(cy, timetable, ids['Web Systems']);
+        const copy = await customize(ann, timetable, ids['Web Systems']);
+        await moveClass(ann, copy.scheduleId, copy.entryId, 'Web Systems', { startTime: '13:00', endTime: '15:00' });
+        await notificationModel.deleteMany({});
+
+        expect((await ann.post(`${onClass(timetable, ids['Web Systems'])}/publish`)).status).toBe(200);
+        const lines = async (agent) => (await changeLines(agent)).map((n) => n.message);
+        expect(await lines(alice)).toEqual(['Ann edited "Web Systems"']);
+        expect(await lines(bob)).toEqual(['Ann edited "Web Systems"']);
+        expect(await lines(cy)).toEqual(['Ann changed "Web Systems" for everyone. Your own time for it stays as it is.']);
+        expect(await lines(iris)).toEqual([]);
+        expect(await lines(ann)).toEqual([]);
+    });
+
+    test('a copy the member deleted no longer counts as using their own time', async () => {
+        const { ann, cy, timetable, ids } = await setup();
+        const copy = await customize(cy, timetable, ids['Web Systems']);
+        expect((await sharedEntry(ann, timetable, ids['Web Systems'])).ownTimeCount).toBe(1);
+        expect((await cy.delete(`/api/schedules/${copy.scheduleId}/entries/${copy.entryId}`)).status).toBe(200);
+        expect((await sharedEntry(ann, timetable, ids['Web Systems'])).ownTimeCount).toBe(0);
+    });
+
+    test("a group timetable the sync drops (its group is gone) takes the members' choices along", async () => {
+        const { iris, group, timetable } = await setup();
+        await iris.put(`${mine(timetable)}/setup`).send({ taking: [] });
+        await groupModel.deleteOne({ _id: group._id });
+        await syncGroupTimetable(group._id);
+        expect(await scheduleModel.exists({ _id: timetable._id })).toBeNull();
+        expect(await classChoiceModel.countDocuments({})).toBe(0);
+    });
+
+    test("making a shared timetable private drops everyone's choices on it", async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const fay = await signUp('fay@student.fatima.edu.ph', 'Fay');
+        await Friend.create({ user: alice.id, friend: fay.id, status: 'accepted' });
+        const own = (await alice.post('/api/schedules').send({ title: 'My classes' })).body.schedule;
+        await alice.post(`${base(own)}/entries`).send(classBody(CLASSES[0]));
+        await alice.post(`${base(own)}/share`).send({ userId: fay.id, role: 'viewer' });
+        await fay.put(`${mine(own)}/setup`).send({ taking: [] });
+        expect(await classChoiceModel.countDocuments({})).toBe(1);
+        expect((await alice.post(`${base(own)}/make-private`)).status).toBe(200);
+        expect(await classChoiceModel.countDocuments({})).toBe(0);
     });
 });

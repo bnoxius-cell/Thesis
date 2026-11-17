@@ -4,7 +4,8 @@ import scheduleModel, { personalTimetables, MAX_ENTRIES } from '../models/schedu
 import { SUBJECT_LIMITS } from '../models/subjectModel.js';
 import { activeSubjects, courseKey, entrySubjectFor, matchesLabel } from './subjectMatch.js';
 import { planNewSubject, createPlannedSubject, capMessage } from '../controllers/subjectController.js';
-import { mainScheduleOrNew } from './mainTimetable.js';
+import { ensureMainSchedule, mainScheduleOrNew } from './mainTimetable.js';
+import { withUserLock } from './userLock.js';
 import { memberIds, describeEntry, recordChangeUpdate } from './timetableChanges.js';
 
 // A member's own layer over a timetable shared with them (plan 40, 2.4). Following a class is the default and
@@ -39,14 +40,6 @@ const COPY_FIELDS = [
     'title', 'kind', 'days', 'date', 'startDate', 'endDate', 'startTime', 'endTime',
     'location', 'meetingUrl', 'notes', 'color', 'icon', 'image', 'skipOnHoliday', 'prepHours',
 ];
-
-// Two classes are the same when they have the same name, kind and times: a customize retry reuses the copy.
-const sameClass = (a, b) => a.title === b.title && a.kind === b.kind && (a.date || '') === (b.date || '')
-    && (a.days || []).join() === (b.days || []).join() && a.startTime === b.startTime && a.endTime === b.endTime;
-
-const sameClassFilter = (entry) => ({
-    title: entry.title, kind: entry.kind, date: entry.date || '', days: entry.days || [], startTime: entry.startTime, endTime: entry.endTime,
-});
 
 // ---- Reading a member's layer --------------------------------------------------------------------------------
 
@@ -155,16 +148,30 @@ export const applyChoices = (schedules, layers) => {
     }
 };
 
+// Of `rows` ([{ user, choice }], several members' choices on one timetable), the customized ones whose copy is
+// still in that member's own timetable, in one query.
+const withLiveCopies = async (rows) => {
+    const custom = rows.filter(({ choice }) => choice.choice === 'custom' && choice.copy);
+    if (!custom.length) return [];
+    const kept = await scheduleModel
+        .find({ _id: { $in: custom.map(({ choice }) => choice.copy.schedule) }, group: null })
+        .select('owner entries._id')
+        .lean();
+    return custom.filter(({ user, choice }) => kept.some((s) => String(s._id) === String(choice.copy.schedule)
+        && String(s.owner) === user && s.entries.some((e) => String(e._id) === String(choice.copy.entry))));
+};
+
+const rowsOf = (docs, keep) => docs.flatMap((doc) => doc.choices.filter(keep).map((choice) => ({ user: String(doc.user), choice })));
+
 // How many members use their own time for each class, for the people who edit the timetable. Counts only,
-// never names (owner, Q10).
+// never names (owner, Q10). A copy the member has since deleted doesn't count.
 export const customCounts = async (scheduleId) => {
-    const rows = await classChoiceModel.aggregate([
-        { $match: { schedule: asId(scheduleId) } },
-        { $unwind: '$choices' },
-        { $match: { 'choices.choice': 'custom' } },
-        { $group: { _id: '$choices.entry', n: { $sum: 1 } } },
-    ]);
-    return new Map(rows.map((r) => [String(r._id), r.n]));
+    const docs = await classChoiceModel.find({ schedule: scheduleId, 'choices.choice': 'custom' }).select('user choices').lean();
+    const counts = new Map();
+    for (const { choice } of await withLiveCopies(rowsOf(docs, (c) => c.choice === 'custom'))) {
+        counts.set(String(choice.entry), (counts.get(String(choice.entry)) ?? 0) + 1);
+    }
+    return counts;
 };
 
 // Who hears about a change to one class of a shared timetable (`entry` as it is after the change, or as it
@@ -178,17 +185,9 @@ export const changeAudience = async (schedule, entry, { removed = false } = {}) 
         .lean();
     if (!docs.length) return null;
 
-    const choices = docs.map((doc) => ({ user: String(doc.user), choice: doc.choices.find((c) => String(c.entry) === String(entry._id)) }));
-    const copies = choices.filter(({ choice }) => choice.choice === 'custom' && choice.copy).map(({ choice }) => choice.copy);
-    const kept = copies.length
-        ? await scheduleModel.find({ _id: { $in: copies.map((c) => c.schedule) }, group: null }).select('owner entries._id').lean()
-        : [];
-    const hasCopy = (user, copy) => kept.some((s) => String(s._id) === String(copy.schedule) && String(s.owner) === user
-        && s.entries.some((e) => String(e._id) === String(copy.entry)));
-
-    const skipped = new Set(choices.map((c) => c.user));
-    const customizers = choices
-        .filter(({ user, choice }) => choice.choice === 'custom' && choice.copy && hasCopy(user, choice.copy))
+    const rows = rowsOf(docs, (c) => String(c.entry) === String(entry._id));
+    const skipped = new Set(rows.map((r) => r.user));
+    const customizers = (await withLiveCopies(rows))
         .filter(({ choice }) => removed || !sameBase(entry, choice.base))
         .map(({ user }) => user);
     return {
@@ -241,34 +240,41 @@ const writeChoices = async ({ scheduleId, userId, replace = [], add = [], liveId
 
 const entryIdsOf = (schedule) => schedule.entries.map((e) => String(e._id));
 
-// Removes the member's own copy of a class from their timetable (a live one logs it).
-const removeCopy = async (userId, copy) => {
+// Removes the member's own copy of shared class `entryId` from their timetable (a live one logs it). Only an
+// entry marked as that class's copy is removed, never a class the member added themselves.
+const removeCopy = async (userId, copy, entryId) => {
+    const marked = { _id: asId(copy.entryId), copyOf: asId(entryId) };
     const filter = { _id: copy.scheduleId, ...personalTimetables(userId) };
-    const timetable = await scheduleModel.findOne({ ...filter, 'entries._id': copy.entryId }).lean();
+    const timetable = await scheduleModel.findOne({ ...filter, entries: { $elemMatch: marked } }).lean();
     if (!timetable) return;
     const entry = timetable.entries.find((e) => String(e._id) === copy.entryId);
     const { push, announce } = await recordChangeUpdate(timetable, userId, `removed ${describeEntry(entry)}`);
     // The pull shifts entry positions, so it bumps the version (as removeClassTimes does).
-    await scheduleModel.updateOne(filter, { $pull: { entries: { _id: asId(copy.entryId) } }, $inc: { __v: 1 }, ...push });
+    await scheduleModel.updateOne(filter, { $pull: { entries: marked }, $inc: { __v: 1 }, ...push });
     await announce();
 };
 
-// "I take this" (follow) or "Not taking this" (hidden). Following a class the member customized ("Use the
-// group's", or "Remove mine" once the group removed it) deletes their copy.
+// "I take this" (follow) or "Not taking this" (hidden). Either one on a class the member customized deletes
+// their copy: "Use the group's", "Remove mine" once the group removed it, or not taking it at all.
 export const setChoice = async (userId, schedule, layer, entryId, choice) => {
     const current = layer.byEntry.get(entryId);
-    if (choice === 'follow' && current?.myChoice === 'custom') await removeCopy(userId, current.copy);
+    if (current?.myChoice === 'custom') await removeCopy(userId, current.copy, entryId);
     await writeChoices({
         scheduleId: schedule._id, userId, replace: [entryId], liveIds: entryIdsOf(schedule),
         add: choice === 'hidden' ? [{ entry: asId(entryId), choice: 'hidden', copy: null, base: null }] : [],
     });
 };
 
-// The join checklist: every class not in `taking` is hidden, a hidden class in it is followed again, and a
-// customized class the member still takes stays theirs. Other kinds of entries keep their choices.
+// The join checklist: every class not in `taking` is hidden (a customized one loses its copy), a hidden class in
+// it is followed again, and a customized class the member still takes stays theirs. Other kinds of entries keep
+// their choices.
 export const setUp = async (userId, schedule, layer, taking) => {
     const classIds = schedule.entries.filter((e) => e.kind === 'class').map((e) => String(e._id));
-    const keep = new Set(classIds.filter((id) => taking.has(id) && layer.byEntry.get(id)?.myChoice === 'custom'));
+    const customized = (id) => layer.byEntry.get(id)?.myChoice === 'custom';
+    for (const id of classIds.filter((i) => !taking.has(i) && customized(i))) {
+        await removeCopy(userId, layer.byEntry.get(id).copy, id);
+    }
+    const keep = new Set(classIds.filter((id) => taking.has(id) && customized(id)));
     await writeChoices({
         scheduleId: schedule._id, userId, liveIds: entryIdsOf(schedule), setupAt: new Date(),
         replace: classIds.filter((id) => !keep.has(id)),
@@ -287,10 +293,9 @@ export const keepMine = async (userId, schedule, layer, entryId) => {
     });
 };
 
-// The member's subjects for the classes about to be copied: an existing one of the same name or code, or a new
-// one (plan 34 rule 1). All new names are checked, and the cap of 30 counted, before any is created, so a
-// refusal creates nothing. Returns { subjects } (the member's active subjects, new ones included) or { error }.
-const subjectsForCopies = async (userId, entries) => {
+// The new subjects the copies need (plan 34 rule 1: a class links to the member's subject of that name, made if
+// missing), checked without writing: { subjects (active), names (to create) } or { error }.
+const planSubjects = async (userId, entries) => {
     const subjects = await activeSubjects(userId).lean();
     const planned = new Map();
     for (const entry of entries) {
@@ -299,16 +304,14 @@ const subjectsForCopies = async (userId, entries) => {
         if (planned.has(key)) continue;
         const plan = await planNewSubject(userId, entry.title);
         if (plan.error) return { error: plan.error };
-        planned.set(key, plan);
+        planned.set(key, plan.name);
     }
     if (subjects.length + planned.size > SUBJECT_LIMITS.maxActive) return { error: capMessage() };
-    for (const plan of planned.values()) {
-        subjects.push(await createPlannedSubject(userId, { name: plan.name, subjects }));
-    }
-    return { subjects };
+    return { subjects, names: [...planned.values()] };
 };
 
-// The member's own copy of a shared class: a class titled with their subject's name and linked to it.
+// The member's own copy of a shared class: a class titled with their subject's name, linked to it, and marked
+// as the copy of that class.
 const copyOf = (entry, subjects) => {
     const subject = entrySubjectFor(entry, subjects);
     const fields = Object.fromEntries(COPY_FIELDS.filter((key) => entry[key] !== undefined).map((key) => [key, entry[key]]));
@@ -316,31 +319,37 @@ const copyOf = (entry, subjects) => {
         ...fields,
         ...(entry.kind === 'class' && subject && { title: subject.name }),
         subject: subject ? subject._id : null,
+        copyOf: asId(entry._id),
     };
 };
 
 const COPY_TRIES = 3;
 const ENTRY_CAP = `A schedule can hold up to ${MAX_ENTRIES} entries.`;
 
-// Puts copies of `entries` into the member's main timetable in one write, reusing a class that is already there
-// (a retry makes no second copy), and returns each new copy's id by shared entry id, or { error }. The write
-// only lands while the timetable has room and none of the new classes is in it yet; otherwise it reads again.
-const placeCopies = async (userId, copies) => {
+// The member's main timetable as it is now (null when they have none yet), the marked copies already in it by
+// shared entry id (a retry makes no second copy), and which of `entryIds` still need one.
+const readMain = async (userId, entryIds) => {
+    const id = await ensureMainSchedule(userId);
+    const main = id && await scheduleModel.findById(id).lean();
+    const copies = new Map((main?.entries ?? []).filter((e) => e.copyOf).map((e) => [String(e.copyOf), String(e._id)]));
+    return { main, copies, missing: entryIds.filter((entryId) => !copies.has(entryId)) };
+};
+
+// Puts copies of `entries` into the member's main timetable in one write, and returns each copy's id by shared
+// entry id, or { error }. The write only lands while the timetable has room and none of the new copies is in it
+// yet; otherwise it reads again.
+const placeCopies = async (userId, entries, subjects) => {
+    const entryIds = entries.map((e) => String(e._id));
     for (let attempt = 0; attempt < COPY_TRIES; attempt += 1) {
-        const main = await mainScheduleOrNew(userId);
-        const placed = new Map();
-        const fresh = [];
-        for (const [entryId, copy] of copies) {
-            const existing = main.entries.find((e) => sameClass(e, copy));
-            if (existing) {
-                placed.set(entryId, String(existing._id));
-            } else {
-                const _id = new mongoose.Types.ObjectId();
-                fresh.push({ ...copy, _id });
-                placed.set(entryId, String(_id));
-            }
-        }
-        if (main.entries.length + fresh.length > MAX_ENTRIES) return { error: ENTRY_CAP };
+        const { main: existing, copies, missing } = await readMain(userId, entryIds);
+        const main = existing ?? (await mainScheduleOrNew(userId)).toObject();
+        if (main.entries.length + missing.length > MAX_ENTRIES) return { error: ENTRY_CAP };
+        const placed = new Map(entryIds.filter((id) => copies.has(id)).map((id) => [id, copies.get(id)]));
+        const fresh = entries.filter((e) => missing.includes(String(e._id))).map((e) => {
+            const copy = { ...copyOf(e, subjects), _id: new mongoose.Types.ObjectId() };
+            placed.set(String(e._id), String(copy._id));
+            return copy;
+        });
         if (!fresh.length) return { scheduleId: String(main._id), placed };
 
         const added = fresh.length === 1 ? describeEntry(fresh[0]) : `${fresh.length} classes`;
@@ -350,7 +359,7 @@ const placeCopies = async (userId, copies) => {
                 _id: main._id,
                 ...personalTimetables(userId),
                 [`entries.${MAX_ENTRIES - fresh.length}`]: { $exists: false },
-                $nor: fresh.map((copy) => ({ entries: { $elemMatch: sameClassFilter(copy) } })),
+                'entries.copyOf': { $nin: fresh.map((copy) => copy.copyOf) },
             },
             { $push: { entries: { $each: fresh }, ...push.$push } },
         );
@@ -364,11 +373,18 @@ const placeCopies = async (userId, copies) => {
 
 // "Customize mine" (one class) or "Make it all mine" (several): copies the classes into the member's own main
 // timetable, linked to their subjects, and marks them customized. Returns { scheduleId, placed } (copy entry id
-// by shared entry id) or { error } with nothing written.
-export const customizeClasses = async (userId, schedule, entries) => {
-    const { subjects, error } = await subjectsForCopies(userId, entries);
-    if (error) return { error };
-    const result = await placeCopies(userId, new Map(entries.map((e) => [String(e._id), copyOf(e, subjects)])));
+// by shared entry id) or { error }. Every check (names, the subject cap, room in the timetable) runs before the
+// first write, so a refusal writes nothing. One member's customizes run one at a time (withUserLock), so two at
+// once can't both make the same subject or the same copy.
+export const customizeClasses = (userId, schedule, entries) => withUserLock(`customize:${userId}`, async () => {
+    const plan = await planSubjects(userId, entries);
+    if (plan.error) return plan;
+    const { main, missing } = await readMain(userId, entries.map((e) => String(e._id)));
+    if ((main?.entries.length ?? 0) + missing.length > MAX_ENTRIES) return { error: ENTRY_CAP };
+
+    const { subjects } = plan;
+    for (const name of plan.names) subjects.push(await createPlannedSubject(userId, { name, subjects }));
+    const result = await placeCopies(userId, entries, subjects);
     if (result.error) return result;
     await writeChoices({
         scheduleId: schedule._id, userId, replace: [...result.placed.keys()], liveIds: entryIdsOf(schedule),
@@ -380,7 +396,14 @@ export const customizeClasses = async (userId, schedule, entries) => {
         })),
     });
     return result;
-};
+});
+
+// Matches an entry still holding `base`. An empty value also matches a field the entry doesn't have (older
+// entries), since `base` stores '' and [] for those.
+const baseMatch = (base) => Object.fromEntries(BASE_FIELDS.map((key) => {
+    const empty = key === 'days' ? !base.days?.length : !base[key];
+    return [key, empty ? { $in: [key === 'days' ? [] : '', null] } : base[key]];
+}));
 
 // An editor's "Publish my version": their copy's days, date, times, place and link become the shared class's,
 // only while the shared class still is what they customized. Then the copy and the choice go, so they follow
@@ -397,13 +420,13 @@ export const publishCopy = async (userId, schedule, layer, entryId) => {
     const audience = await changeAudience(schedule, after);
     const { push, announce } = await recordChangeUpdate(schedule, userId, `edited ${describeEntry(shared)}`, { audience });
     const { matchedCount } = await scheduleModel.updateOne(
-        { _id: schedule._id, entries: { $elemMatch: { _id: asId(entryId), ...choice.base } } },
+        { _id: schedule._id, entries: { $elemMatch: { _id: asId(entryId), ...baseMatch(choice.base) } } },
         { $set: Object.fromEntries(BASE_FIELDS.map((key) => [`entries.$[e].${key}`, values[key]])), ...push },
         { arrayFilters: [{ 'e._id': asId(entryId) }] },
     );
     if (matchedCount !== 1) return { conflict: true };
     await announce();
-    await removeCopy(userId, choice.copy);
+    await removeCopy(userId, choice.copy, entryId);
     await writeChoices({ scheduleId: schedule._id, userId, replace: [entryId], liveIds: entryIdsOf(schedule) });
     return { conflict: false };
 };

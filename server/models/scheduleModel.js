@@ -38,6 +38,10 @@ export const entrySchema = new mongoose.Schema({
     icon: { type: String, default: '' },
     image: { type: String, default: '' },
     skipOnHoliday: { type: Boolean, default: true },
+    // Set on a member's own copy of a class from a timetable shared with them ("Customize mine"): the shared
+    // class's entry id. Only a marked copy is ever reused or removed for that class (utils/classChoices.js), so a
+    // class the student added themselves is never taken for one.
+    copyOf: { type: mongoose.Schema.Types.ObjectId, default: null },
 });
 
 const holidayOverrideSchema = new mongoose.Schema({
