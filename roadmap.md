@@ -4,7 +4,15 @@ The only list of open work, in order (reorganized 2026-11-14). Owner priority #1
 
 Every batch: branch off `main`, builder runs `npm test` in `server/` and `npm run build` in `client/`, tester after, merge. "Start" is the builder to start with; step up only after a failed test. "Figma" means the frame is drawn (design skills loaded) and approved by the owner before the builder starts. Every push to `production` needs a What's new note first.
 
-## Open work, in order (reordered 2026-11-15: easiest first, grouped by feature; the 2026-11-14 order no longer applies)
+## PRIORITY NOW (owner 2026-11-17): three features before the defense
+Everything else in this file is pushed back until after the defense. Plan: `.claude/docs/plans/40-group-collab-sharing-rollover-plan.md` (being written; batches and order go here once the owner answers its open decisions).
+- **P1. Group workspace with live editing:** a group gets a shared schedule and shared tasks; any member (by role) edits a task and it changes for the whole group, like live editing in Google Docs.
+- **P2. Share everything into a group:** tasks, schedules, courses (subjects), reviewers, flashcards, and files. A file sent in the chat can be downloaded to the device, or saved into the receiver's own StressCare storage. Folds in `next-prompt.md` (chat sharing, CH2 to CH7).
+- **P3. New-semester schedule editing:** a fast way to replace or roll over the schedule with new courses when the semester ends.
+- Already built and merged stays: nothing below gets deleted. Only unfinished items wait. Frames already drawn (F38, F39, plan 34, plan 35) keep their Figma nodes for later.
+
+## PUSHED BACK UNTIL AFTER THE DEFENSE (owner 2026-11-17): the whole list below, groups A to L, E3 and E4 included
+Open work, in order (reordered 2026-11-15: easiest first, grouped by feature; the 2026-11-14 order no longer applies). Nothing here gets built before P1 to P3 are done, unless the owner says so. In flight at the pause: E3 C2 and P2 wait on the owner's approval of frames F39-3 to F39-5; the Study frames F38 wait on approval; the Atlas and owner tasks at the bottom still stand.
 
 Each group is one feature area, so a builder (and a Figma sitting) touches the same files once. Groups run from the easiest to the hardest; inside a group, the first item is the easiest. Dark mode stays last on purpose. Done so far and not listed here: colour 60/30/10 (merged, blue palette, soft sidebar; tester consistency pass running 2026-11-15), delete one notification, plan 34 S1a, S1b, M1, C5 and C6a. Items marked **[you decide]** wait on an answer from the owner: they are collected in "Decisions waiting on you" below.
 
