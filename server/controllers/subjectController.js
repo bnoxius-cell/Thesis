@@ -7,9 +7,11 @@ import fileModel from '../models/fileModel.js';
 import flashcardDeckModel from '../models/flashcardDeckModel.js';
 import { isId, serverError } from '../utils/httpErrors.js';
 import { filesChoice, releasePlaceFiles, removePlaceFiles } from '../utils/placeFiles.js';
-import { courseKey, activeSubjects, matchesLabel } from '../utils/subjectMatch.js';
+import { courseKey, activeSubjects, matchesLabel, sameNameTaken } from '../utils/subjectMatch.js';
 import { linkMatchingItems, relabelLinkedItems, unlinkItems } from '../utils/subjectCascade.js';
 import { linkClassTimes, renameClassTimes, removeClassTimes } from '../utils/subjectClassTimes.js';
+import * as subjectArchive from '../utils/subjectArchive.js';
+import { applyNewTerm } from '../utils/newTerm.js';
 
 const MAX_SUGGESTIONS = 15;
 const SUGGESTED_ENTRY_KINDS = ['class', 'exam'];
@@ -60,16 +62,11 @@ export const publicSubject = (subject, counts, { withNotes = false } = {}) => ({
     color: subject.color,
     order: subject.order,
     archivedAt: subject.archivedAt,
+    // What an archived subject gets back when it is restored.
+    ...(subject.archivedAt ? { pastClassTimes: subject.pastClassTimes } : {}),
     counts: counts || { ...EMPTY_COUNTS },
     ...(withNotes ? { notes: subject.notes || '' } : {}),
 });
-
-const sameNameTaken = async (owner, name, exceptId = null) => {
-    const key = courseKey(name);
-    if (!key) return null;
-    const subjects = await activeSubjects(owner);
-    return subjects.find((s) => String(s._id) !== String(exceptId) && courseKey(s.name) === key) || null;
-};
 
 // Checks the fields that were sent. `partial` is true for a PATCH.
 export const readFields = (body, { partial }) => {
@@ -304,5 +301,52 @@ export const deleteSubject = async (req, res) => {
         res.json({ success: true, removedClassTimes });
     } catch (error) {
         serverError(res, 'deleteSubject error', error);
+    }
+};
+
+const countedSubject = async (owner, subject) => {
+    const counts = await countsFor(owner, [subject._id]);
+    return publicSubject(subject, counts.get(String(subject._id)));
+};
+
+const refused = (res, { error, status }) => bad(res, error, status);
+
+export const archiveSubject = async (req, res) => {
+    try {
+        const subject = await findOwned(req);
+        if (!subject) return notFound(res);
+        const result = await subjectArchive.archiveSubject(req.userId, subject);
+        if (result.error) return refused(res, result);
+        res.json({ success: true, subject: await countedSubject(req.userId, result.subject) });
+    } catch (error) {
+        serverError(res, 'archiveSubject error', error);
+    }
+};
+
+export const restoreSubject = async (req, res) => {
+    try {
+        const subject = await findOwned(req);
+        if (!subject) return notFound(res);
+        const { subject: restored, ...result } = await subjectArchive.restoreSubject(req.userId, subject);
+        if (result.error) return refused(res, result);
+        res.json({ success: true, subject: await countedSubject(req.userId, restored), ...result });
+    } catch (error) {
+        serverError(res, 'restoreSubject error', error);
+    }
+};
+
+// POST /api/subjects/new-term: see utils/newTerm.js for the body.
+export const newTerm = async (req, res) => {
+    try {
+        const result = await applyNewTerm(req.userId, req.body, { readFields, insertSubject });
+        if (result.error) return refused(res, result);
+        const counts = await countsFor(req.userId, result.subjects.map((s) => s._id));
+        res.json({
+            success: true,
+            ...result,
+            subjects: result.subjects.map((s) => publicSubject(s, counts.get(String(s._id)))),
+        });
+    } catch (error) {
+        serverError(res, 'newTerm error', error);
     }
 };

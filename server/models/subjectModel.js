@@ -1,8 +1,23 @@
 import mongoose from 'mongoose';
+import { MAX_MEETING_URL } from './scheduleModel.js';
 
 // The colour keys match the --subject-<key> tokens in client/src/styles/tokens.css.
 export const SUBJECT_COLORS = ['blue', 'teal', 'green', 'olive', 'amber', 'orange', 'violet', 'slate'];
 export const SUBJECT_LIMITS = { name: 80, code: 20, term: 40, maxActive: 30, notes: 20000 };
+export const MAX_PAST_CLASS_TIMES = 20;
+
+// A class time an archived subject had in the student's timetable, kept so restoring the subject can put it back.
+const pastClassTimeSchema = new mongoose.Schema({
+    days: { type: [Number], default: [] },
+    date: { type: String, default: '' },
+    startTime: { type: String, required: true },
+    endTime: { type: String, required: true },
+    location: { type: String, default: '', maxlength: 80 },
+    meetingUrl: { type: String, default: '', maxlength: MAX_MEETING_URL },
+    startDate: { type: String, default: '' },
+    endDate: { type: String, default: '' },
+    notes: { type: String, default: '', maxlength: 300 },
+}, { _id: false });
 
 // A class the student studies for. Tasks and reviewers point at it with an optional `subject`
 // id; their `course` text stays as the display label and as the fallback for unlinked items.
@@ -15,8 +30,14 @@ const subjectSchema = new mongoose.Schema({
     order: { type: Number, default: 0 },
     // One plain-text page of notes for the subject.
     notes: { type: String, default: '', maxlength: SUBJECT_LIMITS.notes },
-    // Set when a term ends (a later batch); archived subjects don't count toward the cap.
+    // Set when a term ends; archived subjects don't count toward the cap.
     archivedAt: { type: Date, default: null },
+    // Filled while archived: the subject's class times, taken out of the timetable and put back on restore.
+    pastClassTimes: {
+        type: [pastClassTimeSchema],
+        default: [],
+        validate: { validator: (times) => times.length <= MAX_PAST_CLASS_TIMES, message: 'Too many past class times.' },
+    },
     canvasCourseId: { type: String, default: null },
 }, { timestamps: true });
 
