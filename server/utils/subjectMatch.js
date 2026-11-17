@@ -19,6 +19,14 @@ export const matchesLabel = (subject, label) => {
 
 export const activeSubjects = (owner) => subjectModel.find({ owner, archivedAt: null }).select('-notes').sort({ order: 1, createdAt: 1 });
 
+// The owner's active subject with this name (spelled any way courseKey ignores), other than `exceptId`.
+export const sameNameTaken = async (owner, name, exceptId = null) => {
+    const key = courseKey(name);
+    if (!key) return null;
+    const subjects = await activeSubjects(owner);
+    return subjects.find((s) => String(s._id) !== String(exceptId) && courseKey(s.name) === key) || null;
+};
+
 // Works out which subject a task or reviewer should carry from a request body.
 //  - `subject` is an id: it must be the caller's own, active subject (otherwise `error`).
 //  - `subject` is null or '': the item is unlinked.
