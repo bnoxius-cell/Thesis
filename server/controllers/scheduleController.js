@@ -18,6 +18,11 @@ import { isId, isStaleSave, serverError } from '../utils/httpErrors.js';
 import { activeSubjects, entrySubjectFor, resolveItemSubject } from '../utils/subjectMatch.js';
 import { withViewerSubjects } from '../utils/entrySubjects.js';
 import { planNewSubject, createPlannedSubject, publicSubject } from './subjectController.js';
+import { ensureMainSchedule, mainScheduleOrNew } from '../utils/mainTimetable.js';
+import {
+    hasLayer, choicesFor, layerOf, entryLayer, myClassesOf, applyChoices, customCounts, changeAudience,
+    forgetChoices, forgetTimetables,
+} from '../utils/classChoices.js';
 
 // A save that lost a race with another edit answers 409 so the page can reload, not a generic 500.
 const scheduleError = (res, label, error) => {
@@ -54,7 +59,7 @@ const createUniqueShareCode = async () => {
 
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
 
-const roleOf = (schedule, userId) => {
+export const roleOf = (schedule, userId) => {
     // `owner` is a populated document in list results and a bare id everywhere else.
     if ((schedule.owner._id ?? schedule.owner).toString() === userId) return 'owner';
     const member = schedule.collaborators.find((c) => (c.user._id ?? c.user).toString() === userId);
@@ -112,19 +117,6 @@ const loadSchedule = async (req, res, need) => {
     return { schedule, role };
 };
 
-// Everyone with schedules has exactly one main. Accounts from before that rule may have several
-// and none marked, so the oldest one is promoted the first time it matters.
-const ensureMainSchedule = async (userId) => {
-    const owned = await scheduleModel.find(personalTimetables(userId)).select('isMain createdAt').sort({ createdAt: 1, _id: 1 });
-    if (!owned.length) return null;
-    const mains = owned.filter((s) => s.isMain);
-    if (mains.length === 1) return mains[0]._id;
-    const keep = mains[0] || owned[0];
-    await scheduleModel.updateMany({ ...personalTimetables(userId), _id: { $ne: keep._id } }, { isMain: false });
-    await scheduleModel.updateOne({ _id: keep._id }, { isMain: true, countInWorkload: true });
-    return keep._id;
-};
-
 const PERSON_FIELDS = 'name avatar profileTag';
 
 // The group a timetable belongs to, as { _id, name } (name only when `group` is populated), or null.
@@ -142,6 +134,17 @@ const serialize = async (schedule, role, viewerId = '') => {
     // Every entry's subject becomes the viewer's own (or null), never the stored id of someone else.
     const subjectViewer = role === 'owner' ? String(schedule.owner._id ?? schedule.owner) : viewerId;
     plain.entries = withViewerSubjects(plain, subjectViewer, subjectViewer ? await activeSubjects(subjectViewer).lean() : []);
+    // The caller's own layer (what they follow, hid or customized), and for its editors how many members use
+    // their own time for each class (counts only, never names).
+    if (subjectViewer && hasLayer(schedule, role)) {
+        const layer = await layerOf(subjectViewer, schedule);
+        plain.entries = plain.entries.map((entry) => ({ ...entry, ...entryLayer(layer, entry) }));
+        plain.myClasses = myClassesOf(plain, layer);
+    }
+    if (CAN.edit.includes(role) && schedule.collaborators.length) {
+        const counts = await customCounts(schedule._id);
+        plain.entries = plain.entries.map((entry) => ({ ...entry, ownTimeCount: counts.get(String(entry._id)) ?? 0 }));
+    }
     plain.role = role;
     plain.group = groupOf(schedule);
     plain.live = isLive(schedule);
@@ -404,6 +407,7 @@ export const deleteSchedule = async (req, res) => {
         const title = schedule.title;
         const wasLive = isLive(schedule);
         await schedule.deleteOne();
+        await forgetTimetables([schedule._id]);
         if (wasLive) {
             const owner = await userModel.findById(req.userId).select('name');
             await notify({
@@ -519,22 +523,6 @@ export const addEntry = async (req, res) => {
     }
 };
 
-const MAIN_SCHEDULE_TITLE = 'My timetable';
-
-// The caller's main timetable, created when they have none yet.
-const mainScheduleOrNew = async (userId) => {
-    const existingId = await ensureMainSchedule(userId);
-    if (existingId) return scheduleModel.findById(existingId);
-
-    try {
-        return await scheduleModel.create({ title: MAIN_SCHEDULE_TITLE, owner: userId, isMain: true });
-    } catch (error) {
-        // Another request made the first timetable at the same moment: use that one.
-        if (error.code !== 11000) throw error;
-        return scheduleModel.findById(await ensureMainSchedule(userId));
-    }
-};
-
 // POST /api/schedules/main/entries: adds a class, exam or event to the caller's main timetable in
 // one request, creating the timetable first when they have none.
 export const addMainEntry = async (req, res) => {
@@ -564,7 +552,9 @@ export const updateEntry = async (req, res) => {
         // `entry` carries no subject, so `set` keeps the stored link unless the owner changed it above.
         existing.set(entry);
         if (link !== undefined) existing.subject = linkId(link);
-        const announce = await recordChange(schedule, req.userId, `edited ${describeEntry(entry)}${renamed}`);
+        // Only a live timetable announces changes, so only then is it worth working out who hears.
+        const audience = isLive(schedule) ? await changeAudience(schedule, existing) : null;
+        const announce = await recordChange(schedule, req.userId, `edited ${describeEntry(entry)}${renamed}`, { audience });
         await schedule.save();
         await announce();
         res.json({
@@ -586,8 +576,9 @@ export const deleteEntry = async (req, res) => {
         const existing = schedule.entries.id(req.params.entryId);
         if (!existing) return fail(res, 404, 'Entry not found');
         const removedTitle = existing.title;
+        const audience = isLive(schedule) ? await changeAudience(schedule, existing, { removed: true }) : null;
         existing.deleteOne();
-        const announce = await recordChange(schedule, req.userId, `removed ${describeEntry({ title: removedTitle })}`);
+        const announce = await recordChange(schedule, req.userId, `removed ${describeEntry({ title: removedTitle })}`, { audience });
         await schedule.save();
         await announce();
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
@@ -881,8 +872,9 @@ export const importSchedule = async (req, res) => {
 };
 
 // The timetables that count in the caller's week, ready to read: holidays resolved, the caller's role and
-// their own subject on each entry, owned ones first. `startIso` to `endIso` is the range holidays are
-// looked up for; a failed lookup only means public holidays are missing.
+// their own subject on each entry, their own layer applied to shared ones (classes they hid or customized
+// left out), personal ones first. `startIso` to `endIso` is the range holidays are looked up for; a failed
+// lookup only means public holidays are missing.
 const countedSchedules = async (userId, startIso, endIso) => {
     // The main schedule always counts. Extras count unless the student turned them off.
     await ensureMainSchedule(userId);
@@ -894,6 +886,7 @@ const countedSchedules = async (userId, startIso, endIso) => {
                 { collaborators: { $elemMatch: { user: userId, countInWorkload: true } } },
             ],
         })
+        .populate('group', 'name')
         .lean();
 
     // One holiday lookup per year the range touches.
@@ -914,8 +907,12 @@ const countedSchedules = async (userId, startIso, endIso) => {
         s.role = roleOf(s, userId);
         s.entries = withViewerSubjects(s, userId, mySubjects);
     });
-    // Owned first, so a class copied into two timetables keeps the copy the student can edit.
-    return schedules.sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role));
+    // Only a student who counts a shared timetable has choices to read.
+    const layered = schedules.filter((s) => hasLayer(s, s.role));
+    if (layered.length) applyChoices(schedules, await choicesFor(userId, layered.map((s) => s._id)));
+    // Personal first, so a class copied into two timetables keeps the copy the student can edit.
+    const rank = (s) => (s.role === 'owner' && !s.group ? 0 : 1 + ROLE_ORDER.indexOf(s.role));
+    return schedules.sort((a, b) => rank(a) - rank(b));
 };
 
 // GET /api/schedules/week?start=YYYY-MM-DD
@@ -1078,6 +1075,7 @@ export const removeCollaborator = async (req, res) => {
         const wasEditor = schedule.collaborators[index].role === 'editor';
         schedule.collaborators.splice(index, 1);
         await schedule.save();
+        await forgetChoices(schedule._id, userId);
         if (!leaving) {
             await notify({
                 recipients: [userId], sender: req.userId, type: 'schedule_share',
@@ -1136,6 +1134,7 @@ export const makePrivate = async (req, res) => {
         schedule.collaborators = [];
         schedule.shareCode = undefined;
         await schedule.save();
+        await forgetChoices(schedule._id);
         if (removed.length) {
             const owner = await userModel.findById(req.userId).select('name');
             await notify({
@@ -1241,7 +1240,7 @@ export const duplicateSchedule = async (req, res) => {
             title,
             owner: req.userId,
             theme: source.theme,
-            entries: source.entries.map(({ _id, ...rest }) => rest),
+            entries: source.entries.map(({ _id, copyOf, ...rest }) => rest),
             holidayOverrides: source.holidayOverrides,
             // A copy of someone else's timetable is usually the user's own week too.
             countInWorkload: true,

@@ -3,6 +3,7 @@ import groupModel from '../models/groupMode.js';
 import scheduleModel from '../models/scheduleModel.js';
 import { isMember, isAdmin, isOwner, sameId } from './groupRoles.js';
 import { hit } from './rateLimit.js';
+import { forgetTimetables } from './classChoices.js';
 
 // Who may change the group's own copy of its plan (owner, 2026-11-17: admins only).
 //   'editor'  the owner and admins
@@ -104,6 +105,7 @@ const syncOnce = async (groupId, loaded) => {
     if (!group) {
         // The group was deleted while its timetable was being made: nobody should keep it.
         await scheduleModel.deleteOne({ _id: timetable._id, group: groupId });
+        await forgetTimetables([timetable._id]);
         return true;
     }
     const people = timetablePeople(group);

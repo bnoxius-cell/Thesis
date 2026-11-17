@@ -8,6 +8,7 @@ import {
 } from '../utils/groupPlan.js';
 import { readTaskEdit, editGroupTask, isPlainObject } from '../utils/groupTaskEdit.js';
 import { seen, present } from '../utils/presence.js';
+import { myClassesFor } from '../utils/classChoices.js';
 import { isMember, sameId } from '../utils/groupRoles.js';
 import { containsProfanity } from '../utils/familyFilter.js';
 import { isId, serverError } from '../utils/httpErrors.js';
@@ -44,11 +45,13 @@ const loadGroupForEditor = async (req, res) => {
     return group;
 };
 
-// What the plan shows about the group's timetable; the entries themselves load on the timetable's own page.
-const TIMETABLE_SUMMARY_FIELDS = 'title theme owner group isMain countInWorkload collaborators shareCode entries._id updatedAt';
+// What the plan shows about the group's timetable, plus the class fields the caller's notices are worked out
+// from; the entries themselves load on the timetable's own page.
+const TIMETABLE_SUMMARY_FIELDS = 'title theme owner group isMain countInWorkload collaborators shareCode updatedAt '
+    + 'entries._id entries.title entries.days entries.date entries.startTime entries.endTime entries.location entries.meetingUrl';
 
-// GET /:groupId/plan  Members only. The whole group plan: its tasks and a summary of its timetable
-// (null until an admin makes one).
+// GET /:groupId/plan  Members only. The whole group plan: its tasks, a summary of its timetable (null until an
+// admin makes one) and `myClasses`, what the caller does differently on it (utils/classChoices.js).
 export const getPlan = async (req, res) => {
     try {
         const group = await loadGroupForMember(req, res);
@@ -65,6 +68,7 @@ export const getPlan = async (req, res) => {
             role: planRole(group, req.userId),
             tasks,
             timetable: timetable && summarizeFor(timetable, req.userId),
+            myClasses: timetable && await myClassesFor(req.userId, timetable),
         });
     } catch (error) {
         serverError(res, 'getPlan error', error);

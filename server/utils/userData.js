@@ -10,6 +10,7 @@ import scheduleModel from '../models/scheduleModel.js';
 import groupModel from '../models/groupMode.js';
 import groupMessageModel from '../models/groupMessageModel.js';
 import groupTaskModel from '../models/groupTaskModel.js';
+import classChoiceModel from '../models/classChoiceModel.js';
 import notificationModel from '../models/notificationModel.js';
 import pushSubscriptionModel from '../models/pushSubscriptionModel.js';
 import friendModel from '../models/Friend.js';
@@ -48,6 +49,8 @@ export const USER_DATA = [
     { model: fileModel, field: 'owner', how: 'delete', cleanup: (filter) => removeFiles(filter) },
     { model: fileFolderModel, field: 'owner', how: 'delete' },
     { model: fileUserDayModel, field: 'user', how: 'delete' },
+    // A member's own choices over a shared timetable (follow, hide, customize).
+    { model: classChoiceModel, field: 'user', how: 'delete' },
 
     { model: notificationModel, field: 'sender', how: 'pending' },
     { model: friendModel, field: 'friend', how: 'pending' },
