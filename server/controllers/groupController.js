@@ -17,6 +17,7 @@ import { hit } from '../utils/rateLimit.js';
 import { sameId, isMember, isOwner, isAdmin } from '../utils/groupRoles.js';
 import groupTaskModel from '../models/groupTaskModel.js';
 import { syncGroupTimetable } from '../utils/groupPlan.js';
+import { forgetGroupChoices, forgetTimetables } from '../utils/classChoices.js';
 import { groupLink, peopleLink } from '../utils/appLinks.js';
 import { resolveItemSubject, subjectLabel } from '../utils/subjectMatch.js';
 import { shareBlocker, reviewerSnapshot, reviewerTexts, reviewerCopyFields } from '../utils/reviewerShare.js';
@@ -242,6 +243,7 @@ export const leaveGroup = async (req, res) => {
         group.admins = group.admins.filter(member => member.toString() !== req.userId);
         await group.save();
         await syncGroupTimetable(group._id);
+        await forgetGroupChoices(group._id, req.userId);
 
         // Only the admin hears about it, so a big group doesn't ping everyone.
         const leaver = await userModel.findById(req.userId).select('name');
@@ -269,6 +271,7 @@ export const deleteGroup = async (req, res) => {
         // The timetable goes before the group, so a failure in between leaves a group without a timetable,
         // never a timetable that still lets the members in. One made in between is caught by the second
         // delete below (and by syncGroupTimetable, which drops a timetable whose group is gone).
+        await forgetTimetables(await scheduleModel.distinct('_id', { group: req.params.groupId }));
         await scheduleModel.deleteMany({ group: req.params.groupId });
         const group = await groupModel.findOneAndDelete(filter);
         if (!group) return res.json(notFound);
@@ -459,6 +462,7 @@ export const removeMember = async (req, res) => {
         group.admins = group.admins.filter((a) => !sameId(a, userId));
         await group.save();
         await syncGroupTimetable(group._id);
+        await forgetGroupChoices(group._id, userId);
 
         await notify({
             recipients: [userId],

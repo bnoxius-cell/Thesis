@@ -107,7 +107,7 @@ const nextColor = (subjects) => {
     return SUBJECT_COLORS.find((c) => !used.has(c)) || SUBJECT_COLORS[subjects.length % SUBJECT_COLORS.length];
 };
 
-const capMessage = () => `You can have up to ${SUBJECT_LIMITS.maxActive} subjects. Delete one you no longer need first.`;
+export const capMessage = () => `You can have up to ${SUBJECT_LIMITS.maxActive} subjects. Delete one you no longer need first.`;
 
 const tryLinking = async (label, link, none) => {
     try {

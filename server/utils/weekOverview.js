@@ -60,6 +60,9 @@ const originOf = (schedule, entry) => ({
     notes: entry.notes || '',
     // The viewer's own subject id (set by withViewerSubjects), never the timetable owner's.
     subject: entry.subject ? String(entry.subject) : null,
+    // On a shared timetable, or a copy of one of its classes: the viewer's choice, notice and group
+    // (set by applyChoices in utils/classChoices.js).
+    ...entry.layer,
 });
 
 // What the details window says about an entry on a given day: which weekdays a class repeats on, its

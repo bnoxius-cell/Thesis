@@ -7,6 +7,9 @@ import {
     shareWithFriend, removeCollaborator, updateMembership, updateShareCode, joinByCode, duplicateSchedule,
     makePrivate, getScheduleStamp,
 } from '../controllers/scheduleController.js';
+import {
+    setupClasses, chooseClass, customizeClass, customizeAll, keepMineClass, publishClass,
+} from '../controllers/classChoiceController.js';
 
 const scheduleRouter = express.Router();
 
@@ -38,5 +41,13 @@ scheduleRouter.put('/:scheduleId/membership', userAuth, updateMembership);
 scheduleRouter.put('/:scheduleId/share-code', userAuth, updateShareCode);
 scheduleRouter.post('/:scheduleId/make-private', userAuth, makePrivate);
 scheduleRouter.post('/:scheduleId/duplicate', userAuth, duplicateSchedule);
+
+// The caller's own layer over a timetable shared with them: follow, hide, customize, publish.
+scheduleRouter.put('/:scheduleId/mine/setup', userAuth, setupClasses);
+scheduleRouter.post('/:scheduleId/mine/customize-all', userAuth, customizeAll);
+scheduleRouter.put('/:scheduleId/mine/classes/:entryId', userAuth, chooseClass);
+scheduleRouter.post('/:scheduleId/mine/classes/:entryId/customize', userAuth, customizeClass);
+scheduleRouter.post('/:scheduleId/mine/classes/:entryId/keep-mine', userAuth, keepMineClass);
+scheduleRouter.post('/:scheduleId/mine/classes/:entryId/publish', userAuth, publishClass);
 
 export default scheduleRouter;
