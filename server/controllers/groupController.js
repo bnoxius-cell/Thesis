@@ -609,7 +609,7 @@ export const sendMessage = async (req, res) => {
                 ownerName: schedule.owner?.name || '',
                 theme: schedule.theme,
                 // Pictures stay out of chat: they are the heavy part and not needed to copy a week.
-                entries: schedule.entries.map((e) => ({ ...e.toObject(), _id: undefined, subject: undefined, image: '' })),
+                entries: schedule.entries.map((e) => ({ ...e.toObject(), _id: undefined, copyOf: undefined, subject: undefined, image: '' })),
             };
         } else if (req.body.reviewerId) {
             const reviewer = isId(req.body.reviewerId)

@@ -698,3 +698,18 @@ describe('publishing, counting and cleanup details', () => {
         expect(await classChoiceModel.countDocuments({})).toBe(0);
     });
 });
+
+describe('duplicating a timetable', () => {
+    test("a duplicate carries no copy marks, so it can't pass for someone else's customized class", async () => {
+        const { bob, timetable, ids } = await setup();
+        await customize(bob, timetable, ids['Web Systems']);
+        const main = await mainOf(bob);
+        expect(main.entries.some((e) => e.copyOf)).toBe(true);
+
+        const res = await bob.post(`/api/schedules/${main._id}/duplicate`);
+        expect(res.status).toBe(201);
+        const copy = await scheduleModel.findById(res.body.schedule._id).lean();
+        expect(copy.entries.length).toBeGreaterThan(0);
+        expect(copy.entries.some((e) => e.copyOf)).toBe(false);
+    });
+});

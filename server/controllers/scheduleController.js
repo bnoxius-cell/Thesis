@@ -1240,7 +1240,7 @@ export const duplicateSchedule = async (req, res) => {
             title,
             owner: req.userId,
             theme: source.theme,
-            entries: source.entries.map(({ _id, ...rest }) => rest),
+            entries: source.entries.map(({ _id, copyOf, ...rest }) => rest),
             holidayOverrides: source.holidayOverrides,
             // A copy of someone else's timetable is usually the user's own week too.
             countInWorkload: true,
