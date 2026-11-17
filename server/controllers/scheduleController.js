@@ -738,7 +738,8 @@ const loadImportSource = async (req, res) => {
         fail(res, 400, 'Please enter a share code.');
         return null;
     }
-    const schedule = await scheduleModel.findOne({ shareCode: code }).populate('owner', 'name');
+    // A group's timetable is never opened by code (it has none; `group: null` makes sure).
+    const schedule = await scheduleModel.findOne({ shareCode: code, group: null }).populate('owner', 'name');
     if (!schedule) {
         fail(res, 404, 'No schedule found with that code.');
         return null;

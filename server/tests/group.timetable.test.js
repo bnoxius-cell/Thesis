@@ -2,11 +2,13 @@ import { describe, test, expect, vi, beforeAll, afterAll, beforeEach } from 'vit
 import request from 'supertest';
 import app from '../app.js';
 import scheduleModel, { MAX_OWNED_SCHEDULES } from '../models/scheduleModel.js';
+import groupModel from '../models/groupMode.js';
 import subjectModel from '../models/subjectModel.js';
 import notificationModel from '../models/notificationModel.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
 import { validRegisterPayload } from './helpers/fixtures.js';
 import { resetRateLimits } from '../utils/rateLimit.js';
+import { syncGroupTimetable } from '../utils/groupPlan.js';
 
 vi.mock('../utils/emailService.js', () => ({
     sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
@@ -20,6 +22,7 @@ beforeAll(connectTestDB);
 beforeEach(async () => {
     await clearTestDB();
     resetRateLimits();
+    vi.restoreAllMocks();
 });
 afterAll(closeTestDB);
 
@@ -290,10 +293,61 @@ describe('who is on it follows the group', () => {
         expect(await collaboratorOf(timetable, ann)).toMatchObject({ role: 'editor', countInWorkload: false });
     });
 
-    test('deleting the group deletes its timetable', async () => {
-        const { alice, group, timetable } = await setupWithTimetable();
+    test('deleting the group deletes its timetable; only the owner can', async () => {
+        const { alice, ann, group, timetable } = await setupWithTimetable();
+        expect((await ann.delete(`/api/groups/${group._id}`)).body.success).toBe(false);
+        expect(await stored(timetable)).not.toBeNull();
+
         expect((await alice.delete(`/api/groups/${group._id}`)).body.success).toBe(true);
         expect(await stored(timetable)).toBeNull();
+    });
+
+    test('a timetable whose group is gone is removed by the next sync', async () => {
+        const { group, timetable } = await setupWithTimetable();
+        await groupModel.deleteOne({ _id: group._id });
+        await syncGroupTimetable(group._id);
+        expect(await stored(timetable)).toBeNull();
+    });
+
+    test('joins and removals at the same moment leave exactly the members on it', async () => {
+        const { alice, group, timetable } = await setupWithTimetable();
+        const others = [];
+        for (let i = 0; i < 3; i += 1) {
+            const member = await signUp(`member${i}@student.fatima.edu.ph`, `Member ${i}`);
+            await member.post('/api/groups/join').send({ joinCode: group.joinCode });
+            others.push(member);
+        }
+
+        for (let round = 0; round < 5; round += 1) {
+            const joiner = await signUp(`joiner${round}@student.fatima.edu.ph`, `Joiner ${round}`);
+            const leaver = others.shift();
+            await Promise.all([
+                joiner.post('/api/groups/join').send({ joinCode: group.joinCode }),
+                alice.delete(`/api/groups/${group._id}/members/${leaver.id}`),
+            ]);
+            others.push(joiner);
+
+            const members = (await groupModel.findById(group._id).lean()).members.map(String).filter((id) => id !== alice.id);
+            const onTimetable = (await stored(timetable)).collaborators.map((c) => String(c.user));
+            expect(onTimetable.sort()).toEqual(members.sort());
+        }
+    });
+
+    test('a failed sync does not fail the membership change, and the next plan load heals it', async () => {
+        const { group, timetable } = await setupWithTimetable();
+        const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+        vi.spyOn(scheduleModel, 'updateOne').mockRejectedValueOnce(new Error('db down'));
+        const dave = await signUp('dave@student.fatima.edu.ph', 'Dave');
+
+        const joined = await dave.post('/api/groups/join').send({ joinCode: group.joinCode });
+        expect(joined.status).toBe(200);
+        expect(joined.body.success).toBe(true);
+        expect(logged).toHaveBeenCalledWith('syncGroupTimetable error', expect.any(Error));
+        expect(await roleOn(dave, timetable)).toBeUndefined();
+
+        vi.spyOn(scheduleModel, 'updateOne').mockRejectedValueOnce(new Error('db down'));
+        expect((await plan(dave, group)).status).toBe(200);
+        expect((await plan(dave, group)).body.timetable.role).toBe('viewer');
     });
 });
 
@@ -323,12 +377,19 @@ describe('the group decides who is on it, not the timetable', () => {
     });
 
     test('joining by code is refused, even with a code set behind its back', async () => {
-        const { carol, timetable } = await setupWithTimetable();
+        const { ann, carol, timetable } = await setupWithTimetable();
+        await ann.post(`${base(timetable)}/entries`).send(webClass());
         await scheduleModel.updateOne({ _id: timetable._id }, { $set: { shareCode: 'GRPCODE' } });
         const res = await carol.post('/api/schedules/join').send({ shareCode: 'GRPCODE' });
         expect(res.status).toBe(409);
         expect(res.body.message).toBe(LOCKED);
         expect(await roleOn(carol, timetable)).toBeUndefined();
+
+        expect((await carol.post('/api/schedules/preview').send({ shareCode: 'GRPCODE' })).status).toBe(404);
+        const entryId = (await stored(timetable)).entries[0]?._id;
+        const imported = await carol.post('/api/schedules/import').send({ shareCode: 'GRPCODE', selections: [{ id: entryId }] });
+        expect(imported.status).toBe(404);
+        expect(await scheduleModel.countDocuments({ owner: carol.id })).toBe(0);
     });
 
     test('the schedule view tells even the owner that sharing is off', async () => {
@@ -406,5 +467,16 @@ describe('the owner\'s subjects never reach the group timetable', () => {
 
         await alice.delete(`/api/subjects/${web._id}`);
         expect((await stored(timetable)).entries.map((e) => e.title)).toEqual(['Web Systems']);
+    });
+
+    test('a subject\'s class count leaves out the group timetable', async () => {
+        const { alice, ann, timetable } = await setupWithTimetable();
+        await ann.post(`${base(timetable)}/entries`).send(webClass());
+        const web = await makeSubject(alice, 'Web Systems');
+        await alice.post('/api/schedules/main/entries').send(webClass({ subject: web._id, days: [3] }));
+        await scheduleModel.updateOne({ _id: timetable._id }, { $set: { 'entries.0.subject': web._id } });
+
+        const listed = (await alice.get('/api/subjects')).body.subjects.find((s) => s._id === web._id);
+        expect(listed.counts.classTimes).toBe(1);
     });
 });

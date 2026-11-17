@@ -56,23 +56,14 @@ export const createGroupTimetable = async (group) => {
     }
 };
 
-// Puts the group's timetable back in step with the group as it is saved now: every member but the owner on
-// it, admins as editors and the rest as viewers, each keeping their own "Count in my week". Runs after every
-// membership or admin change, and as a self-heal when the plan loads. Writes nothing when it already matches,
-// so the self-heal doesn't make every member's page reload.
-export const syncGroupTimetable = async (groupId) => {
-    const [group, timetable] = await Promise.all([
-        groupModel.findById(groupId).select('admin admins members').lean(),
-        scheduleModel.findOne({ group: groupId }).select('collaborators').lean(),
-    ]);
-    if (!group || !timetable) return;
-    const people = timetablePeople(group);
-    if (samePeople(timetable.collaborators, people)) return;
-
-    // One pipeline update reads each person's current "Count in my week" while it writes, so a member
-    // turning it on at the same moment isn't lost. The list is rebuilt, so the version goes up and a save from
-    // a copy loaded before (which writes collaborators by position) fails instead of landing on someone else.
-    await scheduleModel.updateOne({ _id: timetable._id }, [{
+// Rewrites the collaborators to `people` in one pipeline update, which reads each person's current "Count in
+// my week" while it writes, so a member turning it on at the same moment isn't lost. It only lands while the
+// timetable is still at the version read (`__v`), and bumps it, so of two syncs racing on different reads of
+// the group only one lands and the other retries with a newer read. The bump also makes a save from a copy
+// loaded before (which writes collaborators by position) fail instead of landing on someone else.
+// True when it landed.
+const writeCollaborators = async (timetable, people) => {
+    const { matchedCount } = await scheduleModel.updateOne({ _id: timetable._id, __v: timetable.__v }, [{
         $set: {
             collaborators: {
                 $map: {
@@ -96,4 +87,44 @@ export const syncGroupTimetable = async (groupId) => {
             __v: { $add: [{ $ifNull: ['$__v', 0] }, 1] },
         },
     }], { updatePipeline: true });
+    return matchedCount === 1;
+};
+
+// One go at putting the timetable in step. True when it is done (nothing to do, or written), false when
+// another write got there first. The timetable is read before the group: a group change saved after this
+// read runs its own sync, which either finds our write or makes ours miss, so a stale group can't win.
+// `loaded` (a group the caller already read) can only skip the work when it already matches: a change saved
+// since it was read has its own sync.
+const syncOnce = async (groupId, loaded) => {
+    const timetable = await scheduleModel.findOne({ group: groupId }).select('collaborators __v').lean();
+    if (!timetable) return true;
+    if (loaded && samePeople(timetable.collaborators, timetablePeople(loaded))) return true;
+
+    const group = await groupModel.findById(groupId).select('admin admins members').lean();
+    if (!group) {
+        // The group was deleted while its timetable was being made: nobody should keep it.
+        await scheduleModel.deleteOne({ _id: timetable._id, group: groupId });
+        return true;
+    }
+    const people = timetablePeople(group);
+    if (samePeople(timetable.collaborators, people)) return true;
+    return writeCollaborators(timetable, people);
+};
+
+const SYNC_TRIES = 5;
+
+// Puts the group's timetable back in step with the group as it is saved now: every member but the owner on
+// it, admins as editors and the rest as viewers, each keeping their own "Count in my week". Runs after every
+// membership or admin change, and as a self-heal when the plan loads. Writes nothing when it already matches,
+// so the self-heal doesn't make every member's page reload. Pass `group` when it is already loaded.
+// It runs after the group change has been saved, so a failure is logged and the next plan load heals it.
+export const syncGroupTimetable = async (groupId, { group } = {}) => {
+    try {
+        for (let attempt = 0; attempt < SYNC_TRIES; attempt += 1) {
+            if (await syncOnce(groupId, attempt === 0 ? group : null)) return;
+        }
+        console.error(`syncGroupTimetable: gave up on group ${groupId} after ${SYNC_TRIES} tries`);
+    } catch (error) {
+        console.error('syncGroupTimetable error', error);
+    }
 };

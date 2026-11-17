@@ -262,9 +262,16 @@ export const leaveGroup = async (req, res) => {
 
 export const deleteGroup = async (req, res) => {
     try {
-        if (!isId(req.params.groupId)) return res.json({ success: false, message: 'Group not found or unauthorized' });
-        const group = await groupModel.findOneAndDelete({ _id: req.params.groupId, admin: req.userId });
-        if (!group) return res.json({ success: false, message: 'Group not found or unauthorized' });
+        const notFound = { success: false, message: 'Group not found or unauthorized' };
+        if (!isId(req.params.groupId)) return res.json(notFound);
+        const filter = { _id: req.params.groupId, admin: req.userId };
+        if (!(await groupModel.exists(filter))) return res.json(notFound);
+        // The timetable goes before the group, so a failure in between leaves a group without a timetable,
+        // never a timetable that still lets the members in. One made in between is caught by the second
+        // delete below (and by syncGroupTimetable, which drops a timetable whose group is gone).
+        await scheduleModel.deleteMany({ group: req.params.groupId });
+        const group = await groupModel.findOneAndDelete(filter);
+        if (!group) return res.json(notFound);
         await Promise.all([
             groupMessageModel.deleteMany({ group: group._id }),
             groupTaskModel.deleteMany({ group: group._id }),

@@ -54,7 +54,7 @@ export const getPlan = async (req, res) => {
         const group = await loadGroupForMember(req, res);
         if (!group) return;
         const serverTime = new Date();
-        await syncGroupTimetable(group._id);
+        await syncGroupTimetable(group._id, { group });
         const [tasks, timetable] = await Promise.all([
             groupTaskModel.find({ group: group._id }).sort({ dueDate: 1 }).populate(PEOPLE),
             scheduleModel.findOne({ group: group._id }).select(TIMETABLE_SUMMARY_FIELDS).populate('group', 'name'),
