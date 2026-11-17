@@ -4,7 +4,7 @@ Things to fix and things to avoid, collected from the panel evaluation and revie
 
 Sources:
 - **JF**: Jo Anne Ferrer, IT expert evaluation (2026-10-27). Verdict: requires major revisions.
-- **MJ**: Ma'am Jennilie.
+- **MJ**: Ma'am Jennelie C. Lafrades, Guidance/IT expert (name confirmed by the owner 2026-11-17; earlier notes spelled it Jennilie).
 - **MD**: Mr David.
 - **Chat**: Messenger feedback ("high school level"). Not added yet.
 
