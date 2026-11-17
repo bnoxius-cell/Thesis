@@ -8,7 +8,7 @@ const monthDay = (iso) =>
 
 export const NEAR_FULL = 0.8;
 
-// "46 MB of 100 MB": how much of the student's space is used.
+// "46 MB of 200 MB": how much of the student's space is used.
 export const usageText = ({ usedBytes, limitBytes }) => `${formatSize(usedBytes)} of ${formatSize(limitBytes)}`;
 
 // Why the student can't upload right now, or null when they can. `uploads` is what the list said

@@ -18,7 +18,7 @@ const NUMBER_SETTINGS = {
 
 // Not configurable: per-student limits and the reconciliation thresholds.
 const FIXED_LIMITS = {
-    userStorageBytes: 100 * MIB,
+    userStorageBytes: 200 * MIB,
     maxFileBytes: 10 * MIB,
     maxThumbBytes: 100 * 1024,
     uploadBurst: { limit: 20, windowMs: TEN_MINUTES_MS },
