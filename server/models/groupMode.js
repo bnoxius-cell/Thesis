@@ -36,7 +36,10 @@ const groupSchema = new mongoose.Schema({
         by: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
         at: Date
     },
-    members: [{ 
+    // Last change to the group plan (a group task created, edited or deleted). The plan stamp
+    // poll reads it, so deletes are seen without keeping tombstones.
+    planAt: { type: Date, default: null },
+    members: [{
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'user' 
     }],

@@ -14,6 +14,8 @@ import { isId, serverError } from '../utils/httpErrors.js';
 import { isValidPicture } from '../utils/images.js';
 import { isSingleEmoji } from '../utils/emoji.js';
 import { hit } from '../utils/rateLimit.js';
+import { sameId, isMember, isOwner, isAdmin } from '../utils/groupRoles.js';
+import groupTaskModel from '../models/groupTaskModel.js';
 import { groupLink, peopleLink } from '../utils/appLinks.js';
 import { resolveItemSubject, subjectLabel } from '../utils/subjectMatch.js';
 import { shareBlocker, reviewerSnapshot, reviewerTexts, reviewerCopyFields } from '../utils/reviewerShare.js';
@@ -49,12 +51,6 @@ const MAX_PINNED_LENGTH = 280;
 const UPCOMING_LIMIT = 30;
 const UPCOMING_GRACE_MS = 24 * 60 * 60 * 1000; // the client hides what is before its own today
 
-const sameId = (a, b) => String(a) === String(b);
-const isMember = (group, userId) => group.members.some((member) => sameId(member, userId));
-// The owner is always an admin. Other admins are the ones the owner promoted.
-const isOwner = (group, userId) => sameId(group.admin, userId);
-const isAdmin = (group, userId) => isOwner(group, userId) || (group.admins || []).some((a) => sameId(a, userId));
-
 // Same shape getGroups returns, so the client can drop an updated group straight into its list.
 const populateGroup = (query) => query
     .populate('admin', 'name avatar')
@@ -75,7 +71,7 @@ const textsToCheck = (messageData) => {
 
 // Loads the group and confirms the caller belongs to it. Sends the error response
 // itself and returns null when the caller should stop.
-const loadGroupForMember = async (req, res) => {
+export const loadGroupForMember = async (req, res) => {
     const { groupId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(groupId)) {
         res.status(404).json({ success: false, message: 'Group not found' });
@@ -266,7 +262,10 @@ export const deleteGroup = async (req, res) => {
         if (!isId(req.params.groupId)) return res.json({ success: false, message: 'Group not found or unauthorized' });
         const group = await groupModel.findOneAndDelete({ _id: req.params.groupId, admin: req.userId });
         if (!group) return res.json({ success: false, message: 'Group not found or unauthorized' });
-        await groupMessageModel.deleteMany({ group: group._id });
+        await Promise.all([
+            groupMessageModel.deleteMany({ group: group._id }),
+            groupTaskModel.deleteMany({ group: group._id }),
+        ]);
 
         await notify({
             recipients: group.members,

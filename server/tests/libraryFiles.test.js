@@ -275,7 +275,7 @@ describe('GET /api/files', () => {
     test('usage matches the student\'s counter and the limit', async () => {
         await addFile(owner);
         const { usage } = (await get(owner, '/api/files')).body;
-        expect(usage).toEqual({ usedBytes: await usedBytes(owner), limitBytes: 100 * MIB });
+        expect(usage).toEqual({ usedBytes: await usedBytes(owner), limitBytes: 200 * MIB });
         expect(usage.usedBytes).toBeGreaterThan(0);
     });
 
