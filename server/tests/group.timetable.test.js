@@ -333,6 +333,29 @@ describe('who is on it follows the group', () => {
         }
     });
 
+    test('a sync that read the group before a removal can\'t undo the removal\'s own sync', async () => {
+        const { bob, group, timetable } = await setupWithTimetable();
+        const dave = await signUp('dave@student.fatima.edu.ph', 'Dave');
+        await groupModel.updateOne({ _id: group._id }, { $push: { members: dave.id } });
+
+        // The first sync's group read comes back stale: Bob is removed and that removal's sync runs in between.
+        const findById = groupModel.findById.bind(groupModel);
+        vi.spyOn(groupModel, 'findById').mockImplementationOnce((id) => ({
+            select: (fields) => ({
+                lean: async () => {
+                    const stale = await findById(id).select(fields).lean();
+                    await groupModel.updateOne({ _id: id }, { $pull: { members: bob.id } });
+                    await syncGroupTimetable(id);
+                    return stale;
+                },
+            }),
+        }));
+        await syncGroupTimetable(group._id);
+
+        expect(await collaboratorOf(timetable, bob)).toBeUndefined();
+        expect(await collaboratorOf(timetable, dave)).toMatchObject({ role: 'viewer' });
+    });
+
     test('a failed sync does not fail the membership change, and the next plan load heals it', async () => {
         const { group, timetable } = await setupWithTimetable();
         const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
