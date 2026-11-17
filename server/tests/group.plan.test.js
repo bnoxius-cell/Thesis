@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
 import app from '../app.js';
+import groupModel from '../models/groupMode.js';
 import groupTaskModel from '../models/groupTaskModel.js';
 import notificationModel from '../models/notificationModel.js';
 import { connectTestDB, clearTestDB, closeTestDB } from './helpers/testDb.js';
@@ -240,6 +241,66 @@ describe('group task edits', () => {
         expect((await remove(ann, group, taskId)).status).toBe(200);
         expect((await edit(alice, group, taskId, { title: 'Too late' }, { title: 'Lab report' })).status).toBe(404);
         expect((await remove(ann, group, taskId)).status).toBe(404);
+    });
+});
+
+describe('group task edit edge cases', () => {
+    test('a field someone else set the same way does not block the rest of the edit', async () => {
+        const { alice, ann, group } = await setup();
+        const taskId = (await create(alice, group, newTask({ hours: 2 }))).body.task._id;
+
+        await edit(alice, group, taskId, { title: 'X' }, { title: 'Lab report' });
+        const second = await edit(ann, group, taskId, { title: 'X', hours: 4 }, { title: 'Lab report', hours: 2 });
+        expect(second.status).toBe(200);
+        const stored = await groupTaskModel.findById(taskId);
+        expect(stored.title).toBe('X');
+        expect(stored.hours).toBe(4);
+    });
+
+    test('a removed admin can no longer change the plan', async () => {
+        const { alice, ann, group } = await setup();
+        const taskId = (await create(alice, group)).body.task._id;
+        expect((await alice.delete(`/api/groups/${group._id}/members/${ann.id}`)).status).toBe(200);
+
+        expect((await edit(ann, group, taskId, { title: 'Nope' }, { title: 'Lab report' })).status).toBe(404);
+        expect((await create(ann, group)).status).toBe(404);
+        expect((await remove(ann, group, taskId)).status).toBe(404);
+    });
+
+    test('a missing or non-object body is a 400, not a 500', async () => {
+        const { alice, group } = await setup();
+        const taskId = (await create(alice, group)).body.task._id;
+        const url = `/api/groups/${group._id}/tasks/${taskId}`;
+
+        expect((await alice.patch(url)).status).toBe(400);
+        expect((await alice.patch(url).set('Content-Type', 'application/json').send('"hi"')).status).toBe(400);
+        expect((await alice.patch(url).set('Content-Type', 'application/json').send('null')).status).toBe(400);
+        expect((await alice.patch(url).send([])).status).toBe(400);
+        expect((await alice.post(`/api/groups/${group._id}/tasks`)).status).toBe(400);
+        expect((await alice.post(`/api/groups/${group._id}/tasks`).set('Content-Type', 'application/json').send('"hi"')).status).toBe(400);
+    });
+
+    test('isCompleted must be a real boolean', async () => {
+        const { alice, group } = await setup();
+        const taskId = (await create(alice, group)).body.task._id;
+
+        const res = await edit(alice, group, taskId, { isCompleted: 'false' }, { isCompleted: false });
+        expect(res.status).toBe(400);
+        expect((await groupTaskModel.findById(taskId)).isCompleted).toBe(false);
+    });
+
+    test('a failed plan stamp update does not fail a saved task', async () => {
+        const { alice, group } = await setup();
+        const spy = vi.spyOn(groupModel, 'updateOne').mockRejectedValue(new Error('boom'));
+        const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            const res = await create(alice, group);
+            expect(res.status).toBe(201);
+            expect(await groupTaskModel.countDocuments({ group: group._id })).toBe(1);
+        } finally {
+            spy.mockRestore();
+            errors.mockRestore();
+        }
     });
 });
 

@@ -11,8 +11,15 @@ export const planRole = (group, userId) => {
     return isAdmin(group, userId) ? 'editor' : 'viewer';
 };
 
-// Marks the plan as changed, so every member's stamp poll picks it up.
-export const bumpPlan = (groupId) => groupModel.updateOne({ _id: groupId }, { $set: { planAt: new Date() } });
+// Marks the plan as changed, so every member's stamp poll picks it up. It runs after the write has
+// been saved, so a failure here is logged and not sent to the client as a failed save.
+export const bumpPlan = async (groupId) => {
+    try {
+        await groupModel.updateOne({ _id: groupId }, { $set: { planAt: new Date() } });
+    } catch (error) {
+        console.error('bumpPlan error', error);
+    }
+};
 
 const PLAN_WRITE_RATE = { limit: 60, windowMs: 60 * 1000 };
 

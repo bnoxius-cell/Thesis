@@ -2,7 +2,7 @@ import groupTaskModel from '../models/groupTaskModel.js';
 import { loadGroupForMember } from './groupController.js';
 import { getTaskPayload } from './taskController.js';
 import { planRole, bumpPlan, allowPlanWrite } from '../utils/groupPlan.js';
-import { readTaskEdit, editGroupTask } from '../utils/groupTaskEdit.js';
+import { readTaskEdit, editGroupTask, isPlainObject } from '../utils/groupTaskEdit.js';
 import { seen, present } from '../utils/presence.js';
 import { isMember, sameId } from '../utils/groupRoles.js';
 import { containsProfanity } from '../utils/familyFilter.js';
@@ -80,7 +80,7 @@ export const createGroupTask = async (req, res) => {
         const group = await loadGroupForEditor(req, res);
         if (!group) return;
 
-        const { payload, error } = getTaskPayload(req.body);
+        const { payload, error } = getTaskPayload(isPlainObject(req.body) ? req.body : {});
         if (error) return res.status(400).json({ success: false, message: error });
         if (breaksFamilyFilter(group, payload)) return res.status(400).json(FAMILY_FILTER);
         if (await groupTaskModel.countDocuments({ group: group._id }) >= MAX_GROUP_TASKS) {

@@ -18,7 +18,7 @@ const FIELD_TYPES = {
     isCompleted: 'boolean',
 };
 
-const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+export const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 // Only plain values of the field's own type, so nothing like { $ne: ... } can reach a query filter.
 const CASTS = {
@@ -36,8 +36,10 @@ const INVALID_EDIT = { error: "That edit couldn't be read. Reload and try again.
 
 // { fields, expected } from a PATCH body, or { error }. `changes` goes through the same checks as a
 // personal task edit; `expected` must hold exactly the same keys.
-export const readTaskEdit = ({ changes, expected }) => {
+export const readTaskEdit = (body) => {
+    const { changes, expected } = isPlainObject(body) ? body : {};
     if (!isPlainObject(changes) || !isPlainObject(expected)) return INVALID_EDIT;
+    if (changes.isCompleted !== undefined && typeof changes.isCompleted !== 'boolean') return INVALID_EDIT;
     if (!Object.keys(changes).every((key) => Object.hasOwn(FIELD_TYPES, key))) return INVALID_EDIT;
 
     const { fields, error } = getTaskUpdatePayload(changes);
@@ -73,9 +75,9 @@ const updateFor = (fields, before, userId) => {
     return { $set: set };
 };
 
-// One try with the client's view, and one more with the current values when the only difference
-// is a field someone else already set the same way, or a field this edit doesn't touch.
-const ATTEMPTS = 2;
+// One try with the client's view, and more with the current values when the only difference is a
+// field someone else already set the same way, or a field this edit doesn't touch.
+const ATTEMPTS = 3;
 
 // Applies an edit read by readTaskEdit. Resolves to one of
 //   { status: 'saved', task }               the edit is stored
@@ -85,6 +87,7 @@ const ATTEMPTS = 2;
 export const editGroupTask = async ({ groupId, taskId, fields, expected, userId }) => {
     const keys = Object.keys(fields);
     const target = { _id: taskId, group: groupId };
+    const realConflicts = (current) => keys.filter((key) => !sameValue(current[key], expected[key]) && !sameValue(current[key], fields[key]));
     let pending = fields;
     let before = expected;
 
@@ -98,7 +101,7 @@ export const editGroupTask = async ({ groupId, taskId, fields, expected, userId 
 
         const current = await groupTaskModel.findOne(target);
         if (!current) return { status: 'gone' };
-        const conflicts = keys.filter((key) => !sameValue(current[key], expected[key]) && !sameValue(current[key], fields[key]));
+        const conflicts = realConflicts(current);
         if (conflicts.length) return { status: 'conflict', task: current, conflicts };
 
         const left = keys.filter((key) => !sameValue(current[key], fields[key]));
@@ -107,8 +110,13 @@ export const editGroupTask = async ({ groupId, taskId, fields, expected, userId 
         before = pick(current, left);
     }
 
-    // Still moving under us after both tries: report whatever no longer matches what the client saw.
+    // Still moving under us after every try.
     const current = await groupTaskModel.findOne(target);
     if (!current) return { status: 'gone' };
-    return { status: 'conflict', task: current, conflicts: keys.filter((key) => !sameValue(current[key], expected[key])) };
+    const conflicts = realConflicts(current);
+    if (conflicts.length) return { status: 'conflict', task: current, conflicts };
+    const differing = keys.filter((key) => !sameValue(current[key], fields[key]));
+    if (!differing.length) return { status: 'unchanged', task: current };
+    const stale = differing.filter((key) => !sameValue(current[key], expected[key]));
+    return { status: 'conflict', task: current, conflicts: stale.length ? stale : differing };
 };
