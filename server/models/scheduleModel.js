@@ -87,10 +87,19 @@ const scheduleSchema = new mongoose.Schema({
     // Where copied entries came from ('schedule:<id>' for a share code, 'message:<id>' for a
     // group chat share), so the chat can show "already added" instead of offering it again.
     importedFrom: { type: [String], default: [] },
+    // Set on a group's timetable (one per group): the group owner owns it and every other member is a
+    // collaborator kept in step with the group (utils/groupPlan.js). It is never anyone's personal timetable.
+    group: { type: mongoose.Schema.Types.ObjectId, ref: 'group', default: null },
 }, { timestamps: true });
 
 // One main per owner, enforced by the database so two requests creating a first timetable at once
 // can't both end up with one.
 scheduleSchema.index({ owner: 1 }, { unique: true, partialFilterExpression: { isMain: true } });
+// One timetable per group. Partial rather than sparse: a sparse index still holds every `group: null`.
+scheduleSchema.index({ group: 1 }, { unique: true, partialFilterExpression: { group: { $type: 'objectId' } } });
+
+// The timetables that are the student's own: the ones they own, minus any group timetable they own as the
+// group's owner. `{ group: null }` also matches timetables saved before the field existed.
+export const personalTimetables = (userId) => ({ owner: userId, group: null });
 
 export default mongoose.models.schedule || mongoose.model('schedule', scheduleSchema);
