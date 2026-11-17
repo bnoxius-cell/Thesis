@@ -183,3 +183,8 @@ Main session: read this first after a `/clear` (state and rules), then `roadmap.
 - After the M1 merge: update roadmap, plan 36 and plan 32 (WN3, WN4) checkboxes, and `.claude/docs/` (Switch, Badge dot, savePreferences, settings routes).
 - Logo: improved draft in Figma page "Logo (37)", frame 308:2. Waiting for the owner's yes/changes before touching app code.
 - Known notes: not-found message sits on bare background (Figma has a white card); avatar menu keeps a What's new item the frame lacks.
+
+## LATEST (2026-11-17: three-feature priority; read this first)
+- Owner made three features the ONLY priority before the defense (roadmap "PRIORITY NOW"): P1 group live-edit workspace, P2 group sharing of everything incl. files, P3 new-semester schedule editing. All other roadmap work is pushed back until after the defense. Plan: `.claude/docs/plans/40-group-collab-sharing-rollover-plan.md`, owner answers in its section 13 (admins-only editing, Chat+Plan tabs, files stored once and saved by the receiver, 200 MiB per student, $0 hard rule).
+- NEXT: B0 backup tag, then server batches G1, G2, T1 while the SH, GW, TR Figma frames are drawn (plan section 5 and 6). `next-prompt.md` is folded into P2 (delete it when P2's chat sharing is built).
+- Evaluator "MJ" is Jennelie C. Lafrades. Placeholders still open: help contacts, About team names, poster values (owner supplies).
