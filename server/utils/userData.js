@@ -9,6 +9,7 @@ import aiRequestModel from '../models/aiRequestModel.js';
 import scheduleModel from '../models/scheduleModel.js';
 import groupModel from '../models/groupMode.js';
 import groupMessageModel from '../models/groupMessageModel.js';
+import groupTaskModel from '../models/groupTaskModel.js';
 import notificationModel from '../models/notificationModel.js';
 import pushSubscriptionModel from '../models/pushSubscriptionModel.js';
 import friendModel from '../models/Friend.js';
@@ -58,6 +59,10 @@ export const USER_DATA = [
     { model: groupModel, field: 'members', how: 'pending' },
     { model: groupModel, field: 'pinned.by', how: 'pending' },
     { model: groupModel, field: 'recentMessages.sender', how: 'pending' },
+    // Group tasks belong to their group and are deleted with it (deleteGroup), not with a member.
+    { model: groupTaskModel, field: 'createdBy', how: 'pending' },
+    { model: groupTaskModel, field: 'updatedBy', how: 'pending' },
+    { model: groupTaskModel, field: 'completedBy', how: 'pending' },
     { model: scheduleModel, field: 'owner', how: 'pending' },
     { model: scheduleModel, field: 'collaborators.user', how: 'pending' },
     { model: scheduleModel, field: 'activity.user', how: 'pending' },

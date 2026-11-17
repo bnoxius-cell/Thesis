@@ -22,7 +22,8 @@ const HOURS_MESSAGE = `Estimated hours can be ${TASK_LIMITS.minHours} to ${TASK_
 
 const text = (value) => (typeof value === 'string' ? value.trim() : '');
 
-const getTaskPayload = (body) => {
+// Group tasks (groupPlanController.js) use these two readers too, so both kinds share one set of limits.
+export const getTaskPayload = (body) => {
     const title = text(body.title);
     const course = text(body.course);
     const description = text(body.description);
@@ -103,7 +104,7 @@ export const ensureShareTemplateForTask = async (task) => {
 };
 
 // Same checks as getTaskPayload, but only for the fields that were sent.
-const getTaskUpdatePayload = (body) => {
+export const getTaskUpdatePayload = (body) => {
     const fields = {};
     const fail = (error) => ({ error });
 
