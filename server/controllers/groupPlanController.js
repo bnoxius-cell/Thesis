@@ -1,7 +1,11 @@
 import groupTaskModel from '../models/groupTaskModel.js';
+import scheduleModel from '../models/scheduleModel.js';
 import { loadGroupForMember } from './groupController.js';
 import { getTaskPayload } from './taskController.js';
-import { planRole, bumpPlan, allowPlanWrite } from '../utils/groupPlan.js';
+import { summarizeFor } from './scheduleController.js';
+import {
+    planRole, bumpPlan, allowPlanWrite, createGroupTimetable, syncGroupTimetable,
+} from '../utils/groupPlan.js';
 import { readTaskEdit, editGroupTask, isPlainObject } from '../utils/groupTaskEdit.js';
 import { seen, present } from '../utils/presence.js';
 import { isMember, sameId } from '../utils/groupRoles.js';
@@ -40,14 +44,28 @@ const loadGroupForEditor = async (req, res) => {
     return group;
 };
 
-// GET /:groupId/plan  Members only. The whole group plan.
+// What the plan shows about the group's timetable; the entries themselves load on the timetable's own page.
+const TIMETABLE_SUMMARY_FIELDS = 'title theme owner group isMain countInWorkload collaborators shareCode entries._id updatedAt';
+
+// GET /:groupId/plan  Members only. The whole group plan: its tasks and a summary of its timetable
+// (null until an admin makes one).
 export const getPlan = async (req, res) => {
     try {
         const group = await loadGroupForMember(req, res);
         if (!group) return;
         const serverTime = new Date();
-        const tasks = await groupTaskModel.find({ group: group._id }).sort({ dueDate: 1 }).populate(PEOPLE);
-        res.json({ success: true, serverTime: serverTime.toISOString(), role: planRole(group, req.userId), tasks });
+        await syncGroupTimetable(group._id, { group });
+        const [tasks, timetable] = await Promise.all([
+            groupTaskModel.find({ group: group._id }).sort({ dueDate: 1 }).populate(PEOPLE),
+            scheduleModel.findOne({ group: group._id }).select(TIMETABLE_SUMMARY_FIELDS).populate('group', 'name'),
+        ]);
+        res.json({
+            success: true,
+            serverTime: serverTime.toISOString(),
+            role: planRole(group, req.userId),
+            tasks,
+            timetable: timetable && summarizeFor(timetable, req.userId),
+        });
     } catch (error) {
         serverError(res, 'getPlan error', error);
     }
@@ -67,7 +85,8 @@ export const getPlanStamp = async (req, res) => {
         // Someone removed in the last few seconds may still be in the map; only current members show.
         const presence = present(group._id)
             .filter(({ userId }) => !sameId(userId, req.userId) && isMember(group, userId));
-        res.json({ success: true, planAt: group.planAt, presence });
+        const timetable = await scheduleModel.findOne({ group: group._id }).select('updatedAt').lean();
+        res.json({ success: true, planAt: group.planAt, timetableAt: timetable?.updatedAt ?? null, presence });
     } catch (error) {
         serverError(res, 'getPlanStamp error', error);
     }
@@ -135,6 +154,20 @@ export const updateGroupTask = async (req, res) => {
         res.json({ success: true, task });
     } catch (error) {
         serverError(res, 'updateGroupTask error', error);
+    }
+};
+
+// POST /:groupId/timetable  Owner and admins. Makes the group's timetable, owned by the group owner.
+export const createTimetable = async (req, res) => {
+    try {
+        const group = await loadGroupForEditor(req, res);
+        if (!group) return;
+        const timetable = await createGroupTimetable(group);
+        if (!timetable) return res.status(409).json({ success: false, message: 'This group already has a timetable.' });
+        await timetable.populate('group', 'name');
+        res.status(201).json({ success: true, timetable: summarizeFor(timetable, req.userId) });
+    } catch (error) {
+        serverError(res, 'createTimetable error', error);
     }
 };
 

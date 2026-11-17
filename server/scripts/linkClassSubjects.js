@@ -15,7 +15,7 @@ import os from 'os';
 import path from 'path';
 import mongoose from 'mongoose';
 import { pathToFileURL } from 'url';
-import scheduleModel from '../models/scheduleModel.js';
+import scheduleModel, { personalTimetables } from '../models/scheduleModel.js';
 import subjectModel, { SUBJECT_LIMITS } from '../models/subjectModel.js';
 import taskModel from '../models/taskModel.js';
 import reviewerModel from '../models/reviewerModel.js';
@@ -55,7 +55,7 @@ const writeLinks = (links) => scheduleModel.bulkWrite(links.map((link) => ({
 })));
 
 const linkOwner = async (owner, { apply, createMissing }) => {
-    const [schedules, subjects] = await Promise.all([scheduleModel.find({ owner }).lean(), activeSubjects(owner)]);
+    const [schedules, subjects] = await Promise.all([scheduleModel.find(personalTimetables(owner)).lean(), activeSubjects(owner)]);
     const links = [];
     const unmatched = [];
     schedules.forEach((schedule) => schedule.entries.forEach((entry) => {

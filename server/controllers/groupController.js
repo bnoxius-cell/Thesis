@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import groupModel from '../models/groupMode.js';
 import groupMessageModel from '../models/groupMessageModel.js';
 import taskModel from '../models/taskModel.js';
-import scheduleModel from '../models/scheduleModel.js';
+import scheduleModel, { personalTimetables } from '../models/scheduleModel.js';
 import reviewerModel from '../models/reviewerModel.js';
 import userModel from '../models/userModel.js';
 import notificationModel, { GROUP_CHAT_TYPES } from '../models/notificationModel.js';
@@ -16,6 +16,7 @@ import { isSingleEmoji } from '../utils/emoji.js';
 import { hit } from '../utils/rateLimit.js';
 import { sameId, isMember, isOwner, isAdmin } from '../utils/groupRoles.js';
 import groupTaskModel from '../models/groupTaskModel.js';
+import { syncGroupTimetable } from '../utils/groupPlan.js';
 import { groupLink, peopleLink } from '../utils/appLinks.js';
 import { resolveItemSubject, subjectLabel } from '../utils/subjectMatch.js';
 import { shareBlocker, reviewerSnapshot, reviewerTexts, reviewerCopyFields } from '../utils/reviewerShare.js';
@@ -211,6 +212,7 @@ export const joinGroup = async (req, res) => {
 
         group.members.push(req.userId);
         await group.save();
+        await syncGroupTimetable(group._id);
 
         const joiner = await userModel.findById(req.userId).select('name');
         await notify({
@@ -239,6 +241,7 @@ export const leaveGroup = async (req, res) => {
         group.members = group.members.filter(member => member.toString() !== req.userId);
         group.admins = group.admins.filter(member => member.toString() !== req.userId);
         await group.save();
+        await syncGroupTimetable(group._id);
 
         // Only the admin hears about it, so a big group doesn't ping everyone.
         const leaver = await userModel.findById(req.userId).select('name');
@@ -259,12 +262,20 @@ export const leaveGroup = async (req, res) => {
 
 export const deleteGroup = async (req, res) => {
     try {
-        if (!isId(req.params.groupId)) return res.json({ success: false, message: 'Group not found or unauthorized' });
-        const group = await groupModel.findOneAndDelete({ _id: req.params.groupId, admin: req.userId });
-        if (!group) return res.json({ success: false, message: 'Group not found or unauthorized' });
+        const notFound = { success: false, message: 'Group not found or unauthorized' };
+        if (!isId(req.params.groupId)) return res.json(notFound);
+        const filter = { _id: req.params.groupId, admin: req.userId };
+        if (!(await groupModel.exists(filter))) return res.json(notFound);
+        // The timetable goes before the group, so a failure in between leaves a group without a timetable,
+        // never a timetable that still lets the members in. One made in between is caught by the second
+        // delete below (and by syncGroupTimetable, which drops a timetable whose group is gone).
+        await scheduleModel.deleteMany({ group: req.params.groupId });
+        const group = await groupModel.findOneAndDelete(filter);
+        if (!group) return res.json(notFound);
         await Promise.all([
             groupMessageModel.deleteMany({ group: group._id }),
             groupTaskModel.deleteMany({ group: group._id }),
+            scheduleModel.deleteMany({ group: group._id }),
         ]);
 
         await notify({
@@ -387,6 +398,7 @@ export const addAdmin = async (req, res) => {
         if (!isAdmin(group, userId)) {
             group.admins.push(userId);
             await group.save();
+            await syncGroupTimetable(group._id);
             const owner = await userModel.findById(req.userId).select('name');
             await notify({
                 recipients: [userId],
@@ -415,6 +427,7 @@ export const removeAdmin = async (req, res) => {
         }
         group.admins = group.admins.filter((a) => !sameId(a, req.params.userId));
         await group.save();
+        await syncGroupTimetable(group._id);
         res.json({ success: true, group: await populateGroup(groupModel.findById(group._id)) });
     } catch (error) {
         console.error('Remove admin error:', error);
@@ -445,6 +458,7 @@ export const removeMember = async (req, res) => {
         group.members = group.members.filter((m) => !sameId(m, userId));
         group.admins = group.admins.filter((a) => !sameId(a, userId));
         await group.save();
+        await syncGroupTimetable(group._id);
 
         await notify({
             recipients: [userId],
@@ -578,8 +592,9 @@ export const sendMessage = async (req, res) => {
             if (!mongoose.Types.ObjectId.isValid(req.body.scheduleId)) {
                 return res.status(404).json({ success: false, message: 'Schedule not found' });
             }
-            // Only your own schedules can be posted, so a viewer can't re-share someone else's.
-            const schedule = await scheduleModel.findOne({ _id: req.body.scheduleId, owner: req.userId }).populate('owner', 'name');
+            // Only your own personal schedules can be posted, so a viewer can't re-share someone else's, and a
+            // group's timetable stays in the group's plan instead of becoming a chat card.
+            const schedule = await scheduleModel.findOne({ _id: req.body.scheduleId, ...personalTimetables(req.userId) }).populate('owner', 'name');
             if (!schedule) return res.status(404).json({ success: false, message: 'Schedule not found' });
             if (!schedule.entries.length) {
                 return res.status(400).json({ success: false, message: 'That schedule is empty. Add a class first.' });

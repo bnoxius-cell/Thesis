@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import subjectModel, { SUBJECT_COLORS, SUBJECT_LIMITS } from '../models/subjectModel.js';
 import taskModel from '../models/taskModel.js';
 import reviewerModel from '../models/reviewerModel.js';
-import scheduleModel from '../models/scheduleModel.js';
+import scheduleModel, { personalTimetables } from '../models/scheduleModel.js';
 import fileModel from '../models/fileModel.js';
 import flashcardDeckModel from '../models/flashcardDeckModel.js';
 import { isId, serverError } from '../utils/httpErrors.js';
@@ -34,9 +34,9 @@ const countsFor = async (owner, subjectIds) => {
         countBy(reviewerModel),
         countBy(flashcardDeckModel),
         countBy(fileModel, { scope: 'library', state: 'ready' }),
-        // Owned timetables only, like rename and delete: a shared timetable's classes aren't the owner's to remove.
+        // Personal timetables only, like rename and delete: a shared timetable's classes aren't the owner's to remove.
         scheduleModel.aggregate([
-            { $match: { owner: asObjectId(owner), 'entries.subject': { $in: subjectIds } } },
+            { $match: { ...personalTimetables(asObjectId(owner)), 'entries.subject': { $in: subjectIds } } },
             { $unwind: '$entries' },
             { $match: { 'entries.kind': 'class', 'entries.subject': { $in: subjectIds } } },
             { $group: { _id: '$entries.subject', n: { $sum: 1 } } },
@@ -194,7 +194,7 @@ export const getSuggestions = async (req, res) => {
             subjectModel.find({ owner: req.userId }).select('name code').lean(),
             taskModel.find({ owner: req.userId, subject: null }).select('course').lean(),
             reviewerModel.find({ owner: req.userId, subject: null }).select('course').lean(),
-            scheduleModel.find({ owner: req.userId }).select('entries.title entries.kind entries.subject').lean(),
+            scheduleModel.find(personalTimetables(req.userId)).select('entries.title entries.kind entries.subject').lean(),
         ]);
 
         const known = new Set(subjects.flatMap((s) => [courseKey(s.name), courseKey(s.code)]));

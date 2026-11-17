@@ -6,7 +6,7 @@ import {
     saveFromMessage,
 } from '../controllers/groupController.js';
 import {
-    getPlan, getPlanStamp, createGroupTask, updateGroupTask, deleteGroupTask,
+    getPlan, getPlanStamp, createGroupTask, updateGroupTask, deleteGroupTask, createTimetable,
 } from '../controllers/groupPlanController.js';
 
 const groupRouter = express.Router();
@@ -26,6 +26,7 @@ groupRouter.get('/:groupId/plan/stamp', userAuth, getPlanStamp);
 groupRouter.post('/:groupId/tasks', userAuth, createGroupTask);
 groupRouter.patch('/:groupId/tasks/:taskId', userAuth, updateGroupTask);
 groupRouter.delete('/:groupId/tasks/:taskId', userAuth, deleteGroupTask);
+groupRouter.post('/:groupId/timetable', userAuth, createTimetable);
 groupRouter.post('/:groupId/admins', userAuth, addAdmin);
 groupRouter.delete('/:groupId/admins/:userId', userAuth, removeAdmin);
 groupRouter.delete('/:groupId/members/:userId', userAuth, removeMember);

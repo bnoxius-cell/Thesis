@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import mongoose from 'mongoose';
 import scheduleModel, {
     SCHEDULE_THEMES, MAX_ENTRIES, MAX_IMAGE_LENGTH, MAX_OWNED_SCHEDULES, ENTRY_KINDS, HOLIDAY_COUNTRY, MAX_MEETING_URL,
+    personalTimetables,
 } from '../models/scheduleModel.js';
 import Friend from '../models/Friend.js';
 import { notify } from '../utils/notify.js';
@@ -73,6 +74,14 @@ const CAN = {
 // turned on "editors can share" (the same switch Google Docs has).
 const canManageSharing = (schedule, role) => role === 'owner' || (role === 'editor' && schedule.editorsCanShare === true);
 
+// A group's timetable follows the group: who is on it, and with which role, comes from the group's
+// members and admins, and it is never anyone's main. Sends the 409 itself and returns true when refused.
+const refuseForGroup = (res, schedule) => {
+    if (!schedule.group) return false;
+    fail(res, 409, "This timetable belongs to a group. Manage who's on it from the group.");
+    return true;
+};
+
 // 'restricted' when only the people added can open it, otherwise the role the code gives.
 const linkAccess = (schedule) => (schedule.shareCode ? (schedule.shareRole === 'editor' ? 'editor' : 'viewer') : 'restricted');
 
@@ -106,30 +115,38 @@ const loadSchedule = async (req, res, need) => {
 // Everyone with schedules has exactly one main. Accounts from before that rule may have several
 // and none marked, so the oldest one is promoted the first time it matters.
 const ensureMainSchedule = async (userId) => {
-    const owned = await scheduleModel.find({ owner: userId }).select('isMain createdAt').sort({ createdAt: 1, _id: 1 });
+    const owned = await scheduleModel.find(personalTimetables(userId)).select('isMain createdAt').sort({ createdAt: 1, _id: 1 });
     if (!owned.length) return null;
     const mains = owned.filter((s) => s.isMain);
     if (mains.length === 1) return mains[0]._id;
     const keep = mains[0] || owned[0];
-    await scheduleModel.updateMany({ owner: userId, _id: { $ne: keep._id } }, { isMain: false });
+    await scheduleModel.updateMany({ ...personalTimetables(userId), _id: { $ne: keep._id } }, { isMain: false });
     await scheduleModel.updateOne({ _id: keep._id }, { isMain: true, countInWorkload: true });
     return keep._id;
 };
 
 const PERSON_FIELDS = 'name avatar profileTag';
 
+// The group a timetable belongs to, as { _id, name } (name only when `group` is populated), or null.
+const groupOf = (schedule) => (schedule.group
+    ? { _id: schedule.group._id ?? schedule.group, name: schedule.group.name }
+    : null);
+
 const serialize = async (schedule, role, viewerId = '') => {
     await schedule.populate([
         { path: 'owner', select: PERSON_FIELDS },
         { path: 'collaborators.user', select: PERSON_FIELDS },
+        { path: 'group', select: 'name' },
     ]);
     const plain = schedule.toObject();
     // Every entry's subject becomes the viewer's own (or null), never the stored id of someone else.
     const subjectViewer = role === 'owner' ? String(schedule.owner._id ?? schedule.owner) : viewerId;
     plain.entries = withViewerSubjects(plain, subjectViewer, subjectViewer ? await activeSubjects(subjectViewer).lean() : []);
     plain.role = role;
+    plain.group = groupOf(schedule);
     plain.live = isLive(schedule);
-    plain.canShare = canManageSharing(schedule, role);
+    // Who is on a group's timetable is managed from the group, so nobody shares it from here.
+    plain.canShare = !schedule.group && canManageSharing(schedule, role);
     plain.editorsCanShare = schedule.editorsCanShare === true;
     // Enough for everyone on it to see how open the schedule is, without the code itself.
     plain.access = { people: schedule.collaborators.length, link: linkAccess(schedule) };
@@ -154,6 +171,7 @@ const summarize = (schedule, role, userId = '') => ({
     theme: schedule.theme,
     owner: schedule.owner,
     role,
+    group: groupOf(schedule),
     isMain: Boolean(schedule.isMain),
     countInWorkload: role === 'owner'
         ? schedule.countInWorkload !== false
@@ -164,6 +182,9 @@ const summarize = (schedule, role, userId = '') => ({
     collaboratorCount: schedule.collaborators.length,
     updatedAt: schedule.updatedAt,
 });
+
+// The list-view summary of one timetable, as the given user sees it.
+export const summarizeFor = (schedule, userId) => summarize(schedule, roleOf(schedule, userId), userId);
 
 const isRealDate = (value) => {
     if (!DATE_RE.test(value)) return false;
@@ -271,7 +292,7 @@ export const createSchedule = async (req, res) => {
         if (req.body.theme && !SCHEDULE_THEMES.includes(req.body.theme)) return fail(res, 400, 'Unknown theme.');
 
         await ensureMainSchedule(req.userId);
-        const ownedCount = await scheduleModel.countDocuments({ owner: req.userId });
+        const ownedCount = await scheduleModel.countDocuments(personalTimetables(req.userId));
         if (ownedCount >= MAX_OWNED_SCHEDULES) {
             return fail(res, 400, `You can have a main schedule and up to ${MAX_OWNED_SCHEDULES - 1} extra ones.`);
         }
@@ -295,6 +316,7 @@ export const getSchedules = async (req, res) => {
         const schedules = await scheduleModel
             .find({ $or: [{ owner: req.userId }, { 'collaborators.user': req.userId }] })
             .populate('owner', PERSON_FIELDS)
+            .populate('group', 'name')
             .sort({ updatedAt: -1 });
         res.json({
             success: true,
@@ -328,12 +350,21 @@ export const getSchedule = async (req, res) => {
     }
 };
 
+// Settings only the owner changes. On a group's timetable the admins (its editors) may also rename it
+// and change its theme.
+const OWNER_SETTINGS = ['countInWorkload', 'isMain', 'editorsCanShare'];
+
 export const updateSchedule = async (req, res) => {
     try {
-        const loaded = await loadSchedule(req, res, 'owner');
+        const loaded = await loadSchedule(req, res, 'view');
         if (!loaded) return;
         const { schedule, role } = loaded;
+        const groupEditor = Boolean(schedule.group) && role === 'editor';
+        if (role !== 'owner' && (!groupEditor || OWNER_SETTINGS.some((key) => req.body[key] !== undefined))) {
+            return fail(res, 403, 'Only the owner can do that');
+        }
         const { title, theme, countInWorkload, isMain, editorsCanShare } = req.body;
+        if (isMain === true && refuseForGroup(res, schedule)) return;
 
         if (title !== undefined) {
             const trimmed = String(title).trim();
@@ -350,12 +381,12 @@ export const updateSchedule = async (req, res) => {
         if (countInWorkload !== undefined && !schedule.isMain) schedule.countInWorkload = Boolean(countInWorkload);
         if (isMain === true && !schedule.isMain) {
             // Only one main at a time: the old one becomes an extra.
-            await scheduleModel.updateMany({ owner: req.userId, _id: { $ne: schedule._id } }, { isMain: false });
+            await scheduleModel.updateMany({ ...personalTimetables(req.userId), _id: { $ne: schedule._id } }, { isMain: false });
             schedule.isMain = true;
             schedule.countInWorkload = true;
         }
         await schedule.save();
-        res.json({ success: true, schedule: await serialize(schedule, role) });
+        res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
         scheduleError(res, 'updateSchedule error', error);
     }
@@ -365,7 +396,7 @@ export const deleteSchedule = async (req, res) => {
     try {
         const loaded = await loadSchedule(req, res, 'owner');
         if (!loaded) return;
-        if (loaded.schedule.isMain && await scheduleModel.exists({ owner: req.userId, _id: { $ne: loaded.schedule._id } })) {
+        if (loaded.schedule.isMain && await scheduleModel.exists({ ...personalTimetables(req.userId), _id: { $ne: loaded.schedule._id } })) {
             return fail(res, 400, 'This is your main schedule. Make another one your main first, then delete this one.');
         }
         const { schedule } = loaded;
@@ -398,7 +429,10 @@ const ownerIdOf = (schedule) => String(schedule.owner._id ?? schedule.owner);
 // An editor's `subject` and `newSubject` are ignored: a class they add links to the owner's subject of
 // that name, so the owner sees it linked, and an edit keeps whatever link the entry has, even when the
 // editor turns it into an event for a while.
+// A group's timetable stores no subject at all: it is nobody's own, and each member's subject is matched by
+// name when they read it.
 const readEntrySubject = async (req, schedule, { adding, kind }) => {
+    if (schedule.group) return { link: null };
     const { body } = req;
     const ownerId = ownerIdOf(schedule);
     if (ownerId !== req.userId && !adding) return { link: undefined };
@@ -704,7 +738,8 @@ const loadImportSource = async (req, res) => {
         fail(res, 400, 'Please enter a share code.');
         return null;
     }
-    const schedule = await scheduleModel.findOne({ shareCode: code }).populate('owner', 'name');
+    // A group's timetable is never opened by code (it has none; `group: null` makes sure).
+    const schedule = await scheduleModel.findOne({ shareCode: code, group: null }).populate('owner', 'name');
     if (!schedule) {
         fail(res, 404, 'No schedule found with that code.');
         return null;
@@ -727,7 +762,7 @@ const loadImportSource = async (req, res) => {
 
 const ownedForImport = async (userId) => {
     await ensureMainSchedule(userId);
-    return scheduleModel.find({ owner: userId }).select('title entries countInWorkload isMain importedFrom').sort({ isMain: -1, createdAt: 1 }).lean();
+    return scheduleModel.find(personalTimetables(userId)).select('title entries countInWorkload isMain importedFrom').sort({ isMain: -1, createdAt: 1 }).lean();
 };
 
 // POST /api/schedules/preview  { shareCode } or { groupId, messageId }
@@ -816,14 +851,14 @@ export const importSchedule = async (req, res) => {
         let schedule;
         if (req.body.targetScheduleId) {
             if (!mongoose.Types.ObjectId.isValid(req.body.targetScheduleId)) return fail(res, 404, 'Schedule not found');
-            schedule = await scheduleModel.findOne({ _id: req.body.targetScheduleId, owner: req.userId });
+            schedule = await scheduleModel.findOne({ _id: req.body.targetScheduleId, ...personalTimetables(req.userId) });
             if (!schedule) return fail(res, 404, 'Schedule not found');
         } else {
-            const main = req.body.newSchedule ? null : await scheduleModel.findOne({ owner: req.userId, isMain: true });
+            const main = req.body.newSchedule ? null : await scheduleModel.findOne({ ...personalTimetables(req.userId), isMain: true });
             if (main) {
                 schedule = main;
             } else {
-                const ownedCount = await scheduleModel.countDocuments({ owner: req.userId });
+                const ownedCount = await scheduleModel.countDocuments(personalTimetables(req.userId));
                 if (ownedCount >= MAX_OWNED_SCHEDULES) {
                     return fail(res, 400, `You can have a main schedule and up to ${MAX_OWNED_SCHEDULES - 1} extra ones.`);
                 }
@@ -961,7 +996,7 @@ const areFriends = async (a, b) => Boolean(await Friend.exists({
 // Loads a schedule for a sharing change: the owner, or an editor when the owner lets editors share.
 const loadForSharing = async (req, res) => {
     const loaded = await loadSchedule(req, res, 'view');
-    if (!loaded) return null;
+    if (!loaded || refuseForGroup(res, loaded.schedule)) return null;
     if (!canManageSharing(loaded.schedule, loaded.role)) {
         fail(res, 403, loaded.role === 'editor'
             ? "The owner hasn't let editors share this schedule."
@@ -1030,7 +1065,7 @@ export const shareWithFriend = async (req, res) => {
 export const removeCollaborator = async (req, res) => {
     try {
         const loaded = await loadSchedule(req, res, 'view');
-        if (!loaded) return;
+        if (!loaded || refuseForGroup(res, loaded.schedule)) return;
         const { schedule, role } = loaded;
         const { userId } = req.params;
         const leaving = userId === req.userId;
@@ -1095,7 +1130,7 @@ export const updateShareCode = async (req, res) => {
 export const makePrivate = async (req, res) => {
     try {
         const loaded = await loadSchedule(req, res, 'owner');
-        if (!loaded) return;
+        if (!loaded || refuseForGroup(res, loaded.schedule)) return;
         const { schedule } = loaded;
         const removed = schedule.collaborators.map((c) => c.user.toString());
         schedule.collaborators = [];
@@ -1158,6 +1193,7 @@ export const joinByCode = async (req, res) => {
 
         const schedule = await scheduleModel.findOne({ shareCode });
         if (!schedule) return fail(res, 404, 'No schedule found with that code.');
+        if (refuseForGroup(res, schedule)) return;
 
         let role = roleOf(schedule, req.userId);
         const codeRole = schedule.shareRole === 'editor' ? 'editor' : 'viewer';
@@ -1192,7 +1228,7 @@ export const duplicateSchedule = async (req, res) => {
         const { schedule } = loaded;
 
         await ensureMainSchedule(req.userId);
-        const ownedCount = await scheduleModel.countDocuments({ owner: req.userId });
+        const ownedCount = await scheduleModel.countDocuments(personalTimetables(req.userId));
         if (ownedCount >= MAX_OWNED_SCHEDULES) {
             return fail(res, 400, `You can have a main schedule and up to ${MAX_OWNED_SCHEDULES - 1} extra ones.`);
         }
