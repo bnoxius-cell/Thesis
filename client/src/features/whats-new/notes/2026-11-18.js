@@ -1,6 +1,7 @@
 export default {
   title: "Group plans, shared timetables and new terms",
   items: [
+    { tag: "new", text: "Dark mode is here. Pick Light, Dark or Match device in Settings under Appearance." },
     { tag: "new", text: "Each group has a Plan tab with shared tasks. Everyone sees changes within seconds and who is editing right now." },
     { tag: "new", text: "A group can have its own timetable. Members follow it, and it can count in your week if you choose." },
     { tag: "new", text: "On a shared timetable, tick the classes you take. Classes you skip stay out of your week." },
