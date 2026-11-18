@@ -31,7 +31,7 @@ export default function RestoreSubjectDialog({ subject, onClose, onRestored }) {
       onCancel={onClose}
     >
       {times > 0
-        ? `It goes back to your active subjects, and its ${plural(times, "class time")} return to your main timetable.`
+        ? `It goes back to your active subjects, and its ${plural(times, "class time")} ${times === 1 ? "returns" : "return"} to your main timetable.`
         : "It goes back to your active subjects."}
       {error && <span className="study-dialog__error" role="alert"> {error}</span>}
     </ConfirmDialog>
