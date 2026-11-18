@@ -13,5 +13,10 @@ export default {
     { tag: "fixed", text: "A shared class you changed just for you now shows as yours even when the timetable doesn't count in your week." },
     { tag: "fixed", text: "Change which classes I take now scrolls you to the checklist instead of opening it out of sight." },
     { tag: "fixed", text: "The new term class times fit on phones and laptops, with the weekday buttons on one row and times no longer cut off." },
+    { tag: "new", text: "Add a subject and its class times in one step. Each subject page now has a Class times card where you can edit or delete them." },
+    { tag: "new", text: "Class times can be on Sunday too, and a subject can have a different time on each day." },
+    { tag: "new", text: "If you can't edit a shared class, propose your own time to the admins. They approve or decline, and you'll get a note either way." },
+    { tag: "new", text: "Admins see a Proposals list on the group Plan tab, with Approve and Decline for each one." },
+    { tag: "improved", text: "The Terms and Privacy now cover class proposals. You'll be asked to accept them once." },
   ],
 };
