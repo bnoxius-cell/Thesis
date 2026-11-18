@@ -91,7 +91,7 @@ export default function AddSubjectDialog({ onClose, onSaved }) {
       <section className="add-subject__times" aria-labelledby="add-subject-times">
         <div className="add-subject__times-head">
           <h3 id="add-subject-times">Class times</h3>
-          <p>Optional. A different time on another day? Add another class time.</p>
+          <p>Optional. Add them now or later.</p>
         </div>
         {form.classTimes.map((time, index) => (
           <ClassTimeRow

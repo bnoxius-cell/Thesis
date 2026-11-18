@@ -371,8 +371,36 @@
   }
   .wellbeing-sleep__controls {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: var(--space-4);
+    align-items: start;
+  }
+  /* The worked-out bedtime: a read-only value in the same 44px box as the pickers, tinted so it doesn't look editable. */
+  .wellbeing-sleep__bedtime {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 var(--space-3) 0 14px;
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+    color: var(--text-primary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .wellbeing-sleep__bedtime svg {
+    flex: none;
+    color: var(--accent);
+  }
+  .wellbeing-sleep__controls .ui-field__hint {
+    color: var(--text-secondary);
+  }
+  .wellbeing-sleep__footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
   }
   .wellbeing-sleep__help,
   .wellbeing-sleep__status {
@@ -380,10 +408,21 @@
     font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
     color: var(--text-muted);
   }
+  .wellbeing-sleep__help {
+    flex: 1 1 260px;
+    min-width: 0;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+  }
   /* The status line keeps its height so Saving and Saved don't move the card. */
   .wellbeing-sleep__status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
     min-height: calc(var(--text-sm) * var(--text-sm-lh));
-    margin-top: calc(-1 * var(--space-2));
+  }
+  .wellbeing-sleep__status--saved {
+    color: var(--good);
   }
   .wellbeing-sleep__status--error {
     color: var(--danger);
@@ -398,6 +437,12 @@
     }
     .wellbeing-sleep__controls {
       grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
+    }
+    .wellbeing-sleep__bedtime {
+      min-height: 48px;
+      font-size: 16px;
+      line-height: 24px;
     }
     .wellbeing-sleep__window {
       grid-column: 1 / -1;
