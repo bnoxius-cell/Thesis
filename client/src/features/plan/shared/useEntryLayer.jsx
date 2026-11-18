@@ -85,7 +85,7 @@ export default function useEntryLayer({ entry, choice, handlers, onEdit, onDelet
         Withdraw
       </Button>
     ) : (
-      <Button icon={Send} disabled={choice.busy} onClick={() => afterProposal(choice.propose(layer))}>
+      <Button icon={Send} className="item-footer__propose" disabled={choice.busy} onClick={() => afterProposal(choice.propose(layer))}>
         Propose this time to the admins
       </Button>
     );

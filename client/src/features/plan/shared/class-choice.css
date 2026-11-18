@@ -6,7 +6,24 @@
   .item-footer__options {
     margin-inline-end: auto;
   }
+  /* The footer wraps instead of clipping a long label ("Propose this time to the admins"). */
+  .item-footer {
+    flex-wrap: wrap;
+  }
+  .item-footer__propose,
+  .item-footer__options {
+    flex: 0 1 auto;
+    max-width: 100%;
+    height: auto;
+    min-height: 44px;
+    white-space: normal;
+    text-align: center;
+  }
   @media (max-width: 719.98px) {
+    .item-footer__propose {
+      order: -1;
+      grid-column: 1 / -1;
+    }
     .item-footer__options {
       order: -1;
       grid-column: 1 / -1;
