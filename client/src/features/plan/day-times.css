@@ -49,6 +49,12 @@
   .day-times input {
     min-width: 0;
   }
+  /* At 320px two time inputs share a row and the global input padding clips AM/PM, so trim it. */
+  @media (max-width: 380px) {
+    .day-times input[type="time"] {
+      padding-inline: var(--space-2);
+    }
+  }
 
   .day-times__rows {
     display: flex;
