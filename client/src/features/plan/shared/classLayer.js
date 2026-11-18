@@ -68,6 +68,26 @@ export function noticeText(notice, title, who, shared, mine) {
   return `${who} changed ${quoted(title)}. Yours is still the way you set it.`;
 }
 
+// ---- Proposals ---------------------------------------------------------------------------------------------
+
+const APPROVAL = "If they approve it, your copy is replaced by the group's class, which then has your time.";
+
+// What the class window says about proposing a student's own copy to the admins (Figma GW-9, member 386:4421).
+// `proposal` is the student's open proposal on the class, or null. `shared` and `mine` are the two entries when
+// they are known; `who` is "the group" or "the timetable".
+export function proposalText(proposal, shared, mine, who) {
+  if (proposal) return `They will see your name and the time you proposed. ${APPROVAL}`;
+  const times =
+    shared && mine && whenText(shared) !== whenText(mine)
+      ? `Your copy is at ${dayText(shared) === dayText(mine) ? startText(mine) : whenText(mine)}. ${who === "the group" ? "The group" : "The timetable"} still has ${whenText(shared)}. `
+      : "";
+  return `${times}Admins can use your time for everyone. ${APPROVAL}`;
+}
+
+// What a proposal asks for, in the admins' list: "Web Systems to Mon 7:00 to 8:30 am (now Mon 8:00 to 9:30 am)".
+// `current` is the class as it is now (the proposal's own `base` when the class can't be read).
+export const proposalLine = (proposal, current) => `${proposal.title} to ${spanText(proposal.fields)} (now ${spanText(current ?? proposal.base)})`;
+
 // ---- The join checklist ------------------------------------------------------------------------------------
 
 // The classes of a timetable as the checklist lists them: one row per title, so a subject's lecture and lab are

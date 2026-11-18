@@ -3,6 +3,7 @@
 export { default as ChangeNotice } from "./ChangeNotice";
 export { default as EntryScopeChoice } from "./EntryScopeChoice";
 export { default as JoinChecklist } from "./JoinChecklist";
+export { default as ProposalList } from "./ProposalList";
 export { layerChip } from "./classLayer";
 export { default as useClassChoice } from "./useClassChoice";
 export { default as useEntryLayer } from "./useEntryLayer";

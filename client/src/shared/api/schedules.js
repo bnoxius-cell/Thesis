@@ -68,3 +68,15 @@ export const customizeAllClasses = (scheduleId) => request("post", `${minePath(s
 export const keepMyClass = (scheduleId, entryId) => request("post", `${minePathOf(scheduleId, entryId)}/keep-mine`);
 // Editors only: their copy becomes the class for everyone (409 when the class moved since they customized it).
 export const publishMyClass = (scheduleId, entryId) => request("post", `${minePathOf(scheduleId, entryId)}/publish`);
+
+// Proposals (plan 40, 2.5): a member who can't edit a shared timetable proposes the time of their own copy of a class.
+const proposalsPath = (scheduleId) => `${timetablePath(scheduleId)}/proposals`;
+// Answers { proposal }. 409 when the class changed since they customized it or they already proposed it.
+export const proposeMyClass = (scheduleId, entryId) => request("post", `${minePathOf(scheduleId, entryId)}/propose`);
+// The open proposals: { proposals: [{ _id, entry, title, proposer: { _id, name }, fields, base, status, stale, createdAt }] }.
+// Editors get every one, anyone else only their own.
+export const fetchProposals = (scheduleId) => request("get", proposalsPath(scheduleId));
+// Editors decide (approve is 409 when the class changed since); the proposer withdraws their own. All 409 once closed.
+export const approveProposal = (scheduleId, proposalId) => request("post", `${proposalsPath(scheduleId)}/${encodeURIComponent(proposalId)}/approve`);
+export const declineProposal = (scheduleId, proposalId) => request("post", `${proposalsPath(scheduleId)}/${encodeURIComponent(proposalId)}/decline`);
+export const withdrawProposal = (scheduleId, proposalId) => request("post", `${proposalsPath(scheduleId)}/${encodeURIComponent(proposalId)}/withdraw`);

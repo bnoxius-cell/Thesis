@@ -7,6 +7,10 @@ import {
   customizeClass,
   keepMyClass,
   publishMyClass,
+  proposeMyClass,
+  approveProposal,
+  declineProposal,
+  withdrawProposal,
 } from "@/shared/api/schedules";
 
 // The three choices that delete the student's own copy of a class, so each is confirmed first. Each says which
@@ -48,6 +52,8 @@ const quoted = (ref) => `"${ref.title}"`;
 //   customize(ref)                     their own copy: { scheduleId, entryId } (the same copy again on a retry)
 //   customizeAll(scheduleId)           a copy of every class they follow
 //   keepMine(ref), publish(ref)        keep their version; make it the class for everyone (editors)
+//   propose(ref), withdraw(ref, proposal)       a member's proposal of their copy's time to the admins, and taking it back
+//   approve(scheduleId, proposal), decline(...)  editors decide a proposal (the caller confirms an approve first)
 //   busy                               a call is running
 export default function useClassChoice({ onChanged }) {
   const [busy, setBusy] = useState(false);
@@ -56,10 +62,12 @@ export default function useClassChoice({ onChanged }) {
   const apply = useCallback(
     async (send, message) => {
       setBusy(true);
-      const { data, error } = await send();
+      const { data, error, status } = await send();
       setBusy(false);
       if (error) {
         toast.error(error);
+        // "Changed since" and "already closed": the page's week is out of date, so read it again.
+        if (status === 409) onChanged();
         return null;
       }
       if (message) toast.success(typeof message === "function" ? message(data) : message);
@@ -88,6 +96,17 @@ export default function useClassChoice({ onChanged }) {
   const publish = (ref) =>
     apply(() => publishMyClass(ref.scheduleId, ref.entryId), `Your version of ${quoted(ref)} is now the class for everyone.`);
 
+  const propose = (ref) =>
+    apply(() => proposeMyClass(ref.scheduleId, ref.entryId), `Your time for ${quoted(ref)} was sent to the admins.`);
+
+  const withdraw = (ref, proposal) => apply(() => withdrawProposal(ref.scheduleId, proposal._id), "Proposal taken back.");
+
+  const approve = (scheduleId, proposal) =>
+    apply(() => approveProposal(scheduleId, proposal._id), `${proposal.proposer.name}'s time is now the class for everyone.`);
+
+  const decline = (scheduleId, proposal) =>
+    apply(() => declineProposal(scheduleId, proposal._id), `Declined ${proposal.proposer.name}'s change to "${proposal.title}".`);
+
   const ask = (kind, ref, done) => setAsking({ kind, ref, done });
 
   const confirm = async () => {
@@ -115,5 +134,5 @@ export default function useClassChoice({ onChanged }) {
     </ConfirmDialog>
   );
 
-  return { choose, ask, customize, customizeAll, keepMine, publish, busy, dialog };
+  return { choose, ask, customize, customizeAll, keepMine, publish, propose, withdraw, approve, decline, busy, dialog };
 }

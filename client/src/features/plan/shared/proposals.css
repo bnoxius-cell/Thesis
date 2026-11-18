@@ -1,0 +1,109 @@
+/* The admins' Proposals list (Figma GW-9: admin 386:4502). Plain CSS on the shared tokens. */
+@layer pages {
+  .proposals {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+  .proposals__head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .proposals__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+  }
+  .proposals__sub {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .proposals__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .proposal {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    transition:
+      opacity var(--dur-3) var(--ease-out),
+      transform var(--dur-3) var(--ease-out);
+    @starting-style {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  .proposal__top {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .proposal__text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .proposal__who {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .proposal__line {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .proposal__stale {
+    flex: none;
+    color: var(--watch);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .proposal__note {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 10px;
+    margin: 0;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--watch-soft);
+    color: var(--text-primary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .proposal__note svg {
+    color: var(--watch);
+  }
+  .proposal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+  }
+  /* A phone puts "Changed since" under the name and stretches the buttons to 44px halves. */
+  @media (max-width: 639px) {
+    .proposal__top {
+      flex-wrap: wrap;
+    }
+    .proposal__stale {
+      flex-basis: 100%;
+    }
+    .proposal__actions > * {
+      flex: 1 1 0;
+      min-height: 44px;
+    }
+  }
+}

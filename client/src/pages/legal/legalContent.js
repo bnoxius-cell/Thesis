@@ -3,7 +3,7 @@
 // should re-accept, bump LEGAL_VERSION in server/utils/legal.js as well, so everyone
 // sees the consent prompt again.
 
-export const LEGAL_UPDATED = "November 18, 2026";
+export const LEGAL_UPDATED = "November 19, 2026";
 export const SUPPORT_EMAILS = [
   "tkishore1434val@student.fatima.edu.ph",
   "amreniva0131val@student.fatima.edu.ph",
@@ -154,7 +154,7 @@ export const PRIVACY = {
           "Your tasks: titles, courses, descriptions, due dates, estimated hours, difficulty and importance, and the time you mark a task as done.",
           "Your schedules: classes and activities with times, places, online class links and notes, any pictures you attach, days you mark off, who you share each one with, and a short log of recent changes on shared schedules.",
           "The subjects you add (name, code, term and colour) and which of your tasks and reviewers belong to them.",
-          "Social features: friend connections, groups you belong to, group messages, reactions and tasks shared in groups, and reviewers you share in a group, including their questions and answers, so groupmates can save a copy. A copy someone saves stays in their Study even if you delete the message. Group plans: tasks and the timetable in a group's plan, with the name of who last changed each task; which shared classes you take or changed for yourself (others only ever see how many members use their own time, never who); and while you have a group's plan open, your groupmates can see that you're there and which task you're editing.",
+          "Social features: friend connections, groups you belong to, group messages, reactions and tasks shared in groups, and reviewers you share in a group, including their questions and answers, so groupmates can save a copy. A copy someone saves stays in their Study even if you delete the message. Group plans: tasks and the timetable in a group's plan, with the name of who last changed each task; which shared classes you take or changed for yourself (others only ever see how many members use their own time, never who); and while you have a group's plan open, your groupmates can see that you're there and which task you're editing. When you propose a change to a shared class, the people who can edit that timetable see your name and the change.",
           "Files and pictures you upload to a chat or to your Study files, kept until you or the group delete them.",
           "Reviewers: the text taken from the files, photos or notes you give us (we don't keep the file or photo you upload for a reviewer, only files you save in your Study files), the reviewer and questions made from it, and your Learning Mode answers and scores.",
           "Flashcards: the decks and cards you make, and when you last reviewed each card.",

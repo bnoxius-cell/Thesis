@@ -1,8 +1,11 @@
+import { Send } from "lucide-react";
 import { Button } from "@/shared/ui";
 import { kindName } from "@/features/details/detailText";
 import ChangeNotice from "./ChangeNotice";
 import ClassChoiceMenu from "./ClassChoiceMenu";
-import { layerChip, layerRef } from "./classLayer";
+import ProposalNote from "./ProposalNote";
+import { layerChip, layerRef, proposalText } from "./classLayer";
+import useProposals from "./useProposals";
 import useTimetableEntries from "./useTimetableEntries";
 
 const CAN_PUBLISH = ["owner", "editor"];
@@ -14,12 +17,18 @@ const CAN_PUBLISH = ["owner", "editor"];
 //   isCopy   the entry is the student's own copy (their week shows copies, the shared timetable shows the class)
 //   start    the footer's left slot: Class options on the shared class, "Use the group's" on a copy with no notice
 //   publish  "Publish my version", for an editor of the shared timetable on their own copy
+//   propose  "Propose this time to the admins" for anyone else on their own copy, then "Withdraw" while it is open
+//   proposalChip, note  the chip ("Sent to the admins") and the line about proposing (Figma GW-9, 386:4421)
 // Every action closes the window once the server took it, so it never shows a stale entry: the page reads its
 // week again (`choice`'s `onChanged`). `handlers` are the window's `{ close }`, handed on to Edit and Delete.
 export default function useEntryLayer({ entry, choice, handlers, onEdit, onDelete }) {
   const layer = choice ? layerRef(entry) : null;
   // A copy needs the shared class (to say what moved) and the student's role on it (to offer Publish).
   const { entries, roles } = useTimetableEntries(layer?.isCopy ? [layer.scheduleId] : []);
+  // A student who can't edit the shared timetable can propose the time of their copy, unless the class moved
+  // under it (the server would refuse: they keep or drop the copy first).
+  const canPropose = Boolean(layer?.isCopy) && !layer.notice && roles.get(layer.scheduleId) === "viewer";
+  const { proposals, reload: reloadProposals } = useProposals(canPropose ? layer.scheduleId : "");
   if (!layer) return null;
 
   const { close } = handlers;
@@ -65,6 +74,23 @@ export default function useEntryLayer({ entry, choice, handlers, onEdit, onDelet
     );
   }
 
+  const proposal = canPropose ? proposals.find((item) => item.entry === layer.entryId) : null;
+  const afterProposal = async (answer) => {
+    if (await answer) reloadProposals();
+  };
+  let propose = false;
+  if (canPropose) {
+    propose = proposal ? (
+      <Button variant="secondary" disabled={choice.busy} onClick={() => afterProposal(choice.withdraw(layer, proposal))}>
+        Withdraw
+      </Button>
+    ) : (
+      <Button icon={Send} className="item-footer__propose" disabled={choice.busy} onClick={() => afterProposal(choice.propose(layer))}>
+        Propose this time to the admins
+      </Button>
+    );
+  }
+
   return {
     chip: layerChip(entry),
     isCopy: layer.isCopy,
@@ -81,6 +107,9 @@ export default function useEntryLayer({ entry, choice, handlers, onEdit, onDelet
         onKeep={() => closeAfter(choice.keepMine(layer))}
       />
     ),
+    propose,
+    proposalChip: proposal && { label: "Sent to the admins", tone: "accent" },
+    note: canPropose && <ProposalNote>{proposalText(proposal, shared, entry, layer.group ? "the group" : "the timetable")}</ProposalNote>,
     publish: canPublish && (
       <Button disabled={choice.busy} onClick={() => closeAfter(choice.publish(layer))}>
         Publish my version

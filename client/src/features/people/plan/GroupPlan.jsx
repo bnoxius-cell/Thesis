@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { Button, Skeleton } from "@/shared/ui";
-import { JoinChecklist, useClassChoice } from "@/features/plan/shared";
+import { JoinChecklist, ProposalList, useClassChoice } from "@/features/plan/shared";
 import { useAuth } from "@/pages/authentication/AuthContext";
 import GroupUpcoming from "../GroupUpcoming";
 import GroupNotices from "./GroupNotices";
@@ -89,6 +89,7 @@ export default function GroupPlan({ group }) {
           onEdit={(task) => setDialog({ task })}
           onToggle={setDone}
         />
+        {canEdit && plan.timetable && <ProposalList scheduleId={plan.timetable._id} stamp={plan.timetable.updatedAt} choice={choice} />}
         <GroupTimetableCard
           groupId={group._id}
           timetable={plan.timetable}
