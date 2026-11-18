@@ -52,7 +52,7 @@ export default function EntryDetails({ entry, iso, subjects, context, choice, on
           Edit
         </Button>
       )}
-      primary={layer?.publish || primary}
+      primary={layer?.publish || layer?.propose || primary}
     />
   );
 
@@ -67,10 +67,11 @@ export default function EntryDetails({ entry, iso, subjects, context, choice, on
       footer={footer}
     >
       {layer?.notice}
-      {(chip || layer?.chip) && (
+      {(chip || layer?.chip || layer?.proposalChip) && (
         <div className="item-chips">
           {chip && <Chip tone={chip.tone} className="item-chip">{chip.label}</Chip>}
           {layer?.chip && <Chip tone={layer.chip.tone} className="item-chip">{layer.chip.label}</Chip>}
+          {layer?.proposalChip && <Chip tone={layer.proposalChip.tone} className="item-chip">{layer.proposalChip.label}</Chip>}
         </div>
       )}
       <DetailRows>
@@ -107,6 +108,7 @@ export default function EntryDetails({ entry, iso, subjects, context, choice, on
           {entry.notes && <span className="detail-notes">{entry.notes}</span>}
         </DetailRow>
       </DetailRows>
+      {layer?.note}
     </ItemDetailDialog>
   );
 }
