@@ -221,52 +221,55 @@
   .dark-theme {
     color-scheme: dark;
 
-    --bg-app: #0f1319;
-    --surface: #161b23;
-    --surface-2: #1d232d;
-    --surface-3: #262d39;
+    /* Graphite (owner pick 2026-11-18): near-black neutrals, one cool blue accent. Change dark mode here only. */
+    --bg-app: #0a0a0c;
+    --surface: #131417;
+    --surface-2: #1b1d22;
+    --surface-3: #24272e;
     --progress-track: var(--surface-3);
-    --border: #29303c;
-    --border-input: #6a7486;
-    --text-primary: #e7eaf0;
-    --text-secondary: #b3bbc8;
-    --text-muted: #949eae;
-    --accent: #a3b6f2;
-    --accent-hover: #b8c7f6;
-    --accent-press: #cbd6f8;
-    --on-accent: #0f1319;
-    --accent-soft: #212b45;
+    --border: #25272d;
+    --border-input: #6b7280;
+    --text-primary: #eceef2;
+    --text-secondary: #b5b9c3;
+    --text-muted: #959aa6;
+    --accent: #8fb0ff;
+    --accent-hover: #a6c0ff;
+    --accent-press: #bcd0ff;
+    --on-accent: #0a0a0c;
+    --accent-soft: #1c2740;
     --brand: #f26b5f;
     --good: #82c9a5;
-    --good-soft: #16302a;
+    --good-soft: #14281f;
     --watch: #e9c27a;
-    --watch-soft: #33291a;
+    --watch-soft: #2d2415;
     --danger: #f3a39b;
-    --danger-soft: #3b1f1d;
-    --on-danger: #0f1319;
-    --focus-ring: #a3b6f2;
-    --overlay: rgba(0, 0, 0, 0.6);
+    --danger-soft: #351c1a;
+    --on-danger: #0a0a0c;
+    --focus-ring: #8fb0ff;
+    --overlay: rgba(0, 0, 0, 0.7);
 
-    --chart-busy: #4a5466;
-    --chart-task: #8ea3e6;
+    --chart-busy: #4a4f5c;
+    --chart-task: #8fa8e8;
     --chart-over: #d9a441;
-    --chart-line: #949eae;
-    --chart-track: #1d232d;
+    --chart-line: #959aa6;
+    --chart-track: #1b1d22;
 
-    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-2: 0 6px 20px rgba(0, 0, 0, 0.45);
-    --shadow-3: 0 24px 56px rgba(0, 0, 0, 0.6);
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-2: 0 6px 20px rgba(0, 0, 0, 0.55);
+    --shadow-3: 0 24px 56px rgba(0, 0, 0, 0.7);
+    --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --shadow-sheet: 0 -4px 24px rgba(0, 0, 0, 0.65);
 
     --mist: rgba(255, 255, 255, 0.06);
 
-    --sidebar-bg: #121a2e;
-    --sidebar-text: #e7eaf0;
-    --sidebar-text-muted: #9aa6c0;
+    --sidebar-bg: #0e0f13;
+    --sidebar-text: #eceef2;
+    --sidebar-text-muted: #9a9fab;
     --sidebar-hover: rgba(255, 255, 255, 0.08);
-    --sidebar-active-bg: #e7eaf0;
-    --sidebar-active-text: #121a2e;
-    --sidebar-border: rgba(255, 255, 255, 0.12);
-    --band: #1d2a4d;
+    --sidebar-active-bg: #eceef2;
+    --sidebar-active-text: #0e0f13;
+    --sidebar-border: rgba(255, 255, 255, 0.1);
+    --band: #171c2e;
 
     /* Subject colours: lighter solids and deeper tints for dark. Solid is 3:1 or better on --surface, --text-primary on -soft is 4.5:1 or better, none reads as red. */
     --subject-blue: #7ea3f2;
