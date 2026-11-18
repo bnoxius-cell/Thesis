@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchTimetables } from "@/shared/api/schedules";
 
-// The main timetable first, then the student's own extras, then the ones shared with them. Each
-// group keeps the server's order (most recently changed first).
+// The main timetable first, then the student's own extras, then the ones shared with them (a group's
+// included, even the group owner's). Each set keeps the server's order (most recently changed first).
 export function sortTimetables(list) {
-  const rank = (t) => (t.role !== "owner" ? 2 : t.isMain ? 0 : 1);
+  const rank = (t) => (t.role !== "owner" || t.group ? 2 : t.isMain ? 0 : 1);
   return [...list].sort((a, b) => rank(a) - rank(b));
 }
 

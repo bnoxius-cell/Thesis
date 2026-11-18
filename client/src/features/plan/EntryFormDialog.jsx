@@ -38,8 +38,8 @@ const NEW_SUBJECT_OPTION = newSubjectOption("New subject...");
 // shared timetable 209:3273, phone sheets 210:2576, 210:2673, 210:2753, 210:2828). `kind` is the one the "+"
 // menu chose and stays fixed. `subjects` is the list the page loaded: the picker's values are subject ids, and
 // picking one fills the Title with its name (the server titles a class with its subject's name anyway).
-// The Subject picker ends with "New subject..." when the student owns the timetable (the server ignores it from
-// an editor): it shows a required Name field and the save sends `newSubject`, so the server makes the subject.
+// A group's timetable shows no Subject picker at all (the server stores none). Elsewhere the picker ends with
+// "New subject..." when the student owns the timetable (the server ignores it from an editor): it shows a required Name field and the save sends `newSubject`, so the server makes the subject.
 // `timetable` is the picked timetable the student can edit, or null for My week (the main timetable, created
 // when missing). To edit, pass the stored `entry` and the `timetable` it lives on (always required then).
 // Nothing is saved until the button; closing asks first when something was typed. A failed save keeps the
@@ -56,6 +56,7 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
 
   const exam = form.kind === "exam";
   const ownsTimetable = !timetable || timetable.role === "owner";
+  const inGroup = Boolean(timetable?.group); // a group's classes carry no subject: each member's is matched by name
   const creatingSubject = form.subject === NEW_SUBJECT;
   const weekly = form.repeat === REPEAT.weekly && !exam;
   const label = KIND_LABELS[form.kind].toLowerCase();
@@ -151,7 +152,7 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
         </>
       )}
     >
-      {form.kind === "class" || exam ? (
+      {(form.kind === "class" || exam) && !inGroup ? (
         <>
           <div className="entry-dialog__pair">
             {subjectField}

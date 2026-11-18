@@ -10,13 +10,14 @@ const upsert = (tasks, task) => (tasks.some((t) => t._id === task._id) ? tasks.m
 
 // One group's plan, kept live. A light "stamp" is polled every 4 seconds while the tab is in front: it says
 // when the plan last changed and who else has it open, and the whole plan is read again only when it moved
-// past the copy on screen. Mount it with the group id as its `key`.
+// past the copy on screen (the group timetable's own stamp counts too, so its card stays current). Mount it with the group id as its `key`.
 //   plan         null until the first answer; then { role, tasks, timetable, serverTime, ... }
 //   status       "loading" | "ready" | "failed" (failed only while nothing has loaded)
 //   presence     [{ userId, editing }]: the other members who have the plan open
 //   reload       reads the plan again now
 //   applyTask    puts a task the server just answered into the list (a new one is added)
 //   dropTask     takes a task out of the list
+//   applyTimetable  puts the group timetable summary the server just answered on the plan
 //   setDone      ticks a task off or back on for the group; resolves to true when it saved
 // `editingId` is the task whose dialog is open here (or null): the stamp tells the others, and it is sent at
 // once when it changes, so "Ana is editing" doesn't wait for the next poll.
@@ -45,7 +46,8 @@ export default function useGroupPlan(groupId, { editingId = null } = {}) {
     const { data } = await fetchPlanStamp(groupId, editing.current);
     if (data) {
       setPresence(data.presence ?? []);
-      if (data.planAt && Date.parse(data.planAt) > loadedAt.current) await load();
+      const moved = [data.planAt, data.timetableAt].some((stamp) => Date.parse(stamp) > loadedAt.current); // a null stamp is NaN: never newer
+      if (moved) await load();
     }
     await firstLoad;
   }, [groupId, load]);
@@ -66,6 +68,10 @@ export default function useGroupPlan(groupId, { editingId = null } = {}) {
 
   const dropTask = useCallback((taskId) => {
     setState((prev) => (prev.plan ? { ...prev, plan: { ...prev.plan, tasks: prev.plan.tasks.filter((t) => t._id !== taskId) } } : prev));
+  }, []);
+
+  const applyTimetable = useCallback((timetable) => {
+    setState((prev) => (prev.plan ? { ...prev, plan: { ...prev.plan, timetable } } : prev));
   }, []);
 
   // Ticks the task and puts the server's answer in the list; resolves to the saved task, or to null after a
@@ -96,5 +102,5 @@ export default function useGroupPlan(groupId, { editingId = null } = {}) {
     [tick],
   );
 
-  return { ...state, presence, reload: load, applyTask, dropTask, setDone };
+  return { ...state, presence, reload: load, applyTask, dropTask, applyTimetable, setDone };
 }
