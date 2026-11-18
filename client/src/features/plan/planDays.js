@@ -1,5 +1,5 @@
 import { addDays, fromISODate, taskDueIso, toISODate } from "@/utils/scheduleUtils";
-import { subjectForLabel } from "@/utils/subjectColors";
+import { entrySubject } from "@/features/details/itemLinks";
 import { subjectTone } from "@/shared/lib/subjectTone";
 import { dayLoad } from "./dayLoad";
 
@@ -8,10 +8,10 @@ const minutes = (hhmm) => {
   return h * 60 + m;
 };
 
-// Classes take their subject's tone when the title matches a subject's name or code (timetable
-// entries carry no subject id); every other kind of entry reads as neutral. Exams draw themselves.
+// Classes take their subject's tone by the subject id the server put on the entry (the viewer's own subject, or
+// none); every other kind of entry reads as neutral. Exams draw themselves.
 export function withLook(entry, subjects) {
-  const subject = entry.kind === "class" ? subjectForLabel(entry.title, subjects) : null;
+  const subject = entry.kind === "class" ? entrySubject(entry, subjects) : null;
   return {
     ...entry,
     id: `${entry.startTime}-${entry.endTime}-${entry.title}`,

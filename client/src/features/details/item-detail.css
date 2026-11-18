@@ -244,6 +244,22 @@
     color: var(--text-muted);
     font-weight: 400;
   }
+  /* "Not in your subjects" (CT-F3): the soft note under the rows that explains Make it a subject. */
+  .item-subject-note {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+    background: var(--accent-soft);
+    color: var(--text-primary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .item-subject-note svg {
+    flex: none;
+    color: var(--accent);
+  }
   .detail-notes {
     display: block;
     font-weight: 400;

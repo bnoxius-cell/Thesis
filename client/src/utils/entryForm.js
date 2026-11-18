@@ -177,6 +177,16 @@ export const titleAfterSubject = (title, previousName, name) =>
 export const subjectNameOf = (form, subjects) =>
   form.subject === NEW_SUBJECT ? clean(form.newSubjectName) : (subjects.find((subject) => subject._id === form.subject)?.name ?? "");
 
+// The line under "Edit class time" when the timetable has an owner to name: "Changes apply to every Thursday on
+// Study group, Jose's timetable." A one-day entry, or one on the student's own timetable, has none ("").
+export function classEditSubtitle(entry, timetable) {
+  const days = WEEKDAYS.filter((day) => entry.days?.includes(day.value)).map((day) => day.long);
+  if (entry.date || days.length === 0 || !timetable || timetable.role === "owner") return "";
+  const list = days.length === 1 ? days[0] : `${days.slice(0, -1).join(", ")} and ${days[days.length - 1]}`;
+  const owner = timetable.owner?.name;
+  return `Changes apply to every ${list} on ${timetable.title}${owner ? `, ${owner}’s timetable` : ""}.`;
+}
+
 const SHORT_DAY = Object.fromEntries(WEEKDAYS.map((day) => [day.value, day.short]));
 
 // "Overlaps Web Systems, Tue 1:00 pm." when the form clashes with an entry already on the timetable, or

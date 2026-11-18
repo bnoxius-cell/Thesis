@@ -31,7 +31,8 @@ const isPrepTask = (task) => task.isExam || String(task._id).startsWith("exam:")
 // student can change (`canEdit`).
 // `onChanged` is how a page that shows the week takes news of a change to the student's own choices on a class of
 // a timetable shared with them (hide it, keep their own version, ...): it reads its week again. Without it the
-// window draws no such choices.
+// window draws no such choices. It also runs after "Make it a subject" on a class that is none of the student's
+// subjects (the page then reads again, which links the class to the new subject).
 // openEntry(entry, iso) takes the entry as it is on day `iso` (YYYY-MM-DD).
 // openDay(day, { onOpenWeek }) opens the day window (Figma D9) on a day from buildDay (features/plan/planDays.js).
 // A row in it opens that item's window in its place, with a back arrow to the day; Escape and the X close both.
@@ -128,6 +129,7 @@ export default function useItemDetail({
         focus={item.focus}
         onEdit={replacingEntry(onEditEntry)}
         onDelete={replacingEntry(onDeleteEntry)}
+        onSubjectMade={onChanged}
       />
     );
   } else if (day) {

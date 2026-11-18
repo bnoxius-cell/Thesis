@@ -1,6 +1,8 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarDays, Clock, FileText, MapPin, Shapes, Timer, Video } from "lucide-react";
+import { BookOpen, CalendarDays, Clock, FileText, MapPin, Shapes, Timer, Video } from "lucide-react";
+import { toast } from "react-toastify";
+import { createSubject } from "@/shared/api/subjects";
 import { Button, Chip } from "@/shared/ui";
 import useNow from "@/shared/hooks/useNow";
 import { useEntryLayer } from "@/features/plan/shared";
@@ -18,11 +20,17 @@ import { entryIsLive, entrySubject, planDayHref, repeatText, subjectHref } from 
 // A class of a timetable shared with the student (it carries `myChoice`) also shows what they chose for it, and
 // when the page gave a `choice` (useClassChoice) the ways to change that: see useEntryLayer. On such a class
 // Edit and Delete move into the Class options menu ("for everyone"); on the student's own copy there is Edit.
-export default function EntryDetails({ entry, iso, subjects, context, choice, onClose, onBack, returnFocusRef, focus, onEdit, onDelete }) {
+// A class that is none of the student's subjects (Figma CT-F3 429:1682, viewer 429:2249) says so and offers "Make
+// it a subject": it creates one named like the class, tells the page (`onSubjectMade` reads the week and subjects
+// again, which links the class by name) and the window then offers "Open subject" in its place.
+export default function EntryDetails({ entry, iso, subjects, context, choice, onClose, onBack, returnFocusRef, focus, onEdit, onDelete, onSubjectMade }) {
   const editRef = useRef(null);
   const deleteRef = useRef(null);
   const now = useNow();
-  const subject = entrySubject(entry, subjects);
+  const [made, setMade] = useState(null); // the subject "Make it a subject" just created
+  const [making, setMaking] = useState(false);
+  const subject = entrySubject(entry, subjects) ?? made;
+  const unlinked = entry.kind === "class" && !subject;
   const live = entryIsLive(entry, iso, now);
   const chip = entryChip(entry, iso, now, live);
   const provider = entry.meetingUrl && isWebLink(entry.meetingUrl) ? meetingProvider(entry.meetingUrl) : null;
@@ -30,9 +38,20 @@ export default function EntryDetails({ entry, iso, subjects, context, choice, on
   const handlers = { close: onClose };
   const layer = useEntryLayer({ entry, choice, handlers, onEdit, onDelete });
 
+  const makeSubject = async () => {
+    setMaking(true);
+    const { data, error } = await createSubject({ name: entry.title });
+    setMaking(false);
+    if (error) return toast.error(error);
+    setMade(data.subject);
+    onSubjectMade?.();
+  };
+
   const inThisSubject = subject && context === `subject:${subject._id}`;
   // Plan's own week already shows the entry, so it is the only place that doesn't offer the way there.
-  const primary = subject && !inThisSubject ? (
+  const primary = unlinked ? (
+    <Button className="item-footer__go" busy={making} onClick={makeSubject}>Make it a subject</Button>
+  ) : subject && !inThisSubject ? (
     <Button className="item-footer__go" to={subjectHref(subject._id)} onClick={onClose}>Open subject</Button>
   ) : context !== "plan-week" && (
     <Button className="item-footer__go" to={planDayHref(iso, now)} onClick={onClose}>See it in Plan</Button>
@@ -96,7 +115,8 @@ export default function EntryDetails({ entry, iso, subjects, context, choice, on
           )}
         </DetailRow>
         <DetailRow icon={Timer} label="Prep">{entry.kind === "exam" ? prepText(entry.prepHours) : ""}</DetailRow>
-        <DetailRow icon={Shapes} label="Subject">
+        <DetailRow icon={Shapes} label="Subject" muted={unlinked}>
+          {unlinked && "Not in your subjects"}
           {subject && !inThisSubject && (
             <Link className="detail-link" to={subjectHref(subject._id)} onClick={onClose}>{subject.name}</Link>
           )}
@@ -108,6 +128,12 @@ export default function EntryDetails({ entry, iso, subjects, context, choice, on
           {entry.notes && <span className="detail-notes">{entry.notes}</span>}
         </DetailRow>
       </DetailRows>
+      {unlinked && (
+        <p className="item-subject-note">
+          <BookOpen size={20} aria-hidden="true" />
+          <span>{entry.title} isn’t one of your subjects yet. Make it one and its class times, tasks and notes stay together.</span>
+        </p>
+      )}
       {layer?.note}
     </ItemDetailDialog>
   );
