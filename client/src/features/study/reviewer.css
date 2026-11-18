@@ -38,8 +38,13 @@
     overflow-wrap: anywhere;
   }
 
-  .reviewer-meta__start {
+  .reviewer-meta__start,
+  .reviewer-meta__share {
     margin-left: auto;
+  }
+  /* Share and Start sit together at the right edge. */
+  .reviewer-meta__share + .reviewer-meta__start {
+    margin-left: 0;
   }
 
   .reviewer-columns {

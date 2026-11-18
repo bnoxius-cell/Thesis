@@ -27,6 +27,16 @@ export function fetchMessages(groupId, cursor) {
 // Posts plain text (the server trims it and allows up to 1000 characters): { message }.
 export const sendMessage = (groupId, text) => post(`/api/groups/${groupId}/messages`, { text });
 
+// Posts one of the student's own items as a card: `body` is { taskId }, { scheduleId } or { reviewerId }
+// (one of them): { message }. The server checks the item is theirs (404 otherwise) and, for a reviewer, that
+// it is ready and named (409 with the reason). A family-friendly group refuses a card whose words don't pass
+// with `code: "family_filter"` and a message that is safe to show.
+export const shareToGroup = (groupId, body) => post(`/api/groups/${groupId}/messages`, body);
+
+// Saves a groupmate's shared reviewer card into the student's own Study: { saved: { type, _id, title } }. A
+// second save answers 409 "It's already in your Study."
+export const saveFromMessage = (groupId, messageId) => post(`/api/groups/${groupId}/messages/${messageId}/save`);
+
 // The deadlines people shared in a group, soonest first: { deadlines }. Each has _id, task (title,
 // course, dueDate, shareTag...), addedByMe, sharedBy ({ _id, name } or null) and sharedAt. It lists
 // shared tasks only: classes and exams are not part of it.

@@ -1,7 +1,8 @@
 import { useLocation, useParams } from "react-router-dom";
-import { FileQuestion } from "lucide-react";
+import { FileQuestion, Share } from "lucide-react";
 import { Button, EmptyState, Skeleton } from "@/shared/ui";
 import Page from "@/app/shell/Page";
+import { useShareToGroup } from "@/features/share";
 import ReviewerMoreMenu from "./ReviewerMoreMenu";
 import ReviewerReader from "./ReviewerReader";
 import ReviewerSidePanel from "./ReviewerSidePanel";
@@ -14,13 +15,14 @@ import "./reviewer.css";
 
 const BACK = { to: "/study/practice", label: "Back to reviewers" };
 
-// One reviewer (Figma 76:1110): where it came from and its status, then the notes. While it is
-// still being made, or if that failed, a short message takes the place of the notes. An unknown or
-// foreign id shows "Reviewer not found".
+// One reviewer (Figma 76:1110): where it came from and its status, then the notes. A ready reviewer has Share,
+// which posts it in a group (SH-4; the server also asks for a name first). While it is still being made, or if
+// that failed, a short message takes the place of the notes. An unknown or foreign id shows "Reviewer not found".
 export default function ReviewerPage() {
   const { reviewerId } = useParams();
   const location = useLocation();
   const data = useReviewer(reviewerId);
+  const sharing = useShareToGroup();
   const { reviewer, status } = data;
 
   if (status !== "loaded") {
@@ -51,6 +53,8 @@ export default function ReviewerPage() {
   }
 
   const ready = reviewer.status === "ready";
+  // Extra questions being made change what a copy would hold, so Share waits for them too.
+  const canShare = ready && reviewer.targeted?.status !== "processing";
   const from = location.pathname + location.search;
   const link = (mode, options) => practiceLink(reviewer._id, mode, from, options);
   const links = {
@@ -76,6 +80,11 @@ export default function ReviewerPage() {
         <div className="reviewer-meta">
           <span>{[reviewerSourceLine(reviewer), questionTypeLabel(reviewer.questionType)].join(" · ")}</span>
           <ReviewerStatusChip reviewer={withProgress} />
+          {canShare && (
+            <Button variant="secondary" icon={Share} className="reviewer-meta__share" onClick={() => sharing.open("reviewer", reviewer)}>
+              Share
+            </Button>
+          )}
           {ready && <Button className="reviewer-meta__start" {...start}>Start Learning Mode</Button>}
         </div>
         {ready ? (
@@ -100,6 +109,7 @@ export default function ReviewerPage() {
           <ReviewerWaiting reviewer={reviewer} making={data.making} />
         )}
       </div>
+      {sharing.dialog}
     </Page>
   );
 }

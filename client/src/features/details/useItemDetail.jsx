@@ -1,11 +1,15 @@
 import { useCallback, useRef, useState } from "react";
 import useNow from "@/shared/hooks/useNow";
+import { useShareToGroup } from "@/features/share";
 import TaskDetails from "./TaskDetails";
 import EntryDetails from "./EntryDetails";
 import DayWindow from "./DayWindow";
 
 // Only a task saved in the database (a 24-character id) can be edited or deleted.
 const isStoredTask = (task) => /^[a-f\d]{24}$/i.test(String(task._id));
+
+// Only a task the student made or imported can be posted in a group. A task a group made is the group's.
+const canShareTask = (task) => isStoredTask(task) && !task.group;
 
 // A study task the timetable made up ("Prepare for Midterm") is not a stored task, so it has no details.
 const isPrepTask = (task) => task.isExam || String(task._id).startsWith("exam:");
@@ -19,7 +23,8 @@ const isPrepTask = (task) => task.isExam || String(task._id).startsWith("exam:")
 // dialog came and went. `onEditTask`, `onDeleteTask`, `onEditEntry` and `onDeleteEntry` are optional; each one is
 // called with the item and `{ close, reopen }` (close this window; reopen it on an item, focus on
 // its "edit" or "delete" button), and without it the
-// window draws no such button. Edit and Delete are drawn only for a task with a real id, and for an entry the
+// window draws no such button. Every task of theirs also gets Share, which opens "Share to a group" over the window
+// (the dialog is part of `dialog`). Edit and Delete are drawn only for a task with a real id, and for an entry the
 // student can change (`canEdit`).
 // openEntry(entry, iso) takes the entry as it is on day `iso` (YYYY-MM-DD).
 // openDay(day, { onOpenWeek }) opens the day window (Figma D9) on a day from buildDay (features/plan/planDays.js).
@@ -36,6 +41,7 @@ export default function useItemDetail({
   onDeleteEntry,
 }) {
   const now = useNow();
+  const sharing = useShareToGroup();
   const [item, setItem] = useState(null);
   // The open day, if any: { day, onOpenWeek, returned }. `returned` is true once an item went back to it.
   const [day, setDay] = useState(null);
@@ -95,6 +101,7 @@ export default function useItemDetail({
         returnFocusRef={row}
         focus={item.focus}
         onToggle={onToggle}
+        onShare={canShareTask(item.task) ? (task) => sharing.open("task", task) : undefined}
         onEdit={canChange ? replacing(onEditTask) : undefined}
         onDelete={canChange ? replacing(onDeleteTask) : undefined}
       />
@@ -130,5 +137,15 @@ export default function useItemDetail({
     );
   }
 
-  return { openTask, openEntry, openDay, dialog };
+  return {
+    openTask,
+    openEntry,
+    openDay,
+    dialog: (
+      <>
+        {dialog}
+        {sharing.dialog}
+      </>
+    ),
+  };
 }

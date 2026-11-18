@@ -15,7 +15,7 @@ const QUIET_AFTER_MS = [60000, 5 * 60000];
 //   send     send(text) shows the message at once and answers { ok }. On failure the row goes away
 //            and a toast says why, so the caller can put the text back in the box
 //   retry    tries the first load again
-//   markAdded  markAdded(messageId) flags a shared timetable as added to the student's plan
+//   markAdded  markAdded(messageId) flags a shared task, reviewer or timetable card as added to the student's own data
 // It polls every 3 seconds while the tab is in front and the chat is active, then slows down. `onRead` runs when the server has just marked
 // this group's notifications read (on opening the chat and when new messages arrive).
 export default function useGroupChat(groupId, { me, onRead }) {
@@ -87,7 +87,7 @@ export default function useGroupChat(groupId, { me, onRead }) {
     return { ok: true };
   }, [groupId, me, markActive]);
 
-  // A timetable card turns into "In your plan" once its copy is in. Polls don't carry that flag.
+  // A shared card turns into its done state ("In your plan", "Saved to Study") once its copy is in. Polls don't carry that flag.
   const markAdded = useCallback((messageId) => {
     setMessages((prev) => prev.map((m) => (m._id === messageId ? { ...m, addedByMe: true } : m)));
   }, []);
