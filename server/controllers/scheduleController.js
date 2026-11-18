@@ -9,6 +9,7 @@ import { notify } from '../utils/notify.js';
 import userModel from '../models/userModel.js';
 import subjectModel from '../models/subjectModel.js';
 import classChoiceModel from '../models/classChoiceModel.js';
+import { closeProposals } from '../models/classProposalModel.js';
 import { fetchPublicHolidays } from '../utils/holidays.js';
 import { buildWeekOverview, addDaysIso, findUpcomingExams } from '../utils/weekOverview.js';
 import groupModel from '../models/groupMode.js';
@@ -478,6 +479,7 @@ export const deleteEntry = async (req, res) => {
         existing.deleteOne();
         const announce = await recordChange(schedule, req.userId, `removed ${describeEntry({ title: removedTitle })}`, { audience });
         await schedule.save();
+        await closeProposals({ schedule: schedule._id, entry: existing._id });
         await announce();
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {

@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import scheduleModel, { personalTimetables, MAX_ENTRIES } from '../models/scheduleModel.js';
+import { closeProposals } from '../models/classProposalModel.js';
 import { describeEntry, recordChangeUpdate } from './timetableChanges.js';
 import { entrySubjectFor } from './subjectMatch.js';
 import { ensureMainSchedule, mainScheduleOrNew } from './mainTimetable.js';
@@ -74,19 +75,21 @@ export const unlinkExams = (ownerId, subjectId) => scheduleModel.updateMany(
     { arrayFilters: [{ 'e.subject': asId(subjectId), 'e.kind': { $ne: 'class' } }] },
 );
 
+const isClassOf = (subjectId) => (e) => e.kind === 'class' && String(e.subject) === String(subjectId);
+
 // The subject's classes in the owner's personal timetables.
 export const classEntriesOf = async (ownerId, subjectId) => {
     const schedules = await scheduleModel.find({ ...personalTimetables(ownerId), entries: { $elemMatch: linkedClass(subjectId) } }).select('entries').lean();
-    return schedules.flatMap((s) => s.entries.filter((e) => e.kind === 'class' && String(e.subject) === String(subjectId)));
+    return schedules.flatMap((s) => s.entries.filter(isClassOf(subjectId)));
 };
 
-// A subject was deleted or archived: its classes are removed (a live timetable logs one line). Throws on a
-// failure, and a retry carries on. Returns how many class times were removed.
+// A subject was deleted or archived: its classes are removed (a live timetable logs one line), and friends' open
+// proposals on them close. Throws on a failure, and a retry carries on. Returns how many class times were removed.
 export const pullClassTimes = async (ownerId, subjectId) => {
     let removed = 0;
     const schedules = await scheduleModel.find({ ...personalTimetables(ownerId), entries: { $elemMatch: linkedClass(subjectId) } }).lean();
     for (const schedule of schedules) {
-        const titles = schedule.entries.filter((e) => e.kind === 'class' && String(e.subject) === String(subjectId)).map(describeEntry);
+        const titles = schedule.entries.filter(isClassOf(subjectId)).map(describeEntry);
         const { push, announce } = await recordChangeUpdate(schedule, ownerId, `removed ${titles.join(', ')}`);
         // The pull shifts entry positions, so it bumps the version: a save from a copy loaded before it (which
         // writes entries by position) then fails instead of landing on the wrong entry.
@@ -96,7 +99,9 @@ export const pullClassTimes = async (ownerId, subjectId) => {
             { returnDocument: 'before' },
         ).lean();
         if (!before) continue; // deleted since it was read
-        removed += before.entries.filter((e) => e.kind === 'class' && String(e.subject) === String(subjectId)).length;
+        const pulledIds = before.entries.filter(isClassOf(subjectId)).map((e) => e._id);
+        removed += pulledIds.length;
+        await closeProposals({ schedule: schedule._id, entry: { $in: pulledIds } });
         await announce();
     }
     return removed;

@@ -9,6 +9,7 @@ import {
 } from '../controllers/scheduleController.js';
 import {
     setupClasses, chooseClass, customizeClass, customizeAll, keepMineClass, publishClass,
+    proposeClass, listProposals, approveClassProposal, declineClassProposal, withdrawClassProposal,
 } from '../controllers/classChoiceController.js';
 
 const scheduleRouter = express.Router();
@@ -42,12 +43,19 @@ scheduleRouter.put('/:scheduleId/share-code', userAuth, updateShareCode);
 scheduleRouter.post('/:scheduleId/make-private', userAuth, makePrivate);
 scheduleRouter.post('/:scheduleId/duplicate', userAuth, duplicateSchedule);
 
-// The caller's own layer over a timetable shared with them: follow, hide, customize, publish.
+// The caller's own layer over a timetable shared with them: follow, hide, customize, publish, propose.
 scheduleRouter.put('/:scheduleId/mine/setup', userAuth, setupClasses);
 scheduleRouter.post('/:scheduleId/mine/customize-all', userAuth, customizeAll);
 scheduleRouter.put('/:scheduleId/mine/classes/:entryId', userAuth, chooseClass);
 scheduleRouter.post('/:scheduleId/mine/classes/:entryId/customize', userAuth, customizeClass);
 scheduleRouter.post('/:scheduleId/mine/classes/:entryId/keep-mine', userAuth, keepMineClass);
 scheduleRouter.post('/:scheduleId/mine/classes/:entryId/publish', userAuth, publishClass);
+scheduleRouter.post('/:scheduleId/mine/classes/:entryId/propose', userAuth, proposeClass);
+
+// Proposals to change a class of a shared timetable: editors decide, the proposer can withdraw.
+scheduleRouter.get('/:scheduleId/proposals', userAuth, listProposals);
+scheduleRouter.post('/:scheduleId/proposals/:proposalId/approve', userAuth, approveClassProposal);
+scheduleRouter.post('/:scheduleId/proposals/:proposalId/decline', userAuth, declineClassProposal);
+scheduleRouter.post('/:scheduleId/proposals/:proposalId/withdraw', userAuth, withdrawClassProposal);
 
 export default scheduleRouter;

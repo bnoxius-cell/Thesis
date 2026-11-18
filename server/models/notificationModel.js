@@ -12,6 +12,7 @@ export const NOTIFICATION_TYPES = [
     'task_reminder',
     'schedule_share',
     'schedule_change',
+    'schedule_proposal',
     'system',
 ];
 

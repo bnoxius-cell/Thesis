@@ -11,6 +11,7 @@ import groupModel from '../models/groupMode.js';
 import groupMessageModel from '../models/groupMessageModel.js';
 import groupTaskModel from '../models/groupTaskModel.js';
 import classChoiceModel from '../models/classChoiceModel.js';
+import classProposalModel from '../models/classProposalModel.js';
 import notificationModel from '../models/notificationModel.js';
 import pushSubscriptionModel from '../models/pushSubscriptionModel.js';
 import friendModel from '../models/Friend.js';
@@ -51,8 +52,12 @@ export const USER_DATA = [
     { model: fileUserDayModel, field: 'user', how: 'delete' },
     // A member's own choices over a shared timetable (follow, hide, customize).
     { model: classChoiceModel, field: 'user', how: 'delete' },
+    // Their own proposals to change a shared class.
+    { model: classProposalModel, field: 'proposer', how: 'delete' },
 
     { model: notificationModel, field: 'sender', how: 'pending' },
+    // The editor who decided someone else's proposal.
+    { model: classProposalModel, field: 'decidedBy', how: 'pending' },
     { model: friendModel, field: 'friend', how: 'pending' },
     { model: taskShareModel, field: 'createdBy', how: 'pending' },
     { model: groupMessageModel, field: 'sender', how: 'pending' },
