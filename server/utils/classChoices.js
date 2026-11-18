@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import classChoiceModel from '../models/classChoiceModel.js';
+import classProposalModel from '../models/classProposalModel.js';
 import scheduleModel, { personalTimetables, MAX_ENTRIES } from '../models/scheduleModel.js';
 import { SUBJECT_LIMITS } from '../models/subjectModel.js';
 import { activeSubjects, courseKey, entrySubjectFor, matchesLabel } from './subjectMatch.js';
@@ -22,7 +23,7 @@ export const hasLayer = (schedule, role) => Boolean(role) && (role !== 'owner' |
 // What a customized class remembers of the shared one, to tell the member when it moved.
 const BASE_FIELDS = ['days', 'date', 'startTime', 'endTime', 'location', 'meetingUrl'];
 
-const baseOf = (entry) => ({
+export const baseOf = (entry) => ({
     days: [...(entry.days || [])],
     date: entry.date || '',
     startTime: entry.startTime,
@@ -31,7 +32,7 @@ const baseOf = (entry) => ({
     meetingUrl: entry.meetingUrl || '',
 });
 
-const sameBase = (entry, base) => BASE_FIELDS.every((key) => (key === 'days'
+export const sameBase = (entry, base) => BASE_FIELDS.every((key) => (key === 'days'
     ? (entry.days || []).join() === (base.days || []).join()
     : (entry[key] || '') === (base[key] || '')));
 
@@ -406,36 +407,60 @@ const baseMatch = (base) => Object.fromEntries(BASE_FIELDS.map((key) => {
     return [key, empty ? { $in: [key === 'days' ? [] : '', null] } : base[key]];
 }));
 
-// An editor's "Publish my version": their copy's days, date, times, place and link become the shared class's,
-// only while the shared class still is what they customized. Then the copy and the choice go, so they follow
-// the class again. Returns { conflict: true } when the class moved meanwhile.
-export const publishCopy = async (userId, schedule, layer, entryId) => {
-    const choice = layer.byEntry.get(entryId);
+// The member's own copy of shared class `choice`, or null once they deleted it.
+export const readCopy = async (userId, choice) => {
     const timetable = await scheduleModel.findOne({ _id: choice.copy.scheduleId, ...personalTimetables(userId) }).select('entries').lean();
-    const copy = timetable?.entries.find((e) => String(e._id) === choice.copy.entryId);
-    if (!copy) return { conflict: true };
-    const shared = schedule.entries.find((e) => String(e._id) === entryId);
-    const values = baseOf(copy);
-    const after = { ...shared, ...values };
+    return timetable?.entries.find((e) => String(e._id) === choice.copy.entryId) ?? null;
+};
 
-    const audience = await changeAudience(schedule, after);
-    const { push, announce } = await recordChangeUpdate(schedule, userId, `edited ${describeEntry(shared)}`, { audience });
+// Writes `values` (days, date, times, place, link) to the shared class, but only while it still is `base`,
+// and tells the people it affects. `except` are members who hear about it another way. False when the class
+// moved meanwhile (or is gone), with nothing written.
+export const applyToSharedClass = async (schedule, actorId, entryId, values, base, except = []) => {
+    const shared = schedule.entries.find((e) => String(e._id) === entryId);
+    if (!shared) return false;
+    const found = await changeAudience(schedule, { ...shared, ...values });
+    const audience = found && { ...found, customizers: found.customizers.filter((id) => !except.includes(id)) };
+    const { push, announce } = await recordChangeUpdate(schedule, actorId, `edited ${describeEntry(shared)}`, { audience });
     const { matchedCount } = await scheduleModel.updateOne(
-        { _id: schedule._id, entries: { $elemMatch: { _id: asId(entryId), ...baseMatch(choice.base) } } },
+        { _id: schedule._id, entries: { $elemMatch: { _id: asId(entryId), ...baseMatch(base) } } },
         { $set: Object.fromEntries(BASE_FIELDS.map((key) => [`entries.$[e].${key}`, values[key]])), ...push },
         { arrayFilters: [{ 'e._id': asId(entryId) }] },
     );
-    if (matchedCount !== 1) return { conflict: true };
+    if (matchedCount !== 1) return false;
     await announce();
+    return true;
+};
+
+// The member's copy and choice for shared class `entryId` go, so they follow the class again.
+export const followAgain = async (userId, schedule, choice, entryId) => {
     await removeCopy(userId, choice.copy, entryId);
     await writeChoices({ scheduleId: schedule._id, userId, replace: [entryId], liveIds: entryIdsOf(schedule) });
+};
+
+// An editor's "Publish my version": their copy's days, date, times, place and link become the shared class's,
+// only while the shared class still is what they customized. Then they follow the class again. Returns
+// { conflict: true } when the class moved meanwhile.
+export const publishCopy = async (userId, schedule, layer, entryId) => {
+    const choice = layer.byEntry.get(entryId);
+    const copy = await readCopy(userId, choice);
+    if (!copy || !await applyToSharedClass(schedule, userId, entryId, baseOf(copy), choice.base)) return { conflict: true };
+    await followAgain(userId, schedule, choice, entryId);
     return { conflict: false };
 };
 
 // ---- Leaving -----------------------------------------------------------------------------------------------------
 
-// A member is off a timetable (left, removed, or it went private): their choices go. Copies stay as their own classes.
-export const forgetChoices = (scheduleId, userId) => classChoiceModel.deleteMany({ schedule: scheduleId, ...(userId && { user: userId }) });
+// Open proposals matching `filter` close without a decision (the class went, or the proposer left the timetable).
+export const closeProposals = (filter) => classProposalModel
+    .updateMany({ ...filter, status: 'open' }, { status: 'withdrawn', decidedAt: new Date() });
+
+// A member is off a timetable (left, removed, or it went private): their choices and open proposals go. Copies
+// stay as their own classes.
+export const forgetChoices = async (scheduleId, userId) => {
+    await classChoiceModel.deleteMany({ schedule: scheduleId, ...(userId && { user: userId }) });
+    await closeProposals({ schedule: scheduleId, ...(userId && { proposer: userId }) });
+};
 
 // The same for a member leaving or removed from a group, on the group's timetable.
 export const forgetGroupChoices = async (groupId, userId) => {
@@ -443,5 +468,8 @@ export const forgetGroupChoices = async (groupId, userId) => {
     if (timetable) await forgetChoices(timetable._id, userId);
 };
 
-// Timetables being deleted take everyone's choices on them along.
-export const forgetTimetables = (scheduleIds) => classChoiceModel.deleteMany({ schedule: { $in: scheduleIds } });
+// Timetables being deleted take everyone's choices and proposals on them along.
+export const forgetTimetables = async (scheduleIds) => {
+    await classChoiceModel.deleteMany({ schedule: { $in: scheduleIds } });
+    await classProposalModel.deleteMany({ schedule: { $in: scheduleIds } });
+};

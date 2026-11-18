@@ -9,6 +9,7 @@ const PREF_BY_TYPE = {
     friend_accepted: 'friendActivity',
     schedule_share: 'scheduleShares',
     schedule_change: 'scheduleShares',
+    schedule_proposal: 'scheduleShares',
     task_reminder: 'taskReminders',
     group_message: 'groupMessages',
     group_task: 'groupTasks',

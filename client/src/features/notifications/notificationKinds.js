@@ -1,6 +1,7 @@
 import {
   AlarmClock,
   BookOpen,
+  CalendarCheck,
   CalendarClock,
   CalendarDays,
   CalendarPlus,
@@ -26,6 +27,7 @@ const KINDS = {
   task_reminder: { icon: AlarmClock, label: "Task reminder" },
   schedule_share: { icon: CalendarPlus, label: "Timetable shared" },
   schedule_change: { icon: CalendarClock, label: "Timetable changed" },
+  schedule_proposal: { icon: CalendarCheck, label: "Class change proposed" },
   system: { icon: Info, label: "StressCare" },
 };
 

@@ -36,7 +36,7 @@ const announceChange = (schedule, actorId, name, summary, { audience } = {}) => 
     }
 };
 
-const actorName = async (actorId) => (await userModel.findById(actorId).select('name'))?.name || 'Someone';
+export const actorName = async (actorId) => (await userModel.findById(actorId).select('name'))?.name || 'Someone';
 
 // Logs a change on the schedule and tells everyone else on it. Call before `schedule.save()`.
 // Returns a function to run after the save (it sends the notifications), so a failed save

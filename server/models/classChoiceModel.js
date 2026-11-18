@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 
 // The group's (or friend's) values of a class when a member customized it, or last pressed "Keep mine".
-// When the shared class no longer matches, the member is told it moved.
-const baseSchema = new mongoose.Schema({
+// When the shared class no longer matches, the member is told it moved. A proposal uses the same shape.
+export const baseSchema = new mongoose.Schema({
     days: { type: [Number], default: [] },
     date: { type: String, default: '' },
     startTime: { type: String, default: '' },

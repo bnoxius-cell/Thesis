@@ -23,7 +23,7 @@ import { planNewSubject, createPlannedSubject, publicSubject } from './subjectCo
 import { ensureMainSchedule, mainScheduleOrNew } from '../utils/mainTimetable.js';
 import {
     hasLayer, choicesFor, layerOf, entryLayer, myClassesOf, applyChoices, customCounts, changeAudience,
-    forgetChoices, forgetTimetables,
+    forgetChoices, forgetTimetables, closeProposals,
 } from '../utils/classChoices.js';
 
 // A save that lost a race with another edit answers 409 so the page can reload, not a generic 500.
@@ -478,6 +478,7 @@ export const deleteEntry = async (req, res) => {
         existing.deleteOne();
         const announce = await recordChange(schedule, req.userId, `removed ${describeEntry({ title: removedTitle })}`, { audience });
         await schedule.save();
+        await closeProposals({ schedule: schedule._id, entry: existing._id });
         await announce();
         res.json({ success: true, schedule: await serialize(schedule, role, req.userId) });
     } catch (error) {
