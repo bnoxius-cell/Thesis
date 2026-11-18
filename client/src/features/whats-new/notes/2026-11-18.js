@@ -9,5 +9,8 @@ export default {
     { tag: "new", text: "Archived subjects keep their tasks and reviewers, and you can restore one any time from Study." },
     { tag: "new", text: "Share a task, a timetable or a reviewer in a group chat, and others can save their own copy." },
     { tag: "improved", text: "The Terms and Privacy now explain how shared timetables and class choices work. You'll be asked to accept them once." },
+    { tag: "fixed", text: "A shared class you changed just for you now shows as yours even when the timetable doesn't count in your week." },
+    { tag: "fixed", text: "Change which classes I take now scrolls you to the checklist instead of opening it out of sight." },
+    { tag: "fixed", text: "The new term class times fit on phones and laptops, with the weekday buttons on one row and times no longer cut off." },
   ],
 };
