@@ -34,7 +34,8 @@ export default function ShareCard({ message, mine, sender, plan }) {
 
   const label = work.error ? "Try again" : work.busy ? card.busy : card.action;
   let footer;
-  if (message.addedByMe) {
+  // The sender's own copy carries the share tag too, so a card with a "Shared by you" line shows that, not "added".
+  if (message.addedByMe && !(mine && card.own)) {
     const open = card.open;
     footer = card.inline ? (
       <Chip tone="good" className="people-card__done">{card.done}</Chip>
