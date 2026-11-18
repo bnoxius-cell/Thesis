@@ -17,8 +17,9 @@
     display: block;
   }
 
-  /* ---- Add subject (Figma MS-1): 780 wide on a laptop so a class time fits one line, a bottom sheet on a
-     phone. The class time rows are the new-term wizard's (term/term.css). ---- */
+  /* ---- Add subject (Figma MS-1): 840 wide on a laptop (780 was drawn with six day buttons) so a class time fits
+     one line with 140px for the room, a bottom sheet on a phone. The class time rows are the new-term wizard's
+     and lay themselves out by their own width (term/term.css). ---- */
   .add-subject__top {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -52,7 +53,7 @@
   }
   @media (min-width: 720px) {
     .ui-modal.add-subject {
-      max-width: 780px;
+      max-width: 840px;
     }
     .add-subject__top {
       grid-template-columns: minmax(0, 1fr) 160px;

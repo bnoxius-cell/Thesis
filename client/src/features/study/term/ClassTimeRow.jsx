@@ -17,6 +17,7 @@ export default function ClassTimeRow({ time, position, error, note, onChange, on
         <Field
           label="Room"
           className="term-time__room"
+          placeholder="Room"
           value={time.location}
           maxLength={ENTRY_ROOM_MAX}
           autoComplete="off"
