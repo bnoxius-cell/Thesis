@@ -125,6 +125,26 @@
   .people-card > .people-card__text {
     width: 100%;
   }
+  /* A subject's class times: one short line each, a clock before it. */
+  .people-card__rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .people-card__row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .people-card__row > svg {
+    flex: none;
+  }
   .people-card__note,
   .people-card__own {
     margin: 0;

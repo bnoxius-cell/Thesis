@@ -1,4 +1,4 @@
-import { CalendarDays, FileText, ListChecks } from "lucide-react";
+import { BookOpen, CalendarDays, FileText, Layers, ListChecks } from "lucide-react";
 import { taskDueText } from "@/features/details/detailText";
 
 const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
@@ -31,5 +31,19 @@ export const SHARE_KINDS = {
     body: (reviewer) => ({ reviewerId: reviewer._id }),
     title: (reviewer) => reviewer.title,
     line: (reviewer) => `Reviewer · ${count(reviewer.questionCount ?? 0, "question", "questions")}`,
+  },
+  subject: {
+    icon: BookOpen,
+    blurb: "Your groupmates can add it to their own Study, with its class times. Later changes stay with you.",
+    body: (subject) => ({ subjectId: subject._id }),
+    title: (subject) => subject.name,
+    line: (subject) => ["Subject", subject.code].filter(Boolean).join(" · "),
+  },
+  deck: {
+    icon: Layers,
+    blurb: "Your groupmates can save a copy to their own Study. Later changes stay with you.",
+    body: (deck) => ({ deckId: deck.id }),
+    title: (deck) => deck.title,
+    line: (deck) => `Flashcard deck · ${count(deck.cards ?? 0, "card", "cards")}`,
   },
 };
