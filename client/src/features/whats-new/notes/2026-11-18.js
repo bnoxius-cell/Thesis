@@ -1,0 +1,13 @@
+export default {
+  title: "Group plans, shared timetables and new terms",
+  items: [
+    { tag: "new", text: "Each group has a Plan tab with shared tasks. Everyone sees changes within seconds and who is editing right now." },
+    { tag: "new", text: "A group can have its own timetable. Members follow it, and it can count in your week if you choose." },
+    { tag: "new", text: "On a shared timetable, tick the classes you take. Classes you skip stay out of your week." },
+    { tag: "new", text: "Change a shared class just for you, or for everyone if you can edit. You'll see a notice when the group moves a class you changed." },
+    { tag: "new", text: "Starting a new semester? A short wizard archives last term's subjects and adds your new ones and class times." },
+    { tag: "new", text: "Archived subjects keep their tasks and reviewers, and you can restore one any time from Study." },
+    { tag: "new", text: "Share a task, a timetable or a reviewer in a group chat, and others can save their own copy." },
+    { tag: "improved", text: "The Terms and Privacy now explain how shared timetables and class choices work. You'll be asked to accept them once." },
+  ],
+};
