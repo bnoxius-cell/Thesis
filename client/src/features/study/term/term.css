@@ -1,0 +1,738 @@
+/* Start a new term and archived subjects (Figma TR-1 to TR-4: Study 380:1903 and 380:2201, the Plan menu 380:2519,
+   the wizard 381:2309, 381:2393, 381:2572, 381:2646 and the phone frames 381:2670 to 381:3017). The wizard is a
+   focus view on ModalShell: it fills the screen, a 760px column from 720px up, and scrolls inside itself. Motion:
+   the page arrives once, a step swaps with the panel fade, the progress segments grow once, a new row eases in
+   (.is-entering) and the done check settles. All of it is off under reduced motion. */
+@layer pages {
+  /* ---- The focus view ---- */
+  .ui-modal-overlay.term-overlay {
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+    background: var(--bg-app);
+  }
+  .ui-modal.term-focus {
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    padding:
+      max(var(--space-2), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right))
+      calc(34px + env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    animation: page-in var(--dur-3) var(--ease-out) backwards;
+  }
+  @media (min-width: 720px) {
+    .ui-modal.term-focus {
+      padding: 28px max(32px, env(safe-area-inset-right)) 64px max(32px, env(safe-area-inset-left));
+    }
+  }
+  .term-column {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: 24px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 760px;
+    margin: 20px auto 0;
+  }
+  .term-step {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .term-exit {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    align-self: flex-start;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    min-height: 44px;
+    margin: 0;
+    padding: 0 16px 0 12px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background-color var(--dur-2) var(--ease-out), transform var(--dur-1) var(--ease-out);
+  }
+  .term-exit:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  .term-exit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* ---- Header: step, progress, title ---- */
+  .term-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    scroll-margin-top: 80px;
+  }
+  .term-header:focus-visible,
+  .term-done__text:focus-visible {
+    outline: none;
+  }
+  .term-header__step {
+    margin: 0;
+    color: var(--text-muted);
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .term-progress {
+    display: flex;
+    gap: 6px;
+  }
+  .term-progress__segment {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    height: 6px;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: var(--border);
+  }
+  .term-progress__segment::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  .term-progress__segment[data-done]::after {
+    transform: scaleX(1);
+    animation: ui-bar-grow var(--dur-4) var(--ease-out) backwards;
+  }
+  .term-header__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-2xl) / 32px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .term-header__subtitle {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-md) / 24px var(--font-ui);
+  }
+
+  /* ---- Quiet buttons: accent text, and grey text for Remove ---- */
+  .term-link,
+  .term-quiet {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    min-height: 44px;
+    margin: 0;
+    padding: 0 20px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    white-space: nowrap;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background-color var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out);
+  }
+  .term-link {
+    color: var(--accent);
+  }
+  .term-quiet {
+    color: var(--text-secondary);
+  }
+  .term-link:focus-visible,
+  .term-quiet:focus-visible,
+  .term-exit:focus-visible,
+  .term-add-subject:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .term-link:hover,
+    .term-exit:hover:not(:disabled) {
+      background: var(--accent-soft);
+    }
+    .term-quiet:hover {
+      background: var(--surface-2);
+      color: var(--text-primary);
+    }
+  }
+
+  /* ---- Step 1: the subjects to archive ---- */
+  .term-list-top {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .term-count {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    color: var(--text-secondary);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+  .term-picks {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .term-pick {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  .term-pick:active {
+    transform: scale(0.98);
+  }
+  .term-pick:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .term-pick:has(input:focus-visible) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  /* The native checkbox stays for the keyboard and screen readers; the tick is drawn beside it. */
+  .term-pick input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .term-pick__tick {
+    display: grid;
+    flex: none;
+    place-items: center;
+    box-sizing: border-box;
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--border-input);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--on-accent);
+    transition: background-color var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out);
+  }
+  .term-pick__tick svg {
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out);
+  }
+  .term-pick:has(input:checked) .term-pick__tick {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+  .term-pick:has(input:checked) .term-pick__tick svg {
+    opacity: 1;
+    transform: none;
+  }
+  .term-pick__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .term-pick__name {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .term-pick__code,
+  .term-pick__times {
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .term-pick__times {
+    flex: none;
+    max-width: 40%;
+    text-align: right;
+  }
+
+  /* ---- Notes: what stays (accent) and a clash that only warns (watch) ---- */
+  .term-note {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 14px;
+    border-radius: var(--radius-lg);
+    background: var(--accent-soft);
+    color: var(--text-primary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .term-note svg {
+    flex: none;
+    color: var(--accent);
+  }
+  .term-note--watch {
+    background: var(--watch-soft);
+  }
+  .term-note--watch svg {
+    color: var(--watch);
+  }
+  .term-error {
+    margin: 0;
+    color: var(--danger);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+
+  /* ---- Step 2: the term and its subjects ---- */
+  .term-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+  }
+  @media (min-width: 720px) {
+    .term-fields {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-4);
+    }
+  }
+  .term-subjects {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+  .ui-card.term-subject {
+    gap: var(--space-4);
+    padding: 20px;
+    box-shadow: none;
+  }
+  .term-subject__top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+  @media (min-width: 720px) {
+    .term-subject__top {
+      grid-template-columns: minmax(0, 1fr) 160px;
+      align-items: start;
+    }
+  }
+  .term-subject__label {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+  }
+  .term-subject__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  /* One class time: days, start, end, room and Remove, each on its own row on a phone, all on one from 800px
+     (where the card is wide enough for the 6 day buttons and the three fields). */
+  .term-time {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .term-time + .term-time {
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border);
+  }
+  .term-time__row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "days days"
+      "start end"
+      "room room"
+      "remove remove";
+    gap: 10px;
+  }
+  .term-time__days { grid-area: days; }
+  .term-time__start { grid-area: start; }
+  .term-time__end { grid-area: end; }
+  .term-time__room { grid-area: room; }
+  .term-time__remove { grid-area: remove; }
+  .term-time__error {
+    margin: 0;
+    color: var(--danger);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+  @media (min-width: 800px) {
+    .term-time + .term-time {
+      padding-top: 0;
+      border-top: 0;
+    }
+    .term-time__row {
+      grid-template-columns: auto 132px 132px minmax(0, 1fr) 40px;
+      grid-template-areas: "days start end room remove";
+      gap: var(--space-3);
+      align-items: start;
+    }
+    .term-time__remove {
+      width: 40px;
+      padding: 0;
+    }
+    /* The columns name themselves, so the labels and Remove's words stay for screen readers only. */
+    .term-time__row > .ui-field > .ui-field__label,
+    .term-time__remove > span {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  }
+
+  .term-add-subject {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 62px;
+    margin: 0;
+    padding: 18px 20px;
+    border: 1px dashed var(--border-input);
+    border-radius: var(--radius-xl);
+    background: transparent;
+    color: var(--accent);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background-color var(--dur-2) var(--ease-out);
+  }
+  .term-add-subject:disabled {
+    color: var(--text-secondary);
+    cursor: not-allowed;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .term-add-subject:hover:not(:disabled) {
+      background: var(--accent-soft);
+    }
+  }
+
+  /* ---- The buttons: a row at the end from 720px, on a phone the main one on top and the other as plain text ---- */
+  .term-actions {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: var(--space-2);
+  }
+  .term-actions .ui-btn {
+    width: 100%;
+  }
+  .term-actions .ui-btn--secondary {
+    border-color: transparent;
+    background: transparent;
+    color: var(--text-secondary);
+  }
+  @media (min-width: 720px) {
+    .term-actions {
+      flex-direction: row;
+      justify-content: flex-end;
+      gap: var(--space-3);
+    }
+    .term-actions--center {
+      justify-content: center;
+    }
+    .term-actions .ui-btn {
+      width: auto;
+    }
+    .term-actions .ui-btn--secondary {
+      border-color: var(--border-input);
+      background: var(--surface);
+      color: var(--text-primary);
+    }
+  }
+
+  /* ---- Step 3: the review ---- */
+  .term-summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+  .term-summary__head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .term-summary__tile {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .term-summary__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .term-summary__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .term-summary__sub,
+  .term-summary__when {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .term-summary__more {
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .term-chips,
+  .term-summary__rows {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .term-chips {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .term-summary__rows {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .term-summary__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+  .term-summary__name {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  @media (min-width: 720px) {
+    .term-summary__row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .term-summary__when {
+      text-align: right;
+    }
+  }
+
+  /* ---- Done ---- */
+  .term-done {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    padding-top: var(--space-5);
+    text-align: center;
+  }
+  .term-done__tile {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    background: var(--good-soft);
+    color: var(--good);
+  }
+  .term-done__tile svg {
+    animation: tasks-check-pop var(--dur-2) var(--ease-spring) backwards;
+  }
+  .term-done__text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .term-done__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-2xl) / 32px var(--font-ui);
+  }
+  .term-done__line {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-md) / 24px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .term-done__skipped {
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .term-done .term-actions {
+    align-self: stretch;
+  }
+
+  /* ---- While it loads, and when it can't ---- */
+  .term-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .term-skeleton {
+    border-radius: var(--radius-lg);
+  }
+  .term-failed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    color: var(--text-secondary);
+  }
+  .term-failed p {
+    margin: 0;
+  }
+
+  /* ---- Study: Active | Archived and Start a new term (TR-1) ---- */
+  .term-switch {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4);
+    margin-bottom: 20px;
+  }
+  .term-switch__start {
+    flex: 1 1 100%;
+  }
+  @media (min-width: 721px) {
+    .term-switch {
+      gap: var(--space-3);
+      margin-bottom: var(--space-5);
+    }
+    .term-switch__start {
+      flex: none;
+      margin-left: auto;
+    }
+  }
+  .term-view-note {
+    margin: 0 0 var(--space-4);
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+
+  /* An archived subject: a grey band, then the card on --surface-2. The name is a link stretched over the card;
+     Restore sits above it. */
+  .ui-card.term-archived {
+    position: relative;
+    flex: 1;
+    gap: 0;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    box-shadow: none;
+  }
+  .term-archived:has(.term-archived__name:focus-visible) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .term-archived__band {
+    display: block;
+    height: 12px;
+    background: var(--border-input);
+  }
+  .term-archived__body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+    background: var(--surface-2);
+  }
+  .term-archived__top {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  .term-archived__titles {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .term-archived__name {
+    color: var(--text-secondary);
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+    overflow-wrap: anywhere;
+    text-decoration: none;
+  }
+  .term-archived__name:focus-visible {
+    outline: none;
+  }
+  .term-archived__name::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+  .term-archived__meta,
+  .term-archived__line {
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .term-archived__line {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .term-archived__line svg {
+    flex: none;
+  }
+  .term-archived__restore {
+    position: relative;
+    width: 100%;
+  }
+}

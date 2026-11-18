@@ -20,4 +20,5 @@ export { default as SelectButton } from "./SelectButton";
 export { default as Skeleton } from "./Skeleton";
 export { default as Switch } from "./Switch";
 export { default as Tabs } from "./Tabs";
+export { default as WeekdayPicker } from "./WeekdayPicker";
 export { showActionToast, toastTransition, ToastIcon, useToastFocusPause } from "./toast";

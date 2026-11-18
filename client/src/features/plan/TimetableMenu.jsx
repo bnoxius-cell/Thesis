@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { LogOut, MoreHorizontal, Pencil, Share, Trash2 } from "lucide-react";
+import { CalendarPlus, LogOut, MoreHorizontal, Pencil, Share, Trash2 } from "lucide-react";
 import { IconButton, Menu, MenuItem } from "@/shared/ui";
 import "@/app/shell/add/global-add.css";
 import { useShareToGroup } from "@/features/share";
+import { useStartNewTerm } from "@/features/study/term";
 import RenameTimetableDialog from "./RenameTimetableDialog";
 import TimetableConfirmDialog from "./TimetableConfirmDialog";
 import "./timetable-menu.css";
@@ -23,12 +24,14 @@ function Row({ icon: Icon, title, hint, tone, onSelect }) {
 
 // The More button beside the switcher (Figma D10). The owner renames, shares it to a group (a personal timetable
 // only: a group's own timetable is never posted as a card) or deletes; anyone else on the timetable can leave.
-// A group's timetable can't be left or shared here (its people come from the group): its admins may rename it,
-// the group owner may also remove it, and everyone else gets no menu. `onChanged` reloads the lists; `onGone`
+// The main timetable also starts a new term (the wizard puts next term's classes in it). A group's timetable
+// can't be left or shared here (its people come from the group): its admins may rename it, the group owner may
+// also remove it, and everyone else gets no menu. `onChanged` reloads the lists; `onGone`
 // sends the student back to My week.
 export default function TimetableMenu({ timetable, userId, onChanged, onGone }) {
   const [dialog, setDialog] = useState(null); // "rename" | "delete" | "leave"
   const sharing = useShareToGroup();
+  const newTerm = useStartNewTerm({ onApplied: onChanged });
   const owner = timetable.role === "owner";
   const inGroup = Boolean(timetable.group);
   const close = () => setDialog(null);
@@ -61,6 +64,9 @@ export default function TimetableMenu({ timetable, userId, onChanged, onGone }) 
             {!inGroup && (
               <Row icon={Share} title="Share to a group" hint="Post a copy in a group chat" onSelect={() => sharing.open("timetable", timetable)} />
             )}
+            {owner && timetable.isMain && (
+              <Row icon={CalendarPlus} title="Start a new term" hint="Archive last term, add this term's" onSelect={newTerm.open} />
+            )}
             {owner && !timetable.isMain && (
               <Row
                 icon={Trash2}
@@ -76,6 +82,7 @@ export default function TimetableMenu({ timetable, userId, onChanged, onGone }) 
         )}
       </Menu>
       {sharing.dialog}
+      {newTerm.dialog}
       {dialog === "rename" && <RenameTimetableDialog timetable={timetable} onClose={close} onRenamed={renamed} />}
       {(dialog === "delete" || dialog === "leave") && (
         <TimetableConfirmDialog mode={dialog} timetable={timetable} userId={userId} onClose={close} onDone={removed} onMissing={onGone} />
