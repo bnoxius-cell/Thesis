@@ -32,12 +32,26 @@ const reviewerContentSchema = new mongoose.Schema({
     }],
 }, { _id: false });
 
+// A class time of a shared subject. Dates are left out: the receiver's term is their own.
+const classTimeSchema = new mongoose.Schema({
+    days: [Number],
+    startTime: String,
+    endTime: String,
+    location: String,
+    meetingUrl: String,
+}, { _id: false });
+
+// The cards of a shared deck, text only: the receiver's copy starts with a fresh review schedule.
+const deckContentSchema = new mongoose.Schema({
+    cards: [{ _id: false, term: String, answer: String }],
+}, { _id: false });
+
 // One document per chat message. Kept out of the group document so a busy chat
 // never bloats it, and so history can be paged by _id.
 const groupMessageSchema = new mongoose.Schema({
     group: { type: mongoose.Schema.Types.ObjectId, ref: 'group', required: true, index: true },
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true },
-    type: { type: String, enum: ['text', 'task', 'schedule', 'reviewer', 'deleted'], default: 'text' },
+    type: { type: String, enum: ['text', 'task', 'schedule', 'reviewer', 'subject', 'deck', 'deleted'], default: 'text' },
     text: { type: String, default: '', maxlength: 1000 },
     // Snapshot of a shared task. shareTag is what a teammate imports from.
     task: {
@@ -71,6 +85,21 @@ const groupMessageSchema = new mongoose.Schema({
     // Hidden from every query unless asked for, so answers never reach a message list. Only
     // saving a copy reads it.
     reviewerContent: { type: reviewerContentSchema, select: false },
+    // What the chat card shows for a shared subject, and what a groupmate's copy is made from.
+    subject: {
+        name: String,
+        code: String,
+        term: String,
+        color: String,
+        classTimes: { type: [classTimeSchema], default: undefined },
+    },
+    // What the chat card shows for a shared deck. The cards stay out of every message list, like a reviewer's answers.
+    deck: {
+        title: String,
+        course: String,
+        cardCount: Number,
+    },
+    deckContent: { type: deckContentSchema, select: false },
     // Emoji -> ids of the members who used it. Insertion order is display order.
     reactions: { type: Map, of: [{ type: mongoose.Schema.Types.ObjectId, ref: 'user' }], default: {} },
     // A deleted message stays as a tombstone so other clients' polls can see it go.
