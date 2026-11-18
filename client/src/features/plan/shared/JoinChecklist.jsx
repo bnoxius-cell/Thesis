@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { Check } from "lucide-react";
 import { Button, Modal, Skeleton } from "@/shared/ui";
@@ -39,12 +39,23 @@ function useClassRows(scheduleId) {
 //   scheduleId  the shared timetable
 //   onSaved     runs after the server saved the answer (the plan reads itself again)
 //   onClose     "Not now", and the sheet's own close
-export default function JoinChecklist({ scheduleId, onSaved, onClose }) {
+export default function JoinChecklist({ scheduleId, onSaved, onClose, revealKey = 0 }) {
   const phone = useMediaQuery("(max-width: 719.98px)");
   const { status, rows, error: loadError, retry } = useClassRows(scheduleId);
   const [off, setOff] = useState(null); // keys switched off, once the student touches a row; until then each row's own answer shows
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const sectionRef = useRef(null);
+
+  // On a laptop the checklist opens in the page, maybe far from the button that asked for it: bring it into view
+  // and move focus to it so a keyboard or screen reader user lands there too.
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    section.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "center" });
+    section.focus({ preventScroll: true });
+  }, [revealKey]); // asking again while it is already open scrolls to it again
 
   const ticked = (row) => (off ? !off.has(row.key) : row.ticked);
   const toggle = (row) =>
@@ -116,7 +127,7 @@ export default function JoinChecklist({ scheduleId, onSaved, onClose }) {
     );
   }
   return (
-    <section className="join-checklist" aria-labelledby="join-checklist-title">
+    <section ref={sectionRef} tabIndex={-1} className="join-checklist" aria-labelledby="join-checklist-title">
       <div className="join-checklist__head">
         <h3 id="join-checklist-title" className="join-checklist__title">{TITLE}</h3>
         <p className="join-checklist__help">{HELP}</p>

@@ -218,6 +218,27 @@ describe('customize mine', () => {
         expect((await cy.post(`${mine(timetable)}/customize-all`)).body.customized).toBe(0);
     });
 
+    test('an admin who saved Just for me with Count off still gets the layer marks on her copy, and one who left gets none', async () => {
+        const { ann, cy, group, timetable, ids } = await setup();
+        for (const agent of [ann, cy]) await customize(agent, timetable, ids['Web Systems']);
+
+        const [copy] = named(await weekOf(ann), 'Web Systems');
+        expect(copy).toMatchObject({
+            myChoice: 'custom', notice: null,
+            customOf: { scheduleId: String(timetable._id), entryId: ids['Web Systems'] },
+            group: { _id: String(group._id), name: 'BSIT 3-1' },
+        });
+        expect(titles(await weekOf(ann))).toEqual(['Web Systems']);
+
+        // Cy leaves the group; a choice left behind must not decorate his now plain class.
+        const saved = await choiceDoc(cy, timetable);
+        await cy.post('/api/groups/leave').send({ groupId: group._id });
+        await classChoiceModel.create({ user: cy.id, schedule: timetable._id, choices: saved.choices });
+        const [left] = named(await weekOf(cy), 'Web Systems');
+        expect(left.myChoice).toBeUndefined();
+        expect(left.customOf).toBeUndefined();
+    });
+
     test('at 30 subjects, customizing a class with no subject of that name answers the cap and copies nothing', async () => {
         const { cy, timetable, ids } = await setup();
         await subjectModel.insertMany(Array.from({ length: 30 }, (_, i) => ({ owner: cy.id, name: `Subject ${i}`, order: i })));

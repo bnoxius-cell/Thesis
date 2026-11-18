@@ -26,6 +26,8 @@ export default function GroupPlan({ group }) {
     editingId: dialog?.task?._id ?? null,
   });
 
+  const [revealKey, setRevealKey] = useState(0); // bumped each time "Change which classes I take" is pressed
+
   const choice = useClassChoice({ onChanged: reload });
 
   const members = useMemo(() => new Map(group.members.map((member) => [member._id, member])), [group.members]);
@@ -68,6 +70,7 @@ export default function GroupPlan({ group }) {
         {(checklist === "open" || (checklist === "auto" && needsSetup)) && (
           <JoinChecklist
             scheduleId={plan.timetable._id}
+            revealKey={revealKey}
             onClose={() => setChecklist("closed")}
             onSaved={() => {
               setChecklist("closed");
@@ -92,7 +95,10 @@ export default function GroupPlan({ group }) {
           canEdit={canEdit}
           onChanged={applyTimetable}
           onReload={reload}
-          onChangeClasses={() => setChecklist("open")}
+          onChangeClasses={() => {
+            setChecklist("open");
+            setRevealKey((key) => key + 1);
+          }}
         />
         <GroupUpcoming groupId={group._id} />
       </>
