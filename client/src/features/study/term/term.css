@@ -384,6 +384,30 @@
     gap: 10px;
   }
   .term-time__days { grid-area: days; }
+  /* All six days stay on one row: the circles keep 44px and shrink only when the card is narrower (320px).
+     A shrunk circle keeps a 44px touch area through ::after. */
+  .term-time__days {
+    flex-wrap: nowrap;
+    gap: var(--space-1);
+  }
+  .term-time__days .ui-weekday {
+    position: relative;
+    flex: 0 1 44px;
+    width: auto;
+    min-width: 0;
+    height: auto;
+    aspect-ratio: 1;
+  }
+  .term-time__days .ui-weekday::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+  }
+  .term-time__start,
+  .term-time__end,
+  .term-time__row input {
+    min-width: 0;
+  }
   .term-time__start { grid-area: start; }
   .term-time__end { grid-area: end; }
   .term-time__room { grid-area: room; }
@@ -392,6 +416,18 @@
     margin: 0;
     color: var(--danger);
     font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+  /* Too narrow for two time inputs side by side without clipping "09:30 AM". */
+  @media (max-width: 359px) {
+    .term-time__row {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas:
+        "days"
+        "start"
+        "end"
+        "room"
+        "remove";
+    }
   }
   @media (min-width: 800px) {
     .term-time + .term-time {
@@ -407,6 +443,9 @@
     .term-time__remove {
       width: 40px;
       padding: 0;
+    }
+    .term-time__days .ui-weekday {
+      flex-basis: 40px;
     }
     /* The columns name themselves, so the labels and Remove's words stay for screen readers only. */
     .term-time__row > .ui-field > .ui-field__label,

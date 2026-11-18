@@ -120,10 +120,11 @@ const groupRef = (schedule) => (schedule.group ? { _id: schedule.group._id ?? sc
 
 // Resolves the layers into the week (countedSchedules): a shared timetable keeps only the classes the member
 // follows, each marked as such (with its group), and a copy in the member's own timetable is marked as theirs,
-// with its notice and the class it customizes. `schedules` are lean, with `role` and plain entries.
-export const applyChoices = (schedules, layers) => {
+// with its notice and the class it customizes. `schedules` are lean, with `role` and plain entries. `uncounted`
+// are shared timetables outside the week: only their customized classes' copies get marked.
+export const applyChoices = (schedules, layers, uncounted = []) => {
     const copies = new Map();
-    for (const schedule of schedules) {
+    for (const schedule of [...schedules, ...uncounted]) {
         const layer = layers.get(String(schedule._id));
         if (!layer) continue;
         const group = groupRef(schedule);

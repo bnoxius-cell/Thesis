@@ -8,6 +8,7 @@ import Friend from '../models/Friend.js';
 import { notify } from '../utils/notify.js';
 import userModel from '../models/userModel.js';
 import subjectModel from '../models/subjectModel.js';
+import classChoiceModel from '../models/classChoiceModel.js';
 import { fetchPublicHolidays } from '../utils/holidays.js';
 import { buildWeekOverview, addDaysIso, findUpcomingExams } from '../utils/weekOverview.js';
 import groupModel from '../models/groupMode.js';
@@ -768,6 +769,22 @@ export const importSchedule = async (req, res) => {
     }
 };
 
+// The shared timetables the caller still has a role on, doesn't count in their week, and has customized a class
+// of ("Just for me" with Count off). Only their copies need the layer marks (never these timetables' own classes,
+// which stay out of the week). Someone who left or never had a role gets none.
+const uncountedWithCopies = async (userId, counted) => {
+    const docs = await classChoiceModel
+        .find({ user: userId, schedule: { $nin: counted.map((s) => s._id) }, 'choices.choice': 'custom' })
+        .select('schedule')
+        .lean();
+    if (!docs.length) return [];
+    const found = await scheduleModel.find({ _id: { $in: docs.map((d) => d.schedule) } }).populate('group', 'name').lean();
+    return found.filter((s) => {
+        s.role = roleOf(s, userId);
+        return hasLayer(s, s.role);
+    });
+};
+
 // The timetables that count in the caller's week, ready to read: holidays resolved, the caller's role and
 // their own subject on each entry, their own layer applied to shared ones (classes they hid or customized
 // left out), personal ones first. `startIso` to `endIso` is the range holidays are looked up for; a failed
@@ -806,7 +823,10 @@ const countedSchedules = async (userId, startIso, endIso) => {
     });
     // Only a student who counts a shared timetable has choices to read.
     const layered = schedules.filter((s) => hasLayer(s, s.role));
-    if (layered.length) applyChoices(schedules, await choicesFor(userId, layered.map((s) => s._id)));
+    const uncounted = await uncountedWithCopies(userId, schedules);
+    if (layered.length || uncounted.length) {
+        applyChoices(schedules, await choicesFor(userId, [...layered, ...uncounted].map((s) => s._id)), uncounted);
+    }
     // Personal first, so a class copied into two timetables keeps the copy the student can edit.
     const rank = (s) => (s.role === 'owner' && !s.group ? 0 : 1 + ROLE_ORDER.indexOf(s.role));
     return schedules.sort((a, b) => rank(a) - rank(b));
