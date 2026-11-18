@@ -1,9 +1,10 @@
 import { useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Layers, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Layers, MoreHorizontal, Pencil, Share, Trash2 } from "lucide-react";
 import { Button, Card, Chip, ConfirmDialog, EmptyState, IconButton, Menu, MenuItem, Skeleton } from "@/shared/ui";
 import Page from "@/app/shell/Page";
+import { useShareToGroup } from "@/features/share";
 import CardDialog from "./CardDialog";
 import CardForm from "./CardForm";
 import CardRow from "./CardRow";
@@ -24,6 +25,7 @@ export default function DeckPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const data = useDeck(deckId);
+  const sharing = useShareToGroup();
   const termRef = useRef(null);
   const [draft, setDraft] = useState(NO_CARD);
   const [adding, setAdding] = useState(false);
@@ -111,6 +113,7 @@ export default function DeckPage() {
               trigger={(props) => <IconButton plain icon={MoreHorizontal} label="More for this deck" {...props} />}
             >
               <MenuItem icon={Pencil} onSelect={() => setDialog({ kind: "deck" })}>Edit deck</MenuItem>
+              {!empty && <MenuItem icon={Share} onSelect={() => sharing.open("deck", deck)}>Share to a group</MenuItem>}
               <MenuItem icon={Trash2} tone="danger" onSelect={() => setDialog({ kind: "deleteDeck" })}>Delete deck</MenuItem>
             </Menu>
           </div>
@@ -169,6 +172,7 @@ export default function DeckPage() {
           : `Delete ${dialog?.card?.term}? This can't be undone.`}
         {deleteError && <span className="deck-error" role="alert"> {deleteError}</span>}
       </ConfirmDialog>
+      {sharing.dialog}
     </Page>
   );
 }

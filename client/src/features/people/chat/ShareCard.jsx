@@ -6,7 +6,7 @@ import useNow from "@/shared/hooks/useNow";
 import { ErrorNote } from "@/features/share";
 import { SHARE_CARDS } from "./shareCards";
 
-// Something a person posted in the chat as a card (Figma SH-2): a task, a reviewer or a timetable. The reader gets
+// Something a person posted in the chat as a card (Figma SH-2): a task, a reviewer, a subject, a deck or a timetable. The reader gets
 // one button that makes their own copy. Working, failed (with the reason and "Try again") and done show on the card
 // itself. The sender's own card has no button. What each kind says and calls is in shareCards.js.
 //   plan   { groupId, onAdded } from the group view
@@ -18,6 +18,7 @@ export default function ShareCard({ message, mine, sender, plan }) {
   const title = card.title(message);
   const by = mine ? "you" : sender?.name ?? message.schedule?.ownerName ?? "someone";
   const chip = card.chip?.(message, now);
+  const rows = card.rows?.(message) ?? [];
 
   const add = async () => {
     setWork((prev) => ({ ...prev, busy: true, error: "" }));
@@ -99,6 +100,16 @@ export default function ShareCard({ message, mine, sender, plan }) {
             <p className="people-card__sub">{card.sub(message, by)}</p>
           </div>
         </>
+      )}
+      {rows.length > 0 && (
+        <ul className="people-card__rows">
+          {rows.map(({ icon: RowIcon, text }, index) => (
+            <li key={index} className="people-card__row">
+              <RowIcon size={20} aria-hidden="true" />
+              <span>{text}</span>
+            </li>
+          ))}
+        </ul>
       )}
       {chip && <Chip tone={chip.tone}>{chip.label}</Chip>}
       {card.note && <p className="people-card__note">{card.note}</p>}

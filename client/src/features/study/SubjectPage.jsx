@@ -21,6 +21,7 @@ import PickUpCard from "./PickUpCard";
 import SubjectCounts from "./SubjectCounts";
 import SubjectDialogs from "./SubjectDialogs";
 import SubjectFiles from "./SubjectFiles";
+import { useShareToGroup } from "@/features/share";
 import SubjectMenu from "./SubjectMenu";
 import SubjectPractice from "./SubjectPractice";
 import SubjectTasks from "./SubjectTasks";
@@ -77,6 +78,7 @@ function SubjectView({ subjectId }) {
   const now = useNow();
   const [dialog, setDialog] = useState(null); // edit or delete: { type, subject }
   const data = useSubject(subjectId);
+  const sharing = useShareToGroup();
   const subjectArchive = useSubjectArchive({ onChanged: data.refresh });
   const { reviewers: allReviewers, refresh: refreshReviewers } = useReviewers();
   const { subject, status } = data;
@@ -183,6 +185,7 @@ function SubjectView({ subjectId }) {
           onEdit={(s) => setDialog({ type: "edit", subject: s })}
           onArchive={subjectArchive.archive}
           onRestore={subjectArchive.askRestore}
+          onShare={(s) => sharing.open("subject", s)}
           onDelete={(s) => setDialog({ type: "delete", subject: { ...s, counts: { ...s.counts, files: fileCount } } })}
         />
       }
@@ -270,6 +273,7 @@ function SubjectView({ subjectId }) {
           onClose={files.dialog.close}
         />
       )}
+      {sharing.dialog}
     </Page>
   );
 }

@@ -1,13 +1,22 @@
-import { CalendarDays, FileText, ListChecks } from "lucide-react";
+import { BookOpen, CalendarDays, Clock, FileText, Layers, ListChecks } from "lucide-react";
 import { taskDueText } from "@/features/details/detailText";
+import { timeRangeText } from "@/features/plan/entryTime";
+import { deckHref, FLASHCARDS_TAB } from "@/features/flashcards/flashcardLinks";
 import { saveFromMessage } from "@/shared/api/groups";
 import { importSharedTimetable } from "@/shared/api/schedules";
 import { importSharedTask } from "@/shared/api/tasks";
 import { dueChip, dueWords } from "@/shared/lib/dueChip";
+import { WEEKDAYS } from "@/utils/scheduleUtils";
 
 const entriesText = (entries) => {
   const word = entries.every((e) => e.kind === "class") ? ["class", "classes"] : ["entry", "entries"];
   return `${entries.length} ${entries.length === 1 ? word[0] : word[1]}`;
+};
+
+// "Mon, Wed 8:00 to 9:30 · Rm 3" for one class time on a shared subject.
+const classTimeText = (time) => {
+  const days = WEEKDAYS.filter((day) => time.days.includes(day.value)).map((day) => day.short).join(", ");
+  return [`${days} ${timeRangeText(time.startTime, time.endTime)}`, time.location].filter(Boolean).join(" · ");
 };
 
 // Due soon reads as a warning, past due as a problem, anything further out as plain information.
@@ -20,6 +29,7 @@ const dueTone = (days) => (days < 0 ? "danger" : days < 7 ? "watch" : "neutral")
 //   eyebrow      the kind label above the name (every layout but inline)
 //   title, sub   the card's two text lines, from the message (and who sent it, for the timetable)
 //   chip         optional { label, tone } under the text, from the message and the current time
+//   rows         optional (message) => [{ icon, text }] short lines under the text (a subject's class times)
 //   note         optional line above the button
 //   own          true when the sender's own card says "Shared by you." in place of the button
 //   action, busy, done      the button's label, its label while working, and the label once it is in
@@ -73,5 +83,36 @@ export const SHARE_CARDS = {
     alreadyIs409: true,
     add: (plan, m) => saveFromMessage(plan.groupId, m._id),
     open: { label: "Open", to: (saved) => `/study/reviewers/${saved._id}`, fallback: "/study/practice" },
+  },
+  subject: {
+    field: "subject",
+    icon: BookOpen,
+    eyebrow: "Subject",
+    own: true,
+    title: (m) => m.subject.name,
+    sub: (m) => [m.subject.code, m.subject.term].filter(Boolean).join(" · "),
+    rows: (m) => m.subject.classTimes.map((time) => ({ icon: Clock, text: classTimeText(time) })),
+    action: "Add to my subjects",
+    busy: "Adding...",
+    done: "In your subjects",
+    toast: "Added to your subjects.",
+    alreadyIs409: true,
+    add: (plan, m) => saveFromMessage(plan.groupId, m._id),
+    open: { label: "Open", to: (saved) => `/study/subjects/${saved._id}`, fallback: "/study" },
+  },
+  deck: {
+    field: "deck",
+    icon: Layers,
+    eyebrow: "Flashcard deck",
+    own: true,
+    title: (m) => m.deck.title,
+    sub: (m) => [m.deck.course, `${m.deck.cardCount} ${m.deck.cardCount === 1 ? "card" : "cards"}`].filter(Boolean).join(" · "),
+    action: "Save deck",
+    busy: "Saving...",
+    done: "Saved to Study",
+    toast: "Saved to your Study.",
+    alreadyIs409: true,
+    add: (plan, m) => saveFromMessage(plan.groupId, m._id),
+    open: { label: "Open", to: (saved) => deckHref(saved._id), fallback: FLASHCARDS_TAB },
   },
 };

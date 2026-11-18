@@ -13,6 +13,7 @@ import PracticePanel from "./PracticePanel";
 import PracticeSwitch from "./PracticeSwitch";
 import StudyEmpty from "./StudyEmpty";
 import StudyTabs from "./StudyTabs";
+import { useShareToGroup } from "@/features/share";
 import SubjectDialogs from "./SubjectDialogs";
 import SubjectGrid from "./SubjectGrid";
 import useReviewers from "./useReviewers";
@@ -56,6 +57,7 @@ function Study() {
   const show = params.get("show") === "flashcards" ? "flashcards" : "reviewers";
   const now = useNow();
   const [dialog, setDialog] = useState(null);
+  const sharing = useShareToGroup();
   const view = !practiceTab && params.get("view") === "archived" ? "archived" : "active";
   const data = useSubjects();
   const archived = useArchivedSubjects();
@@ -150,6 +152,7 @@ function Study() {
                     onNew={openNew}
                     onEdit={open("edit")}
                     onArchive={subjectArchive.archive}
+                    onShare={(subject) => sharing.open("subject", subject)}
                     onDelete={open("delete")}
                   />
                 )}
@@ -175,6 +178,7 @@ function Study() {
           </div>
         </div>
       )}
+      {sharing.dialog}
       <SubjectDialogs dialog={dialog} onClose={() => setDialog(null)} onChanged={data.refresh} />
       {subjectArchive.dialog}
       {newTerm.dialog}
