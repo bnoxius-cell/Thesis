@@ -7,6 +7,7 @@ import newSubjectOption from "@/features/study/newSubjectOption";
 import NewSubjectNameField from "@/features/study/NewSubjectNameField";
 import NewSubjectPanel from "@/features/study/NewSubjectPanel";
 import { NEW_SUBJECT } from "@/features/study/subjectForm";
+import { setDays } from "@/utils/classTimes";
 import { KIND_LABELS } from "@/utils/scheduleUtils";
 import {
   ENTRY_LINK_MAX,
@@ -25,6 +26,7 @@ import {
   subjectNameOf,
   titleAfterSubject,
 } from "@/utils/entryForm";
+import DayTimes from "./DayTimes";
 import useEntryTarget from "./useEntryTarget";
 import useSaveEntry from "./useSaveEntry";
 import "./entry-form.css";
@@ -35,6 +37,7 @@ const REPEATS = [
 ];
 const NO_SUBJECT = "";
 const NEW_SUBJECT_OPTION = newSubjectOption("New subject...");
+const timeFields = ({ days, startTime, endTime, sameTime, dayTimes }) => ({ days, startTime, endTime, sameTime, dayTimes });
 
 // New or edited class time, exam, event or activity (Figma D4: desktop 209:2364, 209:2681, 209:2980, edit on a
 // shared timetable 209:3273, phone sheets 210:2576, 210:2673, 210:2753, 210:2828; the class time form is MS-3:
@@ -50,7 +53,8 @@ const NEW_SUBJECT_OPTION = newSubjectOption("New subject...");
 // the save sends `newSubject` and `newSubjectCode`, so the server makes the subject.
 // `timetable` is the picked timetable the student can edit, or null for My week (the main timetable, created
 // when missing). To edit, pass the stored `entry` and the `timetable` it lives on (always required then).
-// Nothing is saved until the button; closing asks first when something was typed. A failed save keeps the
+// A new class time can have a different time on each day ("Same time every day" off, DayTimes): it adds one entry
+// per distinct pair of times. Nothing is saved until the button; closing asks first when something was typed. A failed save keeps the
 // dialog open with the message. `onSaved` gets the timetable after the change, the kind saved and the entry's
 // fields (its date or days), and `{ mine: true }` after "just for me". `onGone` runs when an edited entry has been removed meanwhile. The clash note only warns.
 // Editing a class of a timetable shared with the student (the entry carries `myChoice`) asks "Who is this for?"
@@ -97,6 +101,11 @@ export default function EntryFormDialog({ kind, subjects, fixedSubject = null, t
     setErrors((prev) => ({ ...prev, [key]: undefined, ...times }));
   };
   const onText = (key) => (event) => set(key)(event.target.value);
+  // A class's days and times (DayTimes and the day picker hand back the whole time with the change made).
+  const changeTimes = (next) => {
+    setForm((prev) => ({ ...prev, ...timeFields(next) }));
+    setErrors((prev) => ({ ...prev, days: undefined, times: undefined }));
+  };
   // The Title follows the picked subject's name, or the name typed for a new one, until the student edits it.
   const changeSubject = (change) =>
     setForm((prev) => {
@@ -223,16 +232,26 @@ export default function EntryFormDialog({ kind, subjects, fixedSubject = null, t
         </Field>
       )}
       {weekly ? (
-        <Field label="Repeats on" hint="These days share one time. For a different time on another day, add another class time." error={errors.days}>
-          {({ labelId }) => <WeekdayPicker labelId={labelId} value={form.days} onChange={set("days")} />}
+        <Field label="Repeats on" error={errors.days}>
+          {({ labelId }) => (
+            <WeekdayPicker
+              labelId={labelId}
+              value={form.days}
+              onChange={form.kind === "class" ? (days) => changeTimes(setDays(form, days)) : set("days")}
+            />
+          )}
         </Field>
       ) : (
         <Field label="Date" type="date" value={form.date} onChange={onText("date")} error={errors.date} required />
       )}
-      <div className="entry-dialog__pair">
-        <Field label="Starts" type="time" value={form.startTime} onChange={onText("startTime")} required />
-        <Field label="Ends" type="time" value={form.endTime} onChange={onText("endTime")} error={errors.times} required />
-      </div>
+      {form.kind === "class" ? (
+        <DayTimes time={form} onChange={changeTimes} error={errors.times} canSplit={!editing && weekly} needDays={weekly} />
+      ) : (
+        <div className="entry-dialog__pair">
+          <Field label="Starts" type="time" value={form.startTime} onChange={onText("startTime")} required />
+          <Field label="Ends" type="time" value={form.endTime} onChange={onText("endTime")} error={errors.times} required />
+        </div>
+      )}
       {note && (
         <p className="entry-dialog__note" role="status">
           <TriangleAlert size={20} aria-hidden="true" />

@@ -1,0 +1,167 @@
+/* The times of a class time (Figma P7a): the "Same time every day" switch, then one Starts and Ends or a row for
+   each picked day, then "Add another day". The row lays itself out by its own width, so the same markup fits a
+   280px phone sheet, the 496px Plan dialog and the 700px Add subject card:
+     under 440px   each day is its own two lines: the day (and its X) above, Starts and Ends below
+     440px and up  one line: day, Starts, "to", Ends, X */
+@layer pages {
+  .day-times {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    container-type: inline-size;
+  }
+
+  .day-times__switch {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 44px;
+  }
+  .day-times__switch-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .day-times__title {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+  }
+  .day-times__hint {
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+
+  .day-times__pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+  .day-times__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: auto;
+    min-width: 0;
+    margin: 0;
+  }
+  .day-times input {
+    min-width: 0;
+  }
+
+  .day-times__rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .day-times__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    animation: day-times-in var(--dur-2) var(--ease-out) both;
+  }
+  .day-times__row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "day day"
+      "start end";
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .day-times__day {
+    grid-area: day;
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+  }
+  .day-times__start { grid-area: start; }
+  .day-times__end { grid-area: end; }
+  .day-times__to {
+    display: none;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .day-times__remove {
+    grid-area: day;
+    justify-self: end;
+  }
+  @container (min-width: 440px) {
+    .day-times__row {
+      grid-template-columns: 48px minmax(0, 1fr) auto minmax(0, 1fr) auto;
+      grid-template-areas: "day start to end remove";
+    }
+    .day-times__to {
+      display: block;
+      grid-area: to;
+    }
+    .day-times__remove {
+      grid-area: remove;
+    }
+    .day-times__item > .day-times__error {
+      padding-inline-start: 56px;
+    }
+  }
+
+  .day-times__error {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0;
+    color: var(--danger);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .day-times__error svg {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  .day-times__add {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 6px;
+    box-sizing: border-box;
+    min-height: 44px;
+    margin: 0;
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--accent);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  .day-times__add:active {
+    transform: scale(0.97);
+  }
+  .day-times__add:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .day-times__add:hover {
+      background: var(--accent-soft);
+    }
+  }
+
+  @keyframes day-times-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .day-times__item {
+      animation: none;
+    }
+    .day-times__add:active {
+      transform: none;
+    }
+  }
+}

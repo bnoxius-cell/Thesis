@@ -1,4 +1,5 @@
 import { NEW_SUBJECT, subjectNameError } from "../features/study/subjectForm.js";
+import { groupTimes, isPerDay, timeProblem } from "./classTimes.js";
 import { analyzeEntry } from "./scheduleConflicts";
 import { WEEKDAYS, formatTime, fromISODate, isWebLink, toISODate } from "./scheduleUtils";
 
@@ -24,7 +25,9 @@ const clean = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 
 // A new form for one kind. Exams are always one day; an event starts as one day; classes and activities
 // repeat weekly. `subject` is the picked subject's id ("" for none, NEW_SUBJECT to make one from
-// `newSubjectName` and `newSubjectCode`); picking one fills the title.
+// `newSubjectName` and `newSubjectCode`); picking one fills the title. A class can have a time for each day
+// (`sameTime: false`, the times in `dayTimes`; see utils/classTimes.js): it saves as one entry per distinct pair
+// of times.
 export const emptyEntryForm = (kind = "class", today = new Date()) => ({
   kind,
   subject: "",
@@ -36,6 +39,8 @@ export const emptyEntryForm = (kind = "class", today = new Date()) => ({
   date: toISODate(today),
   startTime: "09:00",
   endTime: "10:00",
+  sameTime: true,
+  dayTimes: {},
   location: "",
   meetingUrl: "",
   notes: "",
@@ -54,6 +59,8 @@ export const entryFormFrom = (entry) => ({
   date: entry.date || toISODate(new Date()),
   startTime: entry.startTime,
   endTime: entry.endTime,
+  sameTime: true,
+  dayTimes: {},
   location: entry.location || "",
   meetingUrl: entry.meetingUrl || "",
   notes: entry.notes || "",
@@ -101,6 +108,13 @@ export function entryPayload(form, storedEntry) {
   return payload;
 }
 
+// The bodies to add for a form, one per entry: a class with a time for each day makes one per distinct pair of
+// times (each with its days), anything else makes one.
+export const entryPayloads = (form, storedEntry) =>
+  isPerDay(form) && form.kind === "class"
+    ? groupTimes(form).map((group) => entryPayload({ ...form, ...group }, storedEntry))
+    : [entryPayload(form, storedEntry)];
+
 // One message for the meeting link, empty when it is fine or blank. Used on blur and on save.
 export function linkError(value) {
   const link = value.trim();
@@ -128,7 +142,10 @@ export function entryErrors(form, { bySubject = false } = {}) {
     errors.days = "Pick at least one day.";
   }
 
-  if (!TIME.test(form.startTime) || !TIME.test(form.endTime)) errors.times = "Start and end times are required.";
+  if (isPerDay(form)) {
+    const problem = timeProblem(form);
+    if (problem) errors.times = problem.message; // names the day
+  } else if (!TIME.test(form.startTime) || !TIME.test(form.endTime)) errors.times = "Start and end times are required.";
   else if (form.endTime <= form.startTime) errors.times = "The end time must be after the start time.";
 
   if ((form.kind === "class" || form.kind === "exam") && form.subject === NEW_SUBJECT) {
@@ -166,6 +183,8 @@ const SHORT_DAY = Object.fromEntries(WEEKDAYS.map((day) => [day.value, day.short
 // "Web Systems, Tue 1:00 pm is the same." for a copy; "" when there is nothing to say or the form isn't
 // complete enough to compare. `existing` is the timetable's entries. A warning only, it never blocks.
 export function clashNote(form, existing) {
+  // A time for each day: the first of its entries that clashes.
+  if (isPerDay(form)) return groupTimes(form).map((group) => clashNote({ ...form, ...group, sameTime: true }, existing)).find(Boolean) ?? "";
   if (!existing?.length || !TIME.test(form.startTime) || !TIME.test(form.endTime) || form.endTime <= form.startTime) return "";
   const once = form.repeat === REPEAT.once || form.kind === "exam";
   if (once ? !isRealDate(form.date) : form.days.length === 0) return "";
