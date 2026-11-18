@@ -2,14 +2,15 @@ import { NEW_SUBJECT, subjectNameError } from "@/features/study/subjectForm";
 import { taskDueIso, toISODate } from "@/utils/scheduleUtils";
 
 // The task form, new and edit. The limit matches TASK_LIMITS on the server, which checks it again. Sizes map
-// to hours the same way effortLabel reads them back (up to 1.5 is Small, up to 4 Medium).
+// to hours the same way effortLabel reads them back (up to 1.5 is Small, up to 4 Medium). The form asks
+// "How big is it?" and each option says its hours (Figma P7c).
 export const TASK_TITLE_MAX = 120;
 export const TASK_NOTES_MAX = 1000;
 
 export const TASK_SIZES = [
-  { value: 1, label: "Small" },
-  { value: 3, label: "Medium" },
-  { value: 5, label: "Large" },
+  { value: 1, label: "Small", detail: "About 1 hour" },
+  { value: 3, label: "Medium", detail: "About 3 hours" },
+  { value: 5, label: "Large", detail: "5 hours or more" },
 ];
 
 export const NO_SUBJECT = "";

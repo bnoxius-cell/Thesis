@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Button, Field, Modal, Segment, SelectButton } from "@/shared/ui";
+import { Button, Field, Modal, SelectButton } from "@/shared/ui";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
+import SizeChoice from "./SizeChoice";
 import useSaveTask from "./useSaveTask";
 import { taskSubject } from "@/features/details/itemLinks";
 import NewSubjectNameField from "@/features/study/NewSubjectNameField";
@@ -9,7 +10,6 @@ import { NEW_SUBJECT } from "@/features/study/subjectForm";
 import {
   NO_SUBJECT,
   TASK_NOTES_MAX,
-  TASK_SIZES,
   TASK_TITLE_MAX,
   emptyTaskForm,
   sizeOf,
@@ -121,11 +121,7 @@ export default function TaskFormDialog({ subjects, task, defaultSubject = NO_SUB
         error={errors.dueDate}
         required
       />
-      <Field label="Size">
-        {({ labelId }) => (
-          <Segment labelId={labelId} options={TASK_SIZES} value={sizeOf(form.hours)} onChange={set("hours")} />
-        )}
-      </Field>
+      <SizeChoice value={sizeOf(form.hours)} onChange={set("hours")} disabled={saving} />
       <Field
         label="Notes (optional)"
         className="task-dialog__notes"

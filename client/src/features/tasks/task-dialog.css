@@ -27,6 +27,99 @@
   .task-dialog__notes .ui-field__hint {
     text-align: end;
   }
+  /* How big is it? (Figma P7c 444:5768, phone 444:6136): label and hint, then three equal option cards;
+     the picked one gets a 2px accent border on --accent-soft. The border stays 2px (padding makes up
+     the 1px) so the cards don't shift when picked. */
+  .size-choice {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: 100%;
+  }
+  .size-choice__head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .size-choice__label {
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+  .size-choice__hint {
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .size-choice__options {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+  .size-choice__option {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    box-sizing: border-box;
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+    margin: 0;
+    padding: 9px 11px;
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: 0 0 0 1px var(--border-input) inset;
+    color: var(--text-primary);
+    text-align: start;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition:
+      background-color var(--hover-dur) var(--hover-ease),
+      border-color var(--hover-dur) var(--hover-ease),
+      transform var(--dur-1) var(--ease-out);
+  }
+  .size-choice__option[aria-checked="true"] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: none;
+  }
+  .size-choice__option:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  .size-choice__option:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .size-choice__option:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .size-choice__option:hover:not(:disabled):not([aria-checked="true"]) {
+      box-shadow: 0 0 0 1px var(--text-muted) inset;
+    }
+  }
+  .size-choice__name {
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+  }
+  .size-choice__option[aria-checked="true"] .size-choice__name {
+    color: var(--accent);
+  }
+  .size-choice__detail {
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .size-choice__option {
+      transition: none;
+    }
+    .size-choice__option:active:not(:disabled) {
+      transform: none;
+    }
+  }
   .task-dialog__error {
     margin: 0;
     color: var(--danger);
