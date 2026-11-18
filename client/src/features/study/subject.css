@@ -214,24 +214,84 @@
     flex: none;
   }
 
-  .subject-class {
+  /* ---- Class times card (Figma MS-2): one row per weekly class time. The parts wrap, so on a phone the days
+     and hours sit on the first line and the room and the buttons on the second, and on a laptop it is one
+     line with the buttons at the right. ---- */
+  .class-times {
+    gap: var(--space-1);
+  }
+  .class-times .subject-card__quiet {
+    margin-bottom: var(--space-2);
+  }
+  .class-times__list {
     display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .class-time {
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-2);
-    min-height: 20px;
-    color: var(--text-secondary);
-    font: 400 var(--text-sm) / 20px var(--font-ui);
+    gap: var(--space-2) var(--space-4);
+    padding-block: var(--space-3);
   }
-  .subject-class svg {
-    flex: none;
+  .class-time + .class-time {
+    border-top: 1px solid var(--border);
   }
-  .subject-class__when {
-    flex: 1;
+  .class-time__days {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .class-time__hours {
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+  .class-time__place {
     min-width: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
     overflow-wrap: anywhere;
   }
-  .subject-class .ui-btn {
-    flex: none;
+  .class-time__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-left: auto;
+  }
+  .class-time__actions .plan-join {
+    margin: 0;
+  }
+  /* The 36px buttons keep their look and get a 44px hit area (a little wider too, inside the 8px gap). */
+  .class-time__actions .ui-btn::after {
+    inset: -4px;
+  }
+  .class-time__delete {
+    color: var(--danger);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .class-time__delete:hover:not(:disabled) {
+      background: var(--danger-soft);
+    }
+  }
+  .class-times__add {
+    align-self: flex-start;
+  }
+  .class-times__start {
+    align-self: flex-start;
+  }
+  @media (min-width: 600px) {
+    /* The hours line up from row to row: the days take at least the width of two chips. */
+    .class-time__days {
+      flex: 0 0 auto;
+      min-width: 132px;
+    }
+    .class-time__place {
+      flex: 1 1 0;
+    }
   }
 
   /* Phones: a row's chip drops under its text so long titles keep their width. */

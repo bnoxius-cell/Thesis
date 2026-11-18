@@ -9,9 +9,9 @@ import { isId, serverError } from '../utils/httpErrors.js';
 import { filesChoice, releasePlaceFiles, removePlaceFiles } from '../utils/placeFiles.js';
 import { courseKey, activeSubjects, matchesLabel, sameNameTaken } from '../utils/subjectMatch.js';
 import { linkMatchingItems, relabelLinkedItems, unlinkItems } from '../utils/subjectCascade.js';
-import { linkClassTimes, renameClassTimes, removeClassTimes } from '../utils/subjectClassTimes.js';
+import { addClassTimes, linkClassTimes, pullClassTimes, renameClassTimes, removeClassTimes } from '../utils/subjectClassTimes.js';
 import * as subjectArchive from '../utils/subjectArchive.js';
-import { applyNewTerm } from '../utils/newTerm.js';
+import { applyNewTerm, readClassTimes } from '../utils/newTerm.js';
 
 const MAX_SUGGESTIONS = 15;
 const SUGGESTED_ENTRY_KINDS = ['class', 'exam'];
@@ -131,20 +131,22 @@ const insertSubject = async (owner, fields, subjects) => {
     return { subject, linked, classTimes };
 };
 
-// A timetable entry asks for a subject by name. Checks it the way POST /api/subjects does and answers
-// without writing: { error }, { subject } (the active one with that name or code, reused), or { name,
-// subjects } for a new one that `createPlannedSubject` makes once the entry itself is valid.
-export const planNewSubject = async (owner, rawName) => {
-    const { fields, error } = readFields({ name: rawName }, { partial: false });
+// A timetable entry asks for a subject by name (and optionally a code). Checks it the way POST /api/subjects
+// does and answers without writing: { error }, { subject } (the active one with that name or code, reused), or
+// { name, code, subjects } for a new one that `createPlannedSubject` makes once the entry itself is valid.
+export const planNewSubject = async (owner, rawName, rawCode) => {
+    const { fields, error } = readFields({ name: rawName, code: rawCode }, { partial: false });
     if (error) return { error };
     const subjects = await activeSubjects(owner);
     const existing = subjects.find((s) => matchesLabel(s, fields.name));
     if (existing) return { subject: existing };
     if (subjects.length >= SUBJECT_LIMITS.maxActive) return { error: capMessage() };
-    return { name: fields.name, subjects };
+    return { name: fields.name, code: fields.code, subjects };
 };
 
-export const createPlannedSubject = async (owner, { name, subjects }) => (await insertSubject(owner, { name }, subjects)).subject;
+export const createPlannedSubject = async (owner, { name, code, subjects }) => (
+    (await insertSubject(owner, { name, ...(code ? { code } : {}) }, subjects)).subject
+);
 
 export const getSubjects = async (req, res) => {
     try {
@@ -160,10 +162,17 @@ export const getSubjects = async (req, res) => {
     }
 };
 
+// POST /api/subjects { name, code?, term?, classTimes?: [{ days, startTime, endTime, location? }] }. The class
+// times go on the owner's main timetable as classes linked to the new subject. Everything is checked before the
+// first write (the subject cap, the name, the class times, and room for them on the timetable), the class times go
+// in with one atomic push, and the subject is made last under the id they already carry. If making the subject
+// fails, the class times are pulled out again, so the answer is the subject with its class times or nothing.
 export const createSubject = async (req, res) => {
     try {
         const { fields, error } = readFields(req.body, { partial: false });
         if (error) return bad(res, error);
+        const times = readClassTimes(fields.name, req.body.classTimes);
+        if (times.error) return bad(res, times.error, times.status);
 
         const subjects = await activeSubjects(req.userId);
         if (subjects.length >= SUBJECT_LIMITS.maxActive) {
@@ -173,11 +182,24 @@ export const createSubject = async (req, res) => {
             return bad(res, `You already have a subject called ${fields.name}.`, 409);
         }
 
-        const { subject, linked, classTimes } = await insertSubject(req.userId, fields, subjects);
+        const _id = new mongoose.Types.ObjectId();
+        const classes = times.classTimes.map((time) => ({ ...time, subject: _id }));
+        const placed = await addClassTimes(req.userId, classes);
+        if (placed.error) return bad(res, placed.error, placed.full ? 400 : 409);
+
+        let made;
+        try {
+            made = await insertSubject(req.userId, { ...fields, _id }, subjects);
+        } catch (failure) {
+            if (placed.added) await pullClassTimes(req.userId, _id).catch((pullError) => console.error('createSubject rollback error:', pullError));
+            throw failure;
+        }
+        const { subject, linked, classTimes } = made;
         res.status(201).json({
             success: true,
-            subject: publicSubject(subject, { ...EMPTY_COUNTS, openTasks: linked.tasks, reviewers: linked.reviewers, classTimes }),
+            subject: publicSubject(subject, { ...EMPTY_COUNTS, openTasks: linked.tasks, reviewers: linked.reviewers, classTimes: classTimes + placed.added }),
             linked,
+            classTimesAdded: placed.added,
         });
     } catch (error) {
         serverError(res, 'createSubject error', error);

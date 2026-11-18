@@ -6,11 +6,11 @@ import { KIND_LABELS, addDays, toISODate } from "../../../utils/scheduleUtils.js
 // Copy is from the Figma frames (219:3284 AddMenuRow). `icon` names the icon, `group` where it lists first.
 export const ADD_OPTIONS = [
   { kind: "task", title: "Task", hint: "Something to finish by a date", icon: "tasks", group: "plan" },
-  { kind: "class", title: "Class", hint: "Repeats on the days you pick", icon: "calendar-plus", group: "plan" },
+  { kind: "class", title: "Class time", hint: "When one of your subjects meets each week", icon: "calendar-plus", group: "plan" },
   { kind: "exam", title: "Exam", hint: "One date, with study time before it", icon: "clipboard-check", group: "plan" },
   { kind: "event", title: "Event", hint: "One day, or every week", icon: "flag", group: "plan" },
   { kind: "activity", title: "Activity", hint: "Org, sports or work you do each week", icon: "shapes", group: "plan" },
-  { kind: "subject", title: "Subject", hint: "A course for your tasks and notes", icon: "subjects", group: "study" },
+  { kind: "subject", title: "Subject", hint: "A course, with its class times", icon: "subjects", group: "study" },
   { kind: "reviewer", title: "Reviewer", hint: "Practice questions from your notes", icon: "reviewers", group: "study" },
   { kind: "flashcards", title: "Flashcards", hint: "Cards from a reviewer or your own", icon: "flashcards", group: "study" },
   { kind: "file", title: "File", hint: "Upload a file to your library", icon: "file", group: "study" },
@@ -59,10 +59,14 @@ export function addedToast(kind, result, today = new Date()) {
   if (kind === "group") return { message: "Group created. Share its join code with your classmates.", href: groupHref(result._id) };
   if (kind === "join") return { message: "You joined the group.", href: groupHref(result._id) };
   if (kind === "task") return { message: "Task added to Plan", href: taskHref(result._id) };
-  if (kind === "subject") return { message: "Subject added to Study", href: subjectHref(result._id) };
+  if (kind === "subject") {
+    const times = result.classTimesAdded ?? 0;
+    const message = times > 0 ? `Subject added, with ${times} class ${times === 1 ? "time" : "times"} on Plan` : "Subject added to Study";
+    return { message, href: subjectHref(result._id) };
+  }
   if (kind === "reviewer") return { message: "Making your reviewer", href: "/study/practice" };
   return {
-    message: `${KIND_LABELS[kind]} added to Plan`,
+    message: `${kind === "class" ? "Class time" : KIND_LABELS[kind]} added to Plan`,
     href: planDayHref(firstDay(result.entry, today), today),
   };
 }

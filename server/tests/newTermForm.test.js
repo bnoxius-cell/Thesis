@@ -1,9 +1,10 @@
 import { describe, test, expect } from 'vitest';
 import {
-    MAX_CLASS_TIMES, MAX_NEW_SUBJECTS, TERM_DAYS, addClassTime, addSubject, changeClassTime, changeSubject, classTimeCount,
+    MAX_CLASS_TIMES, MAX_NEW_SUBJECTS, addClassTime, addSubject, changeClassTime, changeSubject, classTimeCount,
     clashNotes, emptyTermForm, filledSubjects, keptEntries, nothingToApply, removeClassTime, removeSubject, scheduleSummary,
     setArchived, termErrors, termRequest, termStarted,
 } from '../../client/src/features/study/term/newTermForm.js';
+import { WEEKDAYS } from '../../client/src/utils/scheduleUtils.js';
 import { newTermText, restoreText } from '../../client/src/features/study/term/termText.js';
 
 const active = [{ _id: 'a1' }, { _id: 'a2' }, { _id: 'a3' }];
@@ -43,9 +44,9 @@ describe('emptyTermForm', () => {
 });
 
 describe('days', () => {
-    test('the wizard offers Monday to Saturday as Date#getDay numbers', () => {
-        expect(TERM_DAYS.map((d) => d.value)).toEqual([1, 2, 3, 4, 5, 6]);
-        expect(TERM_DAYS.map((d) => d.label)).toEqual(['M', 'T', 'W', 'Th', 'F', 'S']);
+    test('the day buttons run Monday to Sunday as Date#getDay numbers, with two letters where one would repeat', () => {
+        expect(WEEKDAYS.map((d) => d.value)).toEqual([1, 2, 3, 4, 5, 6, 0]);
+        expect(WEEKDAYS.map((d) => d.label)).toEqual(['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su']);
     });
 });
 

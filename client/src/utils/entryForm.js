@@ -24,11 +24,12 @@ const clean = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 
 // A new form for one kind. Exams are always one day; an event starts as one day; classes and activities
 // repeat weekly. `subject` is the picked subject's id ("" for none, NEW_SUBJECT to make one from
-// `newSubjectName`); picking one fills the title.
+// `newSubjectName` and `newSubjectCode`); picking one fills the title.
 export const emptyEntryForm = (kind = "class", today = new Date()) => ({
   kind,
   subject: "",
   newSubjectName: "",
+  newSubjectCode: "",
   title: "",
   repeat: kind === "class" || kind === "activity" ? REPEAT.weekly : REPEAT.once,
   days: [],
@@ -46,6 +47,7 @@ export const entryFormFrom = (entry) => ({
   kind: entry.kind,
   subject: entry.subject || "",
   newSubjectName: "",
+  newSubjectCode: "",
   title: entry.title,
   repeat: entry.date ? REPEAT.once : REPEAT.weekly,
   days: [...(entry.days ?? [])],
@@ -64,8 +66,8 @@ export const entryFormFrom = (entry) => ({
 // switching between them leaves nothing behind. startDate and endDate only belong to weekly entries.
 // A class or exam sends its subject's id; with none picked it sends nothing (the server links by name),
 // or `null` when the stored entry had one, which unlinks it. With NEW_SUBJECT picked it sends `newSubject`
-// (the name) and no `subject`; the server makes the subject for the timetable's owner. Events and activities
-// send neither.
+// (the name), `newSubjectCode` when one was typed, and no `subject`; the server makes the subject for the
+// timetable's owner. Events and activities send neither.
 export function entryPayload(form, storedEntry) {
   const stored = storedEntry ?? {}; // adding passes null (no stored entry), which a default value wouldn't replace
   const { _id, ...kept } = stored;
@@ -85,6 +87,7 @@ export function entryPayload(form, storedEntry) {
   if (form.kind === "class" || form.kind === "exam") {
     if (form.subject === NEW_SUBJECT) {
       payload.newSubject = clean(form.newSubjectName);
+      if (clean(form.newSubjectCode)) payload.newSubjectCode = clean(form.newSubjectCode);
       delete payload.subject;
     } else if (form.subject) payload.subject = form.subject;
     else if (stored.subject) payload.subject = null;
@@ -106,12 +109,16 @@ export function linkError(value) {
   return isWebLink(link) ? "" : LINK_MESSAGE;
 }
 
-// Plain messages for what is wrong, keyed by field. Empty when the form can be sent.
-export function entryErrors(form) {
+// Plain messages for what is wrong, keyed by field. Empty when the form can be sent. `bySubject` is a class
+// with no Title field (the class time form): its title is its subject's name, so a missing one is "Pick a subject."
+// (a class being edited keeps the title it has).
+export function entryErrors(form, { bySubject = false } = {}) {
   const errors = {};
   const title = clean(form.title);
-  if (!title) errors.title = "A title is required.";
-  else if (title.length > ENTRY_TITLE_MAX) errors.title = `The title is too long (${ENTRY_TITLE_MAX} characters max).`;
+  if (!title) {
+    if (!bySubject) errors.title = "A title is required.";
+    else if (form.subject !== NEW_SUBJECT) errors.subject = "Pick a subject.";
+  } else if (title.length > ENTRY_TITLE_MAX) errors.title = `The title is too long (${ENTRY_TITLE_MAX} characters max).`;
 
   const once = form.repeat === REPEAT.once || form.kind === "exam";
   if (once) {

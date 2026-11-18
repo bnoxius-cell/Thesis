@@ -8,7 +8,8 @@
     "dev:host": "vite --host 127.0.0.1 --open",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:contrast": "node scripts/checkContrast.mjs"
   },
   "dependencies": {
     "@react-oauth/google": "^0.13.5",

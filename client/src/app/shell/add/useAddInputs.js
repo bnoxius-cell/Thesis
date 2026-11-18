@@ -9,10 +9,12 @@ import { fetchSubjects } from "@/shared/api/subjects";
 // the server enforces the limit whatever the dialog shows.
 // Kinds whose dialog doesn't pick a subject.
 const NO_SUBJECTS = new Set(["subject", "group", "join", "file"]);
+// Kinds that go to the subject of the page they were opened from.
+const ON_THE_SUBJECT = new Set(["task", "reviewer", "class"]);
 
 export default function useAddInputs(kind, page) {
-  // On a Subject page a task or a reviewer can only go to that subject, so its list is that one subject.
-  const pageSubjects = page?.subjects ?? (page?.subject && (kind === "task" || kind === "reviewer") ? [page.subject] : null);
+  // On a Subject page a task, a reviewer or a class time can only go to that subject, so its list is that one subject.
+  const pageSubjects = page?.subjects ?? (page?.subject && ON_THE_SUBJECT.has(kind) ? [page.subject] : null);
   const needsSubjects = !NO_SUBJECTS.has(kind) && !pageSubjects;
   const needsLimits = kind === "reviewer";
   const needsSources = kind === "flashcards";

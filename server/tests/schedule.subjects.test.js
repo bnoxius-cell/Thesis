@@ -98,6 +98,19 @@ describe('owner writes a class with a subject', () => {
         expect(await subjectModel.countDocuments()).toBe(1);
     });
 
+    test('newSubjectCode is saved on the subject the class makes, and ignored when the subject already exists', async () => {
+        const { alice, base } = await setup();
+        const res = await alice.post(`${base}/entries`).send(cls({ newSubject: 'Data Mining', newSubjectCode: 'IT 420' }));
+        expect(res.status).toBe(201);
+        expect(res.body.subject).toMatchObject({ name: 'Data Mining', code: 'IT 420' });
+        const again = await alice.post(`${base}/entries`).send(cls({ newSubject: 'data mining', newSubjectCode: 'OTHER' }));
+        expect(again.status).toBe(201);
+        expect(again.body.subject).toBeUndefined();
+        expect((await subjectModel.find().lean()).map((s) => s.code)).toEqual(['IT 420']);
+        const tooLong = await alice.post(`${base}/entries`).send(cls({ newSubject: 'Compilers', newSubjectCode: 'X'.repeat(SUBJECT_LIMITS.code + 1) }));
+        expect(tooLong.status).toBe(400);
+    });
+
     test('newSubject past the cap is refused', async () => {
         const { alice, aliceId, base } = await setup();
         await subjectModel.insertMany(Array.from({ length: SUBJECT_LIMITS.maxActive }, (_, i) => ({

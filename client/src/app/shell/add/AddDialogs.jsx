@@ -2,8 +2,8 @@ import MakeFlashcardsDialog from "@/features/flashcards/MakeFlashcardsDialog";
 import JoinGroupDialog from "@/features/people/JoinGroupDialog";
 import NewGroupDialog from "@/features/people/NewGroupDialog";
 import EntryFormDialog from "@/features/plan/EntryFormDialog";
+import AddSubjectDialog from "@/features/study/AddSubjectDialog";
 import NewReviewerDialog from "@/features/study/NewReviewerDialog";
-import NewSubjectDialog from "@/features/study/NewSubjectDialog";
 import TaskFormDialog from "@/features/tasks/TaskFormDialog";
 import AddUploadDialog from "./AddUploadDialog";
 import useAddInputs from "./useAddInputs";
@@ -33,7 +33,7 @@ export default function AddDialogs({ request, onClose, onSaved, onSubjectMade })
   if (kind === "group") return <NewGroupDialog onClose={onClose} onDone={(group) => onSaved("group", group)} />;
   if (kind === "join") return <JoinGroupDialog onClose={onClose} onDone={(group) => onSaved("join", group)} />;
   if (kind === "subject") {
-    return <NewSubjectDialog onClose={onClose} onSaved={(_editing, subject) => onSaved("subject", subject)} />;
+    return <AddSubjectDialog onClose={onClose} onSaved={(subject) => onSaved("subject", subject)} />;
   }
   if (kind === "reviewer") {
     return (
@@ -66,6 +66,7 @@ export default function AddDialogs({ request, onClose, onSaved, onSubjectMade })
     <EntryFormDialog
       kind={kind}
       subjects={subjects}
+      fixedSubject={kind === "class" ? (page?.subject ?? null) : null}
       timetable={page?.timetable ?? null}
       onClose={onClose}
       onSaved={(schedule, saved, entry) => onSaved(saved, { schedule, entry })}

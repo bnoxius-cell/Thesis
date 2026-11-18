@@ -5,6 +5,7 @@ import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import { EntryScopeChoice } from "@/features/plan/shared";
 import newSubjectOption from "@/features/study/newSubjectOption";
 import NewSubjectNameField from "@/features/study/NewSubjectNameField";
+import NewSubjectPanel from "@/features/study/NewSubjectPanel";
 import { NEW_SUBJECT } from "@/features/study/subjectForm";
 import { KIND_LABELS } from "@/utils/scheduleUtils";
 import {
@@ -35,12 +36,18 @@ const REPEATS = [
 const NO_SUBJECT = "";
 const NEW_SUBJECT_OPTION = newSubjectOption("New subject...");
 
-// New or edited class, exam, event or activity (Figma D4: desktop 209:2364, 209:2681, 209:2980, edit on a
-// shared timetable 209:3273, phone sheets 210:2576, 210:2673, 210:2753, 210:2828). `kind` is the one the "+"
-// menu chose and stays fixed. `subjects` is the list the page loaded: the picker's values are subject ids, and
-// picking one fills the Title with its name (the server titles a class with its subject's name anyway).
-// A group's timetable shows no Subject picker at all (the server stores none). Elsewhere the picker ends with
-// "New subject..." when the student owns the timetable (the server ignores it from an editor): it shows a required Name field and the save sends `newSubject`, so the server makes the subject.
+// New or edited class time, exam, event or activity (Figma D4: desktop 209:2364, 209:2681, 209:2980, edit on a
+// shared timetable 209:3273, phone sheets 210:2576, 210:2673, 210:2753, 210:2828; the class time form is MS-3:
+// desktop 407:705, 407:824, 407:1118, 407:1408, 407:1692, phone 407:1992, 407:2120, 407:2258, 407:2385). `kind` is
+// the one the "+" menu chose and stays fixed. `subjects` is the list the page loaded: the picker's values are
+// subject ids, and picking one fills the Title with its name (the server titles a class with its subject's name
+// anyway).
+// A class time has no Title field: it is a subject's, so the Subject picker is required ("Pick a subject.") and
+// has no "No subject" row. With `fixedSubject` (the Subject page) the subject is shown, not picked. An exam keeps
+// its optional Subject and its Title. A group's timetable shows no Subject picker at all (the server stores none),
+// so a class there keeps its Title. Elsewhere the picker ends with "New subject..." when the student owns the
+// timetable (the server ignores it from an editor): it shows a panel with a required Name and an optional Code, and
+// the save sends `newSubject` and `newSubjectCode`, so the server makes the subject.
 // `timetable` is the picked timetable the student can edit, or null for My week (the main timetable, created
 // when missing). To edit, pass the stored `entry` and the `timetable` it lives on (always required then).
 // Nothing is saved until the button; closing asks first when something was typed. A failed save keeps the
@@ -50,9 +57,13 @@ const NEW_SUBJECT_OPTION = newSubjectOption("New subject...");
 // (Figma GW-8): "Just for me" saves their own copy and leaves the shared class alone, "For everyone" changes it
 // as before (and says how many members use their own time for it). Someone who can't change the shared class
 // is only offered the first.
-export default function EntryFormDialog({ kind, subjects, timetable = null, entry = null, onClose, onSaved, onGone }) {
+export default function EntryFormDialog({ kind, subjects, fixedSubject = null, timetable = null, entry = null, onClose, onSaved, onGone }) {
   const editing = Boolean(entry);
-  const [start] = useState(() => (entry ? entryFormFrom(entry) : emptyEntryForm(kind)));
+  const [start] = useState(() => {
+    if (entry) return entryFormFrom(entry);
+    const first = emptyEntryForm(kind);
+    return fixedSubject ? { ...first, subject: fixedSubject._id, title: fixedSubject.name } : first;
+  });
   const [form, setForm] = useState(start);
   const [errors, setErrors] = useState({});
   const { save, saveMine, saving, error } = useSaveEntry();
@@ -66,15 +77,16 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
   const exam = form.kind === "exam";
   const ownsTimetable = !timetable || timetable.role === "owner";
   const inGroup = Boolean(timetable?.group); // a group's classes carry no subject: each member's is matched by name
+  const bySubject = form.kind === "class" && !inGroup; // a class time: titled by its subject, no Title field
   const creatingSubject = form.subject === NEW_SUBJECT;
   const weekly = form.repeat === REPEAT.weekly && !exam;
-  const label = KIND_LABELS[form.kind].toLowerCase();
+  const label = form.kind === "class" ? "class time" : KIND_LABELS[form.kind].toLowerCase();
   const note = useMemo(
     () => clashNote(form, target?.entries.filter((other) => other._id !== entry?._id)),
     [form, target, entry],
   );
   const subjectOptions = [
-    { value: NO_SUBJECT, label: "No subject" },
+    ...(bySubject ? [] : [{ value: NO_SUBJECT, label: "No subject" }]),
     ...subjects.map((subject) => ({ value: subject._id, label: subject.name })),
     ...(ownsTimetable ? [NEW_SUBJECT_OPTION] : []),
   ];
@@ -93,16 +105,17 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
     });
   const pickSubject = (id) => {
     changeSubject({ subject: id });
-    setErrors((prev) => ({ ...prev, newSubject: undefined }));
+    setErrors((prev) => ({ ...prev, subject: undefined, newSubject: undefined }));
   };
   const typeNewSubject = (event) => {
     changeSubject({ newSubjectName: event.target.value });
     setErrors((prev) => ({ ...prev, newSubject: undefined }));
   };
+  const typeNewSubjectCode = (event) => setForm((prev) => ({ ...prev, newSubjectCode: event.target.value }));
 
   const submit = async (event) => {
     event.preventDefault();
-    const found = entryErrors(form);
+    const found = entryErrors(form, { bySubject });
     if (Object.keys(found).length > 0) return setErrors(found);
     const { schedule, gone } = await (mine ? saveMine(form, timetable, entry) : save(form, timetable, entry));
     if (gone) onGone();
@@ -120,14 +133,41 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
   else if (editing) saveLabel = "Save changes";
 
   const subjectField = (
-    <Field label="Subject (optional)">
+    <Field label={bySubject ? "Subject" : "Subject (optional)"} error={errors.subject}>
       {(control) => (
-        <SelectButton block native={phone} options={subjectOptions} value={form.subject} onChange={pickSubject} label="Subject" {...control} />
+        <SelectButton
+          block
+          native={phone}
+          options={subjectOptions}
+          value={form.subject}
+          onChange={pickSubject}
+          placeholder="Pick a subject"
+          label="Subject"
+          {...control}
+        />
       )}
     </Field>
   );
+  const fixedSubjectField = fixedSubject && (
+    <Field
+      label="Subject"
+      className="entry-dialog__fixed"
+      value={fixedSubject.name}
+      hint="Adding to this subject. Its class times also show on its page."
+      readOnly
+    />
+  );
   const newSubjectField = creatingSubject && (
     <NewSubjectNameField value={form.newSubjectName} onChange={typeNewSubject} error={errors.newSubject} />
+  );
+  const newSubjectPanel = creatingSubject && (
+    <NewSubjectPanel
+      name={form.newSubjectName}
+      code={form.newSubjectCode}
+      onName={typeNewSubject}
+      onCode={typeNewSubjectCode}
+      error={errors.newSubject}
+    />
   );
   const titleField = (
     <Field
@@ -149,7 +189,7 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
       noValidate
       sheet
       className="entry-dialog"
-      title={`${editing ? "Edit" : "New"} ${label}`}
+      title={form.kind === "class" ? `${editing ? "Edit" : "Add"} class time` : `${editing ? "Edit" : "New"} ${label}`}
       subtitle={subtitle}
       busy={saving}
       onClose={onClose}
@@ -161,7 +201,13 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
         </>
       )}
     >
-      {(form.kind === "class" || exam) && !inGroup ? (
+      {bySubject && (
+        <>
+          {fixedSubjectField || subjectField}
+          {!fixedSubject && newSubjectPanel}
+        </>
+      )}
+      {exam && !inGroup && (
         <>
           <div className="entry-dialog__pair">
             {subjectField}
@@ -169,9 +215,8 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
           </div>
           {newSubjectField}
         </>
-      ) : (
-        titleField
       )}
+      {!bySubject && !(exam && !inGroup) && titleField}
       {form.kind === "event" && (
         <Field label="Happens">
           {({ labelId }) => <Segment labelId={labelId} options={REPEATS} value={form.repeat} onChange={set("repeat")} />}

@@ -63,6 +63,16 @@ describe('addedToast', () => {
         });
     });
 
+    it('says how many class times a new subject put on Plan', () => {
+        expect(addedToast('subject', { _id: 's1', classTimesAdded: 1 }, today).message).toBe('Subject added, with 1 class time on Plan');
+        expect(addedToast('subject', { _id: 's1', classTimesAdded: 2 }, today).message).toBe('Subject added, with 2 class times on Plan');
+        expect(addedToast('subject', { _id: 's1', classTimesAdded: 0 }, today).message).toBe('Subject added to Study');
+    });
+
+    it('calls a class a class time', () => {
+        expect(addedToast('class', { entry: { days: [3] } }, today).message).toBe('Class time added to Plan');
+    });
+
     it('sends a reviewer to Practice, where it shows as processing', () => {
         expect(addedToast('reviewer', undefined, today)).toEqual({
             message: 'Making your reviewer',

@@ -325,8 +325,8 @@ const ownerIdOf = (schedule) => String(schedule.owner._id ?? schedule.owner);
 
 // What a write does to an entry's subject link, decided before the entry is cleaned. Answers
 //  - { error }: the request named a subject the caller may not use;
-//  - { link, name, subjects }: `link` is a subject document, null (no subject) or undefined (keep the
-//    stored one); `name` is set when a new subject has to be made once the entry is valid.
+//  - { link, name, code, subjects }: `link` is a subject document, null (no subject) or undefined (keep the
+//    stored one); `name` (and an optional `code`) is set when a new subject has to be made once the entry is valid.
 // Only the timetable's owner picks, creates or clears a subject, and only from their own active ones.
 // An editor's `subject` and `newSubject` are ignored: a class they add links to the owner's subject of
 // that name, so the owner sees it linked, and an edit keeps whatever link the entry has, even when the
@@ -347,9 +347,9 @@ const readEntrySubject = async (req, schedule, { adding, kind }) => {
     if (ownerId !== req.userId) return byName();
 
     if (body.newSubject !== undefined && body.newSubject !== null) {
-        const planned = await planNewSubject(ownerId, body.newSubject);
+        const planned = await planNewSubject(ownerId, body.newSubject, body.newSubjectCode);
         if (planned.error) return { error: planned.error };
-        return planned.subject ? { link: planned.subject } : { link: null, name: planned.name, subjects: planned.subjects };
+        return planned.subject ? { link: planned.subject } : { link: null, name: planned.name, code: planned.code, subjects: planned.subjects };
     }
     if (body.subject !== undefined) {
         const { subject, error } = await resolveItemSubject(ownerId, { subject: body.subject });
@@ -385,7 +385,7 @@ const readEntryWrite = async (req, res, schedule, { adding, stored }) => {
 // (undefined keeps the stored one) and the subject that was created, if any.
 const finishEntrySubject = async (schedule, resolved) => {
     if (!resolved.name) return { link: resolved.link, created: null };
-    const created = await createPlannedSubject(ownerIdOf(schedule), { name: resolved.name, subjects: resolved.subjects });
+    const created = await createPlannedSubject(ownerIdOf(schedule), { name: resolved.name, code: resolved.code, subjects: resolved.subjects });
     return { link: created, created };
 };
 

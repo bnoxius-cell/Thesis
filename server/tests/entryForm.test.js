@@ -108,6 +108,12 @@ describe('new subject', () => {
         }
     });
 
+    test('the code is sent when typed, cleaned, and left out when blank', () => {
+        expect(entryPayload(made('class', { newSubjectCode: '  IT   420 ' })).newSubjectCode).toBe('IT 420');
+        expect(entryPayload(made('class', { newSubjectCode: '  ' }))).not.toHaveProperty('newSubjectCode');
+        expect(entryPayload({ ...emptyEntryForm('class', TODAY), title: 'A', subject: 's1', newSubjectCode: 'IT 420' })).not.toHaveProperty('newSubjectCode');
+    });
+
     test('an event or activity never sends it or asks for the name', () => {
         for (const kind of ['event', 'activity']) {
             const form = made(kind, { newSubjectName: '' });
@@ -133,6 +139,14 @@ describe('entryErrors', () => {
         expect(entryErrors({ ...ok, days: [] }).days).toBe('Pick at least one day.');
         expect(entryErrors({ ...ok, endTime: '09:00' }).times).toBe('The end time must be after the start time.');
         expect(entryErrors({ ...ok, startTime: '' }).times).toBe('Start and end times are required.');
+    });
+    test('a class with no Title field asks to pick a subject, unless it already has a title or a new subject is typed', () => {
+        const bare = { ...ok, title: '' };
+        expect(entryErrors(bare, { bySubject: true })).toEqual({ subject: 'Pick a subject.' });
+        expect(entryErrors(bare)).toEqual({ title: 'A title is required.' });
+        expect(entryErrors(ok, { bySubject: true })).toEqual({});
+        const creating = entryErrors({ ...bare, subject: NEW_SUBJECT, newSubjectName: ' ' }, { bySubject: true });
+        expect(creating).toEqual({ newSubject: 'Give the subject a name.' });
     });
     test('an exam needs a real date and 0 to 40 study hours', () => {
         const exam = { ...emptyEntryForm('exam', TODAY), title: 'Finals' };

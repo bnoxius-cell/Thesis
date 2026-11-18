@@ -1,6 +1,6 @@
 /* Start a new term and archived subjects (Figma TR-1 to TR-4: Study 380:1903 and 380:2201, the Plan menu 380:2519,
    the wizard 381:2309, 381:2393, 381:2572, 381:2646 and the phone frames 381:2670 to 381:3017). The wizard is a
-   focus view on ModalShell: it fills the screen, a 760px column from 720px up, and scrolls inside itself. Motion:
+   focus view on ModalShell: it fills the screen, an 800px column from 720px up, and scrolls inside itself. Motion:
    the page arrives once, a step swaps with the panel fade, the progress segments grow once, a new row eases in
    (.is-entering) and the done check settles. All of it is off under reduced motion. */
 @layer pages {
@@ -37,7 +37,7 @@
     gap: 24px;
     box-sizing: border-box;
     width: 100%;
-    max-width: 760px;
+    max-width: 800px;
     margin: 20px auto 0;
   }
   .term-step {
@@ -362,14 +362,20 @@
     gap: var(--space-2);
   }
 
-  /* One class time: days, start, end, room and Remove, each on its own row on a phone, all on one from 800px
-     (where the card is wide enough for the 6 day buttons and the three fields). */
+  /* One class time (the wizard's and the Add subject dialog's). The row lays itself out by its own width, so the
+     same markup fits a 280px phone sheet, a 340px wizard card and a 776px dialog:
+       under 440px   days, then Start and End, then Room, then Remove, each on a row with its label
+       440px and up  days on top; Start, End, Room and a 40px Remove on the line below, labels still shown
+       742px and up  one line: 7 day buttons (40px), Start, End, Room (110px or more) and Remove; the labels
+                     leave the screen (the Room field says "Room" itself)
+     Under 320px Start and End stack too (a native time input clips "09:30 AM" below about 120px). */
   .term-time {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    container-type: inline-size;
   }
-  .term-time + .term-time {
+  .term-time + .term-time .term-time__row {
     padding-top: var(--space-4);
     border-top: 1px solid var(--border);
   }
@@ -384,25 +390,6 @@
     gap: 10px;
   }
   .term-time__days { grid-area: days; }
-  /* All six days stay on one row: the circles keep 44px and shrink only when the card is narrower (320px).
-     A shrunk circle keeps a 44px touch area through ::after. */
-  .term-time__days {
-    flex-wrap: nowrap;
-    gap: var(--space-1);
-  }
-  .term-time__days .ui-weekday {
-    position: relative;
-    flex: 0 1 44px;
-    width: auto;
-    min-width: 0;
-    height: auto;
-    aspect-ratio: 1;
-  }
-  .term-time__days .ui-weekday::after {
-    content: "";
-    position: absolute;
-    inset: -2px;
-  }
   .term-time__start,
   .term-time__end,
   .term-time__row input {
@@ -417,8 +404,7 @@
     color: var(--danger);
     font: 500 var(--text-sm) / 20px var(--font-ui);
   }
-  /* Too narrow for two time inputs side by side without clipping "09:30 AM". */
-  @media (max-width: 399px) {
+  @container (max-width: 319px) {
     .term-time__row {
       grid-template-columns: minmax(0, 1fr);
       grid-template-areas:
@@ -429,29 +415,44 @@
         "remove";
     }
   }
-  @media (min-width: 800px) {
-    .term-time + .term-time {
+  /* The columns name themselves from here, so Remove keeps only its icon (the words stay for screen readers). */
+  @container (min-width: 440px) {
+    .term-time__row {
+      grid-template-columns: 132px 132px minmax(0, 1fr) 40px;
+      grid-template-areas:
+        "days days days days"
+        "start end room remove";
+      gap: 10px 6px;
+      align-items: end;
+    }
+    .term-time__remove {
+      width: 40px;
+      padding: 0;
+    }
+    .term-time__remove > span {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  }
+  @container (min-width: 742px) {
+    .term-time + .term-time .term-time__row {
       padding-top: 0;
       border-top: 0;
     }
     .term-time__row {
       grid-template-columns: auto 132px 132px minmax(0, 1fr) 40px;
       grid-template-areas: "days start end room remove";
-      gap: var(--space-3);
+      gap: 6px;
       align-items: start;
     }
-    .term-time__remove {
-      width: 40px;
-      padding: 0;
-    }
-    /* The days column is `auto`, so on a laptop the circles keep a fixed 40px instead of shrinking to nothing. */
-    .term-time__days .ui-weekday {
-      flex: 0 0 40px;
-      width: 40px;
-    }
-    /* The columns name themselves, so the labels and Remove's words stay for screen readers only. */
-    .term-time__row > .ui-field > .ui-field__label,
-    .term-time__remove > span {
+    .term-time__row > .ui-field > .ui-field__label {
       position: absolute;
       width: 1px;
       height: 1px;

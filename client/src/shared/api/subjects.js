@@ -10,6 +10,10 @@ export const deleteSubject = (id, files = "keep") => del(`/api/subjects/${id}?fi
 // One subject with its counts. Answers 404 for an unknown id and for another student's subject.
 export const fetchSubject = (id) => get(`/api/subjects/${encodeURIComponent(id)}`);
 
+// The subject's class times (each says where it lives and whether the student may change it), the next two weeks
+// of its classes and its exams, from the timetables that count in the student's week. `startIso` is today.
+export const fetchSubjectSchedule = (id, startIso) => get(`/api/subjects/${encodeURIComponent(id)}/schedule?start=${startIso}`);
+
 // Archived subjects, with the class times kept on them (`pastClassTimes`) and their counts.
 export const fetchArchivedSubjects = () => get("/api/subjects?archived=1");
 // Ends a subject for a term: its class times leave the timetable (kept on the subject), everything else stays.
