@@ -22,6 +22,13 @@
       transform: translateY(6px);
     }
   }
+  /* The "ON NOW" dot on a subject's class hero: breathes slowly, the one thing there that moves. Under reduced
+     motion base.css cuts it to one frame, which is the full-opacity end. */
+  @keyframes live-breathe {
+    50% {
+      opacity: 0.6;
+    }
+  }
   /* Shared primitives (shared/ui): popover and dialog entrances, the progress draw-in, the
      skeleton pulse. Entrances only: nothing waits on an exit animation. */
   @keyframes ui-fade-in {

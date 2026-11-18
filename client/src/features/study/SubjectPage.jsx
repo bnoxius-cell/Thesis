@@ -14,11 +14,12 @@ import useTaskDone from "@/features/tasks/useTaskDone";
 import useTaskEdit from "@/features/tasks/useTaskEdit";
 import useNow from "@/shared/hooks/useNow";
 import useSelectedTabInView from "@/shared/hooks/useSelectedTabInView";
+import { classEntry, nextDateOf } from "@/utils/classHero";
 import { subjectMeta } from "@/utils/subjectColors";
-import ClassTimesCard from "./ClassTimesCard";
-import NextUpList from "./NextUpList";
-import PickUpCard from "./PickUpCard";
-import SubjectCounts from "./SubjectCounts";
+import ClassHero from "./ClassHero";
+import ClassTimes from "./ClassTimes";
+import DueSoon from "./DueSoon";
+import KeepPractising from "./KeepPractising";
 import SubjectDialogs from "./SubjectDialogs";
 import SubjectFiles from "./SubjectFiles";
 import { useShareToGroup } from "@/features/share";
@@ -26,7 +27,7 @@ import SubjectMenu from "./SubjectMenu";
 import SubjectPractice from "./SubjectPractice";
 import SubjectTasks from "./SubjectTasks";
 import { useSubjectArchive } from "./term";
-import { examChipText, upcomingEntries } from "./subjectClasses";
+import { examChipText } from "./subjectClasses";
 import useReviewers from "./useReviewers";
 import useSubject from "./useSubject";
 import useSubjects from "./useSubjects";
@@ -62,10 +63,11 @@ function SubjectSkeleton() {
 }
 
 // One subject (Figma 76:878): its code and term with an exam chip, then four tabs picked by
-// ?tab= (an unknown value shows Overview). Overview is the frame: Class times (editable, Figma MS-2), Next up and
-// Pick up on the left, the counts on the right (one column on phones). Tasks is built from the shared pieces
+// ?tab= (an unknown value shows Overview). Overview is Figma OV-F1 to OV-F8: the class hero (on now, starts soon,
+// next, or asking when it meets), then Class times (editable, hidden with none) and Due soon on the left and Keep
+// practising on the right (one column on phones). Tasks is built from the shared pieces
 // and isn't in the frame; Practice (Reviewers | Flashcards, ?show=) is FC-F17; Files is Figma 157:1477.
-// Notes aren't here.
+// Notes (the OV Notes card and the Notes tab) aren't built yet.
 // The header More menu edits or deletes the subject (deleting returns to Study). An unknown or
 // foreign id shows "Subject not found". The files and uploads live here, not in the Files tab, so an
 // upload goes on while another tab is open.
@@ -80,23 +82,23 @@ function SubjectView({ subjectId }) {
   const data = useSubject(subjectId);
   const sharing = useShareToGroup();
   const subjectArchive = useSubjectArchive({ onChanged: data.refresh });
-  const { reviewers: allReviewers, refresh: refreshReviewers } = useReviewers();
+  const { reviewers: allReviewers, refresh: refreshReviewers, settled: reviewersSettled } = useReviewers();
   const { subject, status } = data;
   const files = useSubjectFiles(subjectId, Boolean(subject?.archivedAt));
   const setDone = useTaskDone(data.setTasks);
-  // Edit and Delete in a task's details window. The edit form's subject picker needs every subject.
+  // Edit and Delete in a task's or class time's details window. The edit forms' subject pickers need every subject.
   const { subjects } = useSubjects();
   const edit = useTaskEdit({ subjects, setTasks: data.setTasks, onSubjectCreated: data.refresh });
+  const classEdit = useEntryEdit({ subjects, onChanged: data.refresh });
   const detail = useItemDetail({
     subjects,
     onToggle: setDone,
     context: `subject:${subjectId}`,
     onEditTask: edit.onEditTask,
     onDeleteTask: edit.onDeleteTask,
+    onEditEntry: classEdit.onEditEntry,
+    onDeleteEntry: classEdit.onDeleteEntry,
   });
-  // Edit and Delete on a class time row (the Class times card): the same dialogs as Plan's details window, without
-  // the window to come back to.
-  const classEdit = useEntryEdit({ subjects, onChanged: data.refresh });
   const tab = tabFromParams(params);
   const show = params.get("show") === "flashcards" ? "flashcards" : "reviewers";
   // Decks load only while the Flashcards side is showing: the Reviewers side and the other tabs never ask.
@@ -201,32 +203,47 @@ function SubjectView({ subjectId }) {
         <Tabs items={tabs} value={tab} label="Subject sections" className="subject-tabs" />
         <div key={tab} className="subject-panel tab-panel-in" role="tabpanel" id="subject-panel" aria-labelledby={`subject-tab-${tab}`}>
           {tab === "overview" && (
-            <div className="subject-columns">
-              <div className="subject-column">
-                <ClassTimesCard
-                  subject={subject}
-                  classTimes={data.classTimes}
-                  canAdd={!subject.archivedAt}
-                  onAdd={() => openAdd("class")}
-                  onEdit={(time) => classEdit.onEditEntry({ ...time, kind: "class" }, { close: noop, reopen: noop })}
-                  onDelete={(time) => classEdit.onDeleteEntry({ ...time, kind: "class" }, { close: noop, reopen: noop })}
-                />
-                <NextUpList
-                  tasks={data.tasks}
-                  upcoming={upcomingEntries(data.entries, subject, now)}
-                  now={now}
-                  onToggle={setDone}
-                  allTasksTo={tabPath(subjectId, "tasks")}
-                />
-                <PickUpCard reviewers={reviewers ?? []} now={now} />
-              </div>
-              <div className="subject-column">
-                <SubjectCounts
-                  openTasks={data.tasks.length}
-                  reviewers={reviewers?.length ?? 0}
-                  tasksTo={tabPath(subjectId, "tasks")}
-                  reviewersTo={tabPath(subjectId, "practice")}
-                />
+            <div className="subject-overview">
+              <ClassHero
+                subject={subject}
+                classTimes={data.classTimes}
+                upcoming={data.upcoming}
+                now={now}
+                canAdd={!subject.archivedAt}
+                onAdd={() => openAdd("class")}
+                onOpen={detail.openEntry}
+              />
+              <div className="subject-columns">
+                <div className="subject-column">
+                  {data.classTimes.length > 0 && (
+                    <ClassTimes
+                      subject={subject}
+                      classTimes={data.classTimes}
+                      now={now}
+                      canAdd={!subject.archivedAt}
+                      onAdd={() => openAdd("class")}
+                      onOpen={(time) => detail.openEntry(classEntry(time, subject), nextDateOf(time, now))}
+                      onEdit={(time) => classEdit.onEditEntry(classEntry(time, subject), { close: noop, reopen: noop })}
+                      onDelete={(time) => classEdit.onDeleteEntry(classEntry(time, subject), { close: noop, reopen: noop })}
+                    />
+                  )}
+                  <DueSoon
+                    subject={subject}
+                    tasks={data.tasks}
+                    now={now}
+                    onToggle={setDone}
+                    onOpen={detail.openTask}
+                    onAdd={() => openAdd("task")}
+                    allTasksTo={tabPath(subjectId, "tasks")}
+                  />
+                </div>
+                <div className="subject-column">
+                  <KeepPractising
+                    reviewers={reviewersSettled ? reviewers ?? [] : null}
+                    now={now}
+                    onNew={() => openAdd("reviewer")}
+                  />
+                </div>
               </div>
             </div>
           )}
