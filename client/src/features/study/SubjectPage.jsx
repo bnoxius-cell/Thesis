@@ -23,6 +23,7 @@ import SubjectFiles from "./SubjectFiles";
 import SubjectMenu from "./SubjectMenu";
 import SubjectPractice from "./SubjectPractice";
 import SubjectTasks from "./SubjectTasks";
+import { useSubjectArchive } from "./term";
 import { classesThisWeek, examChipText, upcomingEntries } from "./subjectClasses";
 import useReviewers from "./useReviewers";
 import useSubject from "./useSubject";
@@ -74,6 +75,7 @@ function SubjectView({ subjectId }) {
   const now = useNow();
   const [dialog, setDialog] = useState(null); // edit or delete: { type, subject }
   const data = useSubject(subjectId);
+  const subjectArchive = useSubjectArchive({ onChanged: data.refresh });
   const { reviewers: allReviewers, refresh: refreshReviewers } = useReviewers();
   const { subject, status } = data;
   const files = useSubjectFiles(subjectId, Boolean(subject?.archivedAt));
@@ -174,14 +176,17 @@ function SubjectView({ subjectId }) {
           subject={subject}
           className="subject-more"
           onEdit={(s) => setDialog({ type: "edit", subject: s })}
+          onArchive={subjectArchive.archive}
+          onRestore={subjectArchive.askRestore}
           onDelete={(s) => setDialog({ type: "delete", subject: { ...s, counts: { ...s.counts, files: fileCount } } })}
         />
       }
     >
       <div className="subject-body">
-        {(meta || exam) && (
+        {(meta || exam || subject.archivedAt) && (
           <p className="subject-meta">
             {meta && <span>{meta}</span>}
+            {subject.archivedAt && <Chip tone="neutral">Archived</Chip>}
             {exam && <Chip tone="watch">{exam}</Chip>}
           </p>
         )}
@@ -239,6 +244,7 @@ function SubjectView({ subjectId }) {
       {detail.dialog}
       {edit.dialog}
       <SubjectDialogs dialog={dialog} onClose={() => setDialog(null)} onChanged={changed} />
+      {subjectArchive.dialog}
       {files.dialog.isOpen && library.status === "ready" && (
         <UploadDialog
           uploads={files.uploads}

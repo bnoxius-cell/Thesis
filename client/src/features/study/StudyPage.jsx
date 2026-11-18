@@ -16,6 +16,7 @@ import StudyTabs from "./StudyTabs";
 import SubjectDialogs from "./SubjectDialogs";
 import SubjectGrid from "./SubjectGrid";
 import useReviewers from "./useReviewers";
+import { ArchivedSubjects, SubjectsSwitch, useArchivedSubjects, useStartNewTerm, useSubjectArchive } from "./term";
 import useSubjects from "./useSubjects";
 import "./study.css";
 import "./study-reviewers.css";
@@ -37,8 +38,8 @@ function StudySkeleton() {
 // link open the global add's dialogs (app/shell/add); a card's More menu opens Edit and Delete here (not
 // drawn in Figma). On Practice, a Reviewers | Flashcards Segment (?show=) sits in the tab row. A new
 // reviewer shows as a processing row and turns ready by itself.
-// The Subjects tab row is 100px tall on desktop (the frame's spacer, built literally, owner choice).
-// Active | Archived and End this term wait for an archive backend, so they don't render.
+// Under the Subjects tab, Active | Archived (?view=archived, a history step like Practice's choice) and Start a
+// new term (Figma TR-1, features/study/term). Archived subjects keep their tasks and reviewers and can be restored.
 export default function StudyPage() {
   const [params] = useSearchParams();
   // The old Reviewers tab address: a route can't match on a query, so it is caught here.
@@ -55,16 +56,22 @@ function Study() {
   const show = params.get("show") === "flashcards" ? "flashcards" : "reviewers";
   const now = useNow();
   const [dialog, setDialog] = useState(null);
+  const view = !practiceTab && params.get("view") === "archived" ? "archived" : "active";
   const data = useSubjects();
+  const archived = useArchivedSubjects();
   const { reviewers, settled, refresh: refreshReviewers } = useReviewers({ poll: practiceTab });
 
   // Flashcards load once, when that side opens: the Reviewers side and the other tabs never ask for them. A
   // student with no subjects and no reviewers (the new-account screen) is the one other case: a deck of their
   // own may be all they have, so it is looked up first and that screen only shows when there is none.
   const flashcardsSide = practiceTab && show === "flashcards";
-  const looksNew = data.status === "ready" && settled && data.subjects.length === 0 && !reviewers?.length;
+  // Archived subjects count too: a student who archived everything is not on a new account.
+  const noneYet = data.status === "ready" && settled && data.subjects.length === 0 && !reviewers?.length;
+  const looksNew = noneYet && archived.status === "ready" && archived.subjects.length === 0;
   const flashcards = useFlashcards({ enabled: flashcardsSide || looksNew });
-  const checkingDecks = looksNew && !flashcardsSide && (flashcards.status === "idle" || flashcards.status === "loading");
+  const checkingDecks =
+    (looksNew && !flashcardsSide && (flashcards.status === "idle" || flashcards.status === "loading")) ||
+    (noneYet && archived.status === "loading");
   const isNewAccount = looksNew && !flashcardsSide && !checkingDecks && !flashcards.data?.decks.length;
 
   const { open: openAdd } = useGlobalAdd();
@@ -72,6 +79,13 @@ function Study() {
   const openUpload = () => openAdd("reviewer");
   const openMake = () => openAdd("flashcards");
   const open = (type) => (subject) => setDialog({ type, subject });
+  // A subject archived, restored or moved by a new term: both lists read again in place.
+  const subjectsChanged = () => {
+    data.refresh();
+    archived.refresh();
+  };
+  const subjectArchive = useSubjectArchive({ onChanged: subjectsChanged });
+  const newTerm = useStartNewTerm({ onApplied: subjectsChanged });
   // The header Add lands here: refresh what changed. No jump to Practice, the toast's View goes there.
   useAddHere({
     subjects: data.subjects,
@@ -91,6 +105,14 @@ function Study() {
       return next;
     });
 
+  const changeView = (value) =>
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value === "archived") next.set("view", value);
+      else next.delete("view");
+      return next;
+    });
+
   return (
     <Page title="Study">
       {(data.status === "loading" || checkingDecks) && <StudySkeleton />}
@@ -104,25 +126,39 @@ function Study() {
       {data.status === "ready" && !checkingDecks && !isNewAccount && (
         <div className="study-body">
           {!practiceTab && <PickUpHero reviewers={reviewers} />}
-          <div className={`study-tabsrow${practiceTab ? "" : " study-tabsrow--subjects"}`}>
+          <div className="study-tabsrow">
             <StudyTabs value={tab} subjectsCount={data.subjects.length} />
             {practiceTab && <PracticeSwitch show={show} onShow={changeShow} onNew={openUpload} onMake={openMake} />}
           </div>
           <div role="tabpanel" id="study-panel" aria-labelledby={`study-tab-${tab}`}>
-            {!practiceTab && data.subjects.length > 0 && (
-              <SubjectGrid
-                subjects={data.subjects}
-                entries={data.entries}
-                now={now}
-                onNew={openNew}
-                onEdit={open("edit")}
-                onDelete={open("delete")}
+            {!practiceTab && (
+              <SubjectsSwitch
+                view={view}
+                onView={changeView}
+                archivedCount={archived.status === "ready" ? archived.subjects.length : 0}
+                onStartTerm={newTerm.open}
               />
             )}
-            {!practiceTab && data.subjects.length === 0 && (
-              <EmptyState icon={FileText} title="No subjects yet" actions={<Button onClick={openNew}>Add subject</Button>}>
-                Subjects keep a course's classes, tasks, files and reviewers together.
-              </EmptyState>
+            {!practiceTab && (
+              <div role="tabpanel" id="study-view-panel" aria-labelledby={`study-view-${view}`}>
+                {view === "archived" && <ArchivedSubjects archived={archived} onRestore={subjectArchive.askRestore} />}
+                {view === "active" && data.subjects.length > 0 && (
+                  <SubjectGrid
+                    subjects={data.subjects}
+                    entries={data.entries}
+                    now={now}
+                    onNew={openNew}
+                    onEdit={open("edit")}
+                    onArchive={subjectArchive.archive}
+                    onDelete={open("delete")}
+                  />
+                )}
+                {view === "active" && data.subjects.length === 0 && (
+                  <EmptyState icon={FileText} title={archived.subjects.length > 0 ? "No active subjects" : "No subjects yet"} actions={<Button onClick={openNew}>Add subject</Button>}>
+                    Subjects keep a course's classes, tasks, files and reviewers together.
+                  </EmptyState>
+                )}
+              </div>
             )}
             {practiceTab && (
               <PracticePanel
@@ -140,6 +176,8 @@ function Study() {
         </div>
       )}
       <SubjectDialogs dialog={dialog} onClose={() => setDialog(null)} onChanged={data.refresh} />
+      {subjectArchive.dialog}
+      {newTerm.dialog}
     </Page>
   );
 }

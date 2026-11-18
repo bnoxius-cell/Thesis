@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { TriangleAlert, Users } from "lucide-react";
-import { Button, Field, Modal, Segment, SelectButton } from "@/shared/ui";
+import { Button, Field, Modal, Segment, SelectButton, WeekdayPicker } from "@/shared/ui";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
 import { EntryScopeChoice } from "@/features/plan/shared";
 import newSubjectOption from "@/features/study/newSubjectOption";
 import NewSubjectNameField from "@/features/study/NewSubjectNameField";
 import { NEW_SUBJECT } from "@/features/study/subjectForm";
-import { KIND_LABELS, WEEKDAYS } from "@/utils/scheduleUtils";
+import { KIND_LABELS } from "@/utils/scheduleUtils";
 import {
   ENTRY_LINK_MAX,
   ENTRY_NOTES_MAX,
@@ -99,10 +99,6 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
     changeSubject({ newSubjectName: event.target.value });
     setErrors((prev) => ({ ...prev, newSubject: undefined }));
   };
-  const toggleDay = (day) => {
-    setForm((prev) => ({ ...prev, days: prev.days.includes(day) ? prev.days.filter((d) => d !== day) : [...prev.days, day] }));
-    setErrors((prev) => ({ ...prev, days: undefined }));
-  };
 
   const submit = async (event) => {
     event.preventDefault();
@@ -183,22 +179,7 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
       )}
       {weekly ? (
         <Field label="Repeats on" error={errors.days}>
-          {({ labelId }) => (
-            <div role="group" aria-labelledby={labelId} className="entry-dialog__days">
-              {WEEKDAYS.map((day) => (
-                <button
-                  key={day.value}
-                  type="button"
-                  className="entry-dialog__day"
-                  aria-pressed={form.days.includes(day.value)}
-                  aria-label={day.long}
-                  onClick={() => toggleDay(day.value)}
-                >
-                  {day.long[0]}
-                </button>
-              ))}
-            </div>
-          )}
+          {({ labelId }) => <WeekdayPicker labelId={labelId} value={form.days} onChange={set("days")} />}
         </Field>
       ) : (
         <Field label="Date" type="date" value={form.date} onChange={onText("date")} error={errors.date} required />
