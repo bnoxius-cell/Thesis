@@ -35,6 +35,16 @@
     color: var(--watch);
   }
 
+  /* The class time form from a Subject page: the subject is shown, tinted, not picked (Figma MS-3 407:1118). */
+  .entry-dialog__fixed .ui-field__control {
+    border-color: transparent;
+    background: var(--accent-soft);
+    cursor: default;
+  }
+  .entry-dialog__fixed .ui-field__control:focus-visible {
+    outline-offset: 0;
+  }
+
   .entry-dialog__notes .ui-field__hint {
     text-align: end;
   }

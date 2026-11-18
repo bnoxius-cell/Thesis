@@ -10,22 +10,21 @@ import { addClassTimes, planClassTimes } from './subjectClassTimes.js';
 // nothing twice). Answers { error, status } when it refuses, otherwise { archived, subjects, classTimesAdded, skipped }.
 
 const MAX_NEW_SUBJECTS = 12;
-const MAX_CLASS_TIMES = 6;
+export const MAX_CLASS_TIMES = 6;
 
-// Reads one new subject: its fields (as the subject form checks them) and its class times, each cleaned the way
-// the timetable cleans an entry and starting on `firstDay`.
-const readSubject = (raw, { term, firstDay }, readFields) => {
-    const { fields, error } = readFields({ name: raw?.name, code: raw?.code, term }, { partial: false });
-    if (error) return refusal(error);
-    const times = raw.classTimes ?? [];
+// Reads a subject's class times: each one cleaned the way the timetable cleans a class entry, titled with the
+// subject's name and starting on `firstDay` (none for a single subject added on its own). Answers
+// { classTimes } or { error, status }.
+export const readClassTimes = (name, rawTimes, { firstDay = '' } = {}) => {
+    const times = rawTimes ?? [];
     if (!Array.isArray(times) || times.length > MAX_CLASS_TIMES) {
-        return refusal(`${fields.name} can have up to ${MAX_CLASS_TIMES} class times.`);
+        return refusal(`${name} can have up to ${MAX_CLASS_TIMES} class times.`);
     }
     const classTimes = [];
     for (const time of times) {
-        const { entry, error: timeError } = cleanEntry({
+        const { entry, error } = cleanEntry({
             kind: 'class',
-            title: fields.name,
+            title: name,
             days: time?.days,
             startTime: time?.startTime,
             endTime: time?.endTime,
@@ -33,10 +32,18 @@ const readSubject = (raw, { term, firstDay }, readFields) => {
             meetingUrl: time?.meetingUrl,
             startDate: firstDay,
         });
-        if (timeError) return refusal(`${fields.name}: ${timeError}`);
+        if (error) return refusal(`${name}: ${error}`);
         classTimes.push(entry);
     }
-    return { fields, classTimes };
+    return { classTimes };
+};
+
+// Reads one new subject: its fields (as the subject form checks them) and its class times.
+const readSubject = (raw, { term, firstDay }, readFields) => {
+    const { fields, error } = readFields({ name: raw?.name, code: raw?.code, term }, { partial: false });
+    if (error) return refusal(error);
+    const times = readClassTimes(fields.name, raw.classTimes, { firstDay });
+    return times.error ? times : { fields, classTimes: times.classTimes };
 };
 
 // Reads the whole body without touching the database: { archiveIds, subjects: [{ fields, classTimes }] }.

@@ -7,7 +7,7 @@ import EntryFormDialog from "./EntryFormDialog";
 
 const TIMETABLE_GONE = "That timetable isn't available anymore. It may have been deleted or is no longer shared with you.";
 
-const labelOf = (kind) => KIND_LABELS[kind];
+const labelOf = (kind) => (kind === "class" ? "Class time" : KIND_LABELS[kind]);
 
 // Edit and delete for classes, exams, events and activities, wired to the details window (plan 25 C5, R4, R5,
 // R10).

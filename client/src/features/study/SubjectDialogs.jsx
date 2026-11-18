@@ -1,9 +1,9 @@
 import { toast } from "react-toastify";
 import DeleteSubjectDialog from "./DeleteSubjectDialog";
-import NewSubjectDialog from "./NewSubjectDialog";
+import EditSubjectDialog from "./EditSubjectDialog";
 
 // The one open subject dialog, if any. `dialog` is { type: "edit" | "delete", subject }. New subjects come
-// from the global add. After a change it refreshes in place, thanks the student and closes.
+// from the global add (AddSubjectDialog). After a change it refreshes in place, thanks the student and closes.
 export default function SubjectDialogs({ dialog, onClose, onChanged }) {
   if (!dialog) return null;
   const done = (message) => {
@@ -16,7 +16,7 @@ export default function SubjectDialogs({ dialog, onClose, onChanged }) {
     return <DeleteSubjectDialog subject={dialog.subject} onClose={onClose} onDeleted={() => done("Subject deleted.")} />;
   }
   return (
-    <NewSubjectDialog
+    <EditSubjectDialog
       subject={dialog.subject}
       onClose={onClose}
       onSaved={() => done("Subject saved.")}

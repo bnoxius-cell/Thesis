@@ -11,8 +11,8 @@ const dayList = (days) => {
   return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
 };
 
-// Confirms deleting a class, exam, event or activity (Figma D5: weekly class 211:3239, shared 211:3583, phone
-// sheets 211:3351 and 211:3702). `entry` is the stored entry and `timetable` the one it is on (`live` adds the
+// Confirms deleting a class time, exam, event or activity (Figma D5: weekly class 211:3239, shared 211:3583, phone
+// sheets 211:3351 and 211:3702; a class time reads as in MS-4: 407:2516, phone 407:2891). `entry` is the stored entry and `timetable` the one it is on (`live` adds the
 // line that everyone on it sees the change). `subject` is the entry's subject, when it has one, which stays.
 // A class of a timetable shared with the student (it carries `myChoice`) is deleted "for everyone" (Figma GW-8
 // delete confirm 385:4986): it says how many members use their own time for it and keep their copies. A failed
@@ -21,7 +21,7 @@ const dayList = (days) => {
 export default function DeleteEntryDialog({ entry, timetable, subject, onClose, onDeleted, onGone }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const noun = KIND_LABELS[entry.kind].toLowerCase();
+  const noun = entry.kind === "class" ? "class time" : KIND_LABELS[entry.kind].toLowerCase();
   const weekly = entry.days?.length > 0 && !entry.date;
 
   const confirm = async () => {
@@ -47,13 +47,17 @@ export default function DeleteEntryDialog({ entry, timetable, subject, onClose, 
     ? `This removes the ${noun} from every ${dayList(entry.days)} on ${timetable.title}. `
     : `This removes the ${noun} from ${timetable.title}. `;
 
+  let title = `Delete "${entry.title}"?`;
+  if (forEveryone) title = `Delete ${entry.title} for everyone?`;
+  else if (entry.kind === "class") title = "Delete this class time?";
+
   return (
     <ConfirmDialog
       open
       sheet
       className="entry-delete"
       tone="danger"
-      title={forEveryone ? `Delete ${entry.title} for everyone?` : `Delete "${entry.title}"?`}
+      title={title}
       confirmLabel={forEveryone ? "Delete for everyone" : `Delete ${noun}`}
       busy={busy}
       onConfirm={confirm}

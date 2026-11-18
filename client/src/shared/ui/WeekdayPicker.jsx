@@ -4,7 +4,7 @@ import "./weekday-picker.css";
 
 // Weekday toggles (Figma D4 and TR-2): one round button per day, Monday first. `value` is the picked days as
 // Date#getDay numbers and `onChange` gets the new list. `days` is [{ value, long, label? }] (the default is the
-// whole week); a button shows `label`, or the first letter of the day's name. Name the group with `labelId`
+// whole week, M T W Th F Sa Su); a button shows `label`, or the first letter of the day's name. Name the group with `labelId`
 // (Field passes it) or `label`.
 export default function WeekdayPicker({ value, onChange, days = WEEKDAYS, labelId, label, className = "" }) {
   // Two clicks in one tick would both read the same `value`, so the latest picked days are kept in a ref.

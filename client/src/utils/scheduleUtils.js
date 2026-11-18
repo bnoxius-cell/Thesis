@@ -61,15 +61,16 @@ export const formatTime = (hhmm) => {
 export const formatLongDate = (iso) =>
   fromISODate(iso).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 
-// Display order for the day picker (Monday first). Values are Date#getDay numbers.
+// Display order for the day picker (Monday first). Values are Date#getDay numbers. `label` is what a day button
+// shows: one letter, two where a letter would repeat (Tue and Thu, Sat and Sun).
 export const WEEKDAYS = [
-  { value: 1, short: "Mon", long: "Monday" },
-  { value: 2, short: "Tue", long: "Tuesday" },
-  { value: 3, short: "Wed", long: "Wednesday" },
-  { value: 4, short: "Thu", long: "Thursday" },
-  { value: 5, short: "Fri", long: "Friday" },
-  { value: 6, short: "Sat", long: "Saturday" },
-  { value: 0, short: "Sun", long: "Sunday" },
+  { value: 1, short: "Mon", long: "Monday", label: "M" },
+  { value: 2, short: "Tue", long: "Tuesday", label: "T" },
+  { value: 3, short: "Wed", long: "Wednesday", label: "W" },
+  { value: 4, short: "Thu", long: "Thursday", label: "Th" },
+  { value: 5, short: "Fri", long: "Friday", label: "F" },
+  { value: 6, short: "Sat", long: "Saturday", label: "Sa" },
+  { value: 0, short: "Sun", long: "Sunday", label: "Su" },
 ];
 
 export const entryOccursOn = (entry, iso) => {

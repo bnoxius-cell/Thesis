@@ -363,7 +363,8 @@
   }
 
   /* One class time: days, start, end, room and Remove, each on its own row on a phone, all on one from 800px
-     (where the card is wide enough for the 6 day buttons and the three fields). */
+     (where the card is wide enough for the 7 day buttons and the three fields). The Add subject dialog (MS-1)
+     uses the same row. */
   .term-time {
     display: flex;
     flex-direction: column;
@@ -384,7 +385,7 @@
     gap: 10px;
   }
   .term-time__days { grid-area: days; }
-  /* All six days stay on one row: the circles keep 44px and shrink only when the card is narrower (320px).
+  /* All seven days stay on one row: the circles keep 44px and shrink only when the card is narrower (320px).
      A shrunk circle keeps a 44px touch area through ::after. */
   .term-time__days {
     flex-wrap: nowrap;
@@ -437,7 +438,7 @@
     .term-time__row {
       grid-template-columns: auto 132px 132px minmax(0, 1fr) 40px;
       grid-template-areas: "days start end room remove";
-      gap: var(--space-3);
+      gap: 6px; /* seven 40px days leave about 84px for the room in a 780px dialog */
       align-items: start;
     }
     .term-time__remove {

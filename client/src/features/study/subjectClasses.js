@@ -1,4 +1,4 @@
-import { addDays, entryOccursOn, fromISODate, startOfWeek, toISODate } from "@/utils/scheduleUtils";
+import { addDays, entryOccursOn, fromISODate, toISODate } from "@/utils/scheduleUtils";
 import { subjectForLabel } from "@/utils/subjectColors";
 import { lower } from "@/features/plan/entryTime";
 
@@ -64,10 +64,6 @@ function occurrences(entries, subject, kinds, first, days) {
   }
   return found;
 }
-
-// The subject's classes in this Monday-to-Sunday week.
-export const classesThisWeek = (entries, subject, now = new Date()) =>
-  occurrences(entries, subject, ["class"], startOfWeek(now), 7);
 
 // The subject's classes and exams still to come in the next week, today's finished ones left out.
 export const upcomingEntries = (entries, subject, now = new Date()) => {

@@ -12,11 +12,6 @@ export const MAX_NEW_SUBJECTS = 12;
 export const MAX_CLASS_TIMES = 6;
 export const TERM_MAX = SUBJECT_LIMITS.term;
 
-// Monday to Saturday, as drawn in the frames; a Sunday class is added in Plan afterwards.
-export const TERM_DAYS = WEEKDAYS
-  .filter((day) => day.value !== 0)
-  .map((day) => ({ ...day, label: day.value === 4 ? "Th" : day.long[0] }));
-
 const DEFAULT_START = "08:00";
 const DEFAULT_END = "09:30";
 const DAY_ORDER = Object.fromEntries(WEEKDAYS.map((day, index) => [day.value, index]));
@@ -65,7 +60,7 @@ const isBlankSubject = (subject) => !clean(subject.name) && !clean(subject.code)
 
 // The subjects the student filled in: an untouched row is ignored, so an empty form needs no deleting.
 export const filledSubjects = (form) => form.subjects.filter((subject) => !isBlankSubject(subject));
-const filledTimes = (subject) => subject.classTimes.filter((time) => !isBlankTime(time));
+export const filledTimes = (subject) => subject.classTimes.filter((time) => !isBlankTime(time));
 
 export const classTimeCount = (form) => filledSubjects(form).reduce((total, subject) => total + filledTimes(subject).length, 0);
 export const nothingToApply = (form) => form.archiveIds.length === 0 && filledSubjects(form).length === 0;
@@ -77,6 +72,16 @@ const timeError = (time) => {
   return "";
 };
 
+// { [timeKey]: message } for the filled-in class times of one subject that can't be saved as they are.
+export function timeErrors(subject) {
+  const found = {};
+  for (const time of filledTimes(subject)) {
+    const message = timeError(time);
+    if (message) found[time.key] = message;
+  }
+  return found;
+}
+
 // Plain messages for what is wrong, keyed by subject key and then `name` or `times[timeKey]`. Empty when the form
 // can go to the review.
 export function termErrors(form) {
@@ -84,19 +89,26 @@ export function termErrors(form) {
   const seen = new Set();
   for (const subject of filledSubjects(form)) {
     const name = clean(subject.name);
-    const found = { times: {} };
+    const found = { times: timeErrors(subject) };
     if (!name) found.name = "Give the subject a name.";
     else if (name.length > SUBJECT_LIMITS.name) found.name = `The name can be up to ${SUBJECT_LIMITS.name} characters.`;
     else if (seen.has(name.toLowerCase())) found.name = "You listed this subject already.";
     seen.add(name.toLowerCase());
-    for (const time of filledTimes(subject)) {
-      const message = timeError(time);
-      if (message) found.times[time.key] = message;
-    }
     if (found.name || Object.keys(found.times).length > 0) errors[subject.key] = found;
   }
   return errors;
 }
+
+// One class time as the server takes it (POST /api/subjects/new-term and POST /api/subjects).
+const classTimeBody = (time) => ({
+  days: inWeekOrder(time.days),
+  startTime: time.startTime,
+  endTime: time.endTime,
+  location: clean(time.location),
+});
+
+// The class times a subject form really has: untouched rows are left out.
+export const classTimesBody = (subject) => filledTimes(subject).map(classTimeBody);
 
 // The body of POST /api/subjects/new-term.
 export function termRequest(form) {
@@ -107,12 +119,7 @@ export function termRequest(form) {
     subjects: filledSubjects(form).map((subject) => ({
       name: clean(subject.name),
       code: clean(subject.code),
-      classTimes: filledTimes(subject).map((time) => ({
-        days: inWeekOrder(time.days),
-        startTime: time.startTime,
-        endTime: time.endTime,
-        location: clean(time.location),
-      })),
+      classTimes: classTimesBody(subject),
     })),
   };
 }

@@ -1,0 +1,32 @@
+/* The New subject panel in the class time form (Figma MS-3 407:1047): a --surface-2 block under the Subject select
+   with the Name and an optional Code. Side by side from 720px, stacked on a phone. */
+@layer pages {
+  .new-subject-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    min-width: 0;
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+  }
+  .new-subject-panel__label {
+    margin: 0;
+    color: var(--text-muted);
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .new-subject-panel__fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+    align-items: start;
+  }
+  @media (min-width: 720px) {
+    .new-subject-panel__fields {
+      grid-template-columns: minmax(0, 1fr) 160px;
+    }
+  }
+}

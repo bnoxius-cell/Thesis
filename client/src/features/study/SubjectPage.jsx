@@ -9,12 +9,13 @@ import { FILES_HOME } from "@/features/files/PlaceTiles";
 import UploadDialog from "@/features/files/UploadDialog";
 import useFlashcards from "@/features/flashcards/useFlashcards";
 import useItemDetail from "@/features/details/useItemDetail";
+import useEntryEdit from "@/features/plan/useEntryEdit";
 import useTaskDone from "@/features/tasks/useTaskDone";
 import useTaskEdit from "@/features/tasks/useTaskEdit";
 import useNow from "@/shared/hooks/useNow";
 import useSelectedTabInView from "@/shared/hooks/useSelectedTabInView";
 import { subjectMeta } from "@/utils/subjectColors";
-import ClassSchedule from "./ClassSchedule";
+import ClassTimesCard from "./ClassTimesCard";
 import NextUpList from "./NextUpList";
 import PickUpCard from "./PickUpCard";
 import SubjectCounts from "./SubjectCounts";
@@ -24,13 +25,14 @@ import SubjectMenu from "./SubjectMenu";
 import SubjectPractice from "./SubjectPractice";
 import SubjectTasks from "./SubjectTasks";
 import { useSubjectArchive } from "./term";
-import { classesThisWeek, examChipText, upcomingEntries } from "./subjectClasses";
+import { examChipText, upcomingEntries } from "./subjectClasses";
 import useReviewers from "./useReviewers";
 import useSubject from "./useSubject";
 import useSubjects from "./useSubjects";
 import useSubjectFiles from "./useSubjectFiles";
 import "./subject.css";
 
+const noop = () => {};
 const BACK = { to: "/study", label: "Back to Study" };
 const BACK_TO_FILES = { to: FILES_HOME, label: "Back to Files" };
 const TAB_VALUES = ["overview", "tasks", "practice", "files"];
@@ -59,8 +61,8 @@ function SubjectSkeleton() {
 }
 
 // One subject (Figma 76:878): its code and term with an exam chip, then four tabs picked by
-// ?tab= (an unknown value shows Overview). Overview is the frame: Next up and Pick up on the left,
-// Class schedule and counts on the right (one column on phones). Tasks is built from the shared pieces
+// ?tab= (an unknown value shows Overview). Overview is the frame: Class times (editable, Figma MS-2), Next up and
+// Pick up on the left, the counts on the right (one column on phones). Tasks is built from the shared pieces
 // and isn't in the frame; Practice (Reviewers | Flashcards, ?show=) is FC-F17; Files is Figma 157:1477.
 // Notes aren't here.
 // The header More menu edits or deletes the subject (deleting returns to Study). An unknown or
@@ -90,6 +92,9 @@ function SubjectView({ subjectId }) {
     onEditTask: edit.onEditTask,
     onDeleteTask: edit.onDeleteTask,
   });
+  // Edit and Delete on a class time row (the Class times card): the same dialogs as Plan's details window, without
+  // the window to come back to.
+  const classEdit = useEntryEdit({ subjects, onChanged: data.refresh });
   const tab = tabFromParams(params);
   const show = params.get("show") === "flashcards" ? "flashcards" : "reviewers";
   // Decks load only while the Flashcards side is showing: the Reviewers side and the other tabs never ask.
@@ -195,6 +200,14 @@ function SubjectView({ subjectId }) {
           {tab === "overview" && (
             <div className="subject-columns">
               <div className="subject-column">
+                <ClassTimesCard
+                  subject={subject}
+                  classTimes={data.classTimes}
+                  canAdd={!subject.archivedAt}
+                  onAdd={() => openAdd("class")}
+                  onEdit={(time) => classEdit.onEditEntry({ ...time, kind: "class" }, { close: noop, reopen: noop })}
+                  onDelete={(time) => classEdit.onDeleteEntry({ ...time, kind: "class" }, { close: noop, reopen: noop })}
+                />
                 <NextUpList
                   tasks={data.tasks}
                   upcoming={upcomingEntries(data.entries, subject, now)}
@@ -205,7 +218,6 @@ function SubjectView({ subjectId }) {
                 <PickUpCard reviewers={reviewers ?? []} now={now} />
               </div>
               <div className="subject-column">
-                <ClassSchedule classes={classesThisWeek(data.entries, subject, now)} />
                 <SubjectCounts
                   openTasks={data.tasks.length}
                   reviewers={reviewers?.length ?? 0}
@@ -243,6 +255,7 @@ function SubjectView({ subjectId }) {
       </div>
       {detail.dialog}
       {edit.dialog}
+      {classEdit.dialog}
       <SubjectDialogs dialog={dialog} onClose={() => setDialog(null)} onChanged={changed} />
       {subjectArchive.dialog}
       {files.dialog.isOpen && library.status === "ready" && (
