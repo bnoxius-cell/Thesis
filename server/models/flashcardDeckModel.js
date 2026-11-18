@@ -20,10 +20,15 @@ const flashcardDeckSchema = new mongoose.Schema({
     course: { type: String, default: '', maxlength: 80 },
     subject: { type: mongoose.Schema.Types.ObjectId, ref: 'subject', default: null },
     reviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'reviewer', default: null },
+    // 'message:<id>' of the group chat card this deck was saved from.
+    copiedFrom: { type: String, default: '' },
 }, { timestamps: true });
 
 flashcardDeckSchema.index({ owner: 1, createdAt: -1 });
 // One deck per reviewer, even when two requests arrive at once.
 flashcardDeckSchema.index({ owner: 1, reviewer: 1 }, { unique: true, partialFilterExpression: { reviewer: { $type: 'objectId' } } });
+
+// One copy per shared card, even when two saves arrive at once.
+flashcardDeckSchema.index({ owner: 1, copiedFrom: 1 }, { unique: true, partialFilterExpression: { copiedFrom: { $gt: '' } } });
 
 export default mongoose.models.flashcardDeck || mongoose.model('flashcardDeck', flashcardDeckSchema);

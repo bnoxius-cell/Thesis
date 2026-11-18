@@ -1,5 +1,8 @@
 import { FLASHCARD_LIMITS } from '../models/flashcardDeckModel.js';
 
+export const DECK_CAP_MESSAGE = `You can have up to ${FLASHCARD_LIMITS.decks} decks. Delete one you no longer need first.`;
+export const CARD_CAP_MESSAGE = `You can keep up to ${FLASHCARD_LIMITS.cardsPerUser} cards. Delete some you no longer need first.`;
+
 // The text of a card as a student typed it. Strings only: anything else reads as empty, so an
 // object or a number sent as a term is refused like a blank one.
 // The term is one line. The answer keeps its line breaks, with no more than one blank line in a row.

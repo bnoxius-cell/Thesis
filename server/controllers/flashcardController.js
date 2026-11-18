@@ -5,7 +5,7 @@ import reviewerModel from '../models/reviewerModel.js';
 import { isId, serverError } from '../utils/httpErrors.js';
 import { applyItemSubject } from '../utils/subjectMatch.js';
 import { readItemSubject, finishItemSubject } from '../utils/itemSubject.js';
-import { readCardFields } from '../utils/flashcardCards.js';
+import { readCardFields, DECK_CAP_MESSAGE, CARD_CAP_MESSAGE } from '../utils/flashcardCards.js';
 import { MASTERED_BOX, applyRating, deckStatus, isDue, nextDueDays, tomorrowStart } from '../utils/flashcardSchedule.js';
 import { shuffled } from '../utils/shuffle.js';
 
@@ -13,9 +13,7 @@ const bad = (res, message, status = 400) => res.status(status).json({ success: f
 const notFound = (res, what) => bad(res, `${what} not found.`, 404);
 const asObjectId = (id) => new mongoose.Types.ObjectId(String(id));
 
-const DECK_CAP_MESSAGE = `You can have up to ${FLASHCARD_LIMITS.decks} decks. Delete one you no longer need first.`;
 const DECK_FULL_MESSAGE = `A deck can hold up to ${FLASHCARD_LIMITS.cardsPerDeck} cards.`;
-const CARD_CAP_MESSAGE = `You can keep up to ${FLASHCARD_LIMITS.cardsPerUser} cards. Delete some you no longer need first.`;
 
 const NO_CARDS = { cards: 0, due: 0, reviewed: 0, mastered: 0, nextDueAt: null };
 

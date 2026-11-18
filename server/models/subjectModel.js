@@ -39,9 +39,12 @@ const subjectSchema = new mongoose.Schema({
         validate: { validator: (times) => times.length <= MAX_PAST_CLASS_TIMES, message: 'Too many past class times.' },
     },
     canvasCourseId: { type: String, default: null },
+    // 'message:<id>' of each group chat card this subject was added from (kept off every response).
+    importedFrom: { type: [String], default: [] },
 }, { timestamps: true });
 
 subjectSchema.index({ owner: 1, archivedAt: 1, order: 1 });
+subjectSchema.index({ owner: 1, importedFrom: 1 }, { unique: true, partialFilterExpression: { importedFrom: { $gt: '' } } });
 subjectSchema.index(
     { owner: 1, canvasCourseId: 1 },
     { unique: true, partialFilterExpression: { canvasCourseId: { $type: 'string' } } },

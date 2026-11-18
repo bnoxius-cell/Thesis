@@ -144,8 +144,9 @@ export const planNewSubject = async (owner, rawName, rawCode) => {
     return { name: fields.name, code: fields.code, subjects };
 };
 
-export const createPlannedSubject = async (owner, { name, code, subjects }) => (
-    (await insertSubject(owner, { name, ...(code ? { code } : {}) }, subjects)).subject
+// `extra` adds fields the plan doesn't carry (a pre-made `_id`, a term, where it was imported from).
+export const createPlannedSubject = async (owner, { name, code, subjects }, extra = {}) => (
+    (await insertSubject(owner, { name, ...(code ? { code } : {}), ...extra }, subjects)).subject
 );
 
 export const getSubjects = async (req, res) => {
