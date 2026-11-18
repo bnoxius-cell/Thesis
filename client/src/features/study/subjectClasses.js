@@ -49,26 +49,3 @@ export function examChipText(entries, subject, now = new Date()) {
     .sort((a, b) => a - b)[0];
   return days === undefined ? "" : examWords(days);
 }
-
-// The entries of the given kinds that belong to the subject, one per day they occur on, from
-// `first` for `days` days, in date then time order: [{ iso, entry }].
-function occurrences(entries, subject, kinds, first, days) {
-  const mine = kinds.flatMap((kind) => entriesFor(entries, subject, kind));
-  const found = [];
-  for (let i = 0; i < days; i += 1) {
-    const iso = toISODate(addDays(first, i));
-    mine
-      .filter((entry) => entryOccursOn(entry, iso))
-      .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""))
-      .forEach((entry) => found.push({ iso, entry }));
-  }
-  return found;
-}
-
-// The subject's classes and exams still to come in the next week, today's finished ones left out.
-export const upcomingEntries = (entries, subject, now = new Date()) => {
-  const todayIso = toISODate(now);
-  return occurrences(entries, subject, ["class", "exam"], now, LOOKAHEAD_DAYS + 1).filter(
-    ({ iso, entry }) => iso > todayIso || (entry.endTime || entry.startTime || "") > clock(now),
-  );
-};

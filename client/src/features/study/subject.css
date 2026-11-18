@@ -1,5 +1,5 @@
-/* Subject overview (Figma 76:878). Two columns (left, then a 340px right column) from 1100px; one
-   column below, with the right-hand cards after the left ones. */
+/* Subject overview (Figma OV-F1 to OV-F8): the class hero, then two columns (left, then a 340px right
+   column) from 1100px; one column below, with the right-hand cards after the left ones. */
 @layer pages {
   .subject-body {
     display: flex;
@@ -120,6 +120,18 @@
     }
   }
 
+  /* Overview: the class hero, then the two columns. */
+  .subject-overview {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  @media (min-width: 721px) {
+    .subject-overview {
+      gap: var(--space-5);
+    }
+  }
+
   /* ---- Cards and rows ---- */
   .subject-card {
     min-width: 0;
@@ -214,14 +226,12 @@
     flex: none;
   }
 
-  /* ---- Class times card (Figma MS-2): one row per weekly class time. The parts wrap, so on a phone the days
-     and hours sit on the first line and the room and the buttons on the second, and on a laptop it is one
-     line with the buttons at the right. ---- */
+  /* ---- Class times card (Figma OV-F1 430:889, rows OV-F8 433:1714): one row per weekly class time. The whole row
+     opens the details window (the title button's ::after covers it), Join, Edit and Delete sit above it. On a laptop a
+     row is one line with the buttons at the right; on a phone the days and hours are the first line and the room and
+     the buttons the second. The row's inline padding gives the hover fill room, and the divider is drawn inset. ---- */
   .class-times {
     gap: var(--space-1);
-  }
-  .class-times .subject-card__quiet {
-    margin-bottom: var(--space-2);
   }
   .class-times__list {
     display: flex;
@@ -234,23 +244,44 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-2) var(--space-4);
-    padding-block: var(--space-3);
+    gap: 10px var(--space-4);
+    margin-inline: calc(-1 * var(--space-3));
+    padding: 14px var(--space-3);
+    border-radius: var(--radius-lg);
   }
-  .class-time + .class-time {
-    border-top: 1px solid var(--border);
+  .class-time + .class-time::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    inset-inline: var(--space-3);
+    height: 1px;
+    background: var(--border);
+  }
+  .class-time__when,
+  .class-time__rest {
+    display: flex;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+    min-width: 0;
   }
   .class-time__days {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
   }
+  .class-time__days .class-time__today {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
   .class-time__hours {
     color: var(--text-primary);
     font: 500 var(--text-sm) / 20px var(--font-ui);
   }
   .class-time__place {
-    min-width: 0;
+    flex: 1 1 0;
+    min-width: 8ch;
     color: var(--text-secondary);
     font: 400 var(--text-xs) / 18px var(--font-ui);
     overflow-wrap: anywhere;
@@ -262,36 +293,234 @@
     gap: var(--space-2);
     margin-left: auto;
   }
-  .class-time__actions .plan-join {
-    margin: 0;
-  }
   /* The 36px buttons keep their look and get a 44px hit area (a little wider too, inside the 8px gap). */
   .class-time__actions .ui-btn::after {
     inset: -5px;
+  }
+  /* Join on a row: the accent-soft pill with the video icon; hover outlines it, press shrinks it a touch. */
+  .class-time__join {
+    border-color: transparent;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .class-time__join:active:not(:disabled) {
+    transform: scale(0.97);
   }
   .class-time__delete {
     color: var(--danger);
   }
   @media (hover: hover) and (pointer: fine) {
+    /* The row fills (no ring, no lift); the global item-row ring is for the Tasks rows. */
+    .class-time:hover {
+      background: var(--surface-2);
+    }
+    .class-time .item-open:hover::after {
+      box-shadow: none;
+    }
+    .class-time__join:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
     .class-time__delete:hover:not(:disabled) {
       background: var(--danger-soft);
     }
   }
-  .class-times__add {
-    align-self: flex-start;
+  .class-time:has(.item-open:active) {
+    background: var(--surface-2);
   }
-  .class-times__start {
+  .class-times__add,
+  .subject-card__add {
     align-self: flex-start;
   }
   @media (min-width: 600px) {
-    /* The hours line up from row to row: the days take at least the width of two chips. */
+    /* One line: the days take at least the width of two chips so the hours line up from row to row. */
+    .class-time {
+      flex-wrap: nowrap;
+    }
+    .class-time__when {
+      flex: 0 0 auto;
+    }
+    .class-time__rest {
+      flex: 1 1 0;
+    }
     .class-time__days {
       flex: 0 0 auto;
       min-width: 132px;
     }
-    .class-time__place {
-      flex: 1 1 0;
+  }
+
+  /* ---- Class hero (Figma OV-F1 to OV-F8): one tinted band, one state. The tint is the subject's soft colour
+     (--hero-tint, set from the subject). Phone: the text, then Join full width at 48px and Details as a quiet link. ---- */
+  .class-hero {
+    box-sizing: border-box;
+    padding: 20px;
+    border-radius: var(--radius-xl);
+    background: var(--hero-tint, var(--subject-blue-soft));
+    color: var(--text-primary);
+  }
+  /* A state change cross-fades (the body is keyed on the state). */
+  .class-hero__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    animation: ui-fade-in 160ms var(--ease-out) backwards;
+  }
+  .class-hero__text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+  }
+  .class-hero__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .class-hero__eyebrow--good {
+    color: var(--good);
+  }
+  .class-hero__eyebrow--accent {
+    color: var(--accent);
+  }
+  .class-hero__eyebrow--quiet {
+    color: var(--text-secondary);
+  }
+  .class-hero__dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-pill);
+    background: var(--good);
+    animation: live-breathe 2s ease-in-out infinite;
+  }
+  .class-hero__title {
+    margin: 0;
+    font: 600 var(--text-xl) / 28px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .class-hero__meta {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .class-hero__meta svg {
+    flex: none;
+    margin-top: 2px;
+  }
+  /* The exam line is a button that looks like a watch chip, with a 44px hit area. */
+  .class-hero__exam {
+    position: relative;
+    box-sizing: border-box;
+    min-height: 32px;
+    margin: var(--space-2) 0 0;
+    padding: 6px 12px;
+    border: 0;
+    cursor: pointer;
+    white-space: normal;
+    text-align: left;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .class-hero__exam::after {
+    content: "";
+    position: absolute;
+    inset: -6px 0;
+  }
+  .class-hero__exam svg {
+    flex: none;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .class-hero__exam:hover {
+      background: color-mix(in srgb, var(--watch) 14%, var(--watch-soft));
     }
+  }
+  .class-hero__actions {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: var(--space-1);
+  }
+  .class-hero__actions .ui-btn {
+    width: 100%;
+  }
+  .class-hero__join {
+    min-height: 48px;
+    padding-inline: var(--space-5);
+  }
+  .class-hero__join:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .class-hero__join:hover {
+      box-shadow: var(--shadow-1);
+    }
+  }
+  @media (max-width: 480px) {
+    .class-hero__details {
+      border-color: transparent;
+      background: transparent;
+      color: var(--accent);
+    }
+  }
+  @media (min-width: 481px) {
+    .class-hero {
+      padding: var(--space-6) 28px;
+    }
+    .class-hero__body {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-5);
+    }
+    .class-hero__title {
+      font-size: var(--text-2xl);
+      line-height: 32px;
+    }
+    .class-hero--none .class-hero__title {
+      font-size: var(--text-xl);
+      line-height: 28px;
+    }
+    .class-hero__actions {
+      flex: none;
+      flex-direction: row;
+      gap: var(--space-3);
+    }
+    .class-hero__actions .ui-btn {
+      width: auto;
+    }
+  }
+
+  /* ---- Keep practising: the reviewer row is a tile, the title and its line ---- */
+  .keep-practising__row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .keep-practising__tile {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  /* Due soon: the rows are divided, as in the frame. */
+  .due-soon__list {
+    gap: 0;
+  }
+  .due-soon__list > .subject-row + .subject-row {
+    border-top: 1px solid var(--border);
   }
 
   /* Phones: a row's chip drops under its text so long titles keep their width. */

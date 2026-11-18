@@ -14,6 +14,7 @@ import { toISODate } from "@/utils/scheduleUtils";
 //   entries   main timetable entries; empty when there is none or it could not load
 //   classTimes the subject's weekly class times, from every timetable that counts in the week (see the schedule
 //             endpoint); empty when none or it could not load
+//   upcoming  its classes and exams in the next two weeks, [{ iso, entry }] (the class hero); empty likewise
 //   setTasks  the task list setter (useTaskDone); one list feeds Overview and the Tasks tab
 //   reload    fetches again behind the skeleton (Try again)
 //   refresh   fetches again in place (after an edit); a failed fetch keeps what is on screen
@@ -21,7 +22,7 @@ import { toISODate } from "@/utils/scheduleUtils";
 // fetch leaves that part empty instead of blocking the page.
 export default function useSubject(id) {
   const [state, setState] = useState({ status: "loading", error: "", subject: null });
-  const [data, setData] = useState({ tasks: [], entries: [], classTimes: [] });
+  const [data, setData] = useState({ tasks: [], entries: [], classTimes: [], upcoming: [] });
   const [attempt, setAttempt] = useState(0);
   const quiet = useRef(false);
 
@@ -44,6 +45,7 @@ export default function useSubject(id) {
           tasks: taskRes.data?.tasks ?? [],
           entries: timetableRes.data?.schedule?.entries ?? [],
           classTimes: scheduleRes.data?.classTimes ?? [],
+          upcoming: scheduleRes.data?.upcoming ?? [],
         });
         setState({ status: "ready", error: "", subject: subjectRes.data.subject });
       },
@@ -71,5 +73,5 @@ export default function useSubject(id) {
     [mine],
   );
 
-  return { ...state, tasks: openTasks, doneTasks, entries: data.entries, classTimes: data.classTimes, setTasks, reload, refresh };
+  return { ...state, tasks: openTasks, doneTasks, entries: data.entries, classTimes: data.classTimes, upcoming: data.upcoming, setTasks, reload, refresh };
 }
