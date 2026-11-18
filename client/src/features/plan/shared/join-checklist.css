@@ -1,0 +1,170 @@
+/* "Which of these do you take?" (Figma GW-5: desktop card 383:2440, phone sheet 383:2786): a card with an accent
+   border on desktop, the same rows in a bottom sheet on a phone. Plain CSS on the shared tokens. */
+@layer pages {
+  .join-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+    padding: 20px;
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    transition:
+      opacity var(--dur-3) var(--ease-out),
+      transform var(--dur-3) var(--ease-out);
+    @starting-style {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  .join-checklist__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .join-checklist__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+  }
+  .join-checklist__help,
+  .join-checklist__note {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .join-checklist__note {
+    font-size: var(--text-xs);
+    line-height: 18px;
+  }
+  .join-checklist__rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .join-checklist__skeleton {
+    flex: none;
+    border-radius: var(--radius-lg);
+  }
+  .join-checklist__failed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .join-checklist__failed p {
+    margin: 0;
+  }
+  .join-checklist__error {
+    margin: 0;
+    color: var(--danger);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+  .join-checklist__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-3);
+  }
+
+  /* One class: a tick box, its title and when it meets. Global CSS makes a bare label a column at full
+     width, so the row layout is spelled out. */
+  .join-row {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    padding: var(--space-3) 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    cursor: pointer;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  .join-row.is-ticked {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .join-row:active {
+    transform: scale(0.99);
+  }
+  .join-row:has(.join-row__input:focus-visible) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .join-row__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .join-row__tick {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border-input);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--on-accent);
+    transition:
+      background-color var(--dur-1) var(--ease-out),
+      border-color var(--dur-1) var(--ease-out);
+  }
+  .join-row__tick svg {
+    opacity: 0;
+    transition: opacity var(--dur-1) var(--ease-out);
+  }
+  .is-ticked .join-row__tick {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+  .is-ticked .join-row__tick svg {
+    opacity: 1;
+  }
+  .join-row__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .join-row__title {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .join-row__times {
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+
+  /* The sheet: the rows scroll with the body. */
+  .join-checklist-sheet .ui-modal__body {
+    gap: var(--space-3);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .join-row:not(.is-ticked):hover {
+      background: var(--surface-2);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .join-row:active {
+      transform: none;
+    }
+  }
+}

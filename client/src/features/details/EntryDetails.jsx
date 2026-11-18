@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { CalendarDays, Clock, FileText, MapPin, Shapes, Timer, Video } from "lucide-react";
 import { Button, Chip } from "@/shared/ui";
 import useNow from "@/shared/hooks/useNow";
+import { useEntryLayer } from "@/features/plan/shared";
 import { isWebLink, meetingProvider } from "@/utils/scheduleUtils";
 import ItemDetailDialog, { DetailFooter } from "./ItemDetailDialog";
 import { DetailRow, DetailRows } from "./DetailRows";
@@ -14,7 +15,10 @@ import { entryIsLive, entrySubject, planDayHref, repeatText, subjectHref } from 
 // when `canEdit` is false the window says so instead of drawing Edit and Delete. `onEdit` and `onDelete`
 // are passed only when the student can use them, and a missing one draws no button. `focus` ("edit" or
 // "delete") puts focus on that button when the window comes back from its dialog.
-export default function EntryDetails({ entry, iso, subjects, context, onClose, onBack, returnFocusRef, focus, onEdit, onDelete }) {
+// A class of a timetable shared with the student (it carries `myChoice`) also shows what they chose for it, and
+// when the page gave a `choice` (useClassChoice) the ways to change that: see useEntryLayer. On such a class
+// Edit and Delete move into the Class options menu ("for everyone"); on the student's own copy there is Edit.
+export default function EntryDetails({ entry, iso, subjects, context, choice, onClose, onBack, returnFocusRef, focus, onEdit, onDelete }) {
   const editRef = useRef(null);
   const deleteRef = useRef(null);
   const now = useNow();
@@ -24,6 +28,7 @@ export default function EntryDetails({ entry, iso, subjects, context, onClose, o
   const provider = entry.meetingUrl && isWebLink(entry.meetingUrl) ? meetingProvider(entry.meetingUrl) : null;
   const shared = entry.canEdit === false;
   const handlers = { close: onClose };
+  const layer = useEntryLayer({ entry, choice, handlers, onEdit, onDelete });
 
   const inThisSubject = subject && context === `subject:${subject._id}`;
   // Plan's own week already shows the entry, so it is the only place that doesn't offer the way there.
@@ -36,18 +41,18 @@ export default function EntryDetails({ entry, iso, subjects, context, onClose, o
   const canChange = entry.canEdit !== false;
   const footer = (
     <DetailFooter
-      note={shared && `From ${entry.scheduleTitle || "another timetable"}. Only its owner and editors can change it.`}
-      remove={canChange && onDelete && (
+      note={shared && !layer && `From ${entry.scheduleTitle || "another timetable"}. Only its owner and editors can change it.`}
+      remove={layer ? layer.start : canChange && onDelete && (
         <Button ref={deleteRef} variant="ghost" className="item-footer__delete" onClick={() => onDelete(entry, handlers)}>
           Delete
         </Button>
       )}
-      edit={canChange && onEdit && (
+      edit={(!layer || layer.isCopy) && canChange && onEdit && (
         <Button ref={editRef} variant="secondary" className="item-footer__edit" onClick={() => onEdit(entry, handlers)}>
           Edit
         </Button>
       )}
-      primary={primary}
+      primary={layer?.publish || primary}
     />
   );
 
@@ -61,7 +66,13 @@ export default function EntryDetails({ entry, iso, subjects, context, onClose, o
       initialFocusRef={focus === "delete" ? deleteRef : focus === "edit" ? editRef : undefined}
       footer={footer}
     >
-      {chip && <Chip tone={chip.tone} className="item-chip">{chip.label}</Chip>}
+      {layer?.notice}
+      {(chip || layer?.chip) && (
+        <div className="item-chips">
+          {chip && <Chip tone={chip.tone} className="item-chip">{chip.label}</Chip>}
+          {layer?.chip && <Chip tone={layer.chip.tone} className="item-chip">{layer.chip.label}</Chip>}
+        </div>
+      )}
       <DetailRows>
         <DetailRow icon={Clock} label="When">{entryWhen(entry, iso)}</DetailRow>
         <DetailRow icon={MapPin} label={entry.kind === "event" ? "Place" : "Room"}>{entry.location}</DetailRow>

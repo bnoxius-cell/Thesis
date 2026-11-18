@@ -57,6 +57,7 @@ export default function HomePage() {
     onDeleteTask: edit.onDeleteTask,
     onEditEntry: entryEdit.onEditEntry,
     onDeleteEntry: entryEdit.onDeleteEntry,
+    onChanged: data.reload,
   });
   const openWeekDay = useOpenWeekDay({ detail, overview: data.overview, tasks: data.tasks, subjects, profile: work.profile, now });
   const { prompt, later } = useCheckInPrompt(userData, now);

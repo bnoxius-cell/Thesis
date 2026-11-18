@@ -21,6 +21,14 @@ function busyHours(entries) {
   return Math.round((total / 60) * 10) / 10;
 }
 
+// What a shared timetable adds to an entry for the student: their own choice on it, a change notice, the group it
+// belongs to, and for its editors how many members use their own time for it (the server sends these only on a
+// timetable shared with them).
+const layerFields = (entry, schedule) =>
+  entry.myChoice
+    ? { myChoice: entry.myChoice, notice: entry.notice ?? null, group: schedule.group ?? null, ownTimeCount: entry.ownTimeCount ?? 0 }
+    : {};
+
 // One timetable's seven days for the Monday-to-Sunday week at `weekStart`, in the same shape as the
 // server's week overview ({ days: [{ date, holiday, busyHours, entries }] }) so buildPlanDays can
 // draw it. `publicByDate` maps "YYYY-MM-DD" to a public holiday name; the timetable's own day-off
@@ -47,6 +55,7 @@ export function timetableWeek(schedule, weekStart, publicByDate) {
         scheduleId: schedule._id,
         scheduleTitle: schedule.title,
         canEdit: EDITOR_ROLES.includes(schedule.role),
+        ...layerFields(entry, schedule),
       }))
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
     return { date, holiday, busyHours: busyHours(entries), entries };

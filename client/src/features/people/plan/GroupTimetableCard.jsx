@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { ArrowUpRight, CalendarDays, CalendarPlus } from "lucide-react";
+import { ArrowUpRight, CalendarDays, CalendarPlus, ListChecks } from "lucide-react";
 import { Button, EmptyState, Switch } from "@/shared/ui";
 import { createGroupTimetable } from "@/shared/api/groups";
 import { updateMembership, updateTimetable } from "@/shared/api/schedules";
@@ -12,9 +12,10 @@ const countLine = (count) => (count === 0 ? "Nothing on it yet." : `${count} ${c
 // admin can make one and a member is told an admin can; with one, the card says how much is on it and when it
 // last changed, opens it in Plan (where admins edit and members look), and holds the "Count in my week" switch
 // that adds it to the student's own week and workload (the owner changes the timetable's setting, anyone else
-// their own membership). `timetable` is the summary from the plan; `onChanged` gets the summary after a change
-// made here and `onReload` reads the plan again when the server disagrees (someone made it first).
-export default function GroupTimetableCard({ groupId, timetable, canEdit, onChanged, onReload }) {
+// their own membership), and "Change which classes I take", which reopens the join checklist (`onChangeClasses`).
+// `timetable` is the summary from the plan; `onChanged` gets the summary after a change made here and
+// `onReload` reads the plan again when the server disagrees (someone made it first).
+export default function GroupTimetableCard({ groupId, timetable, canEdit, onChanged, onReload, onChangeClasses }) {
   const [busy, setBusy] = useState(false);
 
   const make = async () => {
@@ -73,6 +74,11 @@ export default function GroupTimetableCard({ groupId, timetable, canEdit, onChan
             <p id="group-tt-count-hint" className="group-tt__sub">Adds the classes you take to your week and workload.</p>
           </div>
         </div>
+        {timetable.entryCount > 0 && (
+          <Button variant="ghost" icon={ListChecks} className="group-tt__classes" onClick={onChangeClasses}>
+            Change which classes I take
+          </Button>
+        )}
       </div>
     );
   }

@@ -280,6 +280,15 @@
     --tone-bg: var(--surface-2);
     --tone-bar: var(--text-muted);
   }
+  /* A class on a shared timetable the student isn't taking: out of their week, so quiet here (GW-6 383:3680). */
+  .plan-entry--hidden {
+    --tone-bg: var(--surface);
+    --tone-bar: var(--border-input);
+    border: 1px solid var(--border);
+  }
+  .plan-entry--hidden .plan-entry__title {
+    color: var(--text-secondary);
+  }
   .plan-entry--exam {
     min-height: 0;
     border: 1px solid var(--watch);

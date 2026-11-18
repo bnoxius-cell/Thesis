@@ -1,9 +1,12 @@
 import { useCallback, useRef, useState } from "react";
 import useNow from "@/shared/hooks/useNow";
 import { useShareToGroup } from "@/features/share";
+import { useClassChoice } from "@/features/plan/shared";
 import TaskDetails from "./TaskDetails";
 import EntryDetails from "./EntryDetails";
 import DayWindow from "./DayWindow";
+
+const noop = () => {};
 
 // Only a task saved in the database (a 24-character id) can be edited or deleted.
 const isStoredTask = (task) => /^[a-f\d]{24}$/i.test(String(task._id));
@@ -26,6 +29,9 @@ const isPrepTask = (task) => task.isExam || String(task._id).startsWith("exam:")
 // window draws no such button. Every task of theirs also gets Share, which opens "Share to a group" over the window
 // (the dialog is part of `dialog`). Edit and Delete are drawn only for a task with a real id, and for an entry the
 // student can change (`canEdit`).
+// `onChanged` is how a page that shows the week takes news of a change to the student's own choices on a class of
+// a timetable shared with them (hide it, keep their own version, ...): it reads its week again. Without it the
+// window draws no such choices.
 // openEntry(entry, iso) takes the entry as it is on day `iso` (YYYY-MM-DD).
 // openDay(day, { onOpenWeek }) opens the day window (Figma D9) on a day from buildDay (features/plan/planDays.js).
 // A row in it opens that item's window in its place, with a back arrow to the day; Escape and the X close both.
@@ -39,9 +45,11 @@ export default function useItemDetail({
   onDeleteTask,
   onEditEntry,
   onDeleteEntry,
+  onChanged,
 }) {
   const now = useNow();
   const sharing = useShareToGroup();
+  const choice = useClassChoice({ onChanged: onChanged ?? noop });
   const [item, setItem] = useState(null);
   // The open day, if any: { day, onOpenWeek, returned }. `returned` is true once an item went back to it.
   const [day, setDay] = useState(null);
@@ -113,6 +121,7 @@ export default function useItemDetail({
         iso={item.iso}
         subjects={subjects}
         context={context}
+        choice={onChanged ? choice : undefined}
         onClose={close}
         onBack={day ? backToDay : undefined}
         returnFocusRef={row}
@@ -145,6 +154,7 @@ export default function useItemDetail({
       <>
         {dialog}
         {sharing.dialog}
+        {choice.dialog}
       </>
     ),
   };
