@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { bedtimeFor, rhythmForm, rhythmOptions, sleepForm, sleepPayload } from '../../client/src/features/wellbeing/rhythm.js';
+import { bedtimeFor, bedtimeLabel, bedtimeSum, rhythmForm, rhythmOptions, sleepForm, sleepPayload } from '../../client/src/features/wellbeing/rhythm.js';
 import { rhythmChips } from '../../client/src/features/wellbeing/rhythmChips.js';
 import { sleepSummary } from '../../client/src/features/wellbeing/sleepSummary.js';
 import { sleepExplainerPoints } from '../../client/src/features/wellbeing/sleepExplainerPoints.js';
@@ -14,6 +14,20 @@ describe('bedtimeFor', () => {
         expect(bedtimeFor('04:30', 8)).toBe('20:30');
         expect(bedtimeFor('23:30', 4)).toBe('19:30');
         expect(bedtimeFor('00:00', 8)).toBe('16:00');
+    });
+});
+
+describe('bedtime labels', () => {
+    test('shows the worked-out bedtime and the sum behind it', () => {
+        const form = { usualWakeTime: '06:15', sleepHours: 8 };
+        expect(bedtimeLabel(form)).toBe('10:15 pm');
+        expect(bedtimeSum(form)).toBe('6:15 am wake time minus 8 hours');
+        expect(bedtimeSum({ usualWakeTime: '06:15', sleepHours: 1 })).toBe('6:15 am wake time minus 1 hour');
+    });
+
+    test('are empty until a wake time is picked', () => {
+        expect(bedtimeLabel({ usualWakeTime: '', sleepHours: 8 })).toBe('');
+        expect(bedtimeSum({ usualWakeTime: '', sleepHours: 8 })).toBe('');
     });
 });
 

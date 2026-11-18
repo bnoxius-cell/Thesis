@@ -64,6 +64,14 @@ export function bedtimeFor(wakeTime, sleepHours) {
   return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
 }
 
+// The worked-out bedtime as the card shows it ("10:15 pm"); empty until a wake time is picked.
+export const bedtimeLabel = ({ usualWakeTime, sleepHours }) =>
+  usualWakeTime ? formatTime(bedtimeFor(usualWakeTime, sleepHours)).toLowerCase() : "";
+
+// The line under the bedtime: "6:15 am wake time minus 8 hours".
+export const bedtimeSum = ({ usualWakeTime, sleepHours }) =>
+  usualWakeTime ? `${formatTime(usualWakeTime).toLowerCase()} wake time minus ${hoursLabel(sleepHours)}` : "";
+
 // The PUT /api/user/profile body for the Tonight card. A picked wake time means a regular schedule, and the
 // bedtime is worked out from it. Without one only the target and travel go, so nothing else is made up.
 // Fields left out are left alone by the server.
