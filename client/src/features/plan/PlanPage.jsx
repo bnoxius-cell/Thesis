@@ -63,13 +63,11 @@ export default function PlanPage() {
   const subjects = useMemo(() => [...data.subjectsById.values()], [data.subjectsById]);
   const edit = useTaskEdit({ subjects, setTasks: data.setTasks, onSubjectCreated: data.reload });
   // R10: after an entry is edited or deleted the week and the month read again.
-  const entryEdit = useEntryEdit({
-    subjects,
-    onChanged: () => {
-      data.reload();
-      monthData.reload();
-    },
-  });
+  const reloadWeek = () => {
+    data.reload();
+    monthData.reload();
+  };
+  const entryEdit = useEntryEdit({ subjects, onChanged: reloadWeek });
   const detail = useItemDetail({
     subjects,
     onToggle: setDone,
@@ -78,6 +76,7 @@ export default function PlanPage() {
     onDeleteTask: edit.onDeleteTask,
     onEditEntry: entryEdit.onEditEntry,
     onDeleteEntry: entryEdit.onDeleteEntry,
+    onChanged: reloadWeek,
   });
   // Which way the week was last stepped, so the new one slides in from that side.
   const [direction, setDirection] = useState("none");

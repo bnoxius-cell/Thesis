@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { TriangleAlert, Users } from "lucide-react";
 import { Button, Field, Modal, Segment, SelectButton } from "@/shared/ui";
 import useMediaQuery from "@/shared/hooks/useMediaQuery";
+import { EntryScopeChoice } from "@/features/plan/shared";
 import newSubjectOption from "@/features/study/newSubjectOption";
 import NewSubjectNameField from "@/features/study/NewSubjectNameField";
 import { NEW_SUBJECT } from "@/features/study/subjectForm";
@@ -44,13 +45,21 @@ const NEW_SUBJECT_OPTION = newSubjectOption("New subject...");
 // when missing). To edit, pass the stored `entry` and the `timetable` it lives on (always required then).
 // Nothing is saved until the button; closing asks first when something was typed. A failed save keeps the
 // dialog open with the message. `onSaved` gets the timetable after the change, the kind saved and the entry's
-// fields (its date or days). `onGone` runs when an edited entry has been removed meanwhile. The clash note only warns.
+// fields (its date or days), and `{ mine: true }` after "just for me". `onGone` runs when an edited entry has been removed meanwhile. The clash note only warns.
+// Editing a class of a timetable shared with the student (the entry carries `myChoice`) asks "Who is this for?"
+// (Figma GW-8): "Just for me" saves their own copy and leaves the shared class alone, "For everyone" changes it
+// as before (and says how many members use their own time for it). Someone who can't change the shared class
+// is only offered the first.
 export default function EntryFormDialog({ kind, subjects, timetable = null, entry = null, onClose, onSaved, onGone }) {
   const editing = Boolean(entry);
   const [start] = useState(() => (entry ? entryFormFrom(entry) : emptyEntryForm(kind)));
   const [form, setForm] = useState(start);
   const [errors, setErrors] = useState({});
-  const { save, saving, error } = useSaveEntry();
+  const { save, saveMine, saving, error } = useSaveEntry();
+  const sharedClass = editing && Boolean(entry.myChoice); // a class the student may make their own copy of
+  const canPublish = timetable?.role !== "viewer";
+  const [scope, setScope] = useState(canPublish ? "everyone" : "me");
+  const mine = sharedClass && scope === "me";
   const target = useEntryTarget(timetable);
   const phone = useMediaQuery("(max-width: 480px)");
 
@@ -99,9 +108,9 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
     event.preventDefault();
     const found = entryErrors(form);
     if (Object.keys(found).length > 0) return setErrors(found);
-    const { schedule, gone } = await save(form, timetable, entry);
+    const { schedule, gone } = await (mine ? saveMine(form, timetable, entry) : save(form, timetable, entry));
     if (gone) onGone();
-    else if (schedule) onSaved(schedule, form.kind, entryPayload(form));
+    else if (schedule) onSaved(schedule, form.kind, entryPayload(form), { mine });
   };
 
   let subtitle = "Adds to your main timetable.";
@@ -109,6 +118,10 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
   else if (timetable) subtitle = `Adds to ${timetable.title}.`;
   else if (target) subtitle = `Adds to ${target.title}, your main timetable.`;
   else if (target === null) subtitle = "Adds to a new timetable called My timetable.";
+
+  let saveLabel = `Add ${label}`;
+  if (mine) saveLabel = "Save my copy";
+  else if (editing) saveLabel = "Save changes";
 
   const subjectField = (
     <Field label="Subject (optional)">
@@ -148,7 +161,7 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
       actions={(close) => (
         <>
           <Button variant="ghost" onClick={close} disabled={saving}>Cancel</Button>
-          <Button type="submit" busy={saving}>{saving ? "Saving" : editing ? "Save changes" : `Add ${label}`}</Button>
+          <Button type="submit" busy={saving}>{saving ? "Saving" : saveLabel}</Button>
         </>
       )}
     >
@@ -244,7 +257,15 @@ export default function EntryFormDialog({ kind, subjects, timetable = null, entr
         maxLength={ENTRY_NOTES_MAX}
         hint={`${form.notes.length} / ${ENTRY_NOTES_MAX}`}
       />
-      {timetable?.live && (
+      {sharedClass && (
+        <EntryScopeChoice
+          value={scope}
+          onChange={setScope}
+          canPublish={canPublish}
+          shared={{ name: timetable.group?.name ?? timetable.title, group: Boolean(timetable.group), ownTimeCount: entry.ownTimeCount ?? 0 }}
+        />
+      )}
+      {timetable?.live && !sharedClass && (
         <p className="entry-dialog__shared">
           <Users size={18} aria-hidden="true" />
           <span>Everyone on {timetable.title} sees this change.</span>

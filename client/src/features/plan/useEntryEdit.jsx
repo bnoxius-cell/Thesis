@@ -68,7 +68,7 @@ export default function useEntryEdit({ subjects, onChanged }) {
         subjects={subjects}
         timetable={open.timetable}
         onClose={back}
-        onSaved={(_schedule, kind) => finish("saved", kind)}
+        onSaved={(_schedule, kind, _fields, { mine }) => finish(mine ? "saved in your own timetable" : "saved", kind)}
         onGone={gone}
       />
     );

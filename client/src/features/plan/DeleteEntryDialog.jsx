@@ -14,8 +14,10 @@ const dayList = (days) => {
 // Confirms deleting a class, exam, event or activity (Figma D5: weekly class 211:3239, shared 211:3583, phone
 // sheets 211:3351 and 211:3702). `entry` is the stored entry and `timetable` the one it is on (`live` adds the
 // line that everyone on it sees the change). `subject` is the entry's subject, when it has one, which stays.
-// A failed delete keeps the dialog open with the server's message; an entry that is already gone calls
-// `onGone`. `onDeleted` runs after the server says it is gone.
+// A class of a timetable shared with the student (it carries `myChoice`) is deleted "for everyone" (Figma GW-8
+// delete confirm 385:4986): it says how many members use their own time for it and keep their copies. A failed
+// delete keeps the dialog open with the server's message; an entry that is already gone calls `onGone`.
+// `onDeleted` runs after the server says it is gone.
 export default function DeleteEntryDialog({ entry, timetable, subject, onClose, onDeleted, onGone }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -35,6 +37,11 @@ export default function DeleteEntryDialog({ entry, timetable, subject, onClose, 
     }
   };
 
+  const forEveryone = Boolean(entry.myChoice);
+  const own = entry.ownTimeCount ?? 0;
+  const ownCopies = own > 0 ? ` ${own} ${own === 1 ? "member who uses their own time keeps their own copy" : "members who use their own time keep their own copies"}.` : "";
+  const sharedWith = timetable.group?.name ?? timetable.title;
+
   const stays = subject ? `Your ${subject.name} subject, tasks and reviewers stay. ` : "";
   const what = weekly
     ? `This removes the ${noun} from every ${dayList(entry.days)} on ${timetable.title}. `
@@ -46,17 +53,17 @@ export default function DeleteEntryDialog({ entry, timetable, subject, onClose, 
       sheet
       className="entry-delete"
       tone="danger"
-      title={`Delete "${entry.title}"?`}
-      confirmLabel={`Delete ${noun}`}
+      title={forEveryone ? `Delete ${entry.title} for everyone?` : `Delete "${entry.title}"?`}
+      confirmLabel={forEveryone ? "Delete for everyone" : `Delete ${noun}`}
       busy={busy}
       onConfirm={confirm}
       onCancel={onClose}
     >
-      {what}{stays}This can't be undone.
+      {forEveryone ? `It leaves every member's week.${ownCopies} ` : `${what}${stays}`}This can't be undone.
       {timetable.live && (
         <span className="entry-dialog__shared entry-delete__shared">
           <Users size={18} aria-hidden="true" />
-          Everyone on {timetable.title} sees this change.
+          Everyone {forEveryone ? "in" : "on"} {sharedWith} sees this change.
         </span>
       )}
       {error && <span className="entry-dialog__error" role="alert"> {error}</span>}

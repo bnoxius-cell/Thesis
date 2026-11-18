@@ -3,7 +3,7 @@
 // should re-accept, bump LEGAL_VERSION in server/utils/legal.js as well, so everyone
 // sees the consent prompt again.
 
-export const LEGAL_UPDATED = "November 15, 2026";
+export const LEGAL_UPDATED = "November 18, 2026";
 export const SUPPORT_EMAILS = [
   "tkishore1434val@student.fatima.edu.ph",
   "amreniva0131val@student.fatima.edu.ph",
@@ -86,6 +86,7 @@ export const TERMS = {
         { ul: [
           "When you share a schedule you choose what each person can do. Viewers can see it and every change you make. Editors can also change it, and everyone on it is told what changed. Anyone you share with can make their own copy, and changing a copy never changes yours.",
           "Tasks and reviewers you post in a group can be added by your groupmates to their own.",
+          "Group plans: every member sees the group's tasks and timetable. The group's owner and admins change them for everyone. On any timetable shared with you, you can hide classes you don't take or keep your own version of a class; that only changes your own schedule.",
           "Anyone who has a schedule's share code or link can open that schedule as a viewer or an editor, whichever you picked. Turn the code off, make a new one, or make the schedule private if it ends up somewhere it shouldn't.",
           "Your friends can see your name, email, avatar and profile tag.",
         ] },
@@ -153,7 +154,7 @@ export const PRIVACY = {
           "Your tasks: titles, courses, descriptions, due dates, estimated hours, difficulty and importance, and the time you mark a task as done.",
           "Your schedules: classes and activities with times, places, online class links and notes, any pictures you attach, days you mark off, who you share each one with, and a short log of recent changes on shared schedules.",
           "The subjects you add (name, code, term and colour) and which of your tasks and reviewers belong to them.",
-          "Social features: friend connections, groups you belong to, group messages, reactions and tasks shared in groups, and reviewers you share in a group, including their questions and answers, so groupmates can save a copy. A copy someone saves stays in their Study even if you delete the message.",
+          "Social features: friend connections, groups you belong to, group messages, reactions and tasks shared in groups, and reviewers you share in a group, including their questions and answers, so groupmates can save a copy. A copy someone saves stays in their Study even if you delete the message. Group plans: tasks and the timetable in a group's plan, with the name of who last changed each task; which shared classes you take or changed for yourself (others only ever see how many members use their own time, never who); and while you have a group's plan open, your groupmates can see that you're there and which task you're editing.",
           "Files and pictures you upload to a chat or to your Study files, kept until you or the group delete them.",
           "Reviewers: the text taken from the files, photos or notes you give us (we don't keep the file or photo you upload for a reviewer, only files you save in your Study files), the reviewer and questions made from it, and your Learning Mode answers and scores.",
           "Flashcards: the decks and cards you make, and when you last reviewed each card.",

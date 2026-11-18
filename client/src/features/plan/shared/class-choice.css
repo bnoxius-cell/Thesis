@@ -1,0 +1,277 @@
+/* The student's own layer over a shared timetable: the change notice (Figma GW-7: banners 385:2980 and 385:4094,
+   class window 385:3294), the Class options menu (GW-6: member 383:2934, phone sheet 383:3532) and the "Who is
+   this for?" choice in the edit dialog (GW-8: 385:4231, phone 385:5491). Plain CSS on the shared tokens. */
+@layer pages {
+  /* ---- The footer slot of the details window: Class options, or "Use the group's", on the left ---- */
+  .item-footer__options {
+    margin-inline-end: auto;
+  }
+  @media (max-width: 719.98px) {
+    .item-footer__options {
+      order: -1;
+      grid-column: 1 / -1;
+      margin-inline-end: 0;
+    }
+  }
+
+  /* ---- Change notice: an info icon, the line, and its two buttons ----
+     The icon and line share a row; the buttons sit under the line (the class window), or beside it from 720px
+     when the notice is `inline` (the Plan tab's banners). */
+  .class-notice {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: var(--space-3);
+    align-items: start;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+    background: var(--accent-soft);
+    color: var(--text-primary);
+    transition:
+      opacity var(--dur-3) var(--ease-out),
+      transform var(--dur-3) var(--ease-out);
+    @starting-style {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  .class-notice__icon {
+    margin-top: 2px;
+    color: var(--accent);
+  }
+  .class-notice__text {
+    margin: 0;
+    padding-block: 2px;
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+    overflow-wrap: anywhere;
+  }
+  .class-notice__actions {
+    display: flex;
+    flex-wrap: wrap;
+    grid-column: 2;
+    gap: var(--space-2);
+  }
+  @media (min-width: 720px) {
+    .class-notice--inline {
+      grid-template-columns: 20px minmax(0, 1fr) auto;
+      align-items: center;
+    }
+    .class-notice--inline .class-notice__icon {
+      margin-top: 0;
+    }
+    .class-notice--inline .class-notice__actions {
+      grid-column: auto;
+    }
+  }
+
+  /* ---- Class options menu ---- */
+  .class-menu {
+    width: 320px;
+  }
+  .class-menu__section {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .class-menu__section + .class-menu__section {
+    margin-top: var(--space-1);
+    padding-top: var(--space-1);
+    border-top: 1px solid var(--border);
+  }
+  .class-menu__eyebrow {
+    margin: 0;
+    padding: var(--space-1) var(--space-1) 0;
+    color: var(--text-muted);
+    font: 600 var(--text-xs) / 16px var(--font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .ui-menu__item.class-menu__item {
+    align-items: flex-start;
+    padding-block: 10px;
+  }
+  .class-menu__item svg:first-child {
+    margin-top: 1px;
+  }
+  .class-menu__item[aria-checked="true"] {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .class-menu__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .class-menu__title {
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+  .class-menu__item[aria-checked="true"] .class-menu__title,
+  .class-menu__row.is-selected .class-menu__title {
+    font-weight: 600;
+  }
+  .class-menu__hint {
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .class-menu__item .ui-menu__check {
+    margin-top: 1px;
+  }
+
+  /* The same rows in the phone sheet: plain 44px buttons. */
+  .class-menu-sheet .ui-modal__body {
+    gap: var(--space-2);
+  }
+  .class-menu__row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    padding: 10px var(--space-3);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition:
+      background-color var(--dur-1) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+  .class-menu__row > svg:first-child {
+    flex: none;
+    margin-top: 1px;
+  }
+  .class-menu__row .class-menu__text {
+    flex: 1 1 auto;
+  }
+  .class-menu__row.is-selected {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .class-menu__row.is-danger {
+    color: var(--danger);
+  }
+  .class-menu__check {
+    flex: none;
+    color: var(--accent);
+  }
+  .class-menu__row:active {
+    transform: scale(0.98);
+  }
+  .class-menu__row:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+  }
+
+  /* ---- Who is this for? ---- */
+  .entry-scope {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .entry-scope__legend {
+    padding: 0;
+    margin-bottom: var(--space-3);
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+  /* Global CSS makes a bare label a column at full width, so the row layout is spelled out. */
+  .entry-scope__option {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    padding: 14px var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    cursor: pointer;
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out),
+      box-shadow var(--dur-2) var(--ease-out);
+  }
+  .entry-scope__option.is-checked {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .entry-scope__option:has(.entry-scope__input:focus-visible) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .entry-scope__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .entry-scope__dot {
+    flex: none;
+    box-sizing: border-box;
+    width: 22px;
+    height: 22px;
+    margin-top: -1px;
+    border: 2px solid var(--border-input);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    transition:
+      border-color var(--dur-2) var(--ease-out),
+      background-color var(--dur-2) var(--ease-out);
+  }
+  .is-checked .entry-scope__dot {
+    border-color: var(--accent);
+    background: radial-gradient(circle, var(--accent) 0 5px, var(--surface) 6px);
+  }
+  .entry-scope__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .entry-scope__title {
+    color: var(--text-primary);
+    font: 500 var(--text-sm) / 20px var(--font-ui);
+  }
+  .entry-scope__hint {
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .entry-scope__extra {
+    color: var(--accent);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .entry-scope__locked {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .class-menu__row:hover:not(.is-selected) {
+      background: var(--surface-2);
+    }
+    .entry-scope__option:not(.is-checked):hover {
+      background: var(--surface-2);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .class-menu__row:active {
+      transform: none;
+    }
+  }
+}

@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { Button, Skeleton } from "@/shared/ui";
+import { JoinChecklist, useClassChoice } from "@/features/plan/shared";
 import { useAuth } from "@/pages/authentication/AuthContext";
 import GroupUpcoming from "../GroupUpcoming";
+import GroupNotices from "./GroupNotices";
 import GroupTaskDialog from "./GroupTaskDialog";
 import GroupTaskList from "./GroupTaskList";
 import GroupTimetableCard from "./GroupTimetableCard";
@@ -13,13 +15,18 @@ import "./group-plan.css";
 // A group's Plan tab (Figma GW-1 to GW-4): who is here now, the group's tasks, its timetable, and the
 // deadlines shared in chat. Admins (the plan's `editor` role) add, change, tick off and delete tasks; other members see all of
 // it and change none of it. It stays live while open: other people's changes arrive within a few seconds,
-// and the others see who is editing which task. Mount it with the group id as its `key`.
+// and the others see who is editing which task. A member who hasn't said which classes they take is asked first
+// (the join checklist, Figma GW-5), and the classes they customized that the group then changed show as banners
+// (GW-7). Mount it with the group id as its `key`.
 export default function GroupPlan({ group }) {
   const { userData } = useAuth();
   const [dialog, setDialog] = useState(null); // { task } where task is undefined for a new one
+  const [checklist, setChecklist] = useState("auto"); // "auto": shown while they haven't answered; "open" and "closed" once they chose
   const { plan, status, error, presence, reload, applyTask, dropTask, applyTimetable, setDone } = useGroupPlan(group._id, {
     editingId: dialog?.task?._id ?? null,
   });
+
+  const choice = useClassChoice({ onChanged: reload });
 
   const members = useMemo(() => new Map(group.members.map((member) => [member._id, member])), [group.members]);
   const here = useMemo(
@@ -55,8 +62,20 @@ export default function GroupPlan({ group }) {
     );
   } else {
     const canEdit = plan.role === "editor";
+    const needsSetup = plan.timetable?.entryCount > 0 && plan.myClasses && !plan.myClasses.setupAt;
     body = (
       <>
+        {(checklist === "open" || (checklist === "auto" && needsSetup)) && (
+          <JoinChecklist
+            scheduleId={plan.timetable._id}
+            onClose={() => setChecklist("closed")}
+            onSaved={() => {
+              setChecklist("closed");
+              reload();
+            }}
+          />
+        )}
+        {plan.myClasses && <GroupNotices timetable={plan.timetable} classes={plan.myClasses.classes} choice={choice} />}
         <HereNow people={here} />
         <GroupTaskList
           tasks={plan.tasks}
@@ -73,6 +92,7 @@ export default function GroupPlan({ group }) {
           canEdit={canEdit}
           onChanged={applyTimetable}
           onReload={reload}
+          onChangeClasses={() => setChecklist("open")}
         />
         <GroupUpcoming groupId={group._id} />
       </>
@@ -82,6 +102,7 @@ export default function GroupPlan({ group }) {
   return (
     <div className="group-plan">
       {body}
+      {choice.dialog}
       {dialog && (
         <GroupTaskDialog
           key={dialog.task?._id ?? "new"}

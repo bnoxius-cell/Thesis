@@ -49,3 +49,22 @@ export const updateMembership = (id, countInWorkload) => request("put", `${timet
 export const deleteTimetable = (id) => request("delete", timetablePath(id));
 // A member removes themselves from a timetable shared with them.
 export const leaveTimetable = (id, userId) => request("delete", `${timetablePath(id)}/share/${encodeURIComponent(userId)}`);
+
+// A member's own layer over a timetable shared with them (a group's, or a friend's): what they take, hide or
+// keep their own version of. Every call answers { myClasses } (and the extras named below), and none of them
+// changes the shared timetable except publishMyClass. The week the server resolves is read again afterwards.
+const minePath = (scheduleId) => `${timetablePath(scheduleId)}/mine`;
+const minePathOf = (scheduleId, entryId) => `${minePath(scheduleId)}/classes/${encodeURIComponent(entryId)}`;
+
+// The join checklist: `taking` are the class ids they attend. Hides the rest and turns on Count in my week.
+export const setUpClasses = (scheduleId, taking) => request("put", `${minePath(scheduleId)}/setup`, { taking });
+// "I take this" ("follow") or "Not taking this" ("hidden"). Following a class they customized deletes their copy.
+export const chooseClass = (scheduleId, entryId, choice) => request("put", minePathOf(scheduleId, entryId), { choice });
+// "Customize mine": answers { scheduleId, entryId }, the copy now in their own timetable (the same copy on a retry).
+export const customizeClass = (scheduleId, entryId) => request("post", `${minePathOf(scheduleId, entryId)}/customize`);
+// "Make it all mine": a copy of every class they still follow. Answers { customized }.
+export const customizeAllClasses = (scheduleId) => request("post", `${minePath(scheduleId)}/customize-all`);
+// Dismisses the notice on a customized class and keeps their version.
+export const keepMyClass = (scheduleId, entryId) => request("post", `${minePathOf(scheduleId, entryId)}/keep-mine`);
+// Editors only: their copy becomes the class for everyone (409 when the class moved since they customized it).
+export const publishMyClass = (scheduleId, entryId) => request("post", `${minePathOf(scheduleId, entryId)}/publish`);

@@ -1,5 +1,6 @@
 import { Chip } from "@/shared/ui";
 import ItemOpenButton from "@/features/details/ItemOpenButton";
+import { layerChip } from "./shared";
 import JoinLink from "./JoinLink";
 import { timeRange } from "./entryTime";
 
@@ -7,14 +8,17 @@ const KIND_CHIP = { exam: "Exam", event: "Event" };
 
 // One class, exam or event on a day: its time, title and room. Classes sit on their subject's tone
 // with a bar down the left edge; an exam has an outline and a chip. Join shows only when the entry
-// has a meeting link. `entry` comes from planDays (it carries `tone` and `hours`) and is on day `iso`; the
-// title opens its details window through `onOpen(entry, iso)`.
+// has a meeting link. A class of a timetable shared with the student also says what they chose for it
+// ("Not taking" dims it, "Yours" marks it as customized, Figma GW-6 383:3680). `entry` comes from planDays (it
+// carries `tone` and `hours`) and is on day `iso`; the title opens its details window through `onOpen(entry, iso)`.
 export default function EntryBlock({ entry, iso, onOpen }) {
   const isExam = entry.kind === "exam";
   const chip = KIND_CHIP[entry.kind];
+  const mine = layerChip(entry);
+  const hidden = entry.myChoice === "hidden";
   return (
     <li
-      className={`plan-entry item-row plan-entry--${isExam ? "exam" : entry.tone}`}
+      className={`plan-entry item-row plan-entry--${isExam ? "exam" : entry.tone} ${hidden ? "plan-entry--hidden" : ""}`.trim()}
       style={{ "--hours": entry.hours }}
     >
       {!isExam && <span className="plan-entry__bar" aria-hidden="true" />}
@@ -25,6 +29,7 @@ export default function EntryBlock({ entry, iso, onOpen }) {
         </p>
         {entry.location && <p className="plan-entry__time">{entry.location}</p>}
         {chip && <Chip tone={isExam ? "watch" : "neutral"} className="plan-entry__chip">{chip}</Chip>}
+        {mine && entry.myChoice !== "follow" && <Chip tone={mine.tone} className="plan-entry__chip">{mine.label}</Chip>}
         {entry.meetingUrl && <JoinLink entry={entry} />}
       </div>
     </li>

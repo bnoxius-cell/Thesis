@@ -202,6 +202,13 @@
     }
   }
 
+  /* ---- Class notices (GW-7 385:2980, phone 385:4094): the banners sit 12px apart ---- */
+  .group-notices {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
   /* ---- Group timetable card (GW-1 372:98, phone 373:1187) ---- */
   .group-tt {
     display: flex;
@@ -227,6 +234,10 @@
   }
   .group-tt__count {
     align-items: center;
+  }
+  .group-tt .group-tt__classes {
+    align-self: flex-start;
+    color: var(--accent);
   }
   .group-tt__tile {
     display: flex;
