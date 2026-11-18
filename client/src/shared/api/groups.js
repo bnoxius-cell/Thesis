@@ -85,3 +85,7 @@ export const updateGroupTask = (groupId, taskId, { changes, expected }) =>
 
 // Owner and admins: removes a task for everyone. 404 when it is already gone.
 export const deleteGroupTask = (groupId, taskId) => del(`/api/groups/${groupId}/tasks/${taskId}`);
+
+// Owner and admins: makes the group's timetable (titled with the group's name, not counted in anyone's week
+// until they switch it on): { timetable }, the same summary the plan carries. 409 when the group has one.
+export const createGroupTimetable = (groupId) => post(`/api/groups/${groupId}/timetable`);

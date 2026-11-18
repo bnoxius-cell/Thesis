@@ -22,11 +22,15 @@ function Row({ icon: Icon, title, hint, tone, onSelect }) {
 }
 
 // The More button beside the switcher (Figma D10). The owner renames, shares it to a group (a personal timetable
-// only: a group's own timetable is never posted as a card) or deletes; anyone else on the timetable can leave. `onChanged` reloads the lists; `onGone` sends the student back to My week.
+// only: a group's own timetable is never posted as a card) or deletes; anyone else on the timetable can leave.
+// A group's timetable can't be left or shared here (its people come from the group): its admins may rename it,
+// the group owner may also remove it, and everyone else gets no menu. `onChanged` reloads the lists; `onGone`
+// sends the student back to My week.
 export default function TimetableMenu({ timetable, userId, onChanged, onGone }) {
   const [dialog, setDialog] = useState(null); // "rename" | "delete" | "leave"
   const sharing = useShareToGroup();
   const owner = timetable.role === "owner";
+  const inGroup = Boolean(timetable.group);
   const close = () => setDialog(null);
 
   const renamed = (title) => {
@@ -40,6 +44,8 @@ export default function TimetableMenu({ timetable, userId, onChanged, onGone }) 
     onGone();
   };
 
+  if (inGroup && timetable.role === "viewer") return null;
+
   return (
     <>
       <Menu
@@ -49,14 +55,20 @@ export default function TimetableMenu({ timetable, userId, onChanged, onGone }) 
         menuClassName="timetable-menu__popover"
         trigger={(props) => <IconButton icon={MoreHorizontal} label="More for this timetable" {...props} />}
       >
-        {owner ? (
+        {owner || inGroup ? (
           <>
             <Row icon={Pencil} title="Rename timetable" hint="Change its name" onSelect={() => setDialog("rename")} />
-            {!timetable.group && (
+            {!inGroup && (
               <Row icon={Share} title="Share to a group" hint="Post a copy in a group chat" onSelect={() => sharing.open("timetable", timetable)} />
             )}
-            {!timetable.isMain && (
-              <Row icon={Trash2} tone="danger" title="Delete timetable" hint="Removes it for everyone on it" onSelect={() => setDialog("delete")} />
+            {owner && !timetable.isMain && (
+              <Row
+                icon={Trash2}
+                tone="danger"
+                title={inGroup ? "Remove group timetable" : "Delete timetable"}
+                hint="Removes it for everyone on it"
+                onSelect={() => setDialog("delete")}
+              />
             )}
           </>
         ) : (

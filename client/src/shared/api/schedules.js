@@ -43,6 +43,8 @@ export const deleteEntry = (scheduleId, entryId) => request("delete", entryPath(
 
 // Owner only. `fields` is any of { title, theme, countInWorkload, isMain, editorsCanShare }.
 export const updateTimetable = (id, fields) => request("put", timetablePath(id), fields);
+// Anyone but the owner: whether this shared timetable counts in their own week and workload.
+export const updateMembership = (id, countInWorkload) => request("put", `${timetablePath(id)}/membership`, { countInWorkload });
 // Owner only. The main timetable can't be deleted while the student has extra ones.
 export const deleteTimetable = (id) => request("delete", timetablePath(id));
 // A member removes themselves from a timetable shared with them.

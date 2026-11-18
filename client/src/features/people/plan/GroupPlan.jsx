@@ -5,18 +5,19 @@ import { useAuth } from "@/pages/authentication/AuthContext";
 import GroupUpcoming from "../GroupUpcoming";
 import GroupTaskDialog from "./GroupTaskDialog";
 import GroupTaskList from "./GroupTaskList";
+import GroupTimetableCard from "./GroupTimetableCard";
 import HereNow from "./HereNow";
 import useGroupPlan from "./useGroupPlan";
 import "./group-plan.css";
 
-// A group's Plan tab (Figma GW-1 to GW-4): who is here now, the group's tasks, and the deadlines shared in
-// chat. Admins (the plan's `editor` role) add, change, tick off and delete tasks; other members see all of
+// A group's Plan tab (Figma GW-1 to GW-4): who is here now, the group's tasks, its timetable, and the
+// deadlines shared in chat. Admins (the plan's `editor` role) add, change, tick off and delete tasks; other members see all of
 // it and change none of it. It stays live while open: other people's changes arrive within a few seconds,
 // and the others see who is editing which task. Mount it with the group id as its `key`.
 export default function GroupPlan({ group }) {
   const { userData } = useAuth();
   const [dialog, setDialog] = useState(null); // { task } where task is undefined for a new one
-  const { plan, status, error, presence, reload, applyTask, dropTask, setDone } = useGroupPlan(group._id, {
+  const { plan, status, error, presence, reload, applyTask, dropTask, applyTimetable, setDone } = useGroupPlan(group._id, {
     editingId: dialog?.task?._id ?? null,
   });
 
@@ -65,6 +66,13 @@ export default function GroupPlan({ group }) {
           onAdd={() => setDialog({})}
           onEdit={(task) => setDialog({ task })}
           onToggle={setDone}
+        />
+        <GroupTimetableCard
+          groupId={group._id}
+          timetable={plan.timetable}
+          canEdit={canEdit}
+          onChanged={applyTimetable}
+          onReload={reload}
         />
         <GroupUpcoming groupId={group._id} />
       </>
