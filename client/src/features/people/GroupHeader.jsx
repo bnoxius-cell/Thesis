@@ -5,14 +5,14 @@ import PeopleAvatar from "./PeopleAvatar";
 
 const memberLabel = (count) => `${count} ${count === 1 ? "member" : "members"}`;
 
-// The open group's head: its icon, name and member count, and the Chat | Upcoming tabs (the
-// address says which: ?tab=upcoming). On a wide screen the name is an h2 under the page's h1; on a
+// The open group's head: its icon, name and member count, and the Chat | Plan tabs (the
+// address says which: ?tab=plan). On a wide screen the name is an h2 under the page's h1; on a
 // phone this is the whole screen's top bar, so the name is the h1 and a back arrow leads to the list.
 export default function GroupHeader({ group, tab, desktop, onInfo }) {
   const base = `/people/groups/${group._id}`;
   const tabs = [
     { value: "chat", label: "Chat", to: base, id: "people-group-tab-chat", panelId: "people-group-panel" },
-    { value: "upcoming", label: "Upcoming", to: `${base}?tab=upcoming`, id: "people-group-tab-upcoming", panelId: "people-group-panel" },
+    { value: "plan", label: "Plan", to: `${base}?tab=plan`, id: "people-group-tab-plan", panelId: "people-group-panel" },
   ];
   return (
     <header className="people-head">

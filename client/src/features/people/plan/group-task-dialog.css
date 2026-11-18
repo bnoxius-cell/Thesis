@@ -1,0 +1,141 @@
+/* New and Edit group task, and the "deleted" view (Figma GW-3: desktop 374:662, 374:923, 374:1202; phone sheets
+   374:1433, 374:1592, 374:1755). The shell, fields and pickers come from Modal, Field and SelectButton. */
+@layer pages {
+  @media (min-width: 720px) {
+    .ui-modal.group-task-dialog .ui-modal__body {
+      gap: 20px;
+    }
+  }
+
+  /* Course and Due date side by side from 720px; the three pickers in a row, two and one on a phone. */
+  .group-task-form__pair,
+  .group-task-form__trio {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .group-task-form__trio {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .group-task-form__trio > :last-child {
+    grid-column: 1 / -1;
+  }
+  @media (min-width: 720px) {
+    .group-task-form__pair {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .group-task-form__trio {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .group-task-form__trio > :last-child {
+      grid-column: auto;
+    }
+  }
+  .group-task-dialog textarea.ui-field__control {
+    min-height: 48px;
+  }
+
+  /* A notice at the top: the conflict, and the deleted task. Watch tone, as drawn. */
+  .group-task-dialog__note {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    margin: 0;
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    background: var(--watch-soft);
+    color: var(--text-primary);
+    font: 400 var(--text-sm) / 20px var(--font-ui);
+  }
+  .group-task-dialog__note svg {
+    flex: none;
+    color: var(--watch);
+  }
+  .group-task-dialog__note span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* "Ana has this task open too." */
+  .group-task-dialog__others {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .group-task-dialog__faces {
+    display: flex;
+    flex: none;
+  }
+  .group-task-dialog__face {
+    --people-avatar: 28px;
+    --people-avatar-font: var(--text-xs);
+    border: 2px solid var(--surface);
+  }
+  .group-task-dialog__face + .group-task-dialog__face {
+    margin-left: -8px;
+  }
+
+  /* A field someone else changed first: outlined and noted in the watch tone until it is edited. */
+  .ui-field.is-conflict .ui-field__control,
+  .ui-field.is-conflict .ui-select {
+    border-color: var(--watch);
+    box-shadow: 0 0 0 1px var(--watch);
+  }
+  .ui-field.is-conflict .ui-field__hint {
+    color: var(--watch);
+  }
+
+  /* What the student had, in the deleted view. */
+  .group-task-dialog__ghost {
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+    background: var(--accent-soft);
+  }
+  .group-task-dialog__ghost-title,
+  .group-task-dialog__ghost-meta {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .group-task-dialog__ghost-title {
+    color: var(--text-secondary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+    text-decoration: line-through;
+  }
+  .group-task-dialog__ghost-meta {
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+
+  .group-task-dialog__error {
+    margin: 0;
+    color: var(--danger);
+    font: 500 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+  }
+
+  /* Delete task sits at the left of the buttons. On a phone Save is on top, then Delete beside Cancel. */
+  .group-task-dialog__delete {
+    margin-right: auto;
+  }
+  @media (max-width: 719.98px) {
+    .ui-modal--sheet.group-task-dialog--editing .ui-modal__actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-areas:
+        "save save"
+        "delete cancel";
+    }
+    .group-task-dialog--editing .group-task-dialog__save {
+      grid-area: save;
+    }
+    .group-task-dialog--editing .group-task-dialog__delete {
+      grid-area: delete;
+      margin-right: 0;
+    }
+    .group-task-dialog--editing .group-task-dialog__cancel {
+      grid-area: cancel;
+    }
+  }
+}

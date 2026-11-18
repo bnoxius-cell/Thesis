@@ -39,7 +39,7 @@ export const taskFormFrom = (task, subjectId = NO_SUBJECT) => ({
   description: task.description || "",
 });
 
-const clean = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
+export const clean = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 
 // With NEW_SUBJECT picked it sends `newSubject` (the name) instead of `subject`; the server makes the subject.
 export const taskPayload = (form) => ({
