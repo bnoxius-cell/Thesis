@@ -6,11 +6,11 @@ import { taskMeta } from "./groupTaskForm";
 
 // One group task (Figma GW-1 rows): the done box, title, course and size and due date (or who finished
 // it), a chip ("Ana is editing", else how soon it is due), and the edit pencil. A member who can't change
-// the plan gets a plain status mark in place of the box and no pencil. `editors` are the names of the
-// people who have this task's dialog open right now.
+// the plan gets a plain status mark in place of the box and no pencil. `editors` are the people (`{ name }`) who have
+// this task's dialog open right now.
 export default function GroupTaskRow({ task, canEdit, editors, myId, now, onToggle, onEdit }) {
   const note = task.isCompleted ? null : dueNote(task, now);
-  const chip = editors.length > 0 ? { label: editingLine(editors), tone: "accent" } : note;
+  const chip = editors.length > 0 ? { label: editingLine(editors.map((person) => person.name)), tone: "accent" } : note;
   const Status = task.isCompleted ? CircleCheck : Circle;
 
   return (
