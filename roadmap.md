@@ -4,11 +4,13 @@ The only list of open work, in order (reorganized 2026-11-14). Owner priority #1
 
 Every batch: branch off `main`, builder runs `npm test` in `server/` and `npm run build` in `client/`, tester after, merge. "Start" is the builder to start with; step up only after a failed test. "Figma" means the frame is drawn (design skills loaded) and approved by the owner before the builder starts. Every push to `production` needs a What's new note first.
 
-## PRIORITY NOW (owner 2026-11-17): three features before the defense
+## PRIORITY NOW (owner 2026-11-17): three features, plus P4 task page and P5 account deletion (added 2026-11-18), before the defense
 Everything else in this file is pushed back until after the defense. Plan: `.claude/docs/plans/40-group-collab-sharing-rollover-plan.md` (being written; batches and order go here once the owner answers its open decisions).
 - **P1. Group workspace with live editing:** a group gets a shared schedule and shared tasks; any member (by role) edits a task and it changes for the whole group, like live editing in Google Docs.
 - **P2. Share everything into a group:** tasks, schedules, courses (subjects), reviewers, flashcards, and files. A file sent in the chat can be downloaded to the device, or saved into the receiver's own StressCare storage. Folds in `next-prompt.md` (chat sharing, CH2 to CH7).
 - **P3. New-semester schedule editing:** a fast way to replace or roll over the schedule with new courses when the semester ends.
+- **P4. Task page: one page per task** (owner 2026-11-18, moved up from E4 below; build now, before the defense). Full spec is E4 item 13f. Order: planner run, Figma frames approved, builder-sonnet. Answer the open question at planning time (does "View task" replace "Open in Tasks" or do both exist).
+- **P5. Account deletion** (owner 2026-11-18, pulled out of group J item 28; build now). A signed-in user can delete their account and data from Settings: confirm with `ConfirmDialog` and their password or Google re-check, then remove their tasks, schedules, check-ins, files in storage, group memberships (hand over or remove groups they solely own), push subscriptions and notifications, then sign them out. Planner first (what is deleted vs anonymised, shared items others still use, group ownership), Figma frame for the Settings section and confirm step, then builder-sonnet high, code-reviewer before merge (auth and other users' data). Needs a Privacy line, so bump `LEGAL_VERSION` and `LEGAL_UPDATED`. Tests: data really gone, other users' shared data untouched, wrong password refused. The rest of group J (user-lookup leaks, rate limits, session invalidation, Terms re-accept) stays after the defense.
 - Already built and merged stays: nothing below gets deleted. Only unfinished items wait. Frames already drawn (F38, F39, plan 34, plan 35) keep their Figma nodes for later.
 
 ## PUSHED BACK UNTIL AFTER THE DEFENSE (owner 2026-11-17): the whole list below, groups A to L, E3 and E4 included
@@ -46,7 +48,7 @@ Each group is one feature area, so a builder (and a Figma sitting) touches the s
 13d. **P1 util DONE 2026-11-15 (merged `main` 5e0cd9b, `client/src/utils/patterns.js`, 15 tests, nothing calls it yet); frame F39-5 DRAWN, awaiting owner approval; next P2, then L1 Privacy lines.** Passive behaviour signals: add signals StressCare already has to the workload picture, next to the self-reported scores: overdue tasks piling up, deadlines clustering at the last minute, a spike in reviewer generation right before exams, late-night app use. Planner first (what counts, thresholds, privacy: late-night activity needs a Privacy line and a `LEGAL_VERSION` bump). Shares the maths with 13a and 13b (`computeWorkload`, `weekReasons`), so plan the three together. Show these as "patterns we noticed", not a stress score.
 13e. Thesis write-up: add her strengths and these two recommendations to `docs/reviewer-report.md` or the evaluation chapter, and record how each was answered.
 
-**E4. Task page: one page per task** (owner 2026-11-15; needs a planner run and Figma frames first, then builder-sonnet; goes before F)
+**E4. Task page: one page per task** (MOVED TO NOW as P4, owner 2026-11-18; spec stays here; owner 2026-11-15; needs a planner run and Figma frames first, then builder-sonnet; goes before F)
 13f. Today a task only has the details window (`features/details/TaskDetails.jsx`). Its button "Open in Tasks" (`itemLinks.js` `taskHref`) just goes to `/plan?view=tasks&task=<id>` and highlights a row in the list, so there is nowhere to read a long description. Build a real page for one task, for example `/plan/tasks/:taskId`.
 - **Opening it:** the window opened from Home, Plan (week, month, Tasks list), a subject page, search and notifications gets a clear "View task" button that goes to the page. `taskHref` points at the page, so search, the Add toast and "Open task" on the Next step and Why cards land there too. The old `?task=` link keeps working (redirect).
 - **What the page shows:** title and subject chip first, then due date and time, effort, importance, status, then the full description in a readable column (line breaks kept, links clickable, no clipping), then anything else the task has (subject link, created and done dates). Key info first, long text below it.
@@ -79,7 +81,7 @@ Question for the owner at planning time: should the window's "View task" replace
 27. Subject covers phase 1 (plan 28 SC1 to SC3, `feature/subject-covers`, SC1 builder-haiku medium, SC2 and SC3 builder-sonnet low).
 
 **J. Account and trust** (`feature/` per item, builder-sonnet high, code-reviewer before merge; no plan written yet)
-28. Auth hardening: user-lookup leaks (send-reset-otp, reset-password, login, register say "User not found"), server rate limit and resend cooldown, old sessions survive a password change, 180s vs 60s resend cooldown. Then account deletion, then the Terms re-accept screen (first-time users and users who agreed to the previous terms differ; needs a Figma look, uses `LEGAL_VERSION`).
+28. Auth hardening: user-lookup leaks (send-reset-otp, reset-password, login, register say "User not found"), server rate limit and resend cooldown, old sessions survive a password change, 180s vs 60s resend cooldown. Account deletion moved to NOW as P5 (2026-11-18). Then the Terms re-accept screen (first-time users and users who agreed to the previous terms differ; needs a Figma look, uses `LEGAL_VERSION`).
 
 **K. Organize tasks**
 29. Concept only, see `to-build-after-thesis-defense.md`.
