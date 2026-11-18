@@ -418,7 +418,7 @@
     font: 500 var(--text-sm) / 20px var(--font-ui);
   }
   /* Too narrow for two time inputs side by side without clipping "09:30 AM". */
-  @media (max-width: 359px) {
+  @media (max-width: 399px) {
     .term-time__row {
       grid-template-columns: minmax(0, 1fr);
       grid-template-areas:
@@ -444,8 +444,10 @@
       width: 40px;
       padding: 0;
     }
+    /* The days column is `auto`, so on a laptop the circles keep a fixed 40px instead of shrinking to nothing. */
     .term-time__days .ui-weekday {
-      flex-basis: 40px;
+      flex: 0 0 40px;
+      width: 40px;
     }
     /* The columns name themselves, so the labels and Remove's words stay for screen readers only. */
     .term-time__row > .ui-field > .ui-field__label,
