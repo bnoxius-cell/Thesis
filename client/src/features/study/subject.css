@@ -267,7 +267,7 @@
   }
   /* The 36px buttons keep their look and get a 44px hit area (a little wider too, inside the 8px gap). */
   .class-time__actions .ui-btn::after {
-    inset: -4px;
+    inset: -5px;
   }
   .class-time__delete {
     color: var(--danger);

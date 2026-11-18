@@ -223,7 +223,7 @@ export default function EntryFormDialog({ kind, subjects, fixedSubject = null, t
         </Field>
       )}
       {weekly ? (
-        <Field label="Repeats on" error={errors.days}>
+        <Field label="Repeats on" hint="These days share one time. For a different time on another day, add another class time." error={errors.days}>
           {({ labelId }) => <WeekdayPicker labelId={labelId} value={form.days} onChange={set("days")} />}
         </Field>
       ) : (
