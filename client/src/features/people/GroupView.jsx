@@ -7,7 +7,7 @@ import PinnedNote from "./chat/PinnedNote";
 import MessageList from "./chat/MessageList";
 import GroupHeader from "./GroupHeader";
 import GroupInfoDialog from "./GroupInfoDialog";
-import GroupUpcoming from "./GroupUpcoming";
+import GroupPlan from "./plan/GroupPlan";
 import GroupNotFound from "./GroupNotFound";
 import useGroupChat from "./useGroupChat";
 import "./people-group.css";
@@ -15,8 +15,8 @@ import "./people-group.css";
 // A long group name would wrap the placeholder and grow the box.
 const shortName = (name) => (name.length > 16 ? `${name.slice(0, 15)}…` : name);
 
-// One open group: its head, then the chat or the Upcoming tab. The chat keeps polling behind
-// Upcoming, so coming back to Chat finds it up to date. Mount it with the group id as its `key`.
+// One open group: its head, then the chat or the Plan tab. The chat keeps polling behind
+// Plan, so coming back to Chat finds it up to date. Mount it with the group id as its `key`.
 // `desktop` picks the wide layout (the name is an h2 under the page's h1) or the phone screen.
 export default function GroupView({ group, tab, desktop, onChanged }) {
   const navigate = useNavigate();
@@ -47,8 +47,8 @@ export default function GroupView({ group, tab, desktop, onChanged }) {
         id="people-group-panel"
         aria-labelledby={`people-group-tab-${tab}`}
       >
-        {tab === "upcoming" ? (
-          <GroupUpcoming groupId={group._id} />
+        {tab === "plan" ? (
+          <GroupPlan group={group} />
         ) : (
           <>
             <PinnedNote pinned={group.pinned} />

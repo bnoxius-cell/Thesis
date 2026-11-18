@@ -59,3 +59,29 @@ export const removeAdmin = (groupId, userId) => del(`/api/groups/${groupId}/admi
 
 // Owner and admins: removes a regular member (an admin can't remove another admin).
 export const removeMember = (groupId, userId) => del(`/api/groups/${groupId}/members/${userId}`);
+
+// The group's plan: { role, tasks, timetable, myClasses, serverTime }. `role` is "editor" (owner and admins) or
+// "viewer". Each task has title, course, description, dueDate, hours, difficulty, importance, isCompleted,
+// completedAt and createdBy, updatedBy and completedBy as { _id, name } (or null).
+export const fetchGroupPlan = (groupId) => get(`/api/groups/${groupId}/plan`);
+
+// What the plan screen polls: { planAt, timetableAt, presence }. `planAt` moves whenever the plan changes;
+// `presence` is [{ userId, editing }] for the other members who have it open, `editing` the id of the task
+// they have a dialog open on (or null). Passing `editingId` tells the others the caller is editing that task.
+export const fetchPlanStamp = (groupId, editingId) =>
+  get(`/api/groups/${groupId}/plan/stamp${editingId ? `?editing=${editingId}` : ""}`);
+
+// Owner and admins: adds a task. `fields` is { title, course?, description?, dueDate: "YYYY-MM-DD", hours?,
+// difficulty?, importance? }: { task }. A family-friendly group refuses words that don't pass with
+// `code: "family_filter"`.
+export const createGroupTask = (groupId, fields) => post(`/api/groups/${groupId}/tasks`, fields);
+
+// Owner and admins: changes only the fields in `changes`, each checked against what it was when the form
+// opened (`expected`, the same keys). 200 { task } when saved; 409 with `body: { task, conflicts }` when
+// someone changed one of those fields to something else first (`conflicts` names them, `task` is theirs);
+// 404 once the task has been deleted.
+export const updateGroupTask = (groupId, taskId, { changes, expected }) =>
+  patch(`/api/groups/${groupId}/tasks/${taskId}`, { changes, expected });
+
+// Owner and admins: removes a task for everyone. 404 when it is already gone.
+export const deleteGroupTask = (groupId, taskId) => del(`/api/groups/${groupId}/tasks/${taskId}`);

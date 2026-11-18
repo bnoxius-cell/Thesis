@@ -16,14 +16,14 @@ const WIDE = "(min-width: 1024px)"; // where the sidebar appears and the two pan
 
 // People (Figma 64:2 desktop, 67:818 phone): Groups | Friends tabs, then the tab's body. The Groups
 // tab is the list and the open group's chat; /people/groups/:groupId opens that group, and
-// ?tab=upcoming its Upcoming tab. On a phone an open group is a screen of its own. The Friends tab
+// ?tab=plan its Plan tab (the old ?tab=upcoming opens it too). On a phone an open group is a screen of its own. The Friends tab
 // is FriendsPane.
 export default function PeoplePage({ tab = "groups" }) {
   const { groupId } = useParams();
   const [params] = useSearchParams();
   const desktop = useMediaQuery(WIDE);
   const groups = useGroups();
-  const groupTab = params.get("tab") === "upcoming" ? "upcoming" : "chat";
+  const groupTab = ["plan", "upcoming"].includes(params.get("tab")) ? "plan" : "chat";
   const { open } = useGlobalAdd();
   const onNewGroup = () => open("group");
   const onJoinGroup = () => open("join");

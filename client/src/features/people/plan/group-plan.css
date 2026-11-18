@@ -1,0 +1,204 @@
+/* A group's Plan tab (Figma GW-1 desktop 372:98, phone 373:1187; member 373:225; empty 373:582 and 373:889):
+   the panel scrolls inside the group's card, one column of sections 24px apart. */
+@layer pages {
+  .group-plan {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-height: 0;
+    padding: var(--space-5);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  @media (max-width: 1023px) {
+    .group-plan {
+      padding: var(--space-4) max(var(--space-4), env(safe-area-inset-right))
+        calc(var(--space-6) + env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
+    }
+  }
+  .group-plan__loading {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .group-plan__skeleton {
+    flex: none;
+    border-radius: var(--radius-lg);
+  }
+  .group-plan__failed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    color: var(--text-secondary);
+    font: 400 var(--text-sm) / var(--text-sm-lh) var(--font-ui);
+  }
+  .group-plan__failed p {
+    max-width: 40ch;
+    margin: 0;
+  }
+
+  /* ---- Here now ---- */
+  .group-here {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 28px;
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .group-here__faces {
+    display: flex;
+    flex: none;
+  }
+  .group-here__face {
+    --people-avatar: 28px;
+    --people-avatar-font: var(--text-xs);
+    border: 2px solid var(--surface);
+    transition: opacity var(--dur-2) var(--ease-out);
+    @starting-style {
+      opacity: 0;
+    }
+  }
+  .group-here__face + .group-here__face {
+    margin-left: -8px;
+  }
+
+  /* ---- A section: its title block (and the Add task button beside it), then its body ---- */
+  .group-tasks,
+  .group-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+  .group-section__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .group-section__titles {
+    display: flex;
+    flex: 1 1 12rem;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .group-section__title {
+    margin: 0;
+    color: var(--text-primary);
+    font: 600 var(--text-lg) / 26px var(--font-ui);
+  }
+  .group-section__sub {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  /* The phone puts Add task under the title, full width. */
+  @media (max-width: 639px) {
+    .group-tasks__add {
+      flex: 1 0 100%;
+    }
+  }
+
+  /* A member who can only look. */
+  .group-tasks__locked {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .group-tasks__locked svg {
+    flex: none;
+    color: var(--text-muted);
+  }
+
+  /* The dashed card for "no tasks yet". */
+  .group-plan__empty.ui-empty {
+    gap: var(--space-2);
+    padding: var(--space-5) var(--space-4);
+    border: 1px dashed var(--border-input);
+    border-radius: var(--radius-xl);
+  }
+  .group-plan__empty .ui-empty__title {
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+  }
+
+  /* ---- Task rows ---- */
+  .group-tasks__rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .group-task {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 14px var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+  }
+  .group-task__status {
+    flex: none;
+    color: var(--border-input);
+  }
+  .group-task.is-done .group-task__status {
+    color: var(--good);
+  }
+  /* The title block and the chip: side by side from 640px, the chip under the text on a phone. */
+  .group-task__body {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+  @media (min-width: 640px) {
+    .group-task__body {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+    }
+  }
+  .group-task__text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .group-task__title,
+  .group-task__meta {
+    margin: 0;
+  }
+  .group-task__title {
+    color: var(--text-primary);
+    font: 600 var(--text-sm) / 20px var(--font-ui);
+  }
+  .group-task__meta {
+    margin-top: 2px;
+    color: var(--text-secondary);
+    font: 400 var(--text-xs) / 18px var(--font-ui);
+  }
+  .group-task.is-done .group-task__title {
+    color: var(--text-secondary);
+    text-decoration: line-through;
+  }
+  .group-task__chip {
+    flex: none;
+    transition: opacity var(--dur-2) var(--ease-out);
+    @starting-style {
+      opacity: 0;
+    }
+  }
+}
