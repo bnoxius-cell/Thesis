@@ -194,6 +194,7 @@ export const publishClass = async (req, res) => {
 };
 
 const EDITORS_ONLY = 'Only the people who edit this timetable can decide a proposal.';
+const ALREADY_CLOSED = 'This proposal was already closed.';
 const canDecide = (role) => role === 'owner' || role === 'editor';
 
 // POST /:scheduleId/mine/classes/:entryId/propose
@@ -246,7 +247,7 @@ const loadProposal = async (req, res, { decider }) => {
         return null;
     }
     if (proposal.status !== 'open') {
-        fail(res, 409, 'This proposal was already closed.');
+        fail(res, 409, ALREADY_CLOSED);
         return null;
     }
     if (!allowWrite(req, res)) return null;
@@ -260,7 +261,8 @@ export const approveClassProposal = async (req, res) => {
     try {
         const loaded = await loadProposal(req, res, { decider: true });
         if (!loaded) return;
-        const { conflict } = await approveProposal(loaded.schedule, loaded.proposal, req.userId);
+        const { closed, conflict } = await approveProposal(loaded.schedule, loaded.proposal, req.userId);
+        if (closed) return fail(res, 409, ALREADY_CLOSED);
         if (conflict) return fail(res, 409, 'This class changed since it was proposed.');
         res.json({ success: true });
     } catch (error) {
@@ -274,7 +276,7 @@ export const declineClassProposal = async (req, res) => {
     try {
         const loaded = await loadProposal(req, res, { decider: true });
         if (!loaded) return;
-        if (!await declineProposal(loaded.schedule, loaded.proposal, req.userId)) return fail(res, 409, 'This proposal was already closed.');
+        if (!await declineProposal(loaded.schedule, loaded.proposal, req.userId)) return fail(res, 409, ALREADY_CLOSED);
         res.json({ success: true });
     } catch (error) {
         serverError(res, 'declineClassProposal error', error);
@@ -287,7 +289,7 @@ export const withdrawClassProposal = async (req, res) => {
     try {
         const loaded = await loadProposal(req, res, { decider: false });
         if (!loaded) return;
-        if (!await withdrawProposal(loaded.proposal)) return fail(res, 409, 'This proposal was already closed.');
+        if (!await withdrawProposal(loaded.proposal)) return fail(res, 409, ALREADY_CLOSED);
         res.json({ success: true });
     } catch (error) {
         serverError(res, 'withdrawClassProposal error', error);

@@ -1,5 +1,5 @@
-import classProposalModel from '../models/classProposalModel.js';
-import { baseOf, sameBase, readCopy, layerOf, applyToSharedClass, followAgain, closeProposals } from './classChoices.js';
+import classProposalModel, { closeProposals } from '../models/classProposalModel.js';
+import { baseOf, sameBase, readCopy, layerOf, applyToSharedClass, followAgain } from './classChoices.js';
 import { actorName, describeEntry } from './timetableChanges.js';
 import { notify } from './notify.js';
 import { timetableLink } from './appLinks.js';
@@ -48,7 +48,7 @@ export const openProposals = async (schedule, userId, canDecide) => {
 export const findProposal = (schedule, proposalId, extra = {}) => classProposalModel.findOne({ _id: proposalId, schedule: schedule._id, ...extra }).lean();
 
 // "Propose this time to the editors": the member's own copy of the class, as the shared class's new time.
-// Returns { proposal } or a refusal.
+// Returns { proposal } (proposer populated) or a refusal.
 export const proposeChange = async (userId, schedule, entry, choice) => {
     const copy = await readCopy(userId, choice);
     if (!copy) return refusal("You haven't customized this class.");
@@ -73,7 +73,7 @@ export const proposeChange = async (userId, schedule, entry, choice) => {
         title: `"${schedule.title}": a class change was proposed`,
         message: `${name} proposed a new time for ${describeEntry(entry)}.`,
     });
-    return { proposal };
+    return { proposal: await proposal.populate('proposer', 'name') };
 };
 
 // Closes an open proposal with a decision. Null when someone else got there first.
@@ -91,19 +91,35 @@ const tellProposer = async (schedule, proposal, deciderId, verdict) => tell({
     message: `${await actorName(deciderId)} ${verdict} your change to ${describeEntry(proposal)}.`,
 });
 
-// Approve: the proposed time becomes the class for everyone, as long as the class still is what the proposer
-// customized (two editors approving at once: the second finds it moved). Then the proposer follows the class
-// again, and hears about it. Returns { conflict: true } when the class moved or is gone.
+// Puts back a proposal this decider claimed but couldn't apply. If the proposer opened a new one on the class
+// meanwhile (only one may be open), this one closes as withdrawn instead.
+const reopen = async (proposalId, deciderId) => {
+    const claimed = { _id: proposalId, status: 'approved', decidedBy: deciderId };
+    try {
+        await classProposalModel.updateOne(claimed, { status: 'open', decidedBy: null, decidedAt: null });
+    } catch (error) {
+        if (error.code !== 11000) throw error;
+        await classProposalModel.updateOne(claimed, { status: 'withdrawn' });
+    }
+};
+
+// Approve: the proposal is claimed first, so a decline, a withdraw or a second approve at the same moment finds
+// it closed ({ closed: true }). Then the proposed time becomes the class for everyone, as long as the class still
+// is what the proposer customized; otherwise the claim is undone ({ conflict: true }). Then the proposer follows
+// the class again, and hears about it.
 export const approveProposal = async (schedule, proposal, deciderId) => {
+    if (!await decide(proposal._id, 'approved', deciderId)) return { closed: true };
     const entryId = String(proposal.entry);
     const proposer = String(proposal.proposer);
-    if (!await applyToSharedClass(schedule, deciderId, entryId, proposal.fields, proposal.base, [proposer])) return { conflict: true };
-    await decide(proposal._id, 'approved', deciderId);
+    if (!await applyToSharedClass(schedule, deciderId, entryId, proposal.fields, proposal.base, [proposer])) {
+        await reopen(proposal._id, deciderId);
+        return { conflict: true };
+    }
 
     const choice = (await layerOf(proposer, schedule)).byEntry.get(entryId);
     if (choice?.myChoice === 'custom') await followAgain(proposer, schedule, choice, entryId);
     await tellProposer(schedule, proposal, deciderId, 'approved');
-    return { conflict: false };
+    return { closed: false, conflict: false };
 };
 
 // Decline: the proposer keeps their own copy and hears about it. False when it was decided meanwhile.

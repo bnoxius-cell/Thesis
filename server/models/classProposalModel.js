@@ -28,4 +28,10 @@ classProposalSchema.index(
     { unique: true, partialFilterExpression: { status: 'open' } },
 );
 
-export default mongoose.models.classProposal || mongoose.model('classProposal', classProposalSchema);
+const classProposalModel = mongoose.models.classProposal || mongoose.model('classProposal', classProposalSchema);
+export default classProposalModel;
+
+// Open proposals matching `filter` close without a decision (the class went, the proposer stopped customizing it,
+// or they left the timetable). Here, not in the utils, so the subject cascade can use it without an import cycle.
+export const closeProposals = (filter) => classProposalModel
+    .updateMany({ ...filter, status: 'open' }, { status: 'withdrawn', decidedAt: new Date() });

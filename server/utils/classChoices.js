@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import classChoiceModel from '../models/classChoiceModel.js';
-import classProposalModel from '../models/classProposalModel.js';
+import classProposalModel, { closeProposals } from '../models/classProposalModel.js';
 import scheduleModel, { personalTimetables, MAX_ENTRIES } from '../models/scheduleModel.js';
 import { SUBJECT_LIMITS } from '../models/subjectModel.js';
 import { activeSubjects, courseKey, entrySubjectFor, matchesLabel } from './subjectMatch.js';
@@ -257,7 +257,8 @@ const removeCopy = async (userId, copy, entryId) => {
 };
 
 // "I take this" (follow) or "Not taking this" (hidden). Either one on a class the member customized deletes
-// their copy: "Use the group's", "Remove mine" once the group removed it, or not taking it at all.
+// their copy: "Use the group's", "Remove mine" once the group removed it, or not taking it at all. Either way the
+// member no longer has a time of their own for it, so their open proposal on it closes.
 export const setChoice = async (userId, schedule, layer, entryId, choice) => {
     const current = layer.byEntry.get(entryId);
     if (current?.myChoice === 'custom') await removeCopy(userId, current.copy, entryId);
@@ -265,11 +266,12 @@ export const setChoice = async (userId, schedule, layer, entryId, choice) => {
         scheduleId: schedule._id, userId, replace: [entryId], liveIds: entryIdsOf(schedule),
         add: choice === 'hidden' ? [{ entry: asId(entryId), choice: 'hidden', copy: null, base: null }] : [],
     });
+    await closeProposals({ schedule: schedule._id, entry: entryId, proposer: userId });
 };
 
 // The join checklist: every class not in `taking` is hidden (a customized one loses its copy), a hidden class in
-// it is followed again, and a customized class the member still takes stays theirs. Other kinds of entries keep
-// their choices.
+// it is followed again, and a customized class the member still takes stays theirs (with its open proposal; the
+// others' close). Other kinds of entries keep their choices.
 export const setUp = async (userId, schedule, layer, taking) => {
     const classIds = schedule.entries.filter((e) => e.kind === 'class').map((e) => String(e._id));
     const customized = (id) => layer.byEntry.get(id)?.myChoice === 'custom';
@@ -277,11 +279,12 @@ export const setUp = async (userId, schedule, layer, taking) => {
         await removeCopy(userId, layer.byEntry.get(id).copy, id);
     }
     const keep = new Set(classIds.filter((id) => taking.has(id) && customized(id)));
+    const replace = classIds.filter((id) => !keep.has(id));
     await writeChoices({
-        scheduleId: schedule._id, userId, liveIds: entryIdsOf(schedule), setupAt: new Date(),
-        replace: classIds.filter((id) => !keep.has(id)),
+        scheduleId: schedule._id, userId, liveIds: entryIdsOf(schedule), setupAt: new Date(), replace,
         add: classIds.filter((id) => !taking.has(id)).map((id) => ({ entry: asId(id), choice: 'hidden', copy: null, base: null })),
     });
+    await closeProposals({ schedule: schedule._id, entry: { $in: replace }, proposer: userId });
 };
 
 // "Keep mine": the notice goes away. On a class that moved, the member's copy now counts as customized from the
@@ -450,10 +453,6 @@ export const publishCopy = async (userId, schedule, layer, entryId) => {
 };
 
 // ---- Leaving -----------------------------------------------------------------------------------------------------
-
-// Open proposals matching `filter` close without a decision (the class went, or the proposer left the timetable).
-export const closeProposals = (filter) => classProposalModel
-    .updateMany({ ...filter, status: 'open' }, { status: 'withdrawn', decidedAt: new Date() });
 
 // A member is off a timetable (left, removed, or it went private): their choices and open proposals go. Copies
 // stay as their own classes.

@@ -9,6 +9,7 @@ import { notify } from '../utils/notify.js';
 import userModel from '../models/userModel.js';
 import subjectModel from '../models/subjectModel.js';
 import classChoiceModel from '../models/classChoiceModel.js';
+import { closeProposals } from '../models/classProposalModel.js';
 import { fetchPublicHolidays } from '../utils/holidays.js';
 import { buildWeekOverview, addDaysIso, findUpcomingExams } from '../utils/weekOverview.js';
 import groupModel from '../models/groupMode.js';
@@ -23,7 +24,7 @@ import { planNewSubject, createPlannedSubject, publicSubject } from './subjectCo
 import { ensureMainSchedule, mainScheduleOrNew } from '../utils/mainTimetable.js';
 import {
     hasLayer, choicesFor, layerOf, entryLayer, myClassesOf, applyChoices, customCounts, changeAudience,
-    forgetChoices, forgetTimetables, closeProposals,
+    forgetChoices, forgetTimetables,
 } from '../utils/classChoices.js';
 
 // A save that lost a race with another edit answers 409 so the page can reload, not a generic 500.

@@ -101,6 +101,10 @@ describe('proposing a time', () => {
         expect(res.body.proposal).toMatchObject({
             title: 'Web Systems', status: 'open', stale: false, fields: { startTime: '09:00', endTime: '11:00' },
         });
+        // The same shape as the list's.
+        expect(res.body.proposal.proposer).toEqual({ _id: cy.id, name: 'Cy' });
+        const [listed] = (await cy.get(`${base(timetable)}/proposals`)).body.proposals;
+        expect(listed.proposer).toEqual(res.body.proposal.proposer);
         expect(await messagesOf(alice)).toEqual(['Cy proposed a new time for "Web Systems".']);
         expect(await messagesOf(ann)).toEqual(['Cy proposed a new time for "Web Systems".']);
         expect(await linesOf(bob)).toEqual([]);
@@ -200,7 +204,7 @@ describe('approving', () => {
         expect(res.status).toBe(409);
         expect(res.body.message).toBe('This class changed since it was proposed.');
         expect((await sharedEntry(timetable, ids['Web Systems'])).startTime).toBe('10:00');
-        expect((await classProposalModel.findById(proposal._id)).status).toBe('open');
+        expect(await classProposalModel.findById(proposal._id).lean()).toMatchObject({ status: 'open', decidedBy: null, decidedAt: null });
         expect((await mainOf(cy)).entries.some((e) => String(e._id) === copy.entryId)).toBe(true);
 
         expect((await ann.post(onProposal(timetable, proposal._id, 'decline'))).status).toBe(200);
@@ -221,6 +225,46 @@ describe('approving', () => {
         const answers = await Promise.all([alice, ann].map((agent) => agent.post(onProposal(timetable, proposal._id, 'approve'))));
         expect(answers.map((r) => r.status).sort()).toEqual([200, 409]);
         expect((await sharedEntry(timetable, ids['Web Systems'])).startTime).toBe('09:00');
+    });
+});
+
+describe('approving while it is declined or withdrawn', () => {
+    // Cy proposes all three classes; then, for each, Ann approves at the same moment as `rival` closes it with
+    // `verb`. Exactly one of the two wins, and the class, Cy's copy and his inbox all agree with the record.
+    const race = async (verb, rival) => {
+        const people = await setup();
+        const { ann, cy, timetable, ids } = people;
+        const outcomes = [];
+        for (const { title } of CLASSES) {
+            const copy = await customizeAt(cy, timetable, ids, title);
+            const { proposal } = (await propose(cy, timetable, ids, title)).body;
+            await notificationModel.deleteMany({});
+
+            const [approve, other] = await Promise.all([
+                ann.post(onProposal(timetable, proposal._id, 'approve')),
+                people[rival].post(onProposal(timetable, proposal._id, verb)),
+            ]);
+            expect([approve.status, other.status].sort()).toEqual([200, 409]);
+            const approved = approve.status === 200;
+            const { status } = await classProposalModel.findById(proposal._id).lean();
+            expect(status).toBe(approved ? 'approved' : { decline: 'declined', withdraw: 'withdrawn' }[verb]);
+            expect((await sharedEntry(timetable, ids[title])).startTime).toBe(approved ? '09:00' : '08:00');
+            expect((await mainOf(cy)).entries.some((e) => String(e._id) === copy.entryId)).toBe(!approved);
+            outcomes.push({ title, approved, messages: await messagesOf(cy) });
+        }
+        return outcomes;
+    };
+
+    test('approve and decline at once: one wins, and Cy hears only that one', async () => {
+        for (const { title, approved, messages } of await race('decline', 'alice')) {
+            expect(messages).toEqual([approved ? `Ann approved your change to "${title}".` : `Alice declined your change to "${title}".`]);
+        }
+    });
+
+    test('approve and withdraw at once: one wins, and Cy hears of an approval only when it won', async () => {
+        for (const { title, approved, messages } of await race('withdraw', 'cy')) {
+            expect(messages).toEqual(approved ? [`Ann approved your change to "${title}".`] : []);
+        }
     });
 });
 
@@ -269,6 +313,41 @@ describe('closing proposals', () => {
         expect((await ann.post(onProposal(timetable, proposal._id, 'approve'))).status).toBe(409);
         const open = (await ann.get(`${base(timetable)}/proposals`)).body.proposals;
         expect(open.map((p) => p.title)).toEqual(['Networking']);
+    });
+
+    test('"Use the group\'s" and "Not taking this" close Cy\'s proposal on that class; Bob\'s stays open', async () => {
+        const { bob, cy, timetable, ids } = await setup();
+        await customizeAt(cy, timetable, ids, 'Web Systems');
+        await customizeAt(cy, timetable, ids, 'Networking', '10:00');
+        await customizeAt(bob, timetable, ids, 'Web Systems', '11:00');
+        const web = (await propose(cy, timetable, ids, 'Web Systems')).body.proposal._id;
+        const networking = (await propose(cy, timetable, ids, 'Networking')).body.proposal._id;
+        const bobs = (await propose(bob, timetable, ids, 'Web Systems')).body.proposal._id;
+
+        expect((await cy.put(onClass(timetable, ids['Web Systems'])).send({ choice: 'follow' })).status).toBe(200);
+        expect(await classProposalModel.findById(web)).toMatchObject({ status: 'withdrawn' });
+        expect(await classProposalModel.findById(networking)).toMatchObject({ status: 'open' });
+        expect(await classProposalModel.findById(bobs)).toMatchObject({ status: 'open' });
+
+        expect((await cy.put(onClass(timetable, ids.Networking)).send({ choice: 'hidden' })).status).toBe(200);
+        expect(await classProposalModel.findById(networking)).toMatchObject({ status: 'withdrawn' });
+        expect(await classProposalModel.findById(bobs)).toMatchObject({ status: 'open' });
+    });
+
+    test("the join checklist closes Cy's proposals on classes he no longer customizes, not on one he keeps", async () => {
+        const { bob, cy, timetable, ids } = await setup();
+        await customizeAt(cy, timetable, ids, 'Web Systems');
+        await customizeAt(cy, timetable, ids, 'Networking', '10:00');
+        await customizeAt(bob, timetable, ids, 'Networking', '11:00');
+        const kept = (await propose(cy, timetable, ids, 'Web Systems')).body.proposal._id;
+        const dropped = (await propose(cy, timetable, ids, 'Networking')).body.proposal._id;
+        const bobs = (await propose(bob, timetable, ids, 'Networking')).body.proposal._id;
+
+        const res = await cy.put(`${base(timetable)}/mine/setup`).send({ taking: [ids['Web Systems'], ids.Database] });
+        expect(res.status).toBe(200);
+        expect(await classProposalModel.findById(kept)).toMatchObject({ status: 'open' });
+        expect(await classProposalModel.findById(dropped)).toMatchObject({ status: 'withdrawn' });
+        expect(await classProposalModel.findById(bobs)).toMatchObject({ status: 'open' });
     });
 
     test('Cy leaving the group closes his open proposals', async () => {
@@ -374,5 +453,28 @@ describe('a timetable a friend shared', () => {
         expect((await sharedEntry(own, entryId)).startTime).toBe('09:00');
         expect((await mainOf(fay)).entries.some((e) => String(e._id) === copy.entryId)).toBe(false);
         expect(await messagesOf(fay)).toEqual(['Alice approved your change to "Web Systems".']);
+    });
+
+    test("Alice deleting her Web Systems subject closes Fay's proposal on that class; the one on Networking stays open", async () => {
+        const alice = await signUp('alice@student.fatima.edu.ph', 'Alice');
+        const fay = await signUp('fay@student.fatima.edu.ph', 'Fay');
+        await Friend.create({ user: alice.id, friend: fay.id, status: 'accepted' });
+        const own = (await alice.post('/api/schedules').send({ title: 'My classes' })).body.schedule;
+        for (const c of CLASSES.slice(0, 2)) await alice.post(`${base(own)}/entries`).send(classBody(c));
+        await alice.post(`${base(own)}/share`).send({ userId: fay.id, role: 'viewer' });
+        const ids = Object.fromEntries((await scheduleModel.findById(own._id).lean()).entries.map((e) => [e.title, String(e._id)]));
+
+        await customizeAt(fay, own, ids, 'Web Systems');
+        await customizeAt(fay, own, ids, 'Networking', '10:00');
+        const web = (await propose(fay, own, ids, 'Web Systems')).body.proposal._id;
+        const networking = (await propose(fay, own, ids, 'Networking')).body.proposal._id;
+
+        const { subject } = (await alice.post('/api/subjects').send({ name: 'Web Systems' })).body;
+        expect((await scheduleModel.findById(own._id).lean()).entries.find((e) => e.title === 'Web Systems').subject).toBeTruthy();
+        expect((await alice.delete(`/api/subjects/${subject._id}?files=keep`)).status).toBe(200);
+        expect(await sharedEntry(own, ids['Web Systems'])).toBeUndefined();
+        expect(await classProposalModel.findById(web)).toMatchObject({ status: 'withdrawn' });
+        expect(await classProposalModel.findById(networking)).toMatchObject({ status: 'open' });
+        expect((await alice.post(onProposal(own, web, 'approve'))).status).toBe(409);
     });
 });
