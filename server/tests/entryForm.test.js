@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import {
-    emptyEntryForm, entryFormFrom, entryPayload, entryErrors, entryStarted, linkError, clashNote, titleAfterSubject, subjectNameOf,
+    emptyEntryForm, entryFormFrom, entryPayload, entryErrors, entryStarted, linkError, clashNote, titleAfterSubject, subjectNameOf, classEditSubtitle,
 } from '../../client/src/utils/entryForm.js';
 import { NEW_SUBJECT } from '../../client/src/features/study/subjectForm.js';
 
@@ -174,6 +174,20 @@ describe('form helpers', () => {
         expect(titleAfterSubject('', '', 'Networking')).toBe('Networking');
         expect(titleAfterSubject('Networking', 'Networking', 'Web Systems')).toBe('Web Systems');
         expect(titleAfterSubject('My lab', 'Networking', 'Web Systems')).toBe('My lab');
+    });
+});
+
+describe('classEditSubtitle', () => {
+    const entry = { days: [4], date: '' };
+    test('names the days and the owner on a timetable shared with the student', () => {
+        expect(classEditSubtitle(entry, { role: 'editor', title: 'Study group', owner: { name: 'Jose' } }))
+            .toBe('Changes apply to every Thursday on Study group, Jose’s timetable.');
+        expect(classEditSubtitle({ days: [1, 3] }, { role: 'editor', title: 'Study group' }))
+            .toBe('Changes apply to every Monday and Wednesday on Study group.');
+    });
+    test('says nothing on your own timetable or for a one-day entry', () => {
+        expect(classEditSubtitle(entry, { role: 'owner', title: 'My 1st Sem' })).toBe('');
+        expect(classEditSubtitle({ days: [], date: '2026-11-20' }, { role: 'editor', title: 'x' })).toBe('');
     });
 });
 

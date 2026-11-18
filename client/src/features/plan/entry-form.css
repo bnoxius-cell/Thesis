@@ -45,6 +45,12 @@
     outline-offset: 0;
   }
 
+  /* The subject of a class time on someone else's timetable: shown, not picked (Figma CT-F1 427:310). */
+  .entry-dialog__locked .ui-field__control {
+    background: var(--surface-2);
+    cursor: default;
+  }
+
   .entry-dialog__notes .ui-field__hint {
     text-align: end;
   }

@@ -17,6 +17,7 @@ import {
   PREP_HOURS_MAX,
   REPEAT,
   clashNote,
+  classEditSubtitle,
   emptyEntryForm,
   entryErrors,
   entryFormFrom,
@@ -82,6 +83,7 @@ export default function EntryFormDialog({ kind, subjects, fixedSubject = null, t
   const ownsTimetable = !timetable || timetable.role === "owner";
   const inGroup = Boolean(timetable?.group); // a group's classes carry no subject: each member's is matched by name
   const bySubject = form.kind === "class" && !inGroup; // a class time: titled by its subject, no Title field
+  const lockedSubject = editing && bySubject && !ownsTimetable; // an editor sees the owner's subject, read-only
   const creatingSubject = form.subject === NEW_SUBJECT;
   const weekly = form.repeat === REPEAT.weekly && !exam;
   const label = form.kind === "class" ? "class time" : KIND_LABELS[form.kind].toLowerCase();
@@ -132,7 +134,7 @@ export default function EntryFormDialog({ kind, subjects, fixedSubject = null, t
   };
 
   let subtitle = "Adds to your main timetable.";
-  if (editing) subtitle = `On ${timetable.title}.`;
+  if (editing) subtitle = (form.kind === "class" && classEditSubtitle(entry, timetable)) || `On ${timetable.title}.`;
   else if (timetable) subtitle = `Adds to ${timetable.title}.`;
   else if (target) subtitle = `Adds to ${target.title}, your main timetable.`;
   else if (target === null) subtitle = "Adds to a new timetable called My timetable.";
@@ -163,6 +165,20 @@ export default function EntryFormDialog({ kind, subjects, fixedSubject = null, t
       className="entry-dialog__fixed"
       value={fixedSubject.name}
       hint="Adding to this subject. Its class times also show on its page."
+      readOnly
+    />
+  );
+  // An editor of someone else's timetable can't change the class time's subject (Figma CT-F1 427:310): it is the
+  // owner's. It reads as theirs on their own Subject page when the names match (the server did that match).
+  const ownerName = timetable?.owner?.name || "its owner";
+  const lockedSubjectField = lockedSubject && (
+    <Field
+      label="Subject"
+      className="entry-dialog__locked"
+      value={entry.title}
+      hint={`Set by ${ownerName}, who owns this timetable. ${
+        entry.subject ? `It shows on your ${entry.title} page because the names match.` : "It isn't one of your subjects."
+      }`}
       readOnly
     />
   );
@@ -212,8 +228,8 @@ export default function EntryFormDialog({ kind, subjects, fixedSubject = null, t
     >
       {bySubject && (
         <>
-          {fixedSubjectField || subjectField}
-          {!fixedSubject && newSubjectPanel}
+          {lockedSubjectField || fixedSubjectField || subjectField}
+          {!fixedSubject && !lockedSubject && newSubjectPanel}
         </>
       )}
       {exam && !inGroup && (
